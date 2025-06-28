@@ -133,13 +133,22 @@ model Request {
   // SEO Package info
   packageType   PackageType?
   
+  // Progress tracking (for current month)
+  pagesCompleted      Int      @default(0)
+  blogsCompleted      Int      @default(0)
+  gbpPostsCompleted   Int      @default(0)
+  improvementsCompleted Int    @default(0)
+  
   // SEO specific fields
   keywords      Json?     // Array of keywords
   targetUrl     String?
+  targetCities  Json?     // Array of target cities
+  targetModels  Json?     // Array of target models
   
-  // Completed content info
-  contentUrl    String?   // URL to published content
-  pageTitle     String?   // SEO title of content
+  // Completed content info  
+  completedTasks Json?    // Array of {title, url, type, completedAt}
+  contentUrl    String?   // Primary URL (deprecated, use completedTasks)
+  pageTitle     String?   // Primary title (deprecated, use completedTasks)
   
   // Progress tracking
   completedAt   DateTime?

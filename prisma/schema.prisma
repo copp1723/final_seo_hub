@@ -52,12 +52,6 @@ model User {
   // User's requests
   requests      Request[]
   
-  // User's deliverables
-  deliverables  Deliverable[]
-  
-  // User's time entries
-  timeEntries   TimeEntry[]
-  
   // Timestamps
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -157,47 +151,4 @@ model Request {
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
-}
-
-// Deliverable model for tracking individual content pieces
-model Deliverable {
-  id            String    @id @default(cuid())
-  
-  // User relationship
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  
-  // Content details
-  type          String    // page, blog, gbp_post
-  title         String
-  url           String?
-  status        RequestStatus @default(PENDING)
-  
-  // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  completedAt   DateTime?
-  
-  @@index([userId, status])
-  @@index([status, createdAt])
-}
-
-// Time tracking for internal use
-model TimeEntry {
-  id            String    @id @default(cuid())
-  
-  // User relationship
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  
-  // Time details
-  description   String
-  hours         Float
-  date          DateTime
-  
-  // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  @@index([userId, date])
 }

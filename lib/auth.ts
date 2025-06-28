@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
+import { UserRole } from '@prisma/client'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -17,22 +18,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    session: async ({ session, token }) => {
-      if (session?.user && token?.sub) {
-        const user = await prisma.user.findUnique({
-          where: { id: token.sub },
+    jwt: async ({ token, user, trigger }) => {
+      // On initial sign in, fetch user details once
+      if (user || trigger === 'signIn') {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user?.id || token.sub },
           select: {
             id: true,
             role: true,
             agencyId: true,
+            email: true,
+            name: true,
+            image: true,
           },
         })
 
-        if (user) {
-          session.user.id = user.id
-          session.user.role = user.role
-          session.user.agencyId = user.agencyId
+        if (dbUser) {
+          token.id = dbUser.id
+          token.role = dbUser.role
+          token.agencyId = dbUser.agencyId
+          token.email = dbUser.email
+          token.name = dbUser.name
+          token.image = dbUser.image
         }
+      }
+      return token
+    },
+    session: async ({ session, token }) => {
+      // Use token data instead of database lookup
+      if (session?.user && token) {
+        session.user.id = token.id as string
+        session.user.role = token.role as UserRole
+        session.user.agencyId = token.agencyId as string | null
+        session.user.email = token.email as string
+        session.user.name = token.name as string | null
+        session.user.image = token.image as string | null
       }
       return session
     },

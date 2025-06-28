@@ -7,13 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enums for type safety
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PackageType {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
 // Core user model for authentication
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
   image         String?
-  role          String    @default("user") // user, admin, super_admin
+  role          UserRole  @default(USER)
   
   // Multi-tenant relationship
   agencyId      String?
@@ -25,6 +51,12 @@ model User {
   
   // User's requests
   requests      Request[]
+  
+  // User's deliverables
+  deliverables  Deliverable[]
+  
+  // User's time entries
+  timeEntries   TimeEntry[]
   
   // Timestamps
   createdAt     DateTime  @default(now())
@@ -101,11 +133,11 @@ model Request {
   title         String
   description   String    @db.Text
   type          String    // page, blog, gbp_post, maintenance
-  priority      String    @default("medium") // low, medium, high
-  status        String    @default("pending") // pending, in_progress, completed
+  priority      RequestPriority @default(MEDIUM)
+  status        RequestStatus   @default(PENDING)
   
   // SEO Package info
-  packageType   String?   // SILVER, GOLD, PLATINUM
+  packageType   PackageType?
   
   // SEO specific fields
   keywords      Json?     // Array of keywords
@@ -125,4 +157,47 @@ model Request {
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
+}
+
+// Deliverable model for tracking individual content pieces
+model Deliverable {
+  id            String    @id @default(cuid())
+  
+  // User relationship
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  
+  // Content details
+  type          String    // page, blog, gbp_post
+  title         String
+  url           String?
+  status        RequestStatus @default(PENDING)
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+  
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+// Time tracking for internal use
+model TimeEntry {
+  id            String    @id @default(cuid())
+  
+  // User relationship
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  
+  // Time details
+  description   String
+  hours         Float
+  date          DateTime
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, date])
 }

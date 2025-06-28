@@ -1,9 +1,15 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { validateApiKey, errorResponse, successResponse } from '@/lib/api-auth'
+import { rateLimits } from '@/lib/rate-limit'
+import { RequestStatus } from '@prisma/client'
 
 // GET endpoint for testing connectivity
 export async function GET(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await rateLimits.webhook(request)
+  if (rateLimitResponse) return rateLimitResponse
+  
   const validation = validateApiKey(request, 'SEOWORKS_WEBHOOK_SECRET')
   if (!validation.valid) return validation.response
   
@@ -15,6 +21,10 @@ export async function GET(request: NextRequest) {
 
 // POST endpoint for receiving task updates
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = await rateLimits.webhook(request)
+  if (rateLimitResponse) return rateLimitResponse
+  
   const validation = validateApiKey(request, 'SEOWORKS_WEBHOOK_SECRET')
   if (!validation.valid) return validation.response
   
@@ -49,9 +59,17 @@ export async function POST(request: NextRequest) {
       return successResponse(null, 'Webhook received (no matching request found)')
     }
     
+    // Map external status to our enum
+    const statusMap: Record<string, RequestStatus> = {
+      'pending': RequestStatus.PENDING,
+      'in_progress': RequestStatus.IN_PROGRESS,
+      'completed': RequestStatus.COMPLETED,
+      'cancelled': RequestStatus.CANCELLED,
+    }
+    
     // Update request based on event type
     const updateData: any = {
-      status: data.status,
+      status: statusMap[data.status.toLowerCase()] || RequestStatus.PENDING,
       updatedAt: new Date(timestamp),
     }
     

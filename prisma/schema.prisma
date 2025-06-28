@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core user model for authentication
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  role          String    @default("user") // user, admin, super_admin
+  
+  // Multi-tenant relationship
+  agencyId      String?
+  agency        Agency?   @relation(fields: [agencyId], references: [id])
+  
+  // OAuth accounts
+  accounts      Account[]
+  sessions      Session[]
+  
+  // User's requests
+  requests      Request[]
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([email])
+  @@index([agencyId])
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+// Multi-tenant agency model
+model Agency {
+  id          String    @id @default(cuid())
+  name        String
+  domain      String?   @unique
+  
+  // Agency settings
+  settings    Json      @default("{}")
+  
+  // Relationships
+  users       User[]
+  requests    Request[]
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([domain])
+}
+
+// Main request model (formerly orders)
+model Request {
+  id            String    @id @default(cuid())
+  
+  // User relationship
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  
+  // Agency relationship
+  agencyId      String?
+  agency        Agency?   @relation(fields: [agencyId], references: [id])
+  
+  // Request details
+  title         String
+  description   String    @db.Text
+  type          String    // page, blog, gbp_post, maintenance
+  priority      String    @default("medium") // low, medium, high
+  status        String    @default("pending") // pending, in_progress, completed
+  
+  // SEO Package info
+  packageType   String?   // SILVER, GOLD, PLATINUM
+  
+  // SEO specific fields
+  keywords      Json?     // Array of keywords
+  targetUrl     String?
+  
+  // Completed content info
+  contentUrl    String?   // URL to published content
+  pageTitle     String?   // SEO title of content
+  
+  // Progress tracking
+  completedAt   DateTime?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, status])
+  @@index([agencyId, status])
+  @@index([status, createdAt])
+}

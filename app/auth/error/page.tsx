@@ -3,19 +3,20 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { PageLoading } from '@/components/ui/loading'
+
+const ERROR_MESSAGES: Record<string, string> = {
+  Configuration: 'There is a problem with the server configuration.',
+  AccessDenied: 'You do not have permission to sign in.',
+  Verification: 'The verification token has expired or has already been used.',
+  Default: 'An error occurred during authentication.',
+}
 
 function ErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
-  
-  const errorMessages: { [key: string]: string } = {
-    Configuration: 'There is a problem with the server configuration.',
-    AccessDenied: 'You do not have permission to sign in.',
-    Verification: 'The verification token has expired or has already been used.',
-    Default: 'An error occurred during authentication.',
-  }
-  
-  const message = errorMessages[error || 'Default'] || errorMessages.Default
+  const message = ERROR_MESSAGES[error || 'Default'] || ERROR_MESSAGES.Default
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -25,12 +26,9 @@ function ErrorContent() {
           <p className="mt-2 text-sm text-gray-600">{message}</p>
         </div>
         
-        <Link
-          href="/auth/signin"
-          className="block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Try Again
-        </Link>
+        <Button asChild className="w-full">
+          <Link href="/auth/signin">Try Again</Link>
+        </Button>
       </div>
     </div>
   )
@@ -38,7 +36,7 @@ function ErrorContent() {
 
 export default function AuthErrorPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<PageLoading />}>
       <ErrorContent />
     </Suspense>
   )

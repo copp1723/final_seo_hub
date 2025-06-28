@@ -1,56 +1,40 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
+  const authResult = await requireAuth()
+  if (!authResult.authenticated) return authResult.response
+  
   try {
-    const session = await auth()
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
     const requests = await prisma.request.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      where: { userId: authResult.user.id },
+      orderBy: { createdAt: 'desc' },
     })
     
-    return NextResponse.json({ requests })
+    return successResponse({ requests })
   } catch (error) {
     console.error('Error fetching requests:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch requests' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch requests', 500)
   }
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth()
+  if (!authResult.authenticated) return authResult.response
+  
   try {
-    const session = await auth()
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
     const body = await request.json()
     
     // Validate required fields
     if (!body.title || !body.description || !body.type) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+      return errorResponse('Missing required fields')
     }
     
     const newRequest = await prisma.request.create({
       data: {
-        userId: session.user.id,
-        agencyId: session.user.agencyId,
+        userId: authResult.user.id,
+        agencyId: authResult.user.agencyId,
         title: body.title,
         description: body.description,
         type: body.type,
@@ -62,12 +46,9 @@ export async function POST(request: NextRequest) {
       },
     })
     
-    return NextResponse.json({ request: newRequest })
+    return successResponse({ request: newRequest }, 'Request created successfully')
   } catch (error) {
     console.error('Error creating request:', error)
-    return NextResponse.json(
-      { error: 'Failed to create request' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to create request', 500)
   }
 }

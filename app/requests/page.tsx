@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { PackageType, RequestStatus } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -95,10 +96,12 @@ export default function RequestsPage() {
           <h1 className="text-2xl font-bold text-gray-900">SEO Requests</h1>
           <p className="text-sm text-gray-600 mt-1">Track your monthly SEO package progress</p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Request
-        </Button>
+        <Link href="/requests/new">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            New Request
+          </Button>
+        </Link>
       </div>
 
       {activeRequests.length === 0 ? (

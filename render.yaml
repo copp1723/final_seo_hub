@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: rylie-seo-hub
+    env: node
+    buildCommand: npm ci && npm run build && npx prisma generate && npx prisma migrate deploy
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rylie-seo-hub-db
+          property: connectionString
+      - key: NEXTAUTH_URL
+        fromService:
+          type: web
+          name: rylie-seo-hub
+          property: host
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: GA4_SERVICE_ACCOUNT_EMAIL
+        sync: false
+      - key: GA4_TOKEN_ENCRYPTION_KEY
+        generateValue: true
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: SEOWORKS_WEBHOOK_SECRET
+        generateValue: true
+
+databases:
+  - name: rylie-seo-hub-db
+    databaseName: rylie_seo_hub
+    user: rylie_seo_hub
+    plan: starter

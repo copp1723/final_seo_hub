@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums for type safety
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PackageType {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+// Core user model for authentication
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  role          UserRole  @default(USER)
+  
+  // Multi-tenant relationship
+  agencyId      String?
+  agency        Agency?   @relation(fields: [agencyId], references: [id])
+  
+  // OAuth accounts
+  accounts      Account[]
+  sessions      Session[]
+  
+  // User's requests
+  requests      Request[]
+  
+  // Google integrations
+  ga4Connection GA4Connection?
+  searchConsoleConnection SearchConsoleConnection?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([email])
+  @@index([agencyId])
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
+
+// Multi-tenant agency model
+model Agency {
+  id          String    @id @default(cuid())
+  name        String
+  domain      String?   @unique
+  
+  // Agency settings
+  settings    Json      @default("{}")
+  
+  // Relationships
+  users       User[]
+  requests    Request[]
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([domain])
+}
+
+// Main request model (formerly orders)
+model Request {
+  id            String    @id @default(cuid())
+  
+  // User relationship
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  
+  // Agency relationship
+  agencyId      String?
+  agency        Agency?   @relation(fields: [agencyId], references: [id])
+  
+  // Request details
+  title         String
+  description   String    @db.Text
+  type          String    // page, blog, gbp_post, maintenance
+  priority      RequestPriority @default(MEDIUM)
+  status        RequestStatus   @default(PENDING)
+  
+  // SEO Package info
+  packageType   PackageType?
+  
+  // Progress tracking (for current month)
+  pagesCompleted      Int      @default(0)
+  blogsCompleted      Int      @default(0)
+  gbpPostsCompleted   Int      @default(0)
+  improvementsCompleted Int    @default(0)
+  
+  // SEO specific fields
+  keywords      Json?     // Array of keywords
+  targetUrl     String?
+  targetCities  Json?     // Array of target cities
+  targetModels  Json?     // Array of target models
+  
+  // Completed content info  
+  completedTasks Json?    // Array of {title, url, type, completedAt}
+  contentUrl    String?   // Primary URL (deprecated, use completedTasks)
+  pageTitle     String?   // Primary title (deprecated, use completedTasks)
+  
+  // Progress tracking
+  completedAt   DateTime?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, status])
+  @@index([agencyId, status])
+  @@index([status, createdAt])
+}
+
+// GA4 Integration
+model GA4Connection {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Encrypted tokens
+  accessToken       String    @db.Text
+  refreshToken      String?   @db.Text
+  expiresAt         DateTime?
+  
+  // GA4 specific
+  propertyId        String?
+  propertyName      String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// Search Console Integration
+model SearchConsoleConnection {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Encrypted tokens
+  accessToken       String    @db.Text
+  refreshToken      String?   @db.Text
+  expiresAt         DateTime?
+  
+  // Search Console specific
+  siteUrl           String?
+  siteName          String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}

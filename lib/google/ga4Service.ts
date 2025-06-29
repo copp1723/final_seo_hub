@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { decrypt } from '@/lib/encryption';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 interface RunReportOptions {
   propertyId: string;
@@ -13,7 +13,7 @@ interface RunReportOptions {
 }
 
 export class GA4Service {
-  private analyticsData;
+  private analyticsData: any;
   private userId: string;
 
   constructor(userId: string) {
@@ -29,9 +29,9 @@ export class GA4Service {
       throw new Error('No GA4 connection found for user');
     }
 
-    const accessToken = decrypt(token.encryptedAccessToken);
-    const refreshToken = token.encryptedRefreshToken 
-      ? decrypt(token.encryptedRefreshToken) 
+    const accessToken = decrypt(connection.accessToken);
+    const refreshToken = connection.refreshToken 
+      ? decrypt(connection.refreshToken) 
       : undefined;
 
     const oauth2Client = new google.auth.OAuth2(

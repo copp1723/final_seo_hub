@@ -36,35 +36,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=Server configuration error`)
     }
 
-    // Encrypt and store tokens
-    const crypto = require('crypto')
-    const algorithm = 'aes-256-cbc'
-    const key = Buffer.from(process.env.ENCRYPTION_KEY, 'hex')
-    
-    const encryptToken = (token: string) => {
-      const iv = crypto.randomBytes(16)
-      const cipher = crypto.createCipheriv(algorithm, key, iv)
-      let encrypted = cipher.update(token, 'utf8', 'hex')
-      encrypted += cipher.final('hex')
-      return iv.toString('hex') + ':' + encrypted
-    }
+    // Import encryption function
+    const { encrypt } = await import('@/lib/encryption')
 
-    await prisma.userGA4Token.upsert({
+    await prisma.gA4Connection.upsert({
       where: { userId: state },
       create: {
         userId: state,
-        encryptedAccessToken: encryptToken(tokens.access_token),
-        encryptedRefreshToken: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
-        expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        scope: tokens.scope || null,
-        tokenType: tokens.token_type || null,
+        accessToken: encrypt(tokens.access_token),
+        refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
       },
       update: {
-        encryptedAccessToken: encryptToken(tokens.access_token),
-        encryptedRefreshToken: tokens.refresh_token ? encryptToken(tokens.refresh_token) : null,
-        expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        scope: tokens.scope || null,
-        tokenType: tokens.token_type || null,
+        accessToken: encrypt(tokens.access_token),
+        refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
       },
     })
 

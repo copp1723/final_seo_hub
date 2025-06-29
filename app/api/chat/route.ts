@@ -4,10 +4,18 @@ import { rateLimits } from '@/lib/rate-limit'
 import { OpenAI } from 'openai'
 import { SEO_KNOWLEDGE_BASE } from '@/lib/seo-knowledge'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-})
+// Lazy initialize to avoid build errors
+let openai: OpenAI | null = null
+
+function getOpenAI() {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY || '',
+      baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+    })
+  }
+  return openai
+}
 
 export async function POST(request: NextRequest) {
   // Apply rate limiting
@@ -45,7 +53,7 @@ export async function POST(request: NextRequest) {
     - Acknowledge that SEO is a long-term investment
     - Be transparent about realistic expectations`
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'meta-llama/llama-3.2-3b-instruct:free',
       messages: [
         { role: 'system', content: systemPrompt },

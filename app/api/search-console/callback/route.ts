@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { google } from 'googleapis'
 import { encrypt } from '@/lib/encryption'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(req: Request) {
   const session = await auth()
@@ -44,24 +44,18 @@ export async function GET(req: Request) {
     const encryptedAccessToken = encrypt(tokens.access_token!)
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
 
-    await prisma.userSearchConsoleToken.upsert({
+    await prisma.searchConsoleConnection.upsert({
       where: { userId: session.user.id },
       update: {
-        encryptedAccessToken,
-        encryptedRefreshToken,
-        expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        scope: tokens.scope || null,
-        verifiedSites,
-        primarySite: verifiedSites[0] || null,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
       },
       create: {
         userId: session.user.id,
-        encryptedAccessToken,
-        encryptedRefreshToken,
-        expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        scope: tokens.scope || null,
-        verifiedSites,
-        primarySite: verifiedSites[0] || null,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
       },
     })
 

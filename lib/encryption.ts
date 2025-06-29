@@ -1,7 +1,11 @@
 import crypto from 'crypto'
 
 const algorithm = 'aes-256-gcm'
-const secretKey = process.env.ENCRYPTION_KEY || 'default-encryption-key-change-this'
+const secretKey = process.env.ENCRYPTION_KEY
+
+if (!secretKey) {
+  throw new Error('ENCRYPTION_KEY environment variable is required')
+}
 
 // Ensure key is exactly 32 bytes
 const key = crypto.createHash('sha256').update(secretKey).digest()

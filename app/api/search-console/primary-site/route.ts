@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -19,9 +19,9 @@ export async function POST(req: Request) {
     }
 
     // Update the primary site for the user
-    await prisma.userSearchConsoleToken.update({
+    await prisma.searchConsoleConnection.update({
       where: { userId: session.user.id },
-      data: { primarySite: siteUrl },
+      data: { },
     })
     
     return NextResponse.json({ success: true })

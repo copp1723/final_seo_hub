@@ -1,6 +1,6 @@
 import { google } from 'googleapis'
 import { decrypt } from '@/lib/encryption'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 interface SearchAnalyticsOptions {
   startDate: string
@@ -101,7 +101,7 @@ export class SearchConsoleService {
 
 // Helper to get service instance for a user
 export async function getSearchConsoleService(userId: string) {
-  const token = await prisma.userSearchConsoleToken.findUnique({
+  const token = await prisma.searchConsoleConnection.findUnique({
     where: { userId },
   })
 
@@ -109,9 +109,9 @@ export async function getSearchConsoleService(userId: string) {
     throw new Error('No Search Console token found for user')
   }
 
-  const accessToken = decrypt(token.encryptedAccessToken)
-  const refreshToken = token.encryptedRefreshToken 
-    ? decrypt(token.encryptedRefreshToken) 
+  const accessToken = decrypt(token.accessToken)
+  const refreshToken = token.refreshToken 
+    ? decrypt(token.refreshToken) 
     : undefined
 
   return new SearchConsoleService(accessToken, refreshToken)

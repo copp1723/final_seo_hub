@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
   try {
     // Delete the Search Console token for the user
-    await prisma.userSearchConsoleToken.delete({
+    await prisma.searchConsoleConnection.delete({
       where: { userId: session.user.id },
     })
     

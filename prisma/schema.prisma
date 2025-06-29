@@ -52,6 +52,10 @@ model User {
   // User's requests
   requests      Request[]
   
+  // Google integrations
+  ga4Connection GA4Connection?
+  searchConsoleConnection SearchConsoleConnection?
+  
   // Timestamps
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -160,4 +164,42 @@ model Request {
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
+}
+
+// GA4 Integration
+model GA4Connection {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Encrypted tokens
+  accessToken       String    @db.Text
+  refreshToken      String?   @db.Text
+  expiresAt         DateTime?
+  
+  // GA4 specific
+  propertyId        String?
+  propertyName      String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// Search Console Integration
+model SearchConsoleConnection {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Encrypted tokens
+  accessToken       String    @db.Text
+  refreshToken      String?   @db.Text
+  expiresAt         DateTime?
+  
+  // Search Console specific
+  siteUrl           String?
+  siteName          String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }

@@ -4,6 +4,7 @@ import { validateApiKey, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
 import { RequestStatus } from '@prisma/client'
 import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
+import { logger, getSafeErrorMessage } from '@/lib/logger'
 
 // GET endpoint for testing connectivity
 export async function GET(request: NextRequest) {
@@ -13,6 +14,11 @@ export async function GET(request: NextRequest) {
   
   const validation = validateApiKey(request, 'SEOWORKS_WEBHOOK_SECRET')
   if (!validation.valid) return validation.response
+  
+  logger.info('SEOWorks webhook connectivity test', {
+    path: '/api/seoworks/webhook',
+    method: 'GET'
+  })
   
   return successResponse({
     status: 'ok',
@@ -49,7 +55,12 @@ export async function POST(request: NextRequest) {
     })
     
     if (!existingRequest) {
-      console.log(`No matching request found for external ID: ${data.externalId}`)
+      logger.warn('No matching request found for webhook', {
+        externalId: data.externalId,
+        eventType,
+        path: '/api/seoworks/webhook',
+        method: 'POST'
+      })
       // Still return success to avoid retries from SEOWorks
       return successResponse(null, 'Webhook received (no matching request found)')
     }
@@ -84,12 +95,26 @@ export async function POST(request: NextRequest) {
       data: updateData
     })
     
-    console.log(`Successfully processed webhook for task ${data.externalId}`)
+    logger.info('Successfully processed webhook', {
+      requestId: existingRequest.id,
+      externalId: data.externalId,
+      eventType,
+      status: data.status,
+      path: '/api/seoworks/webhook',
+      method: 'POST'
+    })
     
     return successResponse(null, 'Webhook processed successfully')
     
   } catch (error) {
-    console.error('Webhook processing error:', error)
-    return errorResponse('Internal server error', 500)
+    logger.error('Webhook processing error', error, {
+      webhookData: {
+        eventType: payload?.eventType,
+        externalId: payload?.data?.externalId
+      },
+      path: '/api/seoworks/webhook',
+      method: 'POST'
+    })
+    return errorResponse(getSafeErrorMessage(error), 500)
   }
 }

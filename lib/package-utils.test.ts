@@ -34,7 +34,7 @@ describe('Package Utils', () => {
   })
 
   const userId = 'test-user-id'
-  const today = new Date() // Use a fixed date for consistent tests, e.g., new Date('2024-07-15T10:00:00.000Z')
+  const today = new Date('2024-07-15T10:00:00.000Z')
   const currentMonthStart = startOfMonth(today)
   const currentMonthEnd = endOfMonth(today)
   const prevMonthStart = startOfMonth(subMonths(today, 1))

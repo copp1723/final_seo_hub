@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { logger } from '@/lib/logger'
+import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
-import { validateRequest } from '@/lib/validations'
-import { seoworksWebhookSchema } from '@/lib/validations/webhook'
+import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
 import { RequestStatus } from '@prisma/client'
+import { incrementUsage, TaskType } from '@/lib/package-utils'
 import crypto from 'crypto'
 
 // Timing-safe comparison for API key
@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
     })
     return errorResponse('Unauthorized', 401)
   }
+  
+  logger.info('SEOWorks webhook connectivity test', {
+    path: '/api/seoworks/webhook',
+    method: 'GET'
+  })
   
   return successResponse({ 
     status: 'ok',
@@ -80,9 +85,12 @@ export async function POST(request: NextRequest) {
     if (!requestRecord) {
       logger.warn('Request not found for webhook', {
         externalId: data.externalId,
-        eventType
+        eventType,
+        path: '/api/seoworks/webhook',
+        method: 'POST'
       })
-      return errorResponse('Request not found', 404)
+      // Still return success to avoid retries from SEOWorks
+      return successResponse(null, 'Webhook received (no matching request found)')
     }
 
     // Handle different event types
@@ -103,16 +111,29 @@ export async function POST(request: NextRequest) {
         logger.info('Unhandled webhook event type', { eventType })
     }
 
+    logger.info('Successfully processed webhook', {
+      requestId: requestRecord.id,
+      externalId: data.externalId,
+      eventType,
+      status: data.status,
+      path: '/api/seoworks/webhook',
+      method: 'POST'
+    })
+
     return successResponse({ 
       message: 'Webhook processed successfully',
       eventType 
     })
   } catch (error) {
-    logger.error('Error processing webhook', error, {
-      eventType: payload.eventType,
-      externalId: payload.data.externalId
+    logger.error('Webhook processing error', error, {
+      webhookData: {
+        eventType: payload?.eventType,
+        externalId: payload?.data?.externalId
+      },
+      path: '/api/seoworks/webhook',
+      method: 'POST'
     })
-    return errorResponse('Failed to process webhook', 500)
+    return errorResponse(getSafeErrorMessage(error), 500)
   }
 }
 
@@ -165,6 +186,36 @@ async function handleTaskCompleted(
       where: { id: request.id },
       data: updateData
     })
+
+    // Increment usage for package tracking
+    if (updatedRequest.userId) {
+      let taskTypeForUsage: TaskType | null = null
+      switch (data.taskType.toLowerCase()) {
+        case 'page':
+          taskTypeForUsage = 'pages'
+          break
+        case 'blog':
+          taskTypeForUsage = 'blogs'
+          break
+        case 'gbp_post':
+          taskTypeForUsage = 'gbpPosts'
+          break
+        case 'maintenance':
+        case 'improvement':
+          taskTypeForUsage = 'improvements'
+          break
+      }
+
+      if (taskTypeForUsage) {
+        try {
+          await incrementUsage(updatedRequest.userId, taskTypeForUsage)
+          logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`)
+        } catch (usageError) {
+          logger.error(`Failed to increment usage for user ${updatedRequest.userId}`, usageError)
+          // Continue processing even if usage tracking fails
+        }
+      }
+    }
 
     // Send task completion email
     const emailTemplate = taskCompletedTemplate(updatedRequest, request.user, completedTask)

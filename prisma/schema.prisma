@@ -43,18 +43,18 @@ model User {
   role          UserRole  @default(USER)
   
   // Multi-tenant relationship
-  agencyId      String?
-  agency        Agency?   @relation(fields: [agencyId], references: [id])
-  
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id])
+
   // OAuth accounts
-  accounts      Account[]
-  sessions      Session[]
-  
+  accounts Account[]
+  sessions Session[]
+
   // User's requests
-  requests      Request[]
-  
+  requests Request[]
+
   // Google integrations
-  ga4Connection GA4Connection?
+  ga4Connection           GA4Connection?
   searchConsoleConnection SearchConsoleConnection?
   
   // User preferences
@@ -63,11 +63,26 @@ model User {
   // API access
   apiKey        String?   @unique
   apiKeyCreatedAt DateTime?
-  
+
+  // Onboarding status
+  onboardingCompleted Boolean @default(false)
+
+  // Package and Billing Info
+  activePackageType          PackageType?
+  currentBillingPeriodStart  DateTime?
+  currentBillingPeriodEnd    DateTime?
+  pagesUsedThisPeriod        Int          @default(0)
+  blogsUsedThisPeriod        Int          @default(0)
+  gbpPostsUsedThisPeriod     Int          @default(0)
+  improvementsUsedThisPeriod Int          @default(0)
+
+  // Relation to MonthlyUsage
+  monthlyUsageHistory MonthlyUsage[]
+
   // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([email])
   @@index([agencyId])
   @@index([apiKey])
@@ -100,76 +115,76 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
 }
 
 // Multi-tenant agency model
 model Agency {
-  id          String    @id @default(cuid())
-  name        String
-  domain      String?   @unique
-  
+  id     String  @id @default(cuid())
+  name   String
+  domain String? @unique
+
   // Agency settings
-  settings    Json      @default("{}")
-  
+  settings Json @default("{}")
+
   // Relationships
-  users       User[]
-  requests    Request[]
-  
+  users    User[]
+  requests Request[]
+
   // Timestamps
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([domain])
 }
 
 // Main request model (formerly orders)
 model Request {
-  id            String    @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // User relationship
-  userId        String
-  user          User      @relation(fields: [userId], references: [id])
-  
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
   // Agency relationship
-  agencyId      String?
-  agency        Agency?   @relation(fields: [agencyId], references: [id])
-  
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id])
+
   // Request details
-  title         String
-  description   String    @db.Text
-  type          String    // page, blog, gbp_post, maintenance
-  priority      RequestPriority @default(MEDIUM)
-  status        RequestStatus   @default(PENDING)
-  
+  title       String
+  description String          @db.Text
+  type        String // page, blog, gbp_post, maintenance
+  priority    RequestPriority @default(MEDIUM)
+  status      RequestStatus   @default(PENDING)
+
   // SEO Package info
-  packageType   PackageType?
-  
+  packageType PackageType?
+
   // Progress tracking (for current month)
-  pagesCompleted      Int      @default(0)
-  blogsCompleted      Int      @default(0)
-  gbpPostsCompleted   Int      @default(0)
-  improvementsCompleted Int    @default(0)
-  
+  pagesCompleted        Int @default(0)
+  blogsCompleted        Int @default(0)
+  gbpPostsCompleted     Int @default(0)
+  improvementsCompleted Int @default(0)
+
   // SEO specific fields
-  keywords      Json?     // Array of keywords
-  targetUrl     String?
-  targetCities  Json?     // Array of target cities
-  targetModels  Json?     // Array of target models
-  
+  keywords     Json? // Array of keywords
+  targetUrl    String?
+  targetCities Json? // Array of target cities
+  targetModels Json? // Array of target models
+
   // Completed content info  
-  completedTasks Json?    // Array of {title, url, type, completedAt}
-  contentUrl    String?   // Primary URL (deprecated, use completedTasks)
-  pageTitle     String?   // Primary title (deprecated, use completedTasks)
-  
+  completedTasks Json? // Array of {title, url, type, completedAt}
+  contentUrl     String? // Primary URL (deprecated, use completedTasks)
+  pageTitle      String? // Primary title (deprecated, use completedTasks)
+
   // Progress tracking
-  completedAt   DateTime?
-  
+  completedAt DateTime?
+
   // Timestamps
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
@@ -177,34 +192,56 @@ model Request {
 
 // GA4 Integration
 model GA4Connection {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Encrypted tokens
-  accessToken       String    @db.Text
-  refreshToken      String?   @db.Text
-  expiresAt         DateTime?
-  
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+
   // GA4 specific
-  propertyId        String?
-  propertyName      String?
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  propertyId   String?
+  propertyName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Model for storing historical monthly usage
+model MonthlyUsage {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  month Int // 1-12
+  year  Int
+
+  packageType PackageType // The package type active for this period
+
+  pagesUsed        Int
+  blogsUsed        Int
+  gbpPostsUsed     Int
+  improvementsUsed Int
+
+  archivedAt DateTime @default(now())
+
+  @@unique([userId, month, year]) // Ensure only one record per user per month
+  @@index([userId])
 }
 
 // Search Console Integration
 model SearchConsoleConnection {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Encrypted tokens
-  accessToken       String    @db.Text
-  refreshToken      String?   @db.Text
-  expiresAt         DateTime?
-  
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+
   // Search Console specific
   siteUrl           String?
   siteName          String?

@@ -13,41 +13,11 @@ export default async function DashboardPage() {
     redirect('/auth/signin')
   }
 
-  // Fetch all dashboard data in a single efficient query
-  const dashboardData = await prisma.request.groupBy({
-    by: ['status'],
-    where: {
-      userId: session.user.id
-    },
-    _count: true
-  })
-
-  // Get completed this month count and latest request with package info
-  const [completedThisMonth, latestRequest] = await Promise.all([
-    prisma.request.count({
-      where: {
-        userId: session.user.id,
-        status: 'COMPLETED',
-        completedAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        }
-      }
-    }),
-    prisma.request.findFirst({
-      where: {
-        userId: session.user.id,
-        packageType: { not: null }
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        packageType: true,
-        pagesCompleted: true,
-        blogsCompleted: true,
-        gbpPostsCompleted: true,
-        improvementsCompleted: true
-      }
-    })
-  ])
+  // Fetch cached dashboard data
+  const { cachedQueries } = await import('@/lib/cache')
+  const dashboardStats = await cachedQueries.getDashboardStats(session.user.id)
+  
+  const { statusCounts: dashboardData, completedThisMonth, latestRequest } = dashboardStats
 
   // Calculate stats from grouped data
   const statusCounts = dashboardData.reduce((acc, item) => {

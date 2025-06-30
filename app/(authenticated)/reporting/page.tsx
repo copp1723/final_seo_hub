@@ -18,33 +18,36 @@ import {
   Globe,
   AlertCircle
 } from 'lucide-react'
-import { Line, Bar } from 'react-chartjs-2'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js'
 import { format, subDays, startOfMonth, endOfMonth, startOfYear } from 'date-fns'
+import dynamic from 'next/dynamic'
+import { Loader2 } from 'lucide-react'
 
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-)
+// Lazy load charts
+const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { 
+  loading: () => <Loader2 className="h-6 w-6 animate-spin" />,
+  ssr: false 
+})
+const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { 
+  loading: () => <Loader2 className="h-6 w-6 animate-spin" />,
+  ssr: false 
+})
+
+// Lazy load Chart.js registration
+if (typeof window !== 'undefined') {
+  import('chart.js').then(({ Chart, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler }) => {
+    Chart.register(
+      CategoryScale,
+      LinearScale,
+      PointElement,
+      LineElement,
+      BarElement,
+      Title,
+      Tooltip,
+      Legend,
+      Filler
+    )
+  })
+}
 
 // Date range options
 const DATE_RANGES = [

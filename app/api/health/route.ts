@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger, getSafeErrorMessage } from '@/lib/logger'
 
 export async function GET() {
   const startTime = Date.now()
@@ -17,9 +18,18 @@ export async function GET() {
       environment: process.env.NODE_ENV || 'development',
     }
     
+    logger.info('Health check completed successfully', {
+      responseTime: healthStatus.responseTime,
+      database: 'connected'
+    })
+    
     return NextResponse.json(healthStatus, { status: 200 })
   } catch (error) {
-    console.error('Health check failed:', error)
+    logger.error('Health check failed', error, {
+      path: '/api/health',
+      method: 'GET',
+      responseTime: Date.now() - startTime
+    })
     
     return NextResponse.json(
       {
@@ -27,7 +37,7 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
         database: 'disconnected',
-        error: 'Database connection failed',
+        error: getSafeErrorMessage(error),
       },
       { status: 503 }
     )

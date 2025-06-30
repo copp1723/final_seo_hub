@@ -4,6 +4,7 @@ import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
 import { RequestStatus } from '@prisma/client'
 import { validateRequest, createRequestSchema } from '@/lib/validations/index'
+import { logger, getSafeErrorMessage } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   // Apply rate limiting
@@ -19,10 +20,21 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     })
     
+    logger.info('Requests fetched successfully', {
+      userId: authResult.user.id,
+      count: requests.length,
+      path: '/api/requests',
+      method: 'GET'
+    })
+    
     return successResponse({ requests })
   } catch (error) {
-    console.error('Error fetching requests:', error)
-    return errorResponse('Failed to fetch requests', 500)
+    logger.error('Error fetching requests', error, {
+      userId: authResult.user.id,
+      path: '/api/requests',
+      method: 'GET'
+    })
+    return errorResponse(getSafeErrorMessage(error), 500)
   }
 }
 
@@ -58,9 +70,27 @@ export async function POST(request: NextRequest) {
       },
     })
     
+    logger.info('Request created successfully', {
+      userId: authResult.user.id,
+      requestId: newRequest.id,
+      type: data.type,
+      priority: data.priority,
+      path: '/api/requests',
+      method: 'POST'
+    })
+    
     return successResponse({ request: newRequest }, 'Request created successfully')
   } catch (error) {
-    console.error('Error creating request:', error)
-    return errorResponse('Failed to create request', 500)
+    logger.error('Error creating request', error, {
+      userId: authResult.user.id,
+      requestData: {
+        title: data.title,
+        type: data.type,
+        priority: data.priority
+      },
+      path: '/api/requests',
+      method: 'POST'
+    })
+    return errorResponse(getSafeErrorMessage(error), 500)
   }
 }

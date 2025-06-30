@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 // Interface matching the exact format from the handoff document
 interface OnboardingPayload {
@@ -28,10 +29,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    const userId = session.user.id;
     const formData: OnboardingPayload = await request.json()
     
     // Add timestamp
@@ -61,6 +63,18 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Update user record to mark onboarding as complete
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { onboardingCompleted: true },
+      });
+    } catch (dbError) {
+      console.error('Failed to update user onboarding status:', dbError);
+      // Do not fail the entire request if this update fails, but log it.
+      // Depending on business logic, this could be a critical error.
+    }
+
     return NextResponse.json({ 
       success: true,
       message: 'Onboarding data received successfully'

@@ -4,8 +4,13 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+ feature/TICKET-009-dashboard-enhancements
 import { FileText, CheckCircle, Clock, ArrowRight, List, AlertTriangle, CalendarDays } from 'lucide-react' // Added List, AlertTriangle, CalendarDays
 import { differenceInDays, format } from 'date-fns' // For date formatting
+=======
+import { FileText, CheckCircle, Clock, ArrowRight } from 'lucide-react'
+import { getUserPackageProgress, PackageProgress } from '@/lib/package-utils'
+ main
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -20,6 +25,7 @@ export default async function DashboardPage() {
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0) // Last day of current month
   const nextSevenDays = new Date(now.setDate(now.getDate() + 7))
 
+ feature/TICKET-009-dashboard-enhancements
   // Fetch all dashboard data in parallel
   const [
     statusDistribution,
@@ -107,6 +113,31 @@ export default async function DashboardPage() {
       },
     }),
   ])
+=======
+  // Get package progress using the new utility function
+  let packageProgress: PackageProgress | null = null
+  if (session.user?.id) { // Ensure user ID exists
+    try {
+      packageProgress = await getUserPackageProgress(session.user.id)
+    } catch (error) {
+      console.error("Dashboard: Failed to get user package progress", error)
+      // packageProgress remains null, UI will handle this
+    }
+  }
+
+  // The completedThisMonth calculation can remain if it's used elsewhere,
+  // or be removed if packageProgress.totalTasks.completed is sufficient.
+  // For now, I'll assume it might be used for a different metric or can be removed later if redundant.
+  const completedThisMonth = await prisma.request.count({
+    where: {
+      userId: session.user.id,
+      status: 'COMPLETED',
+      completedAt: {
+        gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      }
+    }
+  })
+ main
 
   // --- Process Data ---
 
@@ -183,6 +214,15 @@ export default async function DashboardPage() {
     </Card>
   )
 
+ feature/TICKET-009-dashboard-enhancements
+=======
+  // Use packageProgress for "Tasks Completed" card
+  const tasksCompletedThisMonth = packageProgress ? packageProgress.totalTasks.completed : 0
+  const tasksTotalThisMonth = packageProgress ? packageProgress.totalTasks.total : 0
+  const tasksSubtitle = packageProgress
+    ? `${tasksCompletedThisMonth} of ${tasksTotalThisMonth} used this month`
+    : "No active package"
+ main
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -212,8 +252,13 @@ export default async function DashboardPage() {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
+ feature/TICKET-009-dashboard-enhancements
               <p className="text-2xl font-bold">{tasksCompletedThisMonth}</p> {/* Updated variable */}
               <p className="text-xs text-gray-500 mt-1">This month</p>
+=======
+              <p className="text-2xl font-bold">{tasksCompletedThisMonth}</p>
+              <p className="text-xs text-gray-500 mt-1">{tasksSubtitle}</p>
+ main
             </CardContent>
           </Card>
           

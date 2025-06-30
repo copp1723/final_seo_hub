@@ -4,6 +4,7 @@ import { validateApiKey, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
 import { RequestStatus } from '@prisma/client'
 import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
+import { incrementUsage, TaskType } from '@/lib/package-utils'
 
 // GET endpoint for testing connectivity
 export async function GET(request: NextRequest) {
@@ -79,11 +80,43 @@ export async function POST(request: NextRequest) {
     }
     
     // Update the request
-    await prisma.request.update({
+    const updatedRequest = await prisma.request.update({
       where: { id: existingRequest.id },
       data: updateData
     })
     
+    // If task completed, increment usage
+    if (eventType === 'task.completed' && updatedRequest.userId) {
+      let taskTypeForUsage: TaskType | null = null
+      switch (updatedRequest.type.toLowerCase()) {
+        case 'page':
+          taskTypeForUsage = 'pages'
+          break
+        case 'blog':
+          taskTypeForUsage = 'blogs'
+          break
+        case 'gbp_post': // As per schema comment
+          taskTypeForUsage = 'gbpPosts'
+          break
+        case 'maintenance': // Assuming maintenance maps to improvements
+          taskTypeForUsage = 'improvements'
+          break
+        default:
+          console.warn(`Webhook: Unknown request type ${updatedRequest.type} for usage tracking for request ID ${updatedRequest.id}`)
+      }
+
+      if (taskTypeForUsage) {
+        try {
+          await incrementUsage(updatedRequest.userId, taskTypeForUsage)
+          console.log(`Webhook: Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`)
+        } catch (usageError: any) {
+          console.error(`Webhook: Failed to increment usage for user ${updatedRequest.userId}, request ${updatedRequest.id}: ${usageError.message}`)
+          // Decide if this error should affect the webhook response.
+          // For now, log it and continue, as the primary task update succeeded.
+        }
+      }
+    }
+
     console.log(`Successfully processed webhook for task ${data.externalId}`)
     
     return successResponse(null, 'Webhook processed successfully')

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { PackageType } from '@prisma/client' // Added for PackageType enum
+import { startOfDay, endOfMonth } from 'date-fns' // Added for date manipulation
 
 // Interface matching the exact format from the handoff document
 interface OnboardingPayload {
@@ -63,21 +65,37 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Update user record to mark onboarding as complete
+    // Update user record with onboarding data and initial billing setup
     try {
+      const now = new Date()
+      const updateData: any = { // Use 'any' for now, or create a proper Prisma type
+        onboardingCompleted: true,
+        activePackageType: formData.package as PackageType, // Assuming formData.package is 'SILVER', 'GOLD', or 'PLATINUM'
+        currentBillingPeriodStart: startOfDay(now),
+        currentBillingPeriodEnd: endOfMonth(now),
+        pagesUsedThisPeriod: 0,
+        blogsUsedThisPeriod: 0,
+        gbpPostsUsedThisPeriod: 0,
+        improvementsUsedThisPeriod: 0,
+      }
+
       await prisma.user.update({
         where: { id: userId },
-        data: { onboardingCompleted: true },
+        data: updateData,
       });
+
+      console.log(`User ${userId} onboarding completed and package ${formData.package} activated.`);
+
     } catch (dbError) {
-      console.error('Failed to update user onboarding status:', dbError);
-      // Do not fail the entire request if this update fails, but log it.
+      console.error('Failed to update user onboarding status and package info:', dbError);
       // Depending on business logic, this could be a critical error.
+      // For now, let's return an error if this fails, as it's crucial for package setup.
+      return NextResponse.json({ error: 'Failed to finalize onboarding and activate package.' }, { status: 500 })
     }
 
     return NextResponse.json({ 
       success: true,
-      message: 'Onboarding data received successfully'
+      message: 'Onboarding data received and package activated successfully'
     })
     
   } catch (error) {

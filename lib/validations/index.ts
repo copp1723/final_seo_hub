@@ -46,6 +46,7 @@ export type { ValidationSuccess, ValidationError, ValidationResult }
 export * from './request'
 export * from './webhook'
 export * from './settings'
+export * from './onboardingSchema'
 
 // Sanitize string for logging (remove potential sensitive data)
 export function sanitizeForLog(str: string, maxLength = 200): string {

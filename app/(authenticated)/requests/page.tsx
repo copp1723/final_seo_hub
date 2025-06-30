@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { PackageType, RequestStatus } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingSpinner } from '@/components/ui/loading'
-import { calculatePackageProgress, getPackageTotalTasks } from '@/lib/package-utils'
-import { FileText, Globe, MessageSquare, Wrench, Plus, ExternalLink, Filter } from 'lucide-react'
+import { calculatePackageProgress } from '@/lib/package-utils'
+import { FileText, Globe, MessageSquare, Wrench, Plus, ExternalLink, Filter, ListRestart, ArrowUpDown } from 'lucide-react'
 import { SearchInput } from '@/components/ui/search-input'
 import {
   Select,
@@ -41,35 +41,99 @@ interface Request {
 }
 
 export default function RequestsPage() {
-  const { data: session, status } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
+
+  // State for filters and sorting, initialized from URL or defaults
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all')
+  const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || 'all')
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'createdAt')
+  const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc')
+
+  const createQueryString = useCallback(
+    (paramsToUpdate: Record<string, string | null>) => {
+      const currentParams = new URLSearchParams(searchParams.toString())
+      Object.entries(paramsToUpdate).forEach(([name, value]) => {
+        if (value === null || value === 'all' || value === '') {
+          currentParams.delete(name)
+        } else {
+          currentParams.set(name, value)
+        }
+      })
+      return currentParams.toString()
+    },
+    [searchParams]
+  )
+
+  const fetchRequests = useCallback(async () => {
+    setLoading(true)
+    try {
+      const query = createQueryString({
+        search: searchQuery,
+        status: statusFilter,
+        type: typeFilter,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+      })
+      const response = await fetch(`/api/requests?${query}`)
+      const data = await response.json()
+      if (data.success) {
+        setRequests(data.data.requests || [])
+      } else {
+        console.error('Failed to fetch requests:', data.error)
+        setRequests([])
+      }
+    } catch (error) {
+      console.error('Failed to fetch requests:', error)
+      setRequests([])
+    } finally {
+      setLoading(false)
+    }
+  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, createQueryString])
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (sessionStatus === 'loading') return
     if (!session) {
       router.push('/auth/signin')
       return
     }
     fetchRequests()
-  }, [session, status, router])
+  }, [session, sessionStatus, router, fetchRequests])
 
-  const fetchRequests = async () => {
-    try {
-      const response = await fetch('/api/requests')
-      const data = await response.json()
-      if (data.success) {
-        setRequests(data.data.requests)
-      }
-    } catch (error) {
-      // Error handled silently on client-side
-    } finally {
-      setLoading(false)
+  // Update URL when filters change
+  useEffect(() => {
+    const query = createQueryString({
+      search: searchQuery,
+      status: statusFilter,
+      type: typeFilter,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+    })
+    // Use replace to avoid adding to browser history for every filter change
+    router.replace(`${pathname}?${query}`, { scroll: false })
+  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, pathname, router, createQueryString])
+
+  const handleSortChange = (newSortBy: string) => {
+    if (sortBy === newSortBy) {
+      setSortOrder(prevOrder => prevOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(newSortBy)
+      setSortOrder('desc') // Default to desc when changing sort field
     }
+  }
+
+  const clearFilters = () => {
+    setSearchQuery('')
+    setStatusFilter('all')
+    setTypeFilter('all')
+    setSortBy('createdAt')
+    setSortOrder('desc')
   }
 
   const getStatusBadgeVariant = (status: RequestStatus) => {
@@ -98,33 +162,7 @@ export default function RequestsPage() {
     )
   }
 
-  // Apply filters
-  const filteredRequests = requests.filter(request => {
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      const matchesSearch = 
-        request.title.toLowerCase().includes(query) ||
-        request.description.toLowerCase().includes(query) ||
-        request.targetCities?.some(city => city.toLowerCase().includes(query)) ||
-        request.targetModels?.some(model => model.toLowerCase().includes(query))
-      
-      if (!matchesSearch) return false
-    }
-
-    // Status filter
-    if (statusFilter !== 'all' && request.status !== statusFilter) {
-      return false
-    }
-
-    // Type filter
-    if (typeFilter !== 'all' && request.type !== typeFilter) {
-      return false
-    }
-
-    // Only show requests with packages
-    return request.packageType
-  })
+  const displayRequests = requests;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -150,9 +188,9 @@ export default function RequestsPage() {
           className="flex-1"
         />
         
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -166,7 +204,7 @@ export default function RequestsPage() {
           </Select>
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-full sm:w-[140px]">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
@@ -177,10 +215,40 @@ export default function RequestsPage() {
               <SelectItem value="maintenance">Maintenance</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
+            const [newSortBy, newSortOrder] = value.split('-')
+            setSortBy(newSortBy)
+            setSortOrder(newSortOrder)
+          }}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt-desc">Date (Newest)</SelectItem>
+              <SelectItem value="createdAt-asc">Date (Oldest)</SelectItem>
+              <SelectItem value="priority-desc">Priority (High-Low)</SelectItem>
+              <SelectItem value="priority-asc">Priority (Low-High)</SelectItem>
+              <SelectItem value="status-asc">Status (A-Z)</SelectItem>
+              <SelectItem value="status-desc">Status (Z-A)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant="ghost" onClick={clearFilters} className="w-full sm:w-auto">
+            <ListRestart className="h-4 w-4 mr-2" />
+            Clear
+          </Button>
         </div>
       </div>
 
-      {filteredRequests.length === 0 ? (
+      {loading && (
+         <div className="flex items-center justify-center py-12">
+           <LoadingSpinner size="lg" />
+         </div>
+      )}
+
+      {!loading && displayRequests.length === 0 ? (
         <Card>
           <CardContent className="py-12">
             <EmptyState
@@ -198,9 +266,9 @@ export default function RequestsPage() {
       ) : (
         <div className="space-y-6">
           <div className="text-sm text-gray-600">
-            Showing {filteredRequests.length} of {requests.filter(r => r.packageType).length} requests
+            Showing {displayRequests.length} {displayRequests.length === 1 ? "request" : "requests"}
           </div>
-          {filteredRequests.map((request) => {
+          {displayRequests.map((request) => {
             const progress = request.packageType 
               ? calculatePackageProgress(
                   request.packageType,

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
+import { PackageType, Prisma } from '@prisma/client'
+import { startOfDay, endOfMonth } from 'date-fns'
 
 // Interface matching the exact format from the handoff document
 interface OnboardingPayload {
@@ -30,10 +33,11 @@ export async function POST(request: NextRequest) {
   try {
     session = await auth()
     
-    if (!session) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    const userId = session.user.id;
     const formData: OnboardingPayload = await request.json()
     
     // Add timestamp
@@ -63,9 +67,36 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Update user record with onboarding data and initial billing setup
+    try {
+      const now = new Date()
+      const updateData: Prisma.UserUpdateInput = {
+        onboardingCompleted: true,
+        activePackageType: formData.package as PackageType,
+        currentBillingPeriodStart: startOfDay(now),
+        currentBillingPeriodEnd: endOfMonth(now),
+        pagesUsedThisPeriod: 0,
+        blogsUsedThisPeriod: 0,
+        gbpPostsUsedThisPeriod: 0,
+        improvementsUsedThisPeriod: 0,
+      }
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+
+      logger.info(`User ${userId} onboarding completed and package ${formData.package} activated.`);
+
+    } catch (dbError) {
+      logger.error('Failed to update user onboarding status and package info:', dbError);
+      // This is a critical error as it's crucial for package setup
+      return NextResponse.json({ error: 'Failed to finalize onboarding and activate package.' }, { status: 500 })
+    }
+
     return NextResponse.json({ 
       success: true,
-      message: 'Onboarding data received successfully'
+      message: 'Onboarding data received and package activated successfully'
     })
     
   } catch (error) {

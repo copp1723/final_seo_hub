@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { logger } from '@/lib/logger'
+import { logger, getSafeErrorMessage } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -24,6 +24,11 @@ export async function GET() {
     })
 
     if (!connection) {
+      logger.info('GA4 connection not found', {
+        userId: session.user.id,
+        path: '/api/ga4/status',
+        method: 'GET'
+      })
       return NextResponse.json({
         connected: false,
         message: 'No GA4 connection found'
@@ -32,6 +37,13 @@ export async function GET() {
 
     // Check if token is expired
     const isExpired = connection.expiresAt ? new Date() > connection.expiresAt : false
+
+    logger.info('GA4 status retrieved successfully', {
+      userId: session.user.id,
+      propertyId: connection.propertyId,
+      path: '/api/ga4/status',
+      method: 'GET'
+    })
 
     return NextResponse.json({
       connected: true,
@@ -44,12 +56,13 @@ export async function GET() {
 
   } catch (error) {
     logger.error('GA4 status check error', error, {
+      userId: session?.user?.id,
       path: '/api/ga4/status',
       method: 'GET'
     })
 
     return NextResponse.json(
-      { error: 'Failed to check GA4 status' },
+      { error: getSafeErrorMessage(error) },
       { status: 500 }
     )
   }

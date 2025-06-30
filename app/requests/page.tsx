@@ -8,10 +8,11 @@ import { PackageType, RequestStatus } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input' // Added Input for date pickers
 import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingSpinner } from '@/components/ui/loading'
 import { calculatePackageProgress } from '@/lib/package-utils'
-import { FileText, Globe, MessageSquare, Wrench, Plus, ExternalLink, Filter, ListRestart, ArrowUpDown } from 'lucide-react'
+import { FileText, Globe, MessageSquare, Wrench, Plus, ExternalLink, Filter, ListRestart, ArrowUpDown, Download } from 'lucide-react' // Added Download icon
 import { SearchInput } from '@/components/ui/search-input'
 import {
   Select,
@@ -20,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast' // For user feedback
 
 interface Request {
   id: string
@@ -55,6 +57,12 @@ export default function RequestsPage() {
   const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || 'all')
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'createdAt')
   const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc')
+
+  // State for CSV export
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
+  const { toast } = useToast()
 
   const createQueryString = useCallback(
     (paramsToUpdate: Record<string, string | null>) => {
@@ -136,6 +144,57 @@ export default function RequestsPage() {
     setSortBy('createdAt')
     setSortOrder('desc')
     // router.replace(pathname, { scroll: false }) // This will be handled by the useEffect above
+  }
+
+  const handleExportCsv = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+
+    const exportParams = new URLSearchParams()
+    exportParams.set('format', 'csv')
+    if (startDate) exportParams.set('startDate', startDate)
+    if (endDate) exportParams.set('endDate', endDate)
+
+    // Include existing filters in the export
+    if (searchQuery) exportParams.set('search', searchQuery)
+    if (statusFilter && statusFilter !== 'all') exportParams.set('status', statusFilter)
+    if (typeFilter && typeFilter !== 'all') exportParams.set('type', typeFilter)
+    if (sortBy) exportParams.set('sortBy', sortBy)
+    if (sortOrder) exportParams.set('sortOrder', sortOrder)
+
+    try {
+      const response = await fetch(`/api/requests?${exportParams.toString()}`)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to export CSV: ${response.statusText}`)
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      // Extract filename from Content-Disposition header if available, otherwise use a default
+      const disposition = response.headers.get('Content-Disposition')
+      let filename = 'requests.csv'
+      if (disposition && disposition.indexOf('attachment') !== -1) {
+        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+        const matches = filenameRegex.exec(disposition)
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '')
+        }
+      }
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      toast({ title: 'Success', description: 'Requests exported to CSV successfully.' })
+    } catch (error: any) {
+      console.error('Failed to export CSV:', error)
+      toast({ title: 'Error', description: error.message || 'Could not export requests.', variant: 'destructive' })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const getStatusBadgeVariant = (status: RequestStatus) => {
@@ -250,6 +309,41 @@ export default function RequestsPage() {
           </Button>
         </div>
       </div>
+
+      {/* CSV Export Section */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 border rounded-md">
+        <div className="flex-1">
+          <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">Export Start Date</label>
+          <Input
+            type="date"
+            id="startDate"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full sm:w-auto"
+          />
+        </div>
+        <div className="flex-1">
+          <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">Export End Date</label>
+          <Input
+            type="date"
+            id="endDate"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full sm:w-auto"
+          />
+        </div>
+        <div className="flex-1 flex items-end">
+          <Button onClick={handleExportCsv} disabled={isExporting} className="w-full sm:w-auto">
+            {isExporting ? (
+              <LoadingSpinner size="sm" className="mr-2" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Export CSV
+          </Button>
+        </div>
+      </div>
+
 
       {loading && (
          <div className="flex items-center justify-center py-12">

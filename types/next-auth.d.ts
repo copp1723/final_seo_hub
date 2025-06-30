@@ -7,6 +7,7 @@ declare module 'next-auth' {
       id: string
       role: UserRole
       agencyId?: string | null
+      onboardingCompleted?: boolean // Add onboardingCompleted
     } & DefaultSession['user']
   }
   
@@ -14,5 +15,6 @@ declare module 'next-auth' {
     id: string
     role: UserRole
     agencyId?: string | null
+    onboardingCompleted?: boolean // Add onboardingCompleted
   }
 }

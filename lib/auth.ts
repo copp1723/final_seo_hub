@@ -30,6 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: true,
             name: true,
             image: true,
+            onboardingCompleted: true, // Fetch onboarding status
           },
         })
 
@@ -40,6 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.email = dbUser.email
           token.name = dbUser.name
           token.image = dbUser.image
+          token.onboardingCompleted = dbUser.onboardingCompleted // Add to token
         }
       }
       return token
@@ -53,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.email = token.email as string
         session.user.name = token.name as string | null
         session.user.image = token.image as string | null
+        session.user.onboardingCompleted = token.onboardingCompleted as boolean // Add to session
       }
       return session
     },

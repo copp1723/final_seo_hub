@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 // Interface matching the exact format from the handoff document
 interface OnboardingPayload {
@@ -25,8 +26,9 @@ interface OnboardingPayload {
 }
 
 export async function POST(request: NextRequest) {
+  let session
   try {
-    const session = await auth()
+    session = await auth()
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -52,11 +54,11 @@ export async function POST(request: NextRequest) {
         const result = await response.json()
         
         if (!response.ok || !result.success) {
-          console.error('SEOWorks webhook error:', result)
+          logger.error('SEOWorks webhook error', undefined, { result, status: response.status })
           // Don't fail the request, just log the error
         }
       } catch (webhookError) {
-        console.error('Failed to send to SEOWorks:', webhookError)
+        logger.error('Failed to send to SEOWorks', webhookError)
         // Continue processing even if webhook fails
       }
     }
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Onboarding error:', error)
+    logger.error('Onboarding error', error, { userId: session?.user?.id })
     return NextResponse.json({ 
       error: 'Failed to process onboarding data' 
     }, { status: 500 })

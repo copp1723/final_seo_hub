@@ -23,7 +23,7 @@ export function useCSRF() {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch CSRF token:', error)
+      // Silently handle CSRF token fetch errors on client-side
     }
   }
   

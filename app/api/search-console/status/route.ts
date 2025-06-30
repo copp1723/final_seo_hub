@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   const authResult = await requireAuth()
@@ -24,7 +25,7 @@ export async function GET() {
       // metrics: searchConsoleMetrics (to be implemented)
     })
   } catch (error) {
-    console.error('Search Console status error:', error)
+    logger.error('Search Console status error', error, { userId: authResult.user.id })
     return NextResponse.json({ connected: false })
   }
 }

@@ -122,7 +122,6 @@ export default function SettingsPage() {
             break
         }
       } catch (error) {
-        console.error('Error fetching data:', error)
         setMessage({ type: 'error', text: 'Failed to load settings' })
       } finally {
         setLoading(false)

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
-import { rateLimits } from '@/lib/rate-limit'
-import { logger, getSafeErrorMessage } from '@/lib/logger'
+import { NextRequest } from 'next/server'
+import { successResponse } from '@/lib/api-auth'
+import { createPostHandler } from '@/lib/api-middleware'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const chatRequestSchema = z.object({
@@ -9,20 +9,9 @@ const chatRequestSchema = z.object({
   conversationId: z.string().optional(),
 })
 
-export async function POST(req: NextRequest) {
-  try {
-    // Apply rate limiting
-    const rateLimitResponse = await rateLimits.api(req)
-    if (rateLimitResponse) return rateLimitResponse
-
-    // Check authentication
-    const session = await requireAuth()
-    if (!session) {
-      return errorResponse('Unauthorized', 401)
-    }
-
-    const body = await req.json()
-    const { message, conversationId } = chatRequestSchema.parse(body)
+export const POST = createPostHandler<z.infer<typeof chatRequestSchema>>(
+  async (req, { user, body }) => {
+    const { message, conversationId } = body!
 
     // TODO: Implement actual chat functionality
     // For now, return a placeholder response
@@ -34,21 +23,15 @@ export async function POST(req: NextRequest) {
     }
 
     logger.info('Chat request processed', {
-      userId: session.user?.id,
+      userId: user?.id,
       conversationId,
       messageLength: message.length,
     })
 
     return successResponse(response)
-  } catch (error) {
-    logger.error('Chat request failed', {
-      error: getSafeErrorMessage(error),
-    })
-
-    if (error instanceof z.ZodError) {
-      return errorResponse('Invalid request data', 400)
-    }
-
-    return errorResponse('Failed to process chat request', 500)
+  },
+  {
+    validateBody: chatRequestSchema,
+    rateLimit: 'api'
   }
-}
+)

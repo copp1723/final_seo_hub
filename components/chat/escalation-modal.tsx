@@ -40,7 +40,7 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
         // Could add a success toast here
       }
     } catch (error) {
-      console.error('Failed to escalate:', error)
+      // Error handled silently on client-side
     } finally {
       setSubmitting(false)
     }

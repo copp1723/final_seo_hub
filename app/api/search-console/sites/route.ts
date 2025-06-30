@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
+import { logger } from '@/lib/logger'
 
 export async function GET(req: Request) {
   const session = await auth()
@@ -14,7 +15,7 @@ export async function GET(req: Request) {
     
     return NextResponse.json({ sites })
   } catch (error) {
-    console.error('Search Console error:', error)
+    logger.error('Search Console error', error, { userId: session.user.id })
     return NextResponse.json(
       { error: 'Failed to fetch sites' },
       { status: 500 }

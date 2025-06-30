@@ -66,7 +66,7 @@ export default function RequestsPage() {
         setRequests(data.data.requests)
       }
     } catch (error) {
-      console.error('Failed to fetch requests:', error)
+      // Error handled silently on client-side
     } finally {
       setLoading(false)
     }

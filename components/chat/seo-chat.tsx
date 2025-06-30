@@ -86,7 +86,7 @@ export function SEOChat() {
 
       setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
-      console.error('Chat error:', error)
+      // Error handled silently on client-side
     } finally {
       setLoading(false)
     }

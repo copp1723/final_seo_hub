@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ApiResponse } from '@/lib/api-auth'
 import { createRateLimit as createMemoryRateLimit, RateLimitConfig } from './rate-limit'
+import { RATE_LIMITS, TIME_CONSTANTS } from '@/lib/constants'
 
 // Redis client interface (to be implemented when Redis is added)
 export interface RedisClient {
@@ -14,7 +15,7 @@ export interface RedisClient {
 export function getRedisClient(): RedisClient | null {
   // Check if Redis URL is configured
   if (!process.env.REDIS_URL) {
-    console.log('Redis not configured, using in-memory rate limiting')
+    // Redis not configured, using in-memory rate limiting
     return null
   }
 
@@ -72,8 +73,7 @@ export function createRedisRateLimit(config: RateLimitConfig) {
       // Add rate limit headers to successful requests
       return null
     } catch (error) {
-      console.error('Redis rate limit error, falling back to memory:', error)
-      // Fall back to in-memory rate limiting
+      // Redis rate limit error, falling back to in-memory rate limiting
       return createMemoryRateLimit(config)(request)
     }
   }
@@ -95,29 +95,29 @@ function getClientId(request: NextRequest): string {
 export const enhancedRateLimits = {
   // AI endpoints - more restrictive
   ai: createRedisRateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    maxRequests: 10, // 10 requests per minute
+    windowMs: RATE_LIMITS.AI.WINDOW,
+    maxRequests: RATE_LIMITS.AI.MAX_REQUESTS,
     message: 'Too many AI requests. Please wait before trying again.',
   }),
 
   // API endpoints - moderate
   api: createRedisRateLimit({
-    windowMs: 60 * 1000, // 1 minute
+    windowMs: TIME_CONSTANTS.ONE_MINUTE,
     maxRequests: 30, // 30 requests per minute
     message: 'Too many API requests. Please slow down.',
   }),
 
   // Webhook endpoints - lenient
   webhook: createRedisRateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    maxRequests: 100, // 100 requests per minute
+    windowMs: RATE_LIMITS.WEBHOOK.WINDOW,
+    maxRequests: RATE_LIMITS.WEBHOOK.MAX_REQUESTS,
     message: 'Too many webhook requests. Please slow down.',
   }),
 
   // Authentication endpoints - strict
   auth: createRedisRateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 5, // 5 attempts per 15 minutes
+    windowMs: RATE_LIMITS.AUTH.WINDOW,
+    maxRequests: RATE_LIMITS.AUTH.MAX_REQUESTS,
     message: 'Too many authentication attempts. Please try again later.',
   }),
 }

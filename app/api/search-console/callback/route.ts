@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { google } from 'googleapis'
 import { encrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(req: Request) {
   const session = await auth()
@@ -62,7 +63,7 @@ export async function GET(req: Request) {
     // Redirect to settings page
     return NextResponse.redirect(new URL('/settings/search-console', process.env.NEXTAUTH_URL!))
   } catch (error) {
-    console.error('Search Console OAuth error:', error)
+    logger.error('Search Console OAuth error', error, { userId: session.user.id })
     return NextResponse.json(
       { error: 'Failed to connect Search Console' },
       { status: 500 }

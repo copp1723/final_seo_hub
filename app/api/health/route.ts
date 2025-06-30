@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   const startTime = Date.now()
@@ -19,7 +20,7 @@ export async function GET() {
     
     return NextResponse.json(healthStatus, { status: 200 })
   } catch (error) {
-    console.error('Health check failed:', error)
+    logger.error('Health check failed', error)
     
     return NextResponse.json(
       {

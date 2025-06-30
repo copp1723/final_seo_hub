@@ -1,6 +1,7 @@
 import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
 import { logger } from '@/lib/logger'
+import { generateUnsubscribeUrl } from './secure-tokens'
 
 // Initialize Mailgun client
 const mailgun = new Mailgun(FormData)
@@ -86,9 +87,7 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email)
 }
 
-// Get unsubscribe URL
+// Get unsubscribe URL using secure tokens
 export function getUnsubscribeUrl(userId: string, emailType: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const token = Buffer.from(`${userId}:${emailType}`).toString('base64')
-  return `${baseUrl}/api/email/unsubscribe?token=${token}`
+  return generateUnsubscribeUrl(userId, emailType)
 }

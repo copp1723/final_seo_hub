@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Check for encryption key
     if (!process.env.ENCRYPTION_KEY) {
-      console.error('ENCRYPTION_KEY is not set in environment variables')
+      logger.error('ENCRYPTION_KEY is not set in environment variables')
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=Server configuration error`)
     }
 
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=success`)
   } catch (error) {
-    console.error('GA4 callback error:', error)
+    logger.error('GA4 callback error', error)
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=Authorization failed`)
   }
 }

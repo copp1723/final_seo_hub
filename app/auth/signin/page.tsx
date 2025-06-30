@@ -18,7 +18,6 @@ function SignInForm() {
     try {
       await signIn('google', { callbackUrl })
     } catch (error) {
-      console.error('Sign in error:', error)
       setIsLoading(false)
     }
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to update primary site:', error)
+    logger.error('Failed to update primary site', error, { userId: session.user.id })
     return NextResponse.json(
       { error: 'Failed to update primary site' },
       { status: 500 }

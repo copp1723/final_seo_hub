@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 // Test endpoint to simulate task completion
 export async function POST(request: NextRequest) {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('Test webhook error:', error)
+    logger.error('Test webhook error', error)
     return NextResponse.json({ 
       error: 'Failed to send test webhook' 
     }, { status: 500 })

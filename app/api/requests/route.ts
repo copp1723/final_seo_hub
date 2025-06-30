@@ -6,6 +6,7 @@ import { RequestStatus } from '@prisma/client'
 import { validateRequest, createRequestSchema } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   // Apply rate limiting
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     
     return successResponse({ requests })
   } catch (error) {
-    console.error('Error fetching requests:', error)
+    logger.error('Error fetching requests', error, { userId: authResult.user.id })
     return errorResponse('Failed to fetch requests', 500)
   }
 }
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
     
     return successResponse({ request: newRequest }, 'Request created successfully')
   } catch (error) {
-    console.error('Error creating request:', error)
+    logger.error('Error creating request', error, { userId: authResult.user.id })
     return errorResponse('Failed to create request', 500)
   }
 }

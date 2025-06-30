@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to disconnect Search Console:', error)
+    logger.error('Failed to disconnect Search Console', error, { userId: session.user.id })
     return NextResponse.json(
       { error: 'Failed to disconnect Search Console' },
       { status: 500 }

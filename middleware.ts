@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { corsMiddleware } from '@/middleware/cors'
 
 export async function middleware(request: NextRequest) {
+  // Apply CORS headers for API routes
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const corsResponse = corsMiddleware(request)
+    if (request.method === 'OPTIONS') {
+      return corsResponse
+    }
+  }
+
   const { pathname } = request.nextUrl
   
   // Public routes that don't require authentication

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { logger } from '@/lib/logger'
+import { verifyUnsubscribeToken } from '@/lib/mailgun/secure-tokens'
 
 // GET endpoint for unsubscribe link
 export async function GET(request: NextRequest) {
@@ -13,13 +14,14 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    // Decode the token
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [userId, emailType] = decoded.split(':')
+    // Verify the secure token
+    const tokenData = verifyUnsubscribeToken(token)
     
-    if (!userId || !emailType) {
-      return errorResponse('Invalid unsubscribe token', 400)
+    if (!tokenData) {
+      return errorResponse('Invalid or expired unsubscribe token', 400)
     }
+    
+    const { userId, emailType } = tokenData
     
     // Get user preferences
     const preferences = await prisma.userPreferences.findUnique({

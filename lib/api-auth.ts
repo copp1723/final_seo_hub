@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import crypto from 'crypto'
+import { logger } from '@/lib/logger'
 
 // Standardized API response types
 export interface ApiResponse<T = any> {
@@ -65,7 +66,7 @@ export function validateApiKey(
   )
   
   if (!valid) {
-    console.error(`Failed API key validation for ${envKey}`)
+    logger.error('Failed API key validation', undefined, { envKey })
     return { 
       valid: false, 
       response: errorResponse('Unauthorized', 401) 

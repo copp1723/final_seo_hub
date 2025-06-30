@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { decrypt } from '@/lib/encryption';
 import { prisma } from '@/lib/prisma';
+import { refreshGA4TokenIfNeeded } from './ga4-token-refresh';
 
 interface RunReportOptions {
   propertyId: string;
@@ -21,6 +22,9 @@ export class GA4Service {
   }
 
   private async initialize() {
+    // Refresh token if needed
+    await refreshGA4TokenIfNeeded(this.userId);
+
     const connection = await prisma.gA4Connection.findUnique({
       where: { userId: this.userId },
     });
@@ -37,7 +41,7 @@ export class GA4Service {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.NEXTAUTH_URL + '/api/auth/callback/google'
+      process.env.NEXTAUTH_URL + '/api/ga4/auth/callback'
     );
 
     oauth2Client.setCredentials({

@@ -34,6 +34,14 @@ services:
         value: https://openrouter.ai/api/v1
       - key: SEOWORKS_WEBHOOK_SECRET
         generateValue: true
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAILGUN_REGION
+        value: US
+      - key: CRON_SECRET
+        generateValue: true
 
 databases:
   - name: rylie-seo-hub-db

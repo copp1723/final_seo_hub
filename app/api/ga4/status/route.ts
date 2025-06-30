@@ -1,30 +1,56 @@
 import { NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/api-auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
-  const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
-
   try {
+    const session = await auth()
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const connection = await prisma.gA4Connection.findUnique({
-      where: { userId: authResult.user.id }
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        propertyId: true,
+        propertyName: true,
+        createdAt: true,
+        updatedAt: true,
+        expiresAt: true
+      }
     })
 
     if (!connection) {
-      return NextResponse.json({ connected: false })
+      return NextResponse.json({
+        connected: false,
+        message: 'No GA4 connection found'
+      })
     }
 
-    // TODO: Fetch actual metrics from GA4
-    // For now, return connection status only
+    // Check if token is expired
+    const isExpired = connection.expiresAt ? new Date() > connection.expiresAt : false
+
     return NextResponse.json({
       connected: true,
       propertyId: connection.propertyId,
       propertyName: connection.propertyName,
-      // metrics: ga4Metrics (to be implemented)
+      connectedAt: connection.createdAt,
+      tokenExpired: isExpired,
+      expiresAt: connection.expiresAt
     })
+
   } catch (error) {
-    console.error('GA4 status error:', error)
-    return NextResponse.json({ connected: false })
+    logger.error('GA4 status check error', error, {
+      path: '/api/ga4/status',
+      method: 'GET'
+    })
+
+    return NextResponse.json(
+      { error: 'Failed to check GA4 status' },
+      { status: 500 }
+    )
   }
 }

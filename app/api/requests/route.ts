@@ -4,6 +4,8 @@ import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
 import { RequestStatus } from '@prisma/client'
 import { validateRequest, createRequestSchema } from '@/lib/validations/index'
+import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
+import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
 
 export async function GET(request: NextRequest) {
   // Apply rate limiting
@@ -56,7 +58,38 @@ export async function POST(request: NextRequest) {
         targetCities: data.targetCities || [],
         targetModels: data.targetModels || [],
       },
+      include: {
+        user: true
+      }
     })
+    
+    // Send request created email notification
+    const emailTemplate = requestCreatedTemplate(newRequest, newRequest.user)
+    await queueEmailWithPreferences(
+      newRequest.userId,
+      'requestCreated',
+      {
+        ...emailTemplate,
+        to: newRequest.user.email
+      }
+    )
+    
+    // Check if this is the user's first request and send welcome email
+    const requestCount = await prisma.request.count({
+      where: { userId: authResult.user.id }
+    })
+    
+    if (requestCount === 1) {
+      const welcomeTemplate = welcomeEmailTemplate(newRequest.user)
+      await queueEmailWithPreferences(
+        newRequest.userId,
+        'requestCreated', // Use requestCreated preference for welcome email
+        {
+          ...welcomeTemplate,
+          to: newRequest.user.email
+        }
+      )
+    }
     
     return successResponse({ request: newRequest }, 'Request created successfully')
   } catch (error) {

@@ -45,6 +45,7 @@ export type { ValidationSuccess, ValidationError, ValidationResult }
 // Re-export all schemas
 export * from './request'
 export * from './webhook'
+export * from './settings'
 
 // Sanitize string for logging (remove potential sensitive data)
 export function sanitizeForLog(str: string, maxLength = 200): string {

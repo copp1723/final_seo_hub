@@ -37,6 +37,7 @@ enum PackageType {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
+  emailVerified DateTime?
   name          String?
   image         String?
   role          UserRole  @default(USER)
@@ -56,12 +57,20 @@ model User {
   ga4Connection GA4Connection?
   searchConsoleConnection SearchConsoleConnection?
   
+  // User preferences
+  preferences   UserPreferences?
+  
+  // API access
+  apiKey        String?   @unique
+  apiKeyCreatedAt DateTime?
+  
   // Timestamps
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
   @@index([email])
   @@index([agencyId])
+  @@index([apiKey])
 }
 
 // NextAuth required models
@@ -202,4 +211,26 @@ model SearchConsoleConnection {
   
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+}
+
+// User preferences for notifications and settings
+model UserPreferences {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Notification preferences
+  emailNotifications  Boolean   @default(true)
+  requestCreated      Boolean   @default(true)
+  statusChanged       Boolean   @default(true)
+  taskCompleted       Boolean   @default(true)
+  weeklySummary       Boolean   @default(true)
+  marketingEmails     Boolean   @default(false)
+  
+  // Other preferences
+  timezone            String?   @default("America/New_York")
+  language            String?   @default("en")
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }

@@ -223,12 +223,15 @@ export default async function DashboardPage() {
     ? `${tasksCompletedThisMonth} of ${tasksTotalThisMonth} used this month`
     : "No active package"
  main
+  // Import ErrorBoundary
+  const ErrorBoundary = (await import('@/components/error-boundary')).default;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Header */}
-        <div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+          {/* Header */}
+          <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-2 text-gray-600">Welcome back, {session.user.name || session.user.email}</p>
         </div>
@@ -326,5 +329,6 @@ export default async function DashboardPage() {
 
       </div>
     </div>
+    </ErrorBoundary>
   )
 }

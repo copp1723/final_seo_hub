@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { sanitizeForLog } from './validations'
 
 export interface LogContext {
@@ -103,7 +104,20 @@ export class Logger {
   ) {
     // TODO: Implement sending to monitoring service
     // For now, use console as fallback
-    console[level](`[${level.toUpperCase()}]`, message, context)
+    // console[level](`[${level.toUpperCase()}]`, message, context)
+
+    // Send to Sentry
+    if (level === 'error') {
+      Sentry.captureException(context?.error || new Error(message), {
+        extra: { ...context, message }, // Add original message to extra context
+        level: 'error',
+      });
+    } else {
+      Sentry.captureMessage(message, {
+        extra: context,
+        level: level, // Sentry's level type matches ours
+      });
+    }
   }
 }
 

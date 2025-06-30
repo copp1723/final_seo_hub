@@ -45,7 +45,13 @@ const RequestDetailPage: React.FC = () => {
           }
           const data: RequestDetails = await response.json();
           setRequestDetails(data);
-        } catch (err: any) {
+        } catch (err) {
+           console.error('Error fetching request details:', err);
+           setError(err instanceof Error
+             ? err.message
+             : 'An unexpected error occurred'
+           );
+        }
           console.error('Error fetching request details:', err);
           setError(err.message);
         } finally {

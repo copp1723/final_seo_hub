@@ -68,7 +68,13 @@ export async function POST(request: NextRequest) {
     // Update user record with onboarding data and initial billing setup
     try {
       const now = new Date()
-      const updateData: any = { // Use 'any' for now, or create a proper Prisma type
+// at the top of the file, update the import:
+import { PackageType, Prisma } from '@prisma/client'
+
+// …
+
+// around line 71, update the declaration:
+      const updateData: Prisma.UserUpdateInput = { // Use 'any' for now, or create a proper Prisma type
         onboardingCompleted: true,
         activePackageType: formData.package as PackageType, // Assuming formData.package is 'SILVER', 'GOLD', or 'PLATINUM'
         currentBillingPeriodStart: startOfDay(now),

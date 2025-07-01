@@ -9,6 +9,10 @@
     "start": "next start -p ${PORT:-3001}",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:redis": "jest lib/__tests__/csrf-redis.test.ts lib/__tests__/rate-limit-redis.test.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
@@ -30,6 +34,7 @@
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.14",
+    "@types/ioredis": "^4.28.10",
     "@types/node": "^22.5.5",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
@@ -41,6 +46,7 @@
     "form-data": "^4.0.3",
     "google-auth-library": "^10.1.0",
     "googleapis": "^150.0.1",
+    "ioredis": "^5.6.1",
     "lucide-react": "^0.522.0",
     "mailgun.js": "^12.0.3",
     "next": "15.3.4",
@@ -59,10 +65,15 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@types/jest": "^30.0.0",
     "eslint": "^9.29.0",
     "eslint-config-next": "15.3.4",
+    "jest": "^30.0.3",
     "prettier": "^3.5.3",
     "prisma": "^6.10.1",
+    "redis-memory-server": "^0.12.1",
+    "ts-jest": "^29.4.0",
     "tsx": "^4.20.3"
   },
   "engines": {

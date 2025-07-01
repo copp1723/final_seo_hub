@@ -2,43 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ApiResponse } from '@/lib/api-auth'
 import { createRateLimit as createMemoryRateLimit, RateLimitConfig } from './rate-limit'
 import { RATE_LIMITS, TIME_CONSTANTS } from '@/lib/constants'
-
-// Redis client interface (to be implemented when Redis is added)
-export interface RedisClient {
-  incr(key: string): Promise<number>
-  expire(key: string, seconds: number): Promise<boolean>
-  ttl(key: string): Promise<number>
-  del(key: string): Promise<number>
-}
-
-// Environment-based Redis configuration
-export function getRedisClient(): RedisClient | null {
-  // Check if Redis URL is configured
-  if (!process.env.REDIS_URL) {
-    // Redis not configured, using in-memory rate limiting
-    return null
-  }
-
-  // TODO: Implement actual Redis client when adding Redis dependency
-  // For now, return null to use in-memory fallback
-  return null
-}
+import { redisManager } from './redis'
+import { logger } from './logger'
 
 // Create rate limiter with Redis support
 export function createRedisRateLimit(config: RateLimitConfig) {
-  const redisClient = getRedisClient()
-  
-  // If no Redis, fall back to in-memory
-  if (!redisClient) {
-    return createMemoryRateLimit(config)
-  }
-
   return async (request: NextRequest): Promise<NextResponse | null> => {
     const clientId = getClientId(request)
     const key = `rate_limit:${clientId}`
     const windowSeconds = Math.ceil(config.windowMs / 1000)
 
     try {
+      const redisClient = await redisManager.getClient()
+      
+      // If no Redis, fall back to in-memory
+      if (!redisClient) {
+        return createMemoryRateLimit(config)(request)
+      }
+
       // Increment counter
       const count = await redisClient.incr(key)
       
@@ -74,6 +55,9 @@ export function createRedisRateLimit(config: RateLimitConfig) {
       return null
     } catch (error) {
       // Redis rate limit error, falling back to in-memory rate limiting
+      logger.warn('Redis rate limiting failed, falling back to in-memory', { 
+        error: error instanceof Error ? error.message : String(error) 
+      })
       return createMemoryRateLimit(config)(request)
     }
   }

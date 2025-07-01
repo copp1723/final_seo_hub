@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { errorResponse } from './api-auth'
+import { redisManager } from './redis'
+import { logger } from './logger'
 
-// CSRF token storage (in production, use Redis or database)
+// Simple error response function to avoid dependency issues
+function errorResponse(error: string, status: number = 400): NextResponse {
+  return NextResponse.json({ 
+    success: false, 
+    error 
+  }, { status })
+}
+
+// CSRF token storage for fallback (when Redis is not available)
 const csrfTokens = new Map<string, { token: string; expires: number }>()
 
 // Token cleanup interval (every 10 minutes)
 const CLEANUP_INTERVAL = 10 * 60 * 1000
 const TOKEN_LIFETIME = 60 * 60 * 1000 // 1 hour
+const TOKEN_LIFETIME_SECONDS = Math.ceil(TOKEN_LIFETIME / 1000) // Redis TTL in seconds
 
-// Cleanup expired tokens periodically
+// Cleanup expired tokens periodically (only for in-memory fallback)
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now()
@@ -22,13 +32,80 @@ if (typeof setInterval !== 'undefined') {
 }
 
 /**
+ * Store CSRF token in Redis or fallback to in-memory
+ */
+async function storeCSRFToken(sessionId: string, token: string, expires: number): Promise<void> {
+  try {
+    const redis = await redisManager.getClient()
+    if (redis) {
+      const key = `csrf:${sessionId}`
+      const tokenData = JSON.stringify({ token, expires })
+      await redis.setex(key, TOKEN_LIFETIME_SECONDS, tokenData)
+      return
+    }
+  } catch (error) {
+    logger.warn('Failed to store CSRF token in Redis, using in-memory fallback', { 
+      error: error instanceof Error ? error.message : String(error) 
+    })
+  }
+  
+  // Fallback to in-memory storage
+  csrfTokens.set(sessionId, { token, expires })
+}
+
+/**
+ * Retrieve CSRF token from Redis or fallback to in-memory
+ */
+async function getCSRFToken(sessionId: string): Promise<{ token: string; expires: number } | null> {
+  try {
+    const redis = await redisManager.getClient()
+    if (redis) {
+      const key = `csrf:${sessionId}`
+      const tokenData = await redis.get(key)
+      if (tokenData) {
+        return JSON.parse(tokenData)
+      }
+      return null
+    }
+  } catch (error) {
+    logger.warn('Failed to retrieve CSRF token from Redis, using in-memory fallback', { 
+      error: error instanceof Error ? error.message : String(error) 
+    })
+  }
+  
+  // Fallback to in-memory storage
+  return csrfTokens.get(sessionId) || null
+}
+
+/**
+ * Delete CSRF token from Redis or fallback to in-memory
+ */
+async function deleteCSRFToken(sessionId: string): Promise<void> {
+  try {
+    const redis = await redisManager.getClient()
+    if (redis) {
+      const key = `csrf:${sessionId}`
+      await redis.del(key)
+      return
+    }
+  } catch (error) {
+    logger.warn('Failed to delete CSRF token from Redis, using in-memory fallback', { 
+      error: error instanceof Error ? error.message : String(error) 
+    })
+  }
+  
+  // Fallback to in-memory storage
+  csrfTokens.delete(sessionId)
+}
+
+/**
  * Generate a CSRF token for a session
  */
-export function generateCSRFToken(sessionId: string): string {
+export async function generateCSRFToken(sessionId: string): Promise<string> {
   const token = crypto.randomBytes(32).toString('hex')
   const expires = Date.now() + TOKEN_LIFETIME
   
-  csrfTokens.set(sessionId, { token, expires })
+  await storeCSRFToken(sessionId, token, expires)
   
   return token
 }
@@ -36,10 +113,10 @@ export function generateCSRFToken(sessionId: string): string {
 /**
  * Validate CSRF token from request
  */
-export function validateCSRFToken(
+export async function validateCSRFToken(
   request: NextRequest,
   sessionId: string
-): boolean {
+): Promise<boolean> {
   // Get token from header or body
   const headerToken = request.headers.get('x-csrf-token')
   
@@ -47,14 +124,14 @@ export function validateCSRFToken(
     return false
   }
   
-  const storedData = csrfTokens.get(sessionId)
+  const storedData = await getCSRFToken(sessionId)
   if (!storedData) {
     return false
   }
   
   // Check if token is expired
   if (storedData.expires < Date.now()) {
-    csrfTokens.delete(sessionId)
+    await deleteCSRFToken(sessionId)
     return false
   }
   
@@ -87,7 +164,7 @@ export async function csrfProtection(
     return errorResponse('Unauthorized', 401)
   }
   
-  if (!validateCSRFToken(request, sessionId)) {
+  if (!(await validateCSRFToken(request, sessionId))) {
     return errorResponse('Invalid CSRF token', 403)
   }
   
@@ -97,24 +174,24 @@ export async function csrfProtection(
 /**
  * Get or create CSRF token for a session
  */
-export function getOrCreateCSRFToken(sessionId: string): string {
-  const existing = csrfTokens.get(sessionId)
+export async function getOrCreateCSRFToken(sessionId: string): Promise<string> {
+  const existing = await getCSRFToken(sessionId)
   
   if (existing && existing.expires > Date.now()) {
     return existing.token
   }
   
-  return generateCSRFToken(sessionId)
+  return await generateCSRFToken(sessionId)
 }
 
 /**
  * Add CSRF token to response headers
  */
-export function addCSRFTokenToResponse(
+export async function addCSRFTokenToResponse(
   response: NextResponse,
   sessionId: string
-): NextResponse {
-  const token = getOrCreateCSRFToken(sessionId)
+): Promise<NextResponse> {
+  const token = await getOrCreateCSRFToken(sessionId)
   response.headers.set('x-csrf-token', token)
   return response
 }

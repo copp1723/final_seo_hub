@@ -49,7 +49,7 @@ export default function OnboardingPage() {
 
   const onSubmit: SubmitHandler<OnboardingData> = async (data) => {
     setSubmissionError(null);
-    console.log('Submitting onboarding data:', data);
+    // Submitting onboarding data
     try {
       const response = await fetch('/api/onboarding', {
         method: 'POST',
@@ -65,14 +65,14 @@ export default function OnboardingPage() {
       }
 
       // TODO: Store completion status in user record (will be handled in a later step)
-      console.log('Onboarding submitted successfully');
+      // Onboarding submitted successfully
       // For now, we assume the API call to /api/onboarding also handles updating user's status.
       // If direct client-side update to user session/record is needed, that would be an additional step.
 
       // Redirect to dashboard
       router.push('/dashboard');
     } catch (error: any) {
-      console.error('Submission error:', error);
+      // Log submission error
       setSubmissionError(error.message || 'An unexpected error occurred.');
     }
   };

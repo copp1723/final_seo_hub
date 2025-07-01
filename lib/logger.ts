@@ -95,15 +95,8 @@ export class Logger {
   }
   
   /**
-   * Send logs to monitoring service (to be implemented)
+   * Send logs to monitoring service
    */
-  private sendToMonitoring(
-    level: 'error' | 'warn' | 'info',
-    message: string,
-    context?: any
-  ) {
-    // TODO: Implement sending to monitoring service
-    // For now, use console as fallback
   private sendToMonitoring(
     level: 'error' | 'warn' | 'info',
     message: string,

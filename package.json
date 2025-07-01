@@ -5,17 +5,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm install autoprefixer@10.4.21 postcss@8.5.1 tailwindcss@3.4.17 --no-save && next build",
+    "build": "next build",
     "start": "next start -p ${PORT:-3001}",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "generate-keys": "tsx scripts/generate-keys.ts",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "clean": "rm -rf .next node_modules",
+    "clean:install": "npm run clean && npm install"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
@@ -31,7 +32,6 @@
     "autoprefixer": "^10.4.21",
     "chart.js": "^4.5.0",
     "class-variance-authority": "^0.7.1",
-    "client-only": "^0.0.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "form-data": "^4.0.3",

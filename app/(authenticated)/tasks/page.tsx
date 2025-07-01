@@ -123,12 +123,17 @@ export default function TasksPage() {
     pending: tasks.filter(t => t.status === 'PENDING').length,
     inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
     completed: tasks.filter(t => t.status === 'COMPLETED').length,
-    overdue: tasks.filter(t => 
-      t.dueDate && 
-      new Date(t.dueDate) < new Date() && 
-      t.status !== 'COMPLETED'
-    ).length,
-    highPriority: tasks.filter(t => t.priority === 'HIGH' && t.status !== 'COMPLETED').length
+    overdue: tasks.filter(t => {
+      if (!t.dueDate) return false;
+      const isOverdue = new Date(t.dueDate) < new Date();
+      const isNotCompleted = t.status === 'PENDING' || t.status === 'IN_PROGRESS';
+      return isOverdue && isNotCompleted;
+    }).length,
+    highPriority: tasks.filter(t => {
+      const isHighPriority = t.priority === 'HIGH';
+      const isNotCompleted = t.status === 'PENDING' || t.status === 'IN_PROGRESS';
+      return isHighPriority && isNotCompleted;
+    }).length
   }
 
   const getFilteredTasks = () => {
@@ -138,11 +143,12 @@ export default function TasksPage() {
       case 'completed':
         return tasks.filter(t => t.status === 'COMPLETED')
       case 'overdue':
-        return tasks.filter(t => 
-          t.dueDate && 
-          new Date(t.dueDate) < new Date() && 
-          t.status !== 'COMPLETED'
-        )
+        return tasks.filter(t => {
+          if (!t.dueDate) return false;
+          const isOverdue = new Date(t.dueDate) < new Date();
+          const isNotCompleted = t.status === 'PENDING' || t.status === 'IN_PROGRESS';
+          return isOverdue && isNotCompleted;
+        })
       default:
         return tasks
     }

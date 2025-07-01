@@ -8,6 +8,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
+  debug: true, // Enable debug temporarily
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -15,6 +16,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    signIn: async ({ user, account, profile }) => {
+      console.log('SignIn callback triggered:', { 
+        user: user.email, 
+        account: account?.provider, 
+        profile: profile?.email 
+      })
+      try {
+        return true
+      } catch (error) {
+        console.error('SignIn callback error:', error)
+        return false
+      }
+    },
     session: async ({ session, user }) => {
       try {
         // Fetch user data from database to get custom fields

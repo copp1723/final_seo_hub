@@ -252,26 +252,26 @@ export default function TasksPage() {
         <TabsList className="grid w-full max-w-md grid-cols-4">
           <TabsTrigger value="all">
             All Tasks
-            <Badge variant="secondary" className="ml-2 h-5 px-1">
+            <Badge variant="info" className="ml-2 h-5 px-1">
               {taskStats.total}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="active">
             Active
-            <Badge variant="secondary" className="ml-2 h-5 px-1">
+            <Badge variant="info" className="ml-2 h-5 px-1">
               {taskStats.pending + taskStats.inProgress}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="completed">
             Completed
-            <Badge variant="secondary" className="ml-2 h-5 px-1">
+            <Badge variant="info" className="ml-2 h-5 px-1">
               {taskStats.completed}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="overdue">
             Overdue
             {taskStats.overdue > 0 && (
-              <Badge variant="destructive" className="ml-2 h-5 px-1">
+              <Badge variant="error" className="ml-2 h-5 px-1">
                 {taskStats.overdue}
               </Badge>
             )}

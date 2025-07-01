@@ -108,12 +108,12 @@ export function TaskWidget({
           <CardTitle>{title}</CardTitle>
           <div className="flex items-center gap-2 text-sm">
             {pendingTasks > 0 && (
-              <Badge variant="outline" className="text-yellow-600 border-yellow-200">
+              <Badge variant="warning" className="text-yellow-600 border-yellow-200">
                 {pendingTasks} Pending
               </Badge>
             )}
             {inProgressTasks > 0 && (
-              <Badge variant="outline" className="text-blue-600 border-blue-200">
+              <Badge variant="info" className="text-blue-600 border-blue-200">
                 {inProgressTasks} In Progress
               </Badge>
             )}

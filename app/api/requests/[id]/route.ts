@@ -1,40 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { Request as PrismaRequest } from '@prisma/client';
 
 // Assume db is an instance of your database client (e.g., Prisma, Sequelize)
 // and Request is your database model/schema for requests.
 // import db from '@/lib/db'; // Example import for database client
 // import { Request } from '@prisma/client'; // Example import for Prisma model
-
-// Placeholder for database interactions
-const db = {
-  request: {
-    findUnique: async (options: { where: { id: string } }) => {
-      // Mock fetching a request
-      console.log(`DB: Finding request with id: ${options.where.id}`);
-      // Simulate a request found in the database
-      if (options.where.id === "existing-request-id") {
-        return {
-          id: options.where.id,
-          status: 'OPEN',
-          completedTasks: [],
-          totalTasks: 5, // Example total tasks
-          completedTaskCount: 0, // Example initial completed count
-          // other request fields...
-        };
-      }
-      return null;
-    },
-    update: async (options: { where: { id: string }; data: any }) => {
-      // Mock updating a request
-      console.log(`DB: Updating request with id: ${options.where.id} with data:`, options.data);
-      // Simulate a successful update
-      return {
-        id: options.where.id,
-        ...options.data,
-      };
-    },
-  },
-};
 
 interface CompletedTask {
   id: string; // Unique ID for the completed task entry
@@ -56,7 +27,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { status, taskDetails } = body;
 
     // Fetch the existing request
-    const existingRequest = await db.request.findUnique({ where: { id } });
+    const existingRequest = await prisma.request.findUnique({ where: { id } });
 
     if (!existingRequest) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
@@ -121,7 +92,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 
     // Update the request in the database
-    const updatedRequest = await db.request.update({
+    const updatedRequest = await prisma.request.update({
       where: { id },
       data: updatedData,
     });
@@ -143,7 +114,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   if (!id) {
     return NextResponse.json({ error: 'Request ID is required' }, { status: 400 });
   }
-  const req = await db.request.findUnique({ where: { id } });
+  const req = await prisma.request.findUnique({ where: { id } });
   if (!req) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 });
   }

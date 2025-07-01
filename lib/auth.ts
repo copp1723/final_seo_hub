@@ -9,10 +9,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
   debug: true, // Enable debug temporarily
+  session: {
+    strategy: 'database', // Explicitly use database sessions with PrismaAdapter
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   callbacks: {
@@ -23,6 +35,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         profile: profile?.email 
       })
       try {
+        // You can add custom logic here to set default values
+        // The user will be created automatically by PrismaAdapter
         return true
       } catch (error) {
         console.error('SignIn callback error:', error)
@@ -30,35 +44,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
     session: async ({ session, user }) => {
-      try {
-        // Fetch user data from database to get custom fields
-        if (session?.user?.email) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            select: {
-              id: true,
-              role: true,
-              agencyId: true,
-              onboardingCompleted: true,
-            },
-          })
-
-          if (dbUser) {
-            session.user.id = dbUser.id
-            session.user.role = dbUser.role
-            session.user.agencyId = dbUser.agencyId
-            session.user.onboardingCompleted = dbUser.onboardingCompleted
-          }
-        }
-        return session
-      } catch (error) {
-        console.error('Session callback error:', error)
-        return session
+      // With database strategy, the user object is already populated from DB
+      // Just map the fields to the session
+      if (session.user && user) {
+        session.user.id = user.id
+        session.user.role = (user as any).role || UserRole.USER
+        session.user.agencyId = (user as any).agencyId
+        session.user.onboardingCompleted = (user as any).onboardingCompleted || false
       }
+      return session
+    },
+    redirect: async ({ url, baseUrl }) => {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     }
   },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true // Always use secure in production
+      }
+    }
+  }
 })

@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Public routes that don't require authentication
-  const publicRoutes = ['/auth/signin', '/auth/error', '/api/health', '/api/onboarding', '/api/debug'] // Add debug endpoints for troubleshooting
+  const publicRoutes = ['/auth/signin', '/auth/error', '/api/health', '/api/onboarding', '/api/debug']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   // Allow access to API routes needed before authentication or onboarding is complete
@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isPublicRoute && pathname !== '/api/onboarding') { // Let /api/onboarding be handled by auth check
+  if (isPublicRoute && pathname !== '/api/onboarding') {
     return NextResponse.next()
   }
   
@@ -31,15 +31,11 @@ export async function middleware(request: NextRequest) {
     request.cookies.get('__Secure-next-auth.session-token')
 
   if (!sessionToken) {
-    // If not authenticated and not trying to access the root (which might be a landing page)
-    // or the onboarding page itself (which also needs to be accessible to submit)
     if (pathname !== '/' && pathname !== '/onboarding') {
       const signInUrl = new URL('/auth/signin', request.url)
       signInUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(signInUrl)
     }
-    // Allow access to root or onboarding page if not authenticated
-    // (e.g. landing page, or if onboarding itself is the first page they see)
     return NextResponse.next();
   }
 
@@ -58,6 +54,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

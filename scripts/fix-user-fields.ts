@@ -5,21 +5,12 @@ async function fixUserFields() {
   console.log('Starting user fields fix...')
   
   try {
-    // Find all users missing required fields
-    const users = await prisma.user.findMany({
-      where: {
-        OR: [
-          { role: null },
-          { onboardingCompleted: null },
-          { pagesUsedThisPeriod: null },
-          { blogsUsedThisPeriod: null },
-          { gbpPostsUsedThisPeriod: null },
-          { improvementsUsedThisPeriod: null },
-        ]
-      }
-    })
+    // Find all users and check for missing fields
+    const users = await prisma.user.findMany()
     
-    console.log(`Found ${users.length} users with missing fields`)
+    console.log(`Checking ${users.length} users for missing fields`)
+    
+    let updatedCount = 0
     
     // Update each user with default values
     for (const user of users) {
@@ -50,10 +41,11 @@ async function fixUserFields() {
           data: updateData
         })
         console.log(`Updated user ${user.email} with:`, updateData)
+        updatedCount++
       }
     }
     
-    console.log('User fields fix completed!')
+    console.log(`User fields fix completed! Updated ${updatedCount} users.`)
   } catch (error) {
     console.error('Error fixing user fields:', error)
     process.exit(1)

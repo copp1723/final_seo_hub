@@ -1,6 +1,6 @@
 import { PackageType, User } from '@prisma/client'
 import { SEO_KNOWLEDGE_BASE } from './seo-knowledge'
-import prisma from './prisma'
+import { prisma } from './prisma'
 import { getMonth, getYear, startOfMonth, endOfMonth, isAfter } from 'date-fns'
 
 export interface PackageProgress {

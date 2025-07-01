@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, CheckCircle, Clock, ArrowRight } from 'lucide-react'
+import { FileText, CheckCircle, Clock, ArrowRight, MessageSquare, AlertCircle } from 'lucide-react'
 import { getUserPackageProgress, PackageProgress } from '@/lib/package-utils'
 
 export default async function DashboardPage() {
@@ -212,6 +212,89 @@ export default async function DashboardPage() {
               </Link>
             </CardContent>
           </Card>
+
+          {/* Recent Tasks Widget */}
+          <div className="mt-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Priority Tasks */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium">Priority Tasks</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg border bg-gray-50">
+                      <FileText className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">Create landing page for Austin dealership</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Request: Q4 SEO Package</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                          <span className="text-red-600 font-medium flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            HIGH Priority
+                          </span>
+                          <span>Due in 2 days</span>
+                        </div>
+                      </div>
+                      <Clock className="h-4 w-4 text-yellow-600" />
+                    </div>
+                    
+                    <div className="flex items-start gap-3 p-3 rounded-lg border bg-gray-50">
+                      <MessageSquare className="h-5 w-5 text-green-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">Write blog post about F-150 maintenance</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Request: Monthly Blog Content</p>
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                          <span className="text-orange-600">MEDIUM Priority</span>
+                          <span>Due in 5 days</span>
+                        </div>
+                      </div>
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t">
+                    <Link href="/tasks" passHref>
+                      <Button variant="ghost" className="w-full" size="sm">
+                        View all tasks
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Task Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium">Task Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                      <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold">8</p>
+                      <p className="text-sm text-gray-600">Pending Tasks</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <AlertCircle className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold">3</p>
+                      <p className="text-sm text-gray-600">In Progress</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold">15</p>
+                      <p className="text-sm text-gray-600">Completed This Month</p>
+                    </div>
+                    <div className="text-center p-4 bg-red-50 rounded-lg">
+                      <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
+                      <p className="text-2xl font-bold">2</p>
+                      <p className="text-sm text-gray-600">Overdue</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </ErrorBoundary>

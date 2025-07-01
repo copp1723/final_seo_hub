@@ -33,6 +33,20 @@ enum PackageType {
   PLATINUM
 }
 
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskType {
+  PAGE
+  BLOG
+  GBP_POST
+  IMPROVEMENT
+}
+
 // Core user model for authentication
 model User {
   id            String    @id @default(cuid())
@@ -52,6 +66,9 @@ model User {
 
   // User's requests
   requests Request[]
+
+  // User's tasks
+  tasks Task[]
 
   // Google integrations
   ga4Connection           GA4Connection?
@@ -181,6 +198,9 @@ model Request {
   // Progress tracking
   completedAt DateTime?
 
+  // Tasks relationship
+  tasks Task[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -270,4 +290,52 @@ model UserPreferences {
   
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+}
+
+// Task model for enhanced task visibility
+model Task {
+  id String @id @default(cuid())
+
+  // User relationship
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Request relationship
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  // Task details
+  title       String
+  description String?        @db.Text
+  type        TaskType
+  status      TaskStatus     @default(PENDING)
+  priority    RequestPriority @default(MEDIUM)
+
+  // SEO specific fields
+  targetUrl    String?
+  targetCity   String?
+  targetModel  String?
+  keywords     Json? // Array of keywords
+
+  // Completion info
+  completedUrl   String?
+  completedTitle String?
+  completedNotes String? @db.Text
+
+  // Timeline
+  dueDate     DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Metadata
+  metadata Json? // Additional task-specific data
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([requestId, status])
+  @@index([status, dueDate])
+  @@index([type, status])
 }

@@ -13,12 +13,14 @@ import {
   X, 
   User,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  ListChecks
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/tasks', label: 'Tasks', icon: ListChecks },
   { href: '/requests', label: 'Requests', icon: FileText },
   { href: '/chat', label: 'AI Assistant', icon: MessageSquare },
   { href: '/reporting', label: 'Analytics', icon: BarChart },

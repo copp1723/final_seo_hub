@@ -57,7 +57,7 @@ const RequestDetailPage: React.FC = () => {
         } finally {
           setIsLoading(false);
         }
-      };
+      }
 
       fetchRequestDetails();
     } else {

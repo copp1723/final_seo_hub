@@ -194,7 +194,7 @@ export default function OverviewTab({
                       <span className="text-sm text-gray-600 truncate max-w-xs">
                         {page.page.replace(/^https?:\/\/[^\/]+/, '')}
                       </span>
-                      <Badge variant="secondary">{page.clicks} clicks</Badge>
+                      <Badge variant="info">{page.clicks} clicks</Badge>
                     </div>
                   ))}
                 </div>
@@ -222,8 +222,8 @@ export default function OverviewTab({
                         {query.query}
                       </span>
                       <div className="flex gap-2">
-                        <Badge variant="outline">{query.clicks} clicks</Badge>
-                        <Badge variant="secondary">
+                        <Badge variant="default">{query.clicks} clicks</Badge>
+                        <Badge variant="info">
                           #{query.position.toFixed(1)}
                         </Badge>
                       </div>

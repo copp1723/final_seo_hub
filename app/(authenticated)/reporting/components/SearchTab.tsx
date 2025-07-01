@@ -194,12 +194,12 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
                     <td className="text-right py-2 px-4">{query.clicks.toLocaleString()}</td>
                     <td className="text-right py-2 px-4">{query.impressions.toLocaleString()}</td>
                     <td className="text-right py-2 px-4">
-                      <Badge variant={query.ctr * 100 > 5 ? 'default' : 'secondary'}>
+                      <Badge variant={query.ctr * 100 > 5 ? 'default' : 'info'}>
                         {(query.ctr * 100).toFixed(1)}%
                       </Badge>
                     </td>
                     <td className="text-right py-2 px-4">
-                      <Badge variant={query.position <= 3 ? 'default' : query.position <= 10 ? 'secondary' : 'outline'}>
+                      <Badge variant={query.position <= 3 ? 'success' : query.position <= 10 ? 'default' : 'warning'}>
                         {query.position.toFixed(1)}
                       </Badge>
                     </td>

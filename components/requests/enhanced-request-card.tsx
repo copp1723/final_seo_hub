@@ -143,7 +143,7 @@ export function EnhancedRequestCard({ request }: EnhancedRequestCardProps) {
                 {request.priority} Priority
               </Badge>
               {request.packageType && (
-                <Badge variant="outline">{request.packageType}</Badge>
+                <Badge variant="default">{request.packageType}</Badge>
               )}
             </div>
           </div>

@@ -196,20 +196,20 @@ export function TaskCard({ task, onStatusChange, onViewDetails, className }: Tas
         {/* Status and Priority Badges */}
         <div className="flex items-center gap-2 mt-3">
           <Badge 
-            variant="outline" 
+            variant="default" 
             className={cn("flex items-center gap-1", statusInfo.color)}
           >
             <StatusIcon className="h-3 w-3" />
             {statusInfo.label}
           </Badge>
           <Badge 
-            variant="outline" 
+            variant="default" 
             className={cn(priorityInfo.color)}
           >
             {priorityInfo.label} Priority
           </Badge>
           {isOverdue && (
-            <Badge variant="destructive" className="flex items-center gap-1">
+            <Badge variant="error" className="flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               Overdue
             </Badge>
@@ -292,7 +292,7 @@ export function TaskCard({ task, onStatusChange, onViewDetails, className }: Tas
               {task.status === 'IN_PROGRESS' && (
                 <Button 
                   size="sm" 
-                  variant="default"
+                  variant="primary"
                   onClick={() => handleStatusAction('COMPLETED')}
                   className="h-7 text-xs"
                 >

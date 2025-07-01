@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { 
   AreaChart, 
@@ -16,11 +17,20 @@ import {
   RefreshCw,
   TrendingUp,
   Globe,
-  AlertCircle
+  AlertCircle,
+  Search,
+  MousePointerClick,
+  Percent,
+  Hash
 } from 'lucide-react'
 import { format, subDays, startOfMonth, endOfMonth, startOfYear } from 'date-fns'
 import dynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
+
+// Import tab components
+import OverviewTab from './components/OverviewTab'
+import TrafficTab from './components/TrafficTab'
+import SearchTab from './components/SearchTab'
 
 // Lazy load charts
 const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { 
@@ -101,52 +111,112 @@ interface AnalyticsData {
   }
 }
 
+interface SearchConsoleData {
+  overview: {
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+  }
+  topQueries: Array<{
+    query: string
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+  }>
+  topPages: Array<{
+    page: string
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+  }>
+  performanceByDate: {
+    dates: string[]
+    metrics: {
+      clicks: number[]
+      impressions: number[]
+      ctr: number[]
+      position: number[]
+    }
+  }
+  metadata: {
+    siteUrl: string
+    dateRange: {
+      startDate: string
+      endDate: string
+    }
+  }
+}
+
 export default function ReportingPage() {
+  const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [gaError, setGaError] = useState<string | null>(null)
+  const [scError, setScError] = useState<string | null>(null)
+  const [gaData, setGaData] = useState<AnalyticsData | null>(null)
+  const [scData, setScData] = useState<SearchConsoleData | null>(null)
   const [selectedRange, setSelectedRange] = useState('30days')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const { toast } = useToast()
 
-  // Fetch analytics data
-  const fetchAnalytics = async (showLoadingToast = false) => {
+  // Fetch both GA4 and Search Console data
+  const fetchAllData = async (showLoadingToast = false) => {
     try {
       setLoading(true)
-      setError(null)
+      setGaError(null)
+      setScError(null)
       
       if (showLoadingToast) {
         toast('Refreshing data...', 'info', {
-          description: 'Fetching latest analytics from Google Analytics'
+          description: 'Fetching latest analytics from all sources'
         })
       }
 
       const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
       if (!dateRange) return
 
-      const response = await fetch('/api/ga4/analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dateRange)
-      })
+      // Fetch both data sources in parallel
+      const [gaResponse, scResponse] = await Promise.all([
+        fetch('/api/ga4/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dateRange)
+        }),
+        fetch('/api/search-console/performance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dateRange)
+        })
+      ])
 
-      const result = await response.json()
+      const gaResult = await gaResponse.json()
+      const scResult = await scResponse.json()
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch analytics')
+      // Handle GA4 response
+      if (!gaResponse.ok) {
+        setGaError(gaResult.error || 'Failed to fetch analytics')
+      } else {
+        setGaData(gaResult.data)
       }
 
-      setData(result.data)
-      
-      if (result.cached && showLoadingToast) {
+      // Handle Search Console response
+      if (!scResponse.ok) {
+        setScError(scResult.error || 'Failed to fetch search data')
+      } else {
+        setScData(scResult.data)
+      }
+
+      // Show cache notification if both are cached
+      if (gaResult.cached && scResult.cached && showLoadingToast) {
         toast('Data loaded from cache', 'info', {
           description: 'Showing cached data from the last 5 minutes'
         })
       }
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load analytics data'
-      setError(errorMessage)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
       toast('Error loading analytics', 'error', {
         description: errorMessage
       })
@@ -158,23 +228,23 @@ export default function ReportingPage() {
 
   // Initial load and when date range changes
   useEffect(() => {
-    fetchAnalytics()
+    fetchAllData()
   }, [selectedRange])
 
-  // Calculate summary metrics
-  const calculateMetrics = () => {
-    if (!data?.overview.metrics) return { sessions: 0, users: 0, pageviews: 0 }
+  // Calculate GA4 summary metrics
+  const calculateGaMetrics = () => {
+    if (!gaData?.overview.metrics) return { sessions: 0, users: 0, pageviews: 0 }
     
     const sum = (arr: number[] = []) => arr.reduce((a, b) => a + b, 0)
     
     return {
-      sessions: sum(data.overview.metrics.sessions),
-      users: sum(data.overview.metrics.users),
-      pageviews: sum(data.overview.metrics.pageviews)
+      sessions: sum(gaData.overview.metrics.sessions),
+      users: sum(gaData.overview.metrics.users),
+      pageviews: sum(gaData.overview.metrics.pageviews)
     }
   }
 
-  const metrics = calculateMetrics()
+  const gaMetrics = calculateGaMetrics()
 
   // Chart configuration
   const chartOptions = {
@@ -205,49 +275,14 @@ export default function ReportingPage() {
     }
   }
 
-  const trafficChartData = {
-    labels: data?.overview.dates.map(date => format(new Date(date), 'MMM d')) || [],
-    datasets: [
-      {
-        label: 'Sessions',
-        data: data?.overview.metrics.sessions || [],
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: 'Users',
-        data: data?.overview.metrics.users || [],
-        borderColor: 'rgb(16, 185, 129)',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        fill: true,
-        tension: 0.4
-      }
-    ]
-  }
-
-  const topPagesChartData = {
-    labels: data?.topPages.slice(0, 5).map(p => 
-      p.page.length > 30 ? p.page.substring(0, 30) + '...' : p.page
-    ) || [],
-    datasets: [{
-      label: 'Sessions',
-      data: data?.topPages.slice(0, 5).map(p => p.sessions) || [],
-      backgroundColor: 'rgba(59, 130, 246, 0.8)',
-      borderColor: 'rgb(59, 130, 246)',
-      borderWidth: 1
-    }]
-  }
-
-  if (loading && !data) {
+  if (loading && !gaData && !scData) {
     return (
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse space-y-6">
             <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(i => (
                 <div key={i} className="h-32 bg-gray-200 rounded"></div>
               ))}
             </div>
@@ -265,12 +300,9 @@ export default function ReportingPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Unified Analytics Dashboard</h1>
               <p className="mt-2 text-gray-600">
-                {data?.metadata.propertyName 
-                  ? `Viewing data for ${data.metadata.propertyName}`
-                  : 'Connect Google Analytics to view your site metrics'
-                }
+                Comprehensive insights from Google Analytics and Search Console
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -289,7 +321,7 @@ export default function ReportingPage() {
                 variant="secondary"
                 onClick={() => {
                   setIsRefreshing(true)
-                  fetchAnalytics(true)
+                  fetchAllData(true)
                 }}
                 disabled={isRefreshing || loading}
                 className="flex items-center gap-2"
@@ -301,138 +333,45 @@ export default function ReportingPage() {
           </div>
         </div>
 
-        {error ? (
-          <Card className="p-8 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Unable to load analytics</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
-            {error.includes('not connected') && (
-              <Button onClick={() => window.location.href = '/settings'}>
-                Connect Google Analytics
-              </Button>
-            )}
-          </Card>
-        ) : (
-          <>
-            {/* Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Sessions</CardTitle>
-                  <Activity className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{metrics.sessions.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {data?.metadata.dateRange.startDate} - {data?.metadata.dateRange.endDate}
-                  </p>
-                </CardContent>
-              </Card>
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="traffic">Traffic Analytics</TabsTrigger>
+            <TabsTrigger value="search">Search Performance</TabsTrigger>
+          </TabsList>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Unique Users</CardTitle>
-                  <Users className="h-4 w-4 text-green-500" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{metrics.users.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">Visitors to your site</p>
-                </CardContent>
-              </Card>
+          {/* Overview Tab - Combined Metrics */}
+          <TabsContent value="overview" className="space-y-6">
+            <OverviewTab 
+              gaData={gaData} 
+              scData={scData} 
+              gaError={gaError} 
+              scError={scError}
+              gaMetrics={gaMetrics}
+              chartOptions={chartOptions}
+            />
+          </TabsContent>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Page Views</CardTitle>
-                  <Eye className="h-4 w-4 text-purple-500" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{metrics.pageviews.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">Total page views</p>
-                </CardContent>
-              </Card>
-            </div>
+          {/* Traffic Analytics Tab - GA4 Focused */}
+          <TabsContent value="traffic" className="space-y-6">
+            <TrafficTab
+              gaData={gaData}
+              gaError={gaError}
+              gaMetrics={gaMetrics}
+              chartOptions={chartOptions}
+            />
+          </TabsContent>
 
-            {/* Traffic Trends Chart */}
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Traffic Trends</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80">
-                  <Line data={trafficChartData} options={chartOptions} />
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Pages */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Top Pages
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <Bar 
-                      data={topPagesChartData} 
-                      options={{
-                        ...chartOptions,
-                        indexAxis: 'y' as const,
-                        plugins: {
-                          ...chartOptions.plugins,
-                          legend: { display: false }
-                        }
-                      }} 
-                    />
-                  </div>
-                  <div className="mt-4 space-y-2">
-                    {data?.topPages.slice(5).map((page, index) => (
-                      <div key={index} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600 truncate max-w-xs">{page.page}</span>
-                        <Badge variant="default">{page.sessions} sessions</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Traffic Sources */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Globe className="h-5 w-5" />
-                    Traffic Sources
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {data?.trafficSources.map((source, index) => {
-                      const percentage = Math.round((source.sessions / metrics.sessions) * 100)
-                      return (
-                        <div key={index}>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium">{source.source}</span>
-                            <span className="text-sm text-gray-600">
-                              {source.sessions.toLocaleString()} ({percentage}%)
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-500 h-2 rounded-full"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+          {/* Search Performance Tab - Search Console Focused */}
+          <TabsContent value="search" className="space-y-6">
+            <SearchTab
+              scData={scData}
+              scError={scError}
+              chartOptions={chartOptions}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

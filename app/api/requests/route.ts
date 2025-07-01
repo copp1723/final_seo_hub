@@ -17,19 +17,20 @@ export async function GET(request: NextRequest) {
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   const { searchParams } = new URL(request.url)
-  const status = searchParams.get('status') as RequestStatus | null
+  const statusParam = searchParams.get('status')
   const type = searchParams.get('type')
   const searchQuery = searchParams.get('search')
   const sortBy = searchParams.get('sortBy') || 'createdAt'
-  const sortOrder = searchParams.get('sortOrder') || 'desc'
+  const sortOrderParam = searchParams.get('sortOrder') || 'desc'
+  const sortOrder = (sortOrderParam === 'asc' || sortOrderParam === 'desc') ? sortOrderParam : 'desc'
 
   try {
     const where: Prisma.RequestWhereInput = {
       userId: authResult.user.id,
     }
 
-    if (status && status !== 'all') {
-      where.status = status
+    if (statusParam && statusParam !== 'all') {
+      where.status = statusParam as RequestStatus
     }
 
     if (type && type !== 'all') {
@@ -40,8 +41,8 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { title: { contains: searchQuery, mode: 'insensitive' } },
         { description: { contains: searchQuery, mode: 'insensitive' } },
-        { targetCities: { has: searchQuery } },
-        { targetModels: { has: searchQuery } },
+        { targetCities: { array_contains: [searchQuery] } },
+        { targetModels: { array_contains: [searchQuery] } },
       ]
     }
 
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     logger.info('Requests fetched successfully', {
       userId: authResult.user.id,
       count: requests.length,
-      filters: { status, type, searchQuery, sortBy, sortOrder },
+      filters: { status: statusParam, type, searchQuery, sortBy, sortOrder },
       path: '/api/requests',
       method: 'GET'
     })

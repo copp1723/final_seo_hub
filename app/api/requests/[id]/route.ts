@@ -38,7 +38,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Handle status updates
     if (status) {
-      if (!['OPEN', 'IN_PROGRESS', 'DONE', 'ARCHIVED'].includes(status)) {
+      if (!['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(status)) {
         return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
       }
       updatedData.status = status;
@@ -65,8 +65,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updatedData.completedTasks = [...currentCompletedTasks, newCompletedTask];
 
       // Update progress counters
-      // Ensure these fields exist on your model or are handled appropriately
-      updatedData.completedTaskCount = (existingRequest.completedTaskCount || 0) + 1;
+      // Note: Using completedTasks array length instead of separate counter
+      updatedData.completedTasks = [...currentCompletedTasks, newCompletedTask];
 
       // Optionally, if completing the last task changes the request status to DONE
       // if (updatedData.completedTaskCount === existingRequest.totalTasks) {
@@ -85,9 +85,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ message: 'No update performed. Provide status or taskDetails.' }, { status: 200 });
     }
 
-    // Add completion date tracking for the request itself when moved to DONE
-    if (status === 'DONE' && existingRequest.status !== 'DONE') {
-        updatedData.completionDate = new Date().toISOString(); // Main request completion date
+    // Add completion date tracking for the request itself when moved to COMPLETED
+    if (status === 'COMPLETED' && existingRequest.status !== 'COMPLETED') {
+        updatedData.completedAt = new Date(); // Main request completion date
     }
 
 

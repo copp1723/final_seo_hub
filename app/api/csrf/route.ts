@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     )
   }
   
-  const token = getOrCreateCSRFToken(session.user.id)
+  const token = await getOrCreateCSRFToken(session.user.id)
   
   const response = NextResponse.json({ success: true })
   response.headers.set('x-csrf-token', token)

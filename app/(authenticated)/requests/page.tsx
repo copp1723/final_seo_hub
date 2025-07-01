@@ -216,7 +216,7 @@ export default function RequestsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value) => {
+          <Select value={`${sortBy}-${sortOrder}`} onValueChange={(value: string) => {
             const [newSortBy, newSortOrder] = value.split('-')
             setSortBy(newSortBy)
             setSortOrder(newSortOrder)

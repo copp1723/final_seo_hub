@@ -35,8 +35,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         profile: profile?.email 
       })
       try {
-        // You can add custom logic here to set default values
-        // The user will be created automatically by PrismaAdapter
+        // The PrismaAdapter will create the user after this callback returns true
+        // We'll ensure default values are set in the session callback instead
         return true
       } catch (error) {
         console.error('SignIn callback error:', error)
@@ -50,7 +50,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = user.id
         session.user.role = (user as any).role || UserRole.USER
         session.user.agencyId = (user as any).agencyId
-        session.user.onboardingCompleted = (user as any).onboardingCompleted || false
+        session.user.onboardingCompleted = (user as any).onboardingCompleted !== undefined ? (user as any).onboardingCompleted : false
+        
+        // Ensure user has required fields set in database
+        if ((user as any).onboardingCompleted === null || 
+            (user as any).pagesUsedThisPeriod === null ||
+            (user as any).blogsUsedThisPeriod === null ||
+            (user as any).gbpPostsUsedThisPeriod === null ||
+            (user as any).improvementsUsedThisPeriod === null) {
+          
+          // Update user with default values
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              role: (user as any).role || UserRole.USER,
+              onboardingCompleted: (user as any).onboardingCompleted ?? false,
+              pagesUsedThisPeriod: (user as any).pagesUsedThisPeriod ?? 0,
+              blogsUsedThisPeriod: (user as any).blogsUsedThisPeriod ?? 0,
+              gbpPostsUsedThisPeriod: (user as any).gbpPostsUsedThisPeriod ?? 0,
+              improvementsUsedThisPeriod: (user as any).improvementsUsedThisPeriod ?? 0,
+            }
+          })
+        }
       }
       return session
     },

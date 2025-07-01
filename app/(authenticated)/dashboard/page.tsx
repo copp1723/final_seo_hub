@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FileText, CheckCircle, Clock, ArrowRight } from 'lucide-react'
 import { getUserPackageProgress, PackageProgress } from '@/lib/package-utils'
+import ErrorBoundary from '@/components/error-boundary'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -46,9 +47,6 @@ export default async function DashboardPage() {
     const tasksSubtitle = packageProgress
       ? `${tasksCompletedThisMonth} of ${tasksTotalThisMonth} used this month`
       : "No active package"
-
-    // Import ErrorBoundary
-    const ErrorBoundary = (await import('@/components/error-boundary')).default;
 
     return (
       <ErrorBoundary>

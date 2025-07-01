@@ -15,8 +15,11 @@ interface CompletedTask {
   completedAt: string; // ISO date string
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params; // Request ID from the URL path
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params; // Await the params promise
 
   if (!id) {
     return NextResponse.json({ error: 'Request ID is required' }, { status: 400 });
@@ -109,8 +112,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // Basic GET handler for testing purposes (optional)
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params; // Await the params promise
+  
   if (!id) {
     return NextResponse.json({ error: 'Request ID is required' }, { status: 400 });
   }

@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import { sanitizeForLog } from './validations'
 
 export interface LogContext {
@@ -109,21 +108,19 @@ export class Logger {
           ? context.error
           : new Error(message);
 
-        Sentry.captureException(error, {
-          extra: {
-            originalMessage: message,
-            ...context,
-            error: undefined // Remove error from extra to avoid duplication
-          },
-          level: 'error',
+        // In production, you would send to a monitoring service
+        // For now, just log to console
+        console.error('[PRODUCTION ERROR]', message, {
+          error: error.stack,
+          ...context
         });
       } else {
-        // Map warn to warning for Sentry compatibility
-        const sentryLevel = level === 'warn' ? 'warning' : level;
-        Sentry.captureMessage(message, {
-          extra: context,
-          level: sentryLevel as any,
-        });
+        // Log warnings and info in production
+        if (level === 'warn') {
+          console.warn('[PRODUCTION WARNING]', message, context);
+        } else {
+          console.info('[PRODUCTION INFO]', message, context);
+        }
       }
     } catch (sentryError) {
       // Fallback to console if Sentry fails

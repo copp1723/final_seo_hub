@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Add diagnostic logging
-    logger.info('Usage API response data:', responseData, { userId: authResult.user.id })
+    logger.info('Usage API response data:', { ...responseData, userId: authResult.user.id })
     
     return successResponse(responseData)
   } catch (error) {

@@ -91,14 +91,19 @@ export async function GET(request: NextRequest) {
       select: { packageType: true }
     })
     
-    return successResponse({ 
+    const responseData = {
       currentPackage: latestPackageRequest?.packageType || null,
       packageUsage,
       currentMonth: {
         month: now.toLocaleString('default', { month: 'long' }),
         year: now.getFullYear()
       }
-    })
+    }
+    
+    // Add diagnostic logging
+    logger.info('Usage API response data:', responseData, { userId: authResult.user.id })
+    
+    return successResponse(responseData)
   } catch (error) {
     logger.error('Error fetching package usage:', error, { userId: authResult.user.id })
     return errorResponse('Failed to fetch package usage', 500)

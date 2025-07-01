@@ -174,47 +174,59 @@ export async function incrementUsage(userId: string, taskType: TaskType): Promis
  * Gets the current package progress for the user for the current billing period.
  */
 export async function getUserPackageProgress(userId: string): Promise<PackageProgress | null> {
-  const user = await ensureUserBillingPeriodAndRollover(userId)
+  try {
+    const user = await ensureUserBillingPeriodAndRollover(userId)
 
-  if (!user.activePackageType) {
-    return null // Or throw an error, or return a default state
-  }
+    if (!user || !user.activePackageType) {
+      console.log(`User ${userId} has no active package`)
+      return null
+    }
 
-  const limits = getPackageLimits(user.activePackageType)
+    const limits = getPackageLimits(user.activePackageType)
 
-  const totalCompleted = user.pagesUsedThisPeriod + user.blogsUsedThisPeriod + user.gbpPostsUsedThisPeriod + user.improvementsUsedThisPeriod
-  const totalTasks = limits.pages + limits.blogs + limits.gbpPosts + limits.improvements
+    // Ensure all usage values are valid numbers (default to 0 if null/undefined)
+    const pagesUsed = user.pagesUsedThisPeriod ?? 0
+    const blogsUsed = user.blogsUsedThisPeriod ?? 0
+    const gbpPostsUsed = user.gbpPostsUsedThisPeriod ?? 0
+    const improvementsUsed = user.improvementsUsedThisPeriod ?? 0
 
-  return {
-    packageType: user.activePackageType,
-    pages: {
-      completed: user.pagesUsedThisPeriod,
-      total: limits.pages,
-      used: user.pagesUsedThisPeriod,
-      limit: limits.pages,
-      percentage: limits.pages > 0 ? Math.round((user.pagesUsedThisPeriod / limits.pages) * 100) : 0
-    },
-    blogs: {
-      completed: user.blogsUsedThisPeriod,
-      total: limits.blogs,
-      used: user.blogsUsedThisPeriod,
-      limit: limits.blogs,
-      percentage: limits.blogs > 0 ? Math.round((user.blogsUsedThisPeriod / limits.blogs) * 100) : 0
-    },
-    gbpPosts: {
-      completed: user.gbpPostsUsedThisPeriod,
-      total: limits.gbpPosts,
-      used: user.gbpPostsUsedThisPeriod,
-      limit: limits.gbpPosts,
-      percentage: limits.gbpPosts > 0 ? Math.round((user.gbpPostsUsedThisPeriod / limits.gbpPosts) * 100) : 0
-    },
-    improvements: {
-      completed: user.improvementsUsedThisPeriod,
-      total: limits.improvements,
-      used: user.improvementsUsedThisPeriod,
-      limit: limits.improvements,
-      percentage: limits.improvements > 0 ? Math.round((user.improvementsUsedThisPeriod / limits.improvements) * 100) : 0
-    },
-    totalTasks: { completed: totalCompleted, total: totalTasks },
+    const totalCompleted = pagesUsed + blogsUsed + gbpPostsUsed + improvementsUsed
+    const totalTasks = limits.pages + limits.blogs + limits.gbpPosts + limits.improvements
+
+    return {
+      packageType: user.activePackageType,
+      pages: {
+        completed: pagesUsed,
+        total: limits.pages,
+        used: pagesUsed,
+        limit: limits.pages,
+        percentage: limits.pages > 0 ? Math.round((pagesUsed / limits.pages) * 100) : 0
+      },
+      blogs: {
+        completed: blogsUsed,
+        total: limits.blogs,
+        used: blogsUsed,
+        limit: limits.blogs,
+        percentage: limits.blogs > 0 ? Math.round((blogsUsed / limits.blogs) * 100) : 0
+      },
+      gbpPosts: {
+        completed: gbpPostsUsed,
+        total: limits.gbpPosts,
+        used: gbpPostsUsed,
+        limit: limits.gbpPosts,
+        percentage: limits.gbpPosts > 0 ? Math.round((gbpPostsUsed / limits.gbpPosts) * 100) : 0
+      },
+      improvements: {
+        completed: improvementsUsed,
+        total: limits.improvements,
+        used: improvementsUsed,
+        limit: limits.improvements,
+        percentage: limits.improvements > 0 ? Math.round((improvementsUsed / limits.improvements) * 100) : 0
+      },
+      totalTasks: { completed: totalCompleted, total: totalTasks },
+    }
+  } catch (error) {
+    console.error(`Error getting package progress for user ${userId}:`, error)
+    return null
   }
 }

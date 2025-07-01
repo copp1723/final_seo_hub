@@ -1,10 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect } from 'react'
-import { Home, RefreshCw, AlertTriangle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { logger } from '@/lib/logger'
 
 export default function Error({
   error,
@@ -14,81 +11,75 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error('App error:', error)
+    // Log the error with more details
+    console.error('App Error:', error)
+    logger.error('Application error occurred', error, {
+      digest: error.digest,
+      stack: error.stack,
+      message: error.message,
+    })
   }, [error])
 
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          {/* Logo/Brand */}
-          <Link href="/dashboard" className="inline-block">
-            <h1 className="text-2xl font-bold text-gray-900 mb-8">
-              Rylie SEO Hub
-            </h1>
-          </Link>
-          
-          {/* Error Icon */}
-          <div className="mb-8 flex justify-center">
-            <div className="rounded-full bg-red-100 p-6">
-              <AlertTriangle className="h-12 w-12 text-red-600" />
-            </div>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+        <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+          <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.334 15.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
         </div>
-
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-semibold text-gray-900">
-              Something went wrong
-            </CardTitle>
-            <CardDescription className="text-lg">
-              We encountered an unexpected error. Our team has been notified and is working to fix this issue.
-            </CardDescription>
-          </CardHeader>
+        <div className="mt-4 text-center">
+          <h3 className="text-lg font-medium text-gray-900">
+            {isDevelopment ? 'Development Error' : 'Something went wrong!'}
+          </h3>
           
-          <CardContent className="space-y-4">
-            {process.env.NODE_ENV === 'development' && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <h4 className="text-sm font-medium text-red-800 mb-2">
-                  Error Details (Development Only)
-                </h4>
-                <p className="text-sm text-red-700 font-mono break-all">
-                  {error.message}
-                </p>
-                {error.digest && (
-                  <p className="text-xs text-red-600 mt-2">
-                    Error ID: {error.digest}
-                  </p>
-                )}
+          {isDevelopment && (
+            <div className="mt-4 text-left space-y-2">
+              <div className="bg-red-50 border border-red-200 rounded p-3">
+                <p className="text-sm font-medium text-red-800">Error Message:</p>
+                <p className="text-sm text-red-700 mt-1 font-mono">{error.message}</p>
               </div>
-            )}
-            
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={reset} className="flex-1">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Try Again
-              </Button>
               
-              <Button variant="secondary" asChild className="flex-1">
-                <Link href="/dashboard">
-                  <Home className="h-4 w-4 mr-2" />
-                  Go to Dashboard
-                </Link>
-              </Button>
+              {error.digest && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                  <p className="text-sm font-medium text-yellow-800">Digest:</p>
+                  <p className="text-xs text-yellow-700 mt-1 font-mono">{error.digest}</p>
+                </div>
+              )}
+              
+              {error.stack && (
+                <details className="bg-gray-50 border border-gray-200 rounded p-3">
+                  <summary className="text-sm font-medium text-gray-800 cursor-pointer">Stack Trace</summary>
+                  <pre className="text-xs text-gray-700 mt-2 overflow-x-auto whitespace-pre-wrap">
+                    {error.stack}
+                  </pre>
+                </details>
+              )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Help Text */}
-        <div className="text-center text-sm text-gray-500">
-          <p>
-            If this problem persists, please contact our{' '}
-            <Link href="/chat" className="text-blue-600 hover:text-blue-500 underline">
-              AI Assistant
-            </Link>{' '}
-            for support.
-          </p>
+          )}
+          
+          {!isDevelopment && (
+            <p className="mt-2 text-sm text-gray-500">
+              An unexpected error has occurred. Our team has been notified.
+            </p>
+          )}
+          
+          <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+            <button
+              onClick={() => reset()}
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Try again
+            </button>
+            <a
+              href="/"
+              className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Go to Homepage
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -114,10 +114,20 @@ export default function SettingsPage() {
             break
             
           case 'usage':
-            const usageRes = await fetch('/api/settings/usage')
-            if (usageRes.ok) {
-              const data = await usageRes.json()
-              setPackageUsage(data)
+            try {
+              const usageRes = await fetch('/api/settings/usage')
+              if (usageRes.ok) {
+                const data = await usageRes.json()
+                console.log('Usage API response:', data)
+                console.log('Current month data:', data?.currentMonth)
+                setPackageUsage(data)
+              } else {
+                console.error('Usage API failed:', usageRes.status, await usageRes.text())
+                setMessage({ type: 'error', text: 'Failed to load usage data' })
+              }
+            } catch (error) {
+              console.error('Usage API error:', error)
+              setMessage({ type: 'error', text: 'Failed to load usage data' })
             }
             break
         }
@@ -630,7 +640,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Package Usage</CardTitle>
               <CardDescription>
-                Your SEO package usage for {packageUsage?.currentMonth.month} {packageUsage?.currentMonth.year}
+                Your SEO package usage for {packageUsage?.currentMonth?.month || 'Current Month'} {packageUsage?.currentMonth?.year || new Date().getFullYear()}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -638,7 +648,7 @@ export default function SettingsPage() {
                 <div className="animate-pulse space-y-4">
                   <div className="h-20 bg-gray-200 rounded"></div>
                 </div>
-              ) : packageUsage?.currentPackage ? (
+              ) : packageUsage && packageUsage.currentPackage && packageUsage.packageUsage ? (
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Current Package:</span>

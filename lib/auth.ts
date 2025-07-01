@@ -8,60 +8,94 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
+  debug: true, // Enable debug temporarily
   session: {
-    strategy: 'jwt',
+    strategy: 'database', // Explicitly use database sessions with PrismaAdapter
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
   },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   callbacks: {
-    jwt: async ({ token, user, trigger }) => {
-      // On initial sign in, fetch user details once
-      if (user || trigger === 'signIn') {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user?.id || token.sub },
-          select: {
-            id: true,
-            role: true,
-            agencyId: true,
-            email: true,
-            name: true,
-            image: true,
-            onboardingCompleted: true, // Fetch onboarding status
-          },
-        })
-
-        if (dbUser) {
-          token.id = dbUser.id
-          token.role = dbUser.role
-          token.agencyId = dbUser.agencyId
-          token.email = dbUser.email
-          token.name = dbUser.name
-          token.image = dbUser.image
-          token.onboardingCompleted = dbUser.onboardingCompleted // Add to token
-        }
+    signIn: async ({ user, account, profile }) => {
+      console.log('SignIn callback triggered:', { 
+        user: user.email, 
+        account: account?.provider, 
+        profile: profile?.email 
+      })
+      try {
+        // The PrismaAdapter will create the user after this callback returns true
+        // We'll ensure default values are set in the session callback instead
+        return true
+      } catch (error) {
+        console.error('SignIn callback error:', error)
+        return false
       }
-      return token
     },
-    session: async ({ session, token }) => {
-      // Use token data instead of database lookup
-      if (session?.user && token) {
-        session.user.id = token.id as string
-        session.user.role = token.role as UserRole
-        session.user.agencyId = token.agencyId as string | null
-        session.user.email = token.email as string
-        session.user.name = token.name as string | null
-        session.user.image = token.image as string | null
-        session.user.onboardingCompleted = token.onboardingCompleted as boolean // Add to session
+    session: async ({ session, user }) => {
+      // With database strategy, the user object is already populated from DB
+      // Just map the fields to the session
+      if (session.user && user) {
+        session.user.id = user.id
+        session.user.role = (user as any).role || UserRole.USER
+        session.user.agencyId = (user as any).agencyId
+        session.user.onboardingCompleted = (user as any).onboardingCompleted !== undefined ? (user as any).onboardingCompleted : false
+        
+        // Ensure user has required fields set in database
+        if ((user as any).onboardingCompleted === null || 
+            (user as any).pagesUsedThisPeriod === null ||
+            (user as any).blogsUsedThisPeriod === null ||
+            (user as any).gbpPostsUsedThisPeriod === null ||
+            (user as any).improvementsUsedThisPeriod === null) {
+          
+          // Update user with default values
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              role: (user as any).role || UserRole.USER,
+              onboardingCompleted: (user as any).onboardingCompleted ?? false,
+              pagesUsedThisPeriod: (user as any).pagesUsedThisPeriod ?? 0,
+              blogsUsedThisPeriod: (user as any).blogsUsedThisPeriod ?? 0,
+              gbpPostsUsedThisPeriod: (user as any).gbpPostsUsedThisPeriod ?? 0,
+              improvementsUsedThisPeriod: (user as any).improvementsUsedThisPeriod ?? 0,
+            }
+          })
+        }
       }
       return session
     },
+    redirect: async ({ url, baseUrl }) => {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
+    }
   },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',
   },
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true // Always use secure in production
+      }
+    }
+  }
 })

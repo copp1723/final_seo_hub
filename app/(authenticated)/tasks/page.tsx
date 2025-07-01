@@ -24,8 +24,37 @@ import {
 import { TaskList } from '@/components/tasks/task-list'
 import { LoadingSpinner } from '@/components/ui/loading'
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH'
+// Extend or refine as needed – kept broad for demonstration purposes
+type TaskType = 'PAGE' | 'BLOG' | 'GBP_POST' | 'IMPROVEMENT'
+
+export interface Task {
+  id: string
+  title: string
+  description: string
+  type: TaskType
+  status: TaskStatus
+  priority: TaskPriority
+  // Optional/auxiliary fields
+  requestTitle?: string
+  requestId?: string
+  targetUrl?: string
+  targetCity?: string
+  targetModel?: string
+  dueDate?: string
+  startedAt?: string
+  createdAt: string
+  completedUrl?: string
+  completedAt?: string
+}
+
 // Mock data for demonstration
-const mockTasks = [
+const mockTasks: Task[] = [
   {
     id: '1',
     title: 'Create landing page for Austin Ford dealership',
@@ -102,7 +131,7 @@ export default function TasksPage() {
   const { data: session, status: sessionStatus } = useSession()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('all')
-  const [tasks] = useState(mockTasks)
+  const [tasks] = useState<Task[]>(mockTasks)
 
   if (sessionStatus === 'loading') {
     return (

@@ -2,7 +2,7 @@ services:
   - type: web
     name: rylie-seo-hub
     env: node
-    buildCommand: npm ci && npm run build && npx prisma generate && npx prisma migrate deploy
+    buildCommand: npm ci && npx prisma generate && npx prisma db push --accept-data-loss && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV

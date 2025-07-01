@@ -15,7 +15,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && npm ls autoprefixer || true",
     "prebuild": "npm ls autoprefixer"
   },
   "dependencies": {

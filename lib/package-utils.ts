@@ -4,10 +4,11 @@ import { prisma } from './prisma'
 import { getMonth, getYear, startOfMonth, endOfMonth, isAfter } from 'date-fns'
 
 export interface PackageProgress {
-  pages: { completed: number; total: number }
-  blogs: { completed: number; total: number }
-  gbpPosts: { completed: number; total: number }
-  improvements: { completed: number; total: number }
+  packageType: PackageType | null
+  pages: { completed: number; total: number; used: number; limit: number; percentage: number }
+  blogs: { completed: number; total: number; used: number; limit: number; percentage: number }
+  gbpPosts: { completed: number; total: number; used: number; limit: number; percentage: number }
+  improvements: { completed: number; total: number; used: number; limit: number; percentage: number }
   totalTasks: { completed: number; total: number }
 }
 
@@ -29,10 +30,35 @@ export function calculatePackageProgress(
   const totalTasks = limits.pages + limits.blogs + limits.gbpPosts + limits.improvements
   
   return {
-    pages: { completed: pagesCompleted, total: limits.pages },
-    blogs: { completed: blogsCompleted, total: limits.blogs },
-    gbpPosts: { completed: gbpPostsCompleted, total: limits.gbpPosts },
-    improvements: { completed: improvementsCompleted, total: limits.improvements },
+    packageType,
+    pages: {
+      completed: pagesCompleted,
+      total: limits.pages,
+      used: pagesCompleted,
+      limit: limits.pages,
+      percentage: limits.pages > 0 ? Math.round((pagesCompleted / limits.pages) * 100) : 0
+    },
+    blogs: {
+      completed: blogsCompleted,
+      total: limits.blogs,
+      used: blogsCompleted,
+      limit: limits.blogs,
+      percentage: limits.blogs > 0 ? Math.round((blogsCompleted / limits.blogs) * 100) : 0
+    },
+    gbpPosts: {
+      completed: gbpPostsCompleted,
+      total: limits.gbpPosts,
+      used: gbpPostsCompleted,
+      limit: limits.gbpPosts,
+      percentage: limits.gbpPosts > 0 ? Math.round((gbpPostsCompleted / limits.gbpPosts) * 100) : 0
+    },
+    improvements: {
+      completed: improvementsCompleted,
+      total: limits.improvements,
+      used: improvementsCompleted,
+      limit: limits.improvements,
+      percentage: limits.improvements > 0 ? Math.round((improvementsCompleted / limits.improvements) * 100) : 0
+    },
     totalTasks: { completed: totalCompleted, total: totalTasks }
   }
 }
@@ -160,10 +186,35 @@ export async function getUserPackageProgress(userId: string): Promise<PackagePro
   const totalTasks = limits.pages + limits.blogs + limits.gbpPosts + limits.improvements
 
   return {
-    pages: { completed: user.pagesUsedThisPeriod, total: limits.pages },
-    blogs: { completed: user.blogsUsedThisPeriod, total: limits.blogs },
-    gbpPosts: { completed: user.gbpPostsUsedThisPeriod, total: limits.gbpPosts },
-    improvements: { completed: user.improvementsUsedThisPeriod, total: limits.improvements },
+    packageType: user.activePackageType,
+    pages: {
+      completed: user.pagesUsedThisPeriod,
+      total: limits.pages,
+      used: user.pagesUsedThisPeriod,
+      limit: limits.pages,
+      percentage: limits.pages > 0 ? Math.round((user.pagesUsedThisPeriod / limits.pages) * 100) : 0
+    },
+    blogs: {
+      completed: user.blogsUsedThisPeriod,
+      total: limits.blogs,
+      used: user.blogsUsedThisPeriod,
+      limit: limits.blogs,
+      percentage: limits.blogs > 0 ? Math.round((user.blogsUsedThisPeriod / limits.blogs) * 100) : 0
+    },
+    gbpPosts: {
+      completed: user.gbpPostsUsedThisPeriod,
+      total: limits.gbpPosts,
+      used: user.gbpPostsUsedThisPeriod,
+      limit: limits.gbpPosts,
+      percentage: limits.gbpPosts > 0 ? Math.round((user.gbpPostsUsedThisPeriod / limits.gbpPosts) * 100) : 0
+    },
+    improvements: {
+      completed: user.improvementsUsedThisPeriod,
+      total: limits.improvements,
+      used: user.improvementsUsedThisPeriod,
+      limit: limits.improvements,
+      percentage: limits.improvements > 0 ? Math.round((user.improvementsUsedThisPeriod / limits.improvements) * 100) : 0
+    },
     totalTasks: { completed: totalCompleted, total: totalTasks },
   }
 }

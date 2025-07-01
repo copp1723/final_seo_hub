@@ -31,8 +31,12 @@ export default async function DashboardPage() {
   }
 
   // Calculate stats
-  const activeRequests = dashboardData['IN_PROGRESS'] || 0
-  const totalRequests = Object.values(dashboardData).reduce((sum: number, count: any) => sum + count, 0)
+  const statusCountsMap = dashboardData.reduce((acc: Record<string, number>, item: any) => {
+    acc[item.status] = item._count
+    return acc
+  }, {})
+  const activeRequests = statusCountsMap['IN_PROGRESS'] || 0
+  const totalRequests = Object.values(statusCountsMap).reduce((sum: number, count: number) => sum + count, 0)
   
   // Use packageProgress for "Tasks Completed" card
   const tasksCompletedThisMonth = packageProgress ? packageProgress.totalTasks.completed : completedThisMonth
@@ -90,27 +94,31 @@ export default async function DashboardPage() {
             </Card>
           </div>
 
-          {/* Recent Requests */}
+          {/* Package Progress Summary */}
           {latestRequest && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-medium">Recent Request</CardTitle>
+                <CardTitle className="text-lg font-medium">Current Package Progress</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <h3 className="font-medium">{latestRequest.title}</h3>
-                      <p className="text-sm text-gray-500">{latestRequest.type.replace('_', ' ')}</p>
+                      <span className="text-gray-600">Pages:</span>
+                      <span className="ml-2 font-medium">{latestRequest.pagesCompleted}</span>
                     </div>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      latestRequest.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                      latestRequest.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-800' :
-                      latestRequest.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {latestRequest.status.replace('_', ' ')}
-                    </span>
+                    <div>
+                      <span className="text-gray-600">Blogs:</span>
+                      <span className="ml-2 font-medium">{latestRequest.blogsCompleted}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">GBP Posts:</span>
+                      <span className="ml-2 font-medium">{latestRequest.gbpPostsCompleted}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Improvements:</span>
+                      <span className="ml-2 font-medium">{latestRequest.improvementsCompleted}</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>

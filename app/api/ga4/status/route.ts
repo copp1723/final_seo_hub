@@ -55,6 +55,7 @@ export async function GET() {
     })
 
   } catch (error) {
+    const session = await auth()
     logger.error('GA4 status check error', error, {
       userId: session?.user?.id,
       path: '/api/ga4/status',

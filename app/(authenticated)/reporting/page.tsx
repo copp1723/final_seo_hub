@@ -177,22 +177,14 @@ export default function ReportingPage() {
       const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
       if (!dateRange) return
 
-      // Fetch both data sources in parallel
-      const [gaResponse, scResponse] = await Promise.all([
-        fetch('/api/ga4/analytics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dateRange)
-        }),
-        fetch('/api/search-console/performance', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dateRange)
-        })
-      ])
+      // Fetch GA4 data (required)
+      const gaResponse = await fetch('/api/ga4/analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dateRange)
+      })
 
       const gaResult = await gaResponse.json()
-      const scResult = await scResponse.json()
 
       // Handle GA4 response
       if (!gaResponse.ok) {
@@ -201,15 +193,30 @@ export default function ReportingPage() {
         setGaData(gaResult.data)
       }
 
-      // Handle Search Console response
-      if (!scResponse.ok) {
-        setScError(scResult.error || 'Failed to fetch search data')
-      } else {
-        setScData(scResult.data)
+      // Try to fetch Search Console data (optional)
+      try {
+        const scResponse = await fetch('/api/search-console/performance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dateRange)
+        })
+
+        const scResult = await scResponse.json()
+
+        // Handle Search Console response
+        if (!scResponse.ok) {
+          setScError(scResult.error || 'Search Console not connected')
+        } else {
+          setScData(scResult.data)
+        }
+      } catch (scErr) {
+        // Search Console is optional - don't fail if it's not connected
+        setScError('Search Console not connected')
+        console.log('Search Console not available:', scErr)
       }
 
-      // Show cache notification if both are cached
-      if (gaResult.cached && scResult.cached && showLoadingToast) {
+      // Show cache notification if GA4 is cached
+      if (gaResult.cached && showLoadingToast) {
         toast('Data loaded from cache', 'info', {
           description: 'Showing cached data from the last 5 minutes'
         })

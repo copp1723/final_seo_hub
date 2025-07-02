@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, CheckCircle, Clock, ArrowRight, MessageSquare, AlertCircle } from 'lucide-react'
+import { FileText, CheckCircle, Clock, ArrowRight, MessageSquare, AlertCircle, Activity, Users, Eye } from 'lucide-react'
 import { getUserPackageProgress, PackageProgress } from '@/lib/package-utils'
 import ErrorBoundary from '@/components/error-boundary'
 
@@ -33,6 +33,24 @@ export default async function DashboardPage() {
       console.error("Dashboard: Failed to get user package progress", error)
     }
 
+    // Check GA4 connection and get basic metrics
+    let gaMetrics = { sessions: 0, users: 0, pageviews: 0 }
+    let gaConnected = false
+    try {
+      const gaConnection = await prisma.gA4Connection.findUnique({
+        where: { userId },
+        select: { propertyId: true, propertyName: true }
+      })
+      
+      if (gaConnection?.propertyId) {
+        gaConnected = true
+        // You could fetch recent GA4 data here if needed
+        // For now, we'll show connection status
+      }
+    } catch (error) {
+      console.error("Dashboard: Failed to check GA4 connection", error)
+    }
+
     // Calculate stats with null safety
     const statusCountsMap = dashboardData.reduce((acc: Record<string, number>, item: any) => {
       acc[item.status] = item._count
@@ -59,7 +77,7 @@ export default async function DashboardPage() {
             </div>
             
             {/* Top Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Active Requests</CardTitle>
@@ -90,6 +108,19 @@ export default async function DashboardPage() {
                 <CardContent>
                   <p className="text-2xl font-bold">{totalRequests}</p>
                   <p className="text-xs text-gray-500 mt-1">All time</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">Analytics</CardTitle>
+                  <Activity className={`h-4 w-4 ${gaConnected ? 'text-green-500' : 'text-gray-400'}`} />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{gaConnected ? '✅' : '❌'}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {gaConnected ? 'GA4 Connected' : 'Not Connected'}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -189,29 +220,73 @@ export default async function DashboardPage() {
               </Card>
             )}
 
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Link href="/requests/new" passHref>
-                  <Button className="w-full justify-between">
-                    Create New Request <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-                <Link href="/requests" passHref>
-                  <Button variant="secondary" className="w-full justify-between">
-                    View All Requests <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-                <Link href="/reporting" passHref>
-                  <Button variant="outline" className="w-full justify-between">
-                    View Reports <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            {/* Analytics Status and Quick Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {gaConnected && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-green-500" />
+                      Analytics Connected
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Your Google Analytics 4 is connected and ready to show insights.
+                    </p>
+                    <Link href="/reporting" passHref>
+                      <Button className="w-full justify-between">
+                        View Analytics Dashboard <Activity className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
+
+              {!gaConnected && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-yellow-500" />
+                      Connect Analytics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Connect Google Analytics to see your website performance metrics.
+                    </p>
+                    <Link href="/settings/ga4" passHref>
+                      <Button variant="outline" className="w-full justify-between">
+                        Connect GA4 <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Link href="/requests/new" passHref>
+                    <Button className="w-full justify-between">
+                      Create New Request <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                  <Link href="/requests" passHref>
+                    <Button variant="secondary" className="w-full justify-between">
+                      View All Requests <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                  <Link href="/chat" passHref>
+                    <Button variant="outline" className="w-full justify-between">
+                      Ask SEO Assistant <MessageSquare className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </ErrorBoundary>

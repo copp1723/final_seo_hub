@@ -2,7 +2,7 @@ services:
   - type: web
     name: rylie-seo-hub
     env: node
-    buildCommand: npm ci --force && npx prisma db pull && npx prisma generate --force && npm run type-check && next build
+    buildCommand: npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV

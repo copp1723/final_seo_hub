@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { toast }
-from '@/hooks/use-toast' // Assuming you have a toast hook
+import { toast } from '@/hooks/use-toast' // Assuming you have a toast hook
 import Link from 'next/link'
 import { ArrowUpDown, Eye } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils' // Assuming you have a utils file
@@ -105,7 +104,7 @@ export default function AgencyRequestsPage() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : `An unknown error occurred while fetching ${DEALERSHIP_TERMINOLOGY} requests.`
       setError(errorMessage)
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
+      toast(errorMessage, 'error')
     } finally {
       setIsLoading(false)
     }
@@ -162,7 +161,7 @@ export default function AgencyRequestsPage() {
           onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
           className="lg:col-span-2"
         />
-        <Select value={statusFilter} onValueChange={(value) => {setStatusFilter(value); setPage(1);}}>
+        <Select value={statusFilter} onValueChange={(value: string) => {setStatusFilter(value); setPage(1);}}>
           <SelectTrigger><SelectValue placeholder="Filter by status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
@@ -172,7 +171,7 @@ export default function AgencyRequestsPage() {
             <SelectItem value="CANCELLED">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={typeFilter} onValueChange={(value) => {setTypeFilter(value); setPage(1);}}>
+        <Select value={typeFilter} onValueChange={(value: string) => {setTypeFilter(value); setPage(1);}}>
           <SelectTrigger><SelectValue placeholder="Filter by type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
@@ -246,7 +245,7 @@ export default function AgencyRequestsPage() {
               Showing {requests.length > 0 ? (page - 1) * limit + 1 : 0} to {Math.min(page * limit, totalRequests)} of {totalRequests} {DEALERSHIP_TERMINOLOGY.toLowerCase()} requests
             </span>
             <div className="flex items-center space-x-2">
-              <Select value={limit.toString()} onValueChange={(val) => {setLimit(parseInt(val)); setPage(1);}}>
+              <Select value={limit.toString()} onValueChange={(val: string) => {setLimit(parseInt(val)); setPage(1);}}>
                  <SelectTrigger className="w-[70px]"><SelectValue /></SelectTrigger>
                  <SelectContent>
                     <SelectItem value="10">10</SelectItem>

@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { UserRole } from '@prisma/client'
 import { z } from 'zod'
-import { hash } from 'bcryptjs' // Assuming bcrypt for password hashing if you add password-based users later
 
 // Validation schema for creating a user
 const createUserSchema = z.object({
@@ -19,11 +18,11 @@ const updateUserSchema = z.object({
   // email cannot be changed for now to keep things simple
 })
 
-export async function GET(request: NextRequest, { params }: { params: { agencyId: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
-  const { agencyId } = params
+  const { agencyId } = await context.params
   const user = authResult.user
 
   if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
@@ -43,11 +42,11 @@ export async function GET(request: NextRequest, { params }: { params: { agencyId
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { agencyId: string } }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
-  const { agencyId } = params
+  const { agencyId } = await context.params
   const user = authResult.user
 
   if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest, { params }: { params: { agencyI
     const validation = createUserSchema.safeParse(body)
 
     if (!validation.success) {
-      return errorResponse('Validation failed', 400, validation.error.issues)
+      return errorResponse(`Validation failed: ${validation.error.issues.map(i => i.message).join(', ')}`, 400)
     }
 
     const { email, name, role } = validation.data
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest, { params }: { params: { agencyI
         return errorResponse('AGENCY_ADMIN cannot create SUPER_ADMIN or ADMIN users.', 403)
     }
     // Ensure AGENCY_ADMIN cannot assign themselves as SUPER_ADMIN or ADMIN
-     if (user.role === UserRole.AGENCY_ADMIN && role && ![UserRole.USER, UserRole.AGENCY_ADMIN].includes(role)) {
+     if (user.role === UserRole.AGENCY_ADMIN && role && role !== UserRole.USER && role !== UserRole.AGENCY_ADMIN) {
       return errorResponse('AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles.', 403);
     }
 
@@ -92,7 +91,7 @@ export async function POST(request: NextRequest, { params }: { params: { agencyI
       select: { id: true, email: true, name: true, role: true, agencyId: true, createdAt: true },
     })
 
-    return successResponse({ user: newUser }, 'User created successfully', 201)
+    return NextResponse.json({ success: true, data: { user: newUser }, message: 'User created successfully' }, { status: 201 })
   } catch (error) {
     console.error(`Error creating user for agency ${agencyId}:`, error)
     return errorResponse('Failed to create user.', 500)
@@ -104,11 +103,11 @@ export async function POST(request: NextRequest, { params }: { params: { agencyI
 // This implies updating a user based on userId in the request body or a query param.
 // For simplicity and adhering to the plan step, we'll assume userId is part of the body for PUT.
 
-export async function PUT(request: NextRequest, { params }: { params: { agencyId: string } }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
-  const { agencyId } = params // Agency ID from URL
+  const { agencyId } = await context.params // Agency ID from URL
   const userMakingRequest = authResult.user
 
   if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencyId !== agencyId)) {
@@ -126,7 +125,7 @@ export async function PUT(request: NextRequest, { params }: { params: { agencyId
 
     const validation = updateUserSchema.safeParse(updateData)
     if (!validation.success) {
-      return errorResponse('Validation failed', 400, validation.error.issues)
+      return errorResponse(`Validation failed: ${validation.error.issues.map(i => i.message).join(', ')}`, 400)
     }
 
     const { name, role } = validation.data
@@ -140,7 +139,7 @@ export async function PUT(request: NextRequest, { params }: { params: { agencyId
     if (role) {
       if (userMakingRequest.role === UserRole.AGENCY_ADMIN) {
         // AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles
-        if (![UserRole.USER, UserRole.AGENCY_ADMIN].includes(role)) {
+        if (role !== UserRole.USER && role !== UserRole.AGENCY_ADMIN) {
           return errorResponse('AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles.', 403);
         }
         // AGENCY_ADMIN cannot change a SUPER_ADMIN or ADMIN's role
@@ -171,11 +170,11 @@ export async function PUT(request: NextRequest, { params }: { params: { agencyId
 }
 
 
-export async function DELETE(request: NextRequest, { params }: { params: { agencyId: string } }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
-  const { agencyId } = params
+  const { agencyId } = await context.params
   const userMakingRequest = authResult.user
 
   if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencyId !== agencyId)) {
@@ -222,7 +221,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { agenc
       where: { id: userIdToDelete },
     })
 
-    return successResponse({}, 'User deleted successfully', 200)
+    return successResponse({}, 'User deleted successfully')
   } catch (error) {
     console.error(`Error deleting user from agency ${agencyId}:`, error)
     return errorResponse('Failed to delete user.', 500)

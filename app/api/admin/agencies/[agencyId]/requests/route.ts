@@ -36,7 +36,11 @@ export async function GET(request: NextRequest, { params }: { params: { agencyId
     }
 
     if (statusParam && statusParam !== 'all') {
-      where.status = statusParam as RequestStatus
+      // Validate against valid RequestStatus values
+      const validStatuses = Object.values(RequestStatus)
+      if (validStatuses.includes(statusParam as RequestStatus)) {
+        where.status = statusParam as RequestStatus
+      }
     }
 
     if (type && type !== 'all') {

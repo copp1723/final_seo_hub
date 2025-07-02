@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
 
   const SCOPES = [
     'https://www.googleapis.com/auth/analytics.readonly',
+    'https://www.googleapis.com/auth/analytics',
+    'https://www.googleapis.com/auth/analytics.edit',
   ]
 
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')

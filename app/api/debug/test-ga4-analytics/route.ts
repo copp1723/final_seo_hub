@@ -32,7 +32,7 @@ export async function GET() {
     const testRequest = {
       startDate: '2024-12-01',
       endDate: '2024-12-31',
-      metrics: ['sessions', 'users'],
+      metrics: ['sessions', 'activeUsers'],
       dimensions: []
     }
 

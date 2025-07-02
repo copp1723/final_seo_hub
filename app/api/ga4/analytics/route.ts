@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 const analyticsRequestSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  metrics: z.array(z.string()).optional().default(['sessions', 'users', 'pageviews']),
+  metrics: z.array(z.string()).optional().default(['sessions', 'activeUsers', 'screenPageViews']),
   dimensions: z.array(z.string()).optional()
 })
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       // Top pages
       {
         dateRanges: [{ startDate, endDate }],
-        metrics: [{ name: 'sessions' }, { name: 'pageviews' }],
+        metrics: [{ name: 'sessions' }, { name: 'screenPageViews' }],
         dimensions: [{ name: 'pagePath' }],
         limit: 10,
         orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
@@ -154,6 +154,8 @@ export async function POST(request: NextRequest) {
         errorMessage = 'Invalid or inaccessible Analytics property. Please check your connection.'
       } else if (error.message.includes('quota') || error.message.includes('rate')) {
         errorMessage = 'Google Analytics API quota exceeded. Please try again later.'
+      } else if (error.message.includes('not a valid metric') || error.message.includes('not a valid dimension')) {
+        errorMessage = 'Invalid metric or dimension requested. The GA4 API schema has been updated.'
       }
     }
 
@@ -203,7 +205,7 @@ function processTopPagesReport(report: any) {
   return report.rows.map((row: any) => ({
     page: row.dimensionValues?.[0]?.value || 'Unknown',
     sessions: parseInt(row.metricValues?.[0]?.value) || 0,
-    pageviews: parseInt(row.metricValues?.[1]?.value) || 0
+    screenPageViews: parseInt(row.metricValues?.[1]?.value) || 0
   }))
 }
 

@@ -11,6 +11,7 @@ datasource db {
 enum UserRole {
   USER
   ADMIN
+  AGENCY_ADMIN
   SUPER_ADMIN
 }
 

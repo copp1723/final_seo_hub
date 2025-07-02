@@ -14,7 +14,9 @@ import {
   User,
   LogOut,
   ChevronDown,
-  ListChecks
+  ListChecks,
+  Users, // For Manage Agency Users
+  Briefcase // For Agency Admin section or specific agency views
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,8 +31,10 @@ const navItems = [
 export function Navigation() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const user = session?.user
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isAgencyMenuOpen, setIsAgencyMenuOpen] = useState(false) // For Agency Admin dropdown
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
@@ -45,13 +49,31 @@ export function Navigation() {
       }
     }
 
-    if (isUserMenuOpen) {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+        // Also close agency menu if click is outside and it's open
+        // This assumes agencyMenuRef would be part of userMenuRef or handled similarly if separate
+        setIsAgencyMenuOpen(false)
+      }
+    }
+
+    if (isUserMenuOpen || isAgencyMenuOpen) { // Listen if either menu is open
       document.addEventListener('mousedown', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
       }
     }
-  }, [isUserMenuOpen])
+  }, [isUserMenuOpen, isAgencyMenuOpen])
+
+  const agencyAdminNavItems = user?.role === 'AGENCY_ADMIN' && user.agencyId ? [
+    { href: `/admin/agencies/${user.agencyId}/requests`, label: 'All Dealership Requests', icon: Briefcase },
+    { href: `/admin/agencies/${user.agencyId}/users`, label: 'Manage Agency Users', icon: Users },
+  ] : []
+
+  // TODO: Add SUPER_ADMIN specific links if needed, e.g., a general admin dashboard to select agencies.
+  // For now, SUPER_ADMIN will see the agency links if they also have an agencyId set,
+  // or would navigate to specific agency pages manually / through another admin interface.
 
   return (
     <nav className="bg-white border-b border-gray-200">
@@ -70,7 +92,7 @@ export function Navigation() {
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
                 
                 return (
                   <Link
@@ -88,6 +110,42 @@ export function Navigation() {
                   </Link>
                 )
               })}
+
+              {/* Agency Admin Dropdown (Desktop) */}
+              {user?.role === 'AGENCY_ADMIN' && user.agencyId && agencyAdminNavItems.length > 0 && (
+                <div className="ml-3 relative" ref={userMenuRef}> {/* May need a separate ref if it interferes with userMenuRef */}
+                  <button
+                    onClick={() => setIsAgencyMenuOpen(!isAgencyMenuOpen)}
+                    className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  >
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Agency Admin
+                    <ChevronDown className={cn("h-4 w-4 ml-1 transition-transform", isAgencyMenuOpen && "rotate-180")} />
+                  </button>
+                  {isAgencyMenuOpen && (
+                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                      {agencyAdminNavItems.map(item => {
+                        const Icon = item.icon
+                        const isActive = pathname === item.href
+                        return (
+                           <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                              'flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
+                              isActive && 'bg-gray-100'
+                            )}
+                            onClick={() => setIsAgencyMenuOpen(false)}
+                          >
+                            <Icon className="h-4 w-4 mr-2" />
+                            {item.label}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -163,7 +221,7 @@ export function Navigation() {
           <div className="pt-2 pb-3 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href
+              const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
               
               return (
                 <Link
@@ -184,6 +242,39 @@ export function Navigation() {
                 </Link>
               )
             })}
+
+            {/* Agency Admin Links (Mobile) */}
+            {user?.role === 'AGENCY_ADMIN' && user.agencyId && agencyAdminNavItems.length > 0 && (
+              <>
+                <div className="pt-2 pb-1">
+                  <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Agency Admin
+                  </h3>
+                </div>
+                {agencyAdminNavItems.map(item => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
+                        isActive
+                          ? 'bg-blue-50 border-blue-500 text-blue-700'
+                          : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <div className="flex items-center">
+                        <Icon className="h-5 w-5 mr-3" />
+                        {item.label}
+                      </div>
+                    </Link>
+                  )
+                })}
+              </>
+            )}
           </div>
           
           {/* Mobile User Info */}

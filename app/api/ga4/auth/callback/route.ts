@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         propertyId,
         propertyName,
+        updatedAt: new Date(),
       },
     })
 

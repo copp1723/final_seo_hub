@@ -41,7 +41,7 @@ export default function AgencyUsersPage() {
   const fetchUsers = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
     if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
-      setError("Access Denied. You don't have permission to manage these users.")
+      setError("Access Denied. You don&apos;t have permission to manage these users.")
       setIsLoading(false)
       return
     }
@@ -55,9 +55,10 @@ export default function AgencyUsersPage() {
       }
       const data = await response.json()
       setUsers(data.users || [])
-    } catch (err: any) {
-      setError(err.message)
-      toast({ title: 'Error', description: err.message, variant: 'destructive' })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching users.'
+      setError(errorMessage)
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
@@ -97,32 +98,41 @@ export default function AgencyUsersPage() {
       : `/api/admin/agencies/${agencyId}/users`
     const method = editingUser ? 'PUT' : 'POST'
 
-    let payload: any = { ...formData }
+    let requestBody: Record<string, any> = { ...formData };
     if (editingUser) {
-        payload.userId = editingUser.id
+        // For PUT, send userId and only fields that are being updated (name, role)
+        // Email is not updatable via this form once user is created
+        requestBody = {
+            userId: editingUser.id,
+            name: formData.name,
+            role: formData.role
+        };
     }
-    // Ensure email is not sent on PUT if it's not being changed (API might reject it or it's just not needed)
-    if (editingUser) {
-        const { email, ...dataToUpdate } = formData;
-        payload = { userId: editingUser.id, ...dataToUpdate };
-    }
+    // For POST (creating user), email is included from formData
 
 
     try {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestBody),
       })
       const responseData = await response.json()
       if (!response.ok) {
-        throw new Error(responseData.error || (editingUser ? 'Failed to update user' : 'Failed to create user'))
+        // Use `responseData.details` if available for validation errors
+        const mainErrorMessage = responseData.error || (editingUser ? 'Failed to update user' : 'Failed to create user');
+        interface ErrorDetail { message: string }
+        const errorDetailsMessage = responseData.details && Array.isArray(responseData.details)
+          ? ` (${responseData.details.map((d: ErrorDetail) => d.message).join(', ')})`
+          : '';
+        throw new Error(`${mainErrorMessage}${errorDetailsMessage}`);
       }
       toast({ title: 'Success', description: `User ${editingUser ? 'updated' : 'created'} successfully.` })
       setIsModalOpen(false)
       fetchUsers() // Refresh list
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during submission.'
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
     }
   }
 
@@ -174,8 +184,9 @@ export default function AgencyUsersPage() {
       setShowDeleteConfirm(false)
       setUserToDelete(null)
       fetchUsers() // Refresh list
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while deleting user.'
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
     }
   }
 

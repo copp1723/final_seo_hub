@@ -75,7 +75,7 @@ export default function AgencyRequestsPage() {
   const fetchRequests = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
     if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
-      setError(`Access Denied. You don't have permission to view these ${DEALERSHIP_TERMINOLOGY} requests.`)
+      setError(`Access Denied. You don&apos;t have permission to view these ${DEALERSHIP_TERMINOLOGY} requests.`)
       setIsLoading(false)
       return
     }
@@ -102,9 +102,10 @@ export default function AgencyRequestsPage() {
       setRequests(data.requests)
       setTotalRequests(data.pagination.total)
       setTotalPages(data.pagination.totalPages)
-    } catch (err: any) {
-      setError(err.message)
-      toast({ title: 'Error', description: err.message, variant: 'destructive' })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `An unknown error occurred while fetching ${DEALERSHIP_TERMINOLOGY} requests.`
+      setError(errorMessage)
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }

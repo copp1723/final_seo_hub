@@ -46,14 +46,10 @@ export function Navigation() {
     function handleClickOutside(event: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false)
-      }
-    }
-
-    function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false)
         // Also close agency menu if click is outside and it's open
         // This assumes agencyMenuRef would be part of userMenuRef or handled similarly if separate
+        // For robust separate dropdowns, each would need its own ref and potentially its own listener or a combined logic.
+        // Given the current structure where agency dropdown is near user menu, this might be sufficient.
         setIsAgencyMenuOpen(false)
       }
     }

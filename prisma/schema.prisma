@@ -60,6 +60,10 @@ model User {
   // Multi-tenant relationship
   agencyId String?
   agency   Agency? @relation(fields: [agencyId], references: [id])
+  
+  // Dealership relationship (for dealership-specific users)
+  dealershipId String?
+  dealership   Dealership? @relation(fields: [dealershipId], references: [id])
 
   // OAuth accounts
   accounts Account[]
@@ -103,6 +107,7 @@ model User {
 
   @@index([email])
   @@index([agencyId])
+  @@index([dealershipId])
   @@index([apiKey])
 }
 
@@ -157,12 +162,109 @@ model Agency {
   // Relationships
   users    User[]
   requests Request[]
+  dealerships Dealership[]
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([domain])
+}
+
+// Dealership model for multi-property GA4 analytics
+model Dealership {
+  id       String @id @default(cuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  
+  // Basic dealership information
+  name        String
+  website     String?
+  domain      String?  @unique
+  location    String?  // City, State
+  isActive    Boolean  @default(true)
+  
+  // GA4 Integration - compatible with both approaches
+  ga4PropertyId       String?  // For custom approach (current GA4 property)
+  ga4SubpropertyId    String?  // For GA4 360 migration (future subproperty)
+  ga4SourcePropertyId String?  // Parent property for 360 (roll-up property)
+  
+  // Filtering metadata (matches GA4 360 filter capabilities)
+  filterCriteria Json? @default("{}") // Store filter rules for subproperty creation
+  // Example filterCriteria structure:
+  // {
+  //   "hostname": "dealership-name.com",
+  //   "pagePath": "/inventory/*",
+  //   "customDimensions": {
+  //     "dealershipId": "dealer123",
+  //     "region": "southwest"
+  //   }
+  // }
+  
+  // Data stream configuration (for future 360 migration)
+  dataStreamId     String?
+  measurementId    String?
+  
+  // Analytics configuration
+  analyticsConfig Json @default("{}") // Store custom analytics settings
+  // Example analyticsConfig:
+  // {
+  //   "trackingEnabled": true,
+  //   "enhancedMeasurement": true,
+  //   "customEvents": ["vehicle_view", "test_drive_request"],
+  //   "conversionEvents": ["lead_form", "phone_call"]
+  // }
+  
+  // Cached metrics for performance
+  cachedMetrics    Json?     // Store recent analytics data
+  metricsUpdatedAt DateTime? // Last time metrics were updated
+  
+  // Relationships
+  users           User[]    // Dealership-specific users
+  requests        Request[] // Dealership-specific requests
+  ga4Connections  DealershipGA4Connection[]
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?  // User ID who created this dealership
+  
+  @@index([agencyId])
+  @@index([ga4PropertyId])
+  @@index([ga4SubpropertyId])
+  @@index([isActive])
+  @@index([domain])
+}
+
+// Dealership-specific GA4 connection (supports multiple properties per dealership)
+model DealershipGA4Connection {
+  id           String     @id @default(cuid())
+  dealershipId String
+  dealership   Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  
+  // Connection type
+  connectionType String @default("primary") // "primary", "secondary", "rollup"
+  
+  // Encrypted tokens
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+  
+  // GA4 specific identifiers
+  propertyId   String
+  propertyName String?
+  accountId    String?
+  
+  // Configuration for this connection
+  isActive     Boolean @default(true)
+  config       Json    @default("{}")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([dealershipId, connectionType])
+  @@index([dealershipId])
+  @@index([propertyId])
 }
 
 // Main request model (formerly orders)
@@ -176,6 +278,10 @@ model Request {
   // Agency relationship
   agencyId String?
   agency   Agency? @relation(fields: [agencyId], references: [id])
+  
+  // Dealership relationship
+  dealershipId String?
+  dealership   Dealership? @relation(fields: [dealershipId], references: [id])
 
   // Request details
   title       String
@@ -216,6 +322,7 @@ model Request {
 
   @@index([userId, status])
   @@index([agencyId, status])
+  @@index([dealershipId, status])
   @@index([status, createdAt])
 }
 

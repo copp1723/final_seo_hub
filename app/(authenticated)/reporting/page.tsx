@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
@@ -88,14 +88,14 @@ interface AnalyticsData {
     dates: string[]
     metrics: {
       sessions?: number[]
-      users?: number[]
-      pageviews?: number[]
+      activeUsers?: number[]
+      screenPageViews?: number[]
     }
   }
   topPages: Array<{
     page: string
     sessions: number
-    pageviews: number
+    screenPageViews: number
   }>
   trafficSources: Array<{
     source: string
@@ -239,8 +239,8 @@ export default function ReportingPage() {
     
     return {
       sessions: sum(gaData.overview.metrics.sessions),
-      users: sum(gaData.overview.metrics.users),
-      pageviews: sum(gaData.overview.metrics.pageviews)
+      users: sum(gaData.overview.metrics.activeUsers),
+      pageviews: sum(gaData.overview.metrics.screenPageViews)
     }
   }
 
@@ -306,16 +306,17 @@ export default function ReportingPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <Select
-                value={selectedRange}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedRange(e.target.value)}
-                className="w-48"
-              >
-                {DATE_RANGES.map(range => (
-                  <option key={range.value} value={range.value}>
-                    {range.label}
-                  </option>
-                ))}
+              <Select value={selectedRange} onValueChange={setSelectedRange}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_RANGES.map(range => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
               <Button
                 variant="secondary"

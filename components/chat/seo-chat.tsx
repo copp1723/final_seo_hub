@@ -75,12 +75,13 @@ export function SEOChat() {
         body: JSON.stringify({ message: messageText }),
       })
 
-      const data = await response.json()
+      const result = await response.json()
+      const data = result.data || result // Handle both new and old response formats
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.content,
+        content: data.content || data.message || 'Sorry, I encountered an error processing your request.',
         timestamp: new Date(),
       }
 

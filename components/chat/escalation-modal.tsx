@@ -28,19 +28,24 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `SEO Question: ${context.question.substring(0, 50)}...`,
-          description: `Question: ${context.question}\n\nAI Response: ${context.answer}\n\nAdditional Notes: ${additionalNotes}`,
-          type: 'question',
+          title: `Chat Escalation: ${context.question.substring(0, 60)}${context.question.length > 60 ? '...' : ''}`,
+          description: `**Original Question:**\n${context.question}\n\n**AI Assistant Response:**\n${context.answer}\n\n**Additional Context:**\n${additionalNotes || 'No additional notes provided.'}\n\n---\n*This request was escalated from the AI chat assistant.*`,
+          type: 'improvement', // Use existing valid type
           priority: 'MEDIUM',
         }),
       })
 
       if (response.ok) {
         onClose()
-        // Could add a success toast here
+        // Show success feedback
+        alert('Your question has been sent to the SEO team. You can track the response in your Requests page.')
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to send request: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
-      // Error handled silently on client-side
+      console.error('Escalation error:', error)
+      alert('Failed to send request. Please try again or contact support.')
     } finally {
       setSubmitting(false)
     }
@@ -100,7 +105,7 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
               className="flex-1"
             >
               <Send className="h-4 w-4 mr-2" />
-              Send to Team
+              {submitting ? 'Sending...' : 'Send to Team'}
             </Button>
           </div>
         </CardContent>

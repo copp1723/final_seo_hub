@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     'https://www.googleapis.com/auth/analytics.readonly',
     'https://www.googleapis.com/auth/analytics',
     'https://www.googleapis.com/auth/analytics.edit',
+    'https://www.googleapis.com/auth/analytics.manage.users'
   ]
 
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')

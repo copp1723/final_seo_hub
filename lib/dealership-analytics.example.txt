@@ -1,0 +1,277 @@
+/**
+ * Example implementation of multi-property GA4 analytics
+ * Compatible with both custom approach and GA4 360 migration
+ */
+
+import type { PrismaClient, Agency, Dealership } from '@prisma/client';
+import { 
+  DealershipMetrics, 
+  AggregatedAnalytics,
+  DealershipFilterCriteria,
+  GA4ConnectionType 
+} from '@/types/dealership';
+
+// This would be imported from your actual Prisma setup
+declare const prisma: PrismaClient;
+
+/**
+ * Fetch analytics for a single dealership
+ * Works with both custom GA4 properties and GA4 360 subproperties
+ */
+export async function getDealershipAnalytics(
+  dealershipId: string, 
+  dateRange: { startDate: string; endDate: string }
+): Promise<DealershipMetrics> {
+  const dealership = await prisma.dealership.findUnique({
+    where: { id: dealershipId },
+    include: { ga4Connections: true }
+  });
+
+  if (!dealership) {
+    throw new Error('Dealership not found');
+  }
+
+  // Determine which property to use based on migration status
+  const propertyId = dealership.ga4SubpropertyId || dealership.ga4PropertyId;
+  
+  if (!propertyId) {
+    throw new Error('No GA4 property configured for this dealership');
+  }
+
+  // In real implementation, this would call GA4 API
+  // For now, showing the pattern
+  const metrics = await fetchGA4Metrics(propertyId, dateRange);
+  
+  // Cache the metrics for performance
+  await prisma.dealership.update({
+    where: { id: dealershipId },
+    data: {
+      cachedMetrics: metrics,
+      metricsUpdatedAt: new Date()
+    }
+  });
+
+  return metrics;
+}
+
+/**
+ * Get aggregated analytics for all dealerships in an agency
+ * This mimics GA4 360's roll-up property functionality
+ */
+export async function getAgencyAggregatedAnalytics(
+  agencyId: string,
+  dateRange: { startDate: string; endDate: string }
+): Promise<AggregatedAnalytics> {
+  const agency = await prisma.agency.findUnique({
+    where: { id: agencyId },
+    include: {
+      dealerships: {
+        where: { isActive: true }
+      }
+    }
+  });
+
+  if (!agency) {
+    throw new Error('Agency not found');
+  }
+
+  // Check if we have a GA4 360 roll-up property
+  const hasRollupProperty = agency.dealerships.some(d => d.ga4SourcePropertyId);
+  
+  if (hasRollupProperty) {
+    // GA4 360 approach: Fetch from roll-up property
+    return fetchFromRollupProperty(agency, dateRange);
+  } else {
+    // Custom approach: Aggregate from individual properties
+    return aggregateFromIndividualProperties(agency, dateRange);
+  }
+}
+
+/**
+ * Custom aggregation logic (current approach)
+ * Fetches data from multiple properties and combines them
+ */
+async function aggregateFromIndividualProperties(
+  agency: Agency & { dealerships: Dealership[] },
+  dateRange: { startDate: string; endDate: string }
+): Promise<AggregatedAnalytics> {
+  const dealershipMetrics = await Promise.all(
+    agency.dealerships.map(async (dealership) => {
+      try {
+        const metrics = await getDealershipAnalytics(dealership.id, dateRange);
+        return {
+          id: dealership.id,
+          name: dealership.name,
+          metrics
+        };
+      } catch (error) {
+        console.error(`Failed to fetch metrics for ${dealership.name}:`, error);
+        return null;
+      }
+    })
+  );
+
+  const validMetrics = dealershipMetrics.filter(Boolean);
+  
+  // Calculate totals
+  const totals = calculateTotals(validMetrics.map(d => d!.metrics));
+  
+  // Calculate averages
+  const averages = {
+    bounceRate: calculateAverage(validMetrics.map(d => d!.metrics.bounceRate)),
+    avgSessionDuration: calculateAverage(validMetrics.map(d => d!.metrics.avgSessionDuration)),
+    conversionRate: calculateAverage(validMetrics.map(d => d!.metrics.conversionRate))
+  };
+
+  return {
+    agencyId: agency.id,
+    dealerships: validMetrics as any,
+    totals,
+    averages
+  };
+}
+
+/**
+ * GA4 360 approach (future state)
+ * Fetches pre-aggregated data from roll-up property
+ */
+async function fetchFromRollupProperty(
+  agency: Agency & { dealerships: Dealership[] },
+  dateRange: { startDate: string; endDate: string }
+): Promise<AggregatedAnalytics> {
+  // Find the roll-up property connection
+  const rollupConnection = await prisma.dealershipGA4Connection.findFirst({
+    where: {
+      dealership: {
+        agencyId: agency.id
+      },
+      connectionType: GA4ConnectionType.ROLLUP
+    }
+  });
+
+  if (!rollupConnection) {
+    // Fallback to custom aggregation if no roll-up property
+    return aggregateFromIndividualProperties(agency, dateRange);
+  }
+
+  // Fetch aggregated data from GA4 360 roll-up property
+  const rollupMetrics = await fetchGA4Metrics(rollupConnection.propertyId, dateRange);
+  
+  // GA4 360 provides dimension breakdowns, so we can get per-dealership data
+  const dealershipBreakdown = await fetchGA4DimensionBreakdown(
+    rollupConnection.propertyId,
+    'customEvent:dealership_id',
+    dateRange
+  );
+
+  return {
+    agencyId: agency.id,
+    dealerships: dealershipBreakdown,
+    totals: rollupMetrics,
+    averages: {
+      bounceRate: rollupMetrics.bounceRate,
+      avgSessionDuration: rollupMetrics.avgSessionDuration,
+      conversionRate: rollupMetrics.conversionRate
+    }
+  };
+}
+
+/**
+ * Create filter criteria that's compatible with GA4 360 subproperties
+ */
+export function createGA4FilterCriteria(
+  dealership: Dealership
+): DealershipFilterCriteria {
+  return {
+    // Custom approach fields
+    hostname: dealership.domain,
+    customDimensions: {
+      dealership_id: dealership.id,
+      agency_id: dealership.agencyId
+    },
+    
+    // GA4 360 compatible structure
+    dimensionFilter: {
+      andGroup: {
+        expressions: [
+          {
+            filter: {
+              fieldName: 'hostname',
+              stringFilter: {
+                value: dealership.domain || '',
+                matchType: 'EXACT'
+              }
+            }
+          },
+          {
+            filter: {
+              fieldName: 'customEvent:dealership_id',
+              stringFilter: {
+                value: dealership.id,
+                matchType: 'EXACT'
+              }
+            }
+          }
+        ]
+      }
+    }
+  };
+}
+
+/**
+ * Migration helper: Convert existing dealership to GA4 360 subproperty
+ */
+export async function migrateDealershipToSubproperty(
+  dealershipId: string,
+  sourcePropertyId: string
+): Promise<void> {
+  const dealership = await prisma.dealership.findUnique({
+    where: { id: dealershipId }
+  });
+
+  if (!dealership) {
+    throw new Error('Dealership not found');
+  }
+
+  // In real implementation, this would call GA4 Admin API
+  // to create a subproperty with the stored filter criteria
+  const subpropertyId = await createGA4Subproperty({
+    sourceProperty: sourcePropertyId,
+    displayName: dealership.name,
+    filter: dealership.filterCriteria
+  });
+
+  // Update dealership with new GA4 360 IDs
+  await prisma.dealership.update({
+    where: { id: dealershipId },
+    data: {
+      ga4SubpropertyId: subpropertyId,
+      ga4SourcePropertyId: sourcePropertyId
+    }
+  });
+}
+
+// Placeholder functions for GA4 API calls
+async function fetchGA4Metrics(propertyId: string, dateRange: any): Promise<DealershipMetrics> {
+  // Implementation would call actual GA4 Data API
+  throw new Error('Implement GA4 API integration');
+}
+
+async function fetchGA4DimensionBreakdown(propertyId: string, dimension: string, dateRange: any): Promise<any[]> {
+  // Implementation would call actual GA4 Data API with dimension breakdown
+  throw new Error('Implement GA4 API integration');
+}
+
+async function createGA4Subproperty(config: any): Promise<string> {
+  // Implementation would call GA4 Admin API to create subproperty
+  throw new Error('Implement GA4 Admin API integration');
+}
+
+function calculateTotals(metrics: DealershipMetrics[]): DealershipMetrics {
+  // Implementation would sum up all metrics
+  throw new Error('Implement metric aggregation logic');
+}
+
+function calculateAverage(values: number[]): number {
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}

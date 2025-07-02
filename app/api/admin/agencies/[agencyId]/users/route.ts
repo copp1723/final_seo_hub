@@ -139,17 +139,13 @@ export async function PUT(request: NextRequest, { params }: { params: { agencyId
     // Security checks for role changes
     if (role) {
       if (userMakingRequest.role === UserRole.AGENCY_ADMIN) {
-        // AGENCY_ADMIN cannot make anyone (including themselves) SUPER_ADMIN or ADMIN
-        if (role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN) {
-          return errorResponse('AGENCY_ADMIN cannot assign SUPER_ADMIN or ADMIN roles.', 403)
+        // AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles
+        if (![UserRole.USER, UserRole.AGENCY_ADMIN].includes(role)) {
+          return errorResponse('AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles.', 403);
         }
         // AGENCY_ADMIN cannot change a SUPER_ADMIN or ADMIN's role
         if (userToUpdate.role === UserRole.SUPER_ADMIN || userToUpdate.role === UserRole.ADMIN) {
           return errorResponse('AGENCY_ADMIN cannot change the role of a SUPER_ADMIN or ADMIN.', 403)
-        }
-         // AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles
-        if (![UserRole.USER, UserRole.AGENCY_ADMIN].includes(role)) {
-             return errorResponse('AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles.', 403);
         }
       }
       // SUPER_ADMIN can change any role, but cannot demote another SUPER_ADMIN (unless it's themselves)

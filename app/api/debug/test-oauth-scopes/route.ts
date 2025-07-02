@@ -76,16 +76,15 @@ export async function GET() {
           requestBody: {
             dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
             metrics: [{ name: 'sessions' }],
-            dimensions: [{ name: 'date' }],
-            limit: 5
+            dimensions: [{ name: 'date' }]
           }
         })
         
         dataApiResult = {
           success: true,
           propertyId: ga4Connection.propertyId,
-          rowCount: report.data.rows?.length || 0,
-          hasData: (report.data.rows?.length || 0) > 0
+          rowCount: report.data?.rows?.length || 0,
+          hasData: (report.data?.rows?.length || 0) > 0
         }
       } catch (error) {
         dataApiResult = {

@@ -59,7 +59,7 @@ export async function POST() {
       }
 
       const property = propertiesResponse.data.properties[0]
-      const propertyId = property.name?.split('/')[1] // Extract ID from "properties/123456789"
+      const propertyId = property.name?.split('/').pop() // Extract ID from "properties/123456789"
       const propertyName = property.displayName
 
       // Update the connection with property info

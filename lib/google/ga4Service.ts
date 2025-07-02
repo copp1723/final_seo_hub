@@ -81,6 +81,11 @@ export class GA4Service {
       await this.initialize();
     }
 
+    // Validate property ID format
+    if (!propertyId || !/^\d+$/.test(propertyId)) {
+      throw new Error(`Invalid property ID format: ${propertyId}. Expected numeric string.`);
+    }
+
     const response = await this.analyticsData!.properties.batchRunReports({
       property: `properties/${propertyId}`,
       requestBody: { requests },

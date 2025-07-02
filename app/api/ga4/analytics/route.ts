@@ -62,6 +62,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate property ID format
+    if (!/^\d+$/.test(ga4Connection.propertyId)) {
+      logger.error('Invalid GA4 property ID format', undefined, {
+        userId: session.user.id,
+        propertyId: ga4Connection.propertyId
+      })
+      return NextResponse.json(
+        { error: 'Invalid GA4 property configuration. Please reconnect your Google Analytics account.' },
+        { status: 400 }
+      )
+    }
+
     // Initialize GA4 service
     const ga4Service = new GA4Service(session.user.id)
 
@@ -124,13 +136,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: processedData, cached: false })
 
   } catch (error) {
+    const session = await auth()
     logger.error('GA4 analytics API error', error, {
+      userId: session?.user?.id,
       path: '/api/ga4/analytics',
-      method: 'POST'
+      method: 'POST',
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined
     })
 
+    // Provide more specific error messages
+    let errorMessage = 'Failed to fetch analytics data'
+    if (error instanceof Error) {
+      if (error.message.includes('permission') || error.message.includes('access')) {
+        errorMessage = 'Insufficient permissions for Google Analytics. Please reconnect your account.'
+      } else if (error.message.includes('property')) {
+        errorMessage = 'Invalid or inaccessible Analytics property. Please check your connection.'
+      } else if (error.message.includes('quota') || error.message.includes('rate')) {
+        errorMessage = 'Google Analytics API quota exceeded. Please try again later.'
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Failed to fetch analytics data' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

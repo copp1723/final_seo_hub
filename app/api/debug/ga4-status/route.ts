@@ -5,12 +5,13 @@ import { GA4Service } from '@/lib/google/ga4Service'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
+  const session = await auth()
+  
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
-    const session = await auth()
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get GA4 connection details
     const ga4Connection = await prisma.gA4Connection.findUnique({
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
       yesterday.setDate(yesterday.getDate() - 1)
       
       const report = await ga4Service.runReport({
-        propertyId: ga4Connection.propertyId,
+        propertyId: ga4Connection.propertyId!,
         metrics: ['sessions'],
         dimensions: ['date'],
         startDate: yesterday.toISOString().split('T')[0],

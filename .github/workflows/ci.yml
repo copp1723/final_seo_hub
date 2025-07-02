@@ -92,7 +92,10 @@ jobs:
           NEXTAUTH_SECRET: test-secret-key-for-ci
           NEXTAUTH_URL: http://localhost:3000
           ENCRYPTION_KEY: test-encryption-key-32-chars-long
-          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          # Consistent with the test job's postgres service user/db
+          # If the build truly needs a DB, it should be available.
+          # If not, this is just for Prisma/Next.js to not complain about a missing/malformed URL.
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         run: npm run build
 
       - name: Upload build artifacts

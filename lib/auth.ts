@@ -48,22 +48,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Just map the fields to the session
       if (session.user && user) {
         session.user.id = user.id
-        session.user.role = (user as any).role || UserRole.USER
+        // Ensure role is correctly typed and defaults to USER if not set
+        const userRole = (user as any).role as UserRole | undefined;
+        session.user.role = userRole || UserRole.USER;
         session.user.agencyId = (user as any).agencyId
         session.user.onboardingCompleted = (user as any).onboardingCompleted !== undefined ? (user as any).onboardingCompleted : false
         
         // Ensure user has required fields set in database
-        if ((user as any).onboardingCompleted === null || 
-            (user as any).pagesUsedThisPeriod === null ||
-            (user as any).blogsUsedThisPeriod === null ||
-            (user as any).gbpPostsUsedThisPeriod === null ||
-            (user as any).improvementsUsedThisPeriod === null) {
-          
+        // Check if any of the crucial fields are null, undefined, or not the correct type
+        const needsUpdate =
+          (user as any).role === null || (user as any).role === undefined ||
+          !Object.values(UserRole).includes((user as any).role) || // Check if role is a valid UserRole
+          (user as any).onboardingCompleted === null || (user as any).onboardingCompleted === undefined ||
+          (user as any).pagesUsedThisPeriod === null || (user as any).pagesUsedThisPeriod === undefined ||
+          (user as any).blogsUsedThisPeriod === null || (user as any).blogsUsedThisPeriod === undefined ||
+          (user as any).gbpPostsUsedThisPeriod === null || (user as any).gbpPostsUsedThisPeriod === undefined ||
+          (user as any).improvementsUsedThisPeriod === null || (user as any).improvementsUsedThisPeriod === undefined;
+
+        if (needsUpdate) {
           // Update user with default values
           await prisma.user.update({
             where: { id: user.id },
             data: {
-              role: (user as any).role || UserRole.USER,
+              role: Object.values(UserRole).includes((user as any).role) ? (user as any).role : UserRole.USER,
               onboardingCompleted: (user as any).onboardingCompleted ?? false,
               pagesUsedThisPeriod: (user as any).pagesUsedThisPeriod ?? 0,
               blogsUsedThisPeriod: (user as any).blogsUsedThisPeriod ?? 0,
@@ -71,6 +78,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               improvementsUsedThisPeriod: (user as any).improvementsUsedThisPeriod ?? 0,
             }
           })
+          // Re-assign role to session after update if it was invalid
+          if (!Object.values(UserRole).includes(userRole!)) {
+            session.user.role = UserRole.USER;
+          }
         }
       }
       return session

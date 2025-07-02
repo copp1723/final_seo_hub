@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
-import { RequestStatus, Prisma } from '@prisma/client'
+import { RequestStatus, Prisma, UserRole } from '@prisma/client'
 import { validateRequest, createRequestSchema } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
+  const user = authResult.user
   const { searchParams } = new URL(request.url)
   const statusParam = searchParams.get('status')
   const type = searchParams.get('type')
@@ -25,8 +26,31 @@ export async function GET(request: NextRequest) {
   const sortOrder = (sortOrderParam === 'asc' || sortOrderParam === 'desc') ? sortOrderParam : 'desc'
 
   try {
-    const where: Prisma.RequestWhereInput = {
-      userId: authResult.user.id,
+    let where: Prisma.RequestWhereInput = {}
+
+    // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
+    // Otherwise, fetch requests for the individual user.
+    if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
+      where.agencyId = user.agencyId
+    } else if (user.role === UserRole.SUPER_ADMIN) {
+      // SUPER_ADMIN can see all requests if no specific agencyId is provided via a different route
+      // For this route, we assume they want to see their own requests or all if not filtered by agency
+      // To see all agency requests, they would use a dedicated admin route.
+      // If they have an agencyId, it implies they might be acting as an admin for that agency.
+      // However, the current logic is simple: SUPER_ADMIN sees all if not constrained.
+      // For this specific route /api/requests, let's keep it to their own requests *unless* an agency filter is added later.
+      // For now, this means they see requests associated with their user ID, or all if no user ID constraint is applied.
+      // This part might need refinement based on exact SUPER_ADMIN viewing requirements on this generic endpoint.
+      // The most straightforward interpretation for /api/requests is "my requests" or "my agency's requests".
+      // For "all requests in the system", a dedicated /api/admin/requests endpoint would be more appropriate.
+      // Thus, if a SUPER_ADMIN is not specifically an AGENCY_ADMIN for an agency, they see their own.
+      // If they *are* also an AGENCY_ADMIN (e.g. agencyId is set on their user), the AGENCY_ADMIN rule above applies.
+      // If they are a SUPER_ADMIN and no agencyId, they see their own requests.
+      // This behavior can be changed if SUPER_ADMINs should see *all* requests through this endpoint.
+      where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views.
+    }
+    else {
+      where.userId = user.id
     }
 
     if (statusParam && statusParam !== 'all') {

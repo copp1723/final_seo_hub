@@ -109,7 +109,10 @@ export default function SettingsPage() {
             const intRes = await fetch('/api/settings/integrations')
             if (intRes.ok) {
               const data = await intRes.json()
-              setIntegrations(data.data?.integrations || data.integrations)
+              console.log('Integrations API response:', data)
+              const integrationsData = data.data?.integrations || data.integrations
+              console.log('Setting integrations data:', integrationsData)
+              setIntegrations(integrationsData)
             }
             break
             

@@ -42,11 +42,23 @@ export async function POST(request: NextRequest) {
 
     const { startDate, endDate, metrics, dimensions } = validationResult.data
 
+    // Debug logging
+    logger.info('GA4 Analytics Request', {
+      userId: session.user.id,
+      dateRange: { startDate, endDate },
+      metrics,
+      dimensions
+    })
+
     // Check cache first
     const cacheKey = getCacheKey(session.user.id, { startDate, endDate, metrics, dimensions })
     const cachedData = cache.get(cacheKey)
     
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
+      logger.info('Returning cached GA4 data', {
+        userId: session.user.id,
+        cacheAge: Date.now() - cachedData.timestamp
+      })
       return NextResponse.json({ data: cachedData.data, cached: true })
     }
 
@@ -56,11 +68,18 @@ export async function POST(request: NextRequest) {
     })
 
     if (!ga4Connection || !ga4Connection.propertyId) {
+      logger.warn('No GA4 connection found', { userId: session.user.id })
       return NextResponse.json(
         { error: 'GA4 not connected. Please connect your Google Analytics account in settings.' },
         { status: 404 }
       )
     }
+
+    logger.info('Found GA4 connection', {
+      userId: session.user.id,
+      propertyId: ga4Connection.propertyId,
+      propertyName: ga4Connection.propertyName
+    })
 
     // Validate property ID format
     if (!/^\d+$/.test(ga4Connection.propertyId)) {
@@ -104,8 +123,22 @@ export async function POST(request: NextRequest) {
       }
     ]
 
+    logger.info('Fetching GA4 data', {
+      userId: session.user.id,
+      propertyId: ga4Connection.propertyId,
+      requestCount: batchRequests.length
+    })
+
     // Fetch data from GA4
     const reports = await ga4Service.batchRunReports(ga4Connection.propertyId, batchRequests)
+
+    logger.info('GA4 data fetched successfully', {
+      userId: session.user.id,
+      reportCount: reports.length,
+      overviewRowCount: reports[0]?.rowCount || 0,
+      topPagesCount: reports[1]?.rowCount || 0,
+      trafficSourcesCount: reports[2]?.rowCount || 0
+    })
 
     // Process the reports
     const processedData = {
@@ -118,6 +151,17 @@ export async function POST(request: NextRequest) {
         dateRange: { startDate, endDate }
       }
     }
+
+    // Log processed data summary
+    logger.info('Processed GA4 data', {
+      userId: session.user.id,
+      overviewDates: processedData.overview.dates.length,
+      topPagesCount: processedData.topPages.length,
+      trafficSourcesCount: processedData.trafficSources.length,
+      totalSessions: processedData.overview.metrics.sessions?.reduce((a, b) => a + b, 0) || 0,
+      totalUsers: processedData.overview.metrics.activeUsers?.reduce((a, b) => a + b, 0) || 0,
+      totalPageViews: processedData.overview.metrics.screenPageViews?.reduce((a, b) => a + b, 0) || 0
+    })
 
     // Cache the processed data
     cache.set(cacheKey, { data: processedData, timestamp: Date.now() })
@@ -147,7 +191,14 @@ export async function POST(request: NextRequest) {
 
     // Provide more specific error messages
     let errorMessage = 'Failed to fetch analytics data'
+    let errorDetails = null
+    
     if (error instanceof Error) {
+      errorDetails = {
+        message: error.message,
+        stack: error.stack
+      }
+      
       if (error.message.includes('permission') || error.message.includes('access')) {
         errorMessage = 'Insufficient permissions for Google Analytics. Please reconnect your account.'
       } else if (error.message.includes('property')) {
@@ -160,7 +211,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: errorMessage },
+      { error: errorMessage, details: errorDetails },
       { status: 500 }
     )
   }

@@ -3,43 +3,35 @@ import { prisma } from '@/lib/prisma'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 
 export async function GET() {
+  // Test database connection
   const startTime = Date.now()
   
   try {
-    // Check database connection
-    await prisma.$queryRaw`SELECT 1`
+    // Simple query to test DB connection
+    await prisma.$queryRaw`SELECT 1 as test`
+    const responseTime = Date.now() - startTime
     
-    const healthStatus = {
+    const response = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      responseTime: Date.now() - startTime,
+      buildTime: new Date().toISOString(), // Force cache bust for Prisma client regeneration
       database: 'connected',
-      environment: process.env.NODE_ENV || 'development',
+      responseTime
     }
     
-    logger.info('Health check completed successfully', {
-      responseTime: healthStatus.responseTime,
-      database: 'connected'
-    })
+    console.log('[PRODUCTION INFO] Health check completed successfully', { responseTime, database: 'connected' })
     
-    return NextResponse.json(healthStatus, { status: 200 })
+    return NextResponse.json(response)
   } catch (error) {
-    logger.error('Health check failed', error, {
-      path: '/api/health',
-      method: 'GET',
-      responseTime: Date.now() - startTime
-    })
-    
+    console.error('[PRODUCTION ERROR] Health check failed:', error)
     return NextResponse.json(
-      {
-        status: 'unhealthy',
+      { 
+        status: 'unhealthy', 
         timestamp: new Date().toISOString(),
-        responseTime: Date.now() - startTime,
         database: 'disconnected',
-        error: getSafeErrorMessage(error),
+        error: 'Database connection failed'
       },
-      { status: 503 }
+      { status: 500 }
     )
   }
 }

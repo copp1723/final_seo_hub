@@ -32,7 +32,11 @@ export default function AgencyUsersPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<AgencyUser | null>(null)
-  const [formData, setFormData] = useState({ name: '', email: '', role: UserRole.USER })
+  const [formData, setFormData] = useState<{
+    name: string
+    email: string
+    role: UserRole
+  }>({ name: '', email: '', role: UserRole.USER })
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [userToDelete, setUserToDelete] = useState<AgencyUser | null>(null)
@@ -58,7 +62,7 @@ export default function AgencyUsersPage() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while fetching users.'
       setError(errorMessage)
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
+      toast(errorMessage, 'error')
     } finally {
       setIsLoading(false)
     }
@@ -127,18 +131,18 @@ export default function AgencyUsersPage() {
           : '';
         throw new Error(`${mainErrorMessage}${errorDetailsMessage}`);
       }
-      toast({ title: 'Success', description: `User ${editingUser ? 'updated' : 'created'} successfully.` })
+      toast(`User ${editingUser ? 'updated' : 'created'} successfully.`, 'success')
       setIsModalOpen(false)
       fetchUsers() // Refresh list
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred during submission.'
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
+      toast(errorMessage, 'error')
     }
   }
 
   const openDeleteConfirm = (user: AgencyUser) => {
     if (user.id === session?.user.id) {
-        toast({ title: 'Error', description: "You cannot delete yourself.", variant: 'destructive' });
+        toast("You cannot delete yourself.", 'error');
         return;
     }
     setUserToDelete(user);
@@ -150,19 +154,19 @@ export default function AgencyUsersPage() {
 
     // Prevent deleting oneself (double check, already in openDeleteConfirm)
     if (userToDelete.id === session.user.id) {
-      toast({ title: 'Error', description: "You cannot delete yourself.", variant: 'destructive' });
+      toast("You cannot delete yourself.", 'error');
       setShowDeleteConfirm(false);
       return;
     }
     // Prevent AGENCY_ADMIN from deleting SUPER_ADMIN or ADMIN
     if (session.user.role === UserRole.AGENCY_ADMIN && (userToDelete.role === UserRole.SUPER_ADMIN || userToDelete.role === UserRole.ADMIN)) {
-        toast({ title: 'Error', description: "AGENCY_ADMINs cannot delete SUPER_ADMIN or ADMIN users.", variant: 'destructive' });
+        toast("AGENCY_ADMINs cannot delete SUPER_ADMIN or ADMIN users.", 'error');
         setShowDeleteConfirm(false);
         return;
     }
     // Prevent anyone from deleting SUPER_ADMIN through this UI (API has stricter checks too)
     if (userToDelete.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN) { // Only super admin can delete super admin
-         toast({ title: 'Error', description: "Only a SUPER_ADMIN can delete another SUPER_ADMIN.", variant: 'destructive' });
+         toast("Only a SUPER_ADMIN can delete another SUPER_ADMIN.", 'error');
          setShowDeleteConfirm(false);
          return;
     }
@@ -180,13 +184,13 @@ export default function AgencyUsersPage() {
       if (!response.ok) {
         throw new Error(responseData.error || 'Failed to delete user')
       }
-      toast({ title: 'Success', description: 'User deleted successfully.' })
+      toast('User deleted successfully.', 'success')
       setShowDeleteConfirm(false)
       setUserToDelete(null)
       fetchUsers() // Refresh list
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred while deleting user.'
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' })
+      toast(errorMessage, 'error')
     }
   }
 

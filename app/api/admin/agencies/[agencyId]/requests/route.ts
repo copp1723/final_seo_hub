@@ -4,11 +4,11 @@ import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { UserRole, RequestStatus, Prisma } from '@prisma/client'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 
-export async function GET(request: NextRequest, { params }: { params: { agencyId: string } }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
-  const { agencyId } = params
+  const { agencyId } = await context.params
   const user = authResult.user
 
   // Security check: User must be SUPER_ADMIN or AGENCY_ADMIN for the specified agency

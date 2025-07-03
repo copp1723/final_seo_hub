@@ -4,19 +4,21 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { signOut, useSession } from 'next-auth/react'
-import { 
-  Home, 
-  FileText, 
-  MessageSquare, 
-  BarChart, 
-  Menu, 
-  X, 
+import {
+  Home,
+  FileText,
+  MessageSquare,
+  BarChart,
+  Menu,
+  X,
   User,
   LogOut,
   ChevronDown,
   ListChecks,
   Users, // For Manage Agency Users
-  Briefcase // For Agency Admin section or specific agency views
+  Briefcase, // For Agency Admin section or specific agency views
+  Building2, // For agencies
+  Settings // For system settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -35,6 +37,7 @@ export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isAgencyMenuOpen, setIsAgencyMenuOpen] = useState(false) // For Agency Admin dropdown
+  const [isSuperAdminMenuOpen, setIsSuperAdminMenuOpen] = useState(false) // For Super Admin dropdown
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
@@ -51,25 +54,31 @@ export function Navigation() {
         // For robust separate dropdowns, each would need its own ref and potentially its own listener or a combined logic.
         // Given the current structure where agency dropdown is near user menu, this might be sufficient.
         setIsAgencyMenuOpen(false)
+        setIsSuperAdminMenuOpen(false)
       }
     }
 
-    if (isUserMenuOpen || isAgencyMenuOpen) { // Listen if either menu is open
+    if (isUserMenuOpen || isAgencyMenuOpen || isSuperAdminMenuOpen) { // Listen if any menu is open
       document.addEventListener('mousedown', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
       }
     }
-  }, [isUserMenuOpen, isAgencyMenuOpen])
+  }, [isUserMenuOpen, isAgencyMenuOpen, isSuperAdminMenuOpen])
 
   const agencyAdminNavItems = user?.role === 'AGENCY_ADMIN' && user.agencyId ? [
     { href: `/admin/agencies/${user.agencyId}/requests`, label: 'All Dealership Requests', icon: Briefcase },
     { href: `/admin/agencies/${user.agencyId}/users`, label: 'Manage Agency Users', icon: Users },
   ] : []
 
-  // TODO: Add SUPER_ADMIN specific links if needed, e.g., a general admin dashboard to select agencies.
-  // For now, SUPER_ADMIN will see the agency links if they also have an agencyId set,
-  // or would navigate to specific agency pages manually / through another admin interface.
+  // Super Admin navigation items
+  const superAdminNavItems = user?.role === 'SUPER_ADMIN' ? [
+    { href: '/super-admin', label: 'Super Admin Dashboard', icon: Briefcase },
+    { href: '/super-admin/users', label: 'All Users', icon: Users },
+    { href: '/super-admin/agencies', label: 'All Agencies', icon: Building2 },
+    { href: '/super-admin/system', label: 'System Settings', icon: Settings },
+    { href: '/super-admin/audit', label: 'Audit Logs', icon: FileText },
+  ] : []
 
   return (
     <nav className="bg-white border-b border-gray-200">
@@ -132,6 +141,42 @@ export function Navigation() {
                               isActive && 'bg-gray-100'
                             )}
                             onClick={() => setIsAgencyMenuOpen(false)}
+                          >
+                            <Icon className="h-4 w-4 mr-2" />
+                            {item.label}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Super Admin Dropdown (Desktop) */}
+              {user?.role === 'SUPER_ADMIN' && superAdminNavItems.length > 0 && (
+                <div className="ml-3 relative">
+                  <button
+                    onClick={() => setIsSuperAdminMenuOpen(!isSuperAdminMenuOpen)}
+                    className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Super Admin
+                    <ChevronDown className={cn("h-4 w-4 ml-1 transition-transform", isSuperAdminMenuOpen && "rotate-180")} />
+                  </button>
+                  {isSuperAdminMenuOpen && (
+                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                      {superAdminNavItems.map(item => {
+                        const Icon = item.icon
+                        const isActive = pathname === item.href
+                        return (
+                           <Link
+                            key={item.href}
+                            href={item.href}
+                            className={cn(
+                              'flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
+                              isActive && 'bg-gray-100'
+                            )}
+                            onClick={() => setIsSuperAdminMenuOpen(false)}
                           >
                             <Icon className="h-4 w-4 mr-2" />
                             {item.label}
@@ -248,6 +293,39 @@ export function Navigation() {
                   </h3>
                 </div>
                 {agencyAdminNavItems.map(item => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
+                        isActive
+                          ? 'bg-blue-50 border-blue-500 text-blue-700'
+                          : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <div className="flex items-center">
+                        <Icon className="h-5 w-5 mr-3" />
+                        {item.label}
+                      </div>
+                    </Link>
+                  )
+                })}
+              </>
+            )}
+
+            {/* Super Admin Links (Mobile) */}
+            {user?.role === 'SUPER_ADMIN' && superAdminNavItems.length > 0 && (
+              <>
+                <div className="pt-2 pb-1">
+                  <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Super Admin
+                  </h3>
+                </div>
+                {superAdminNavItems.map(item => {
                   const Icon = item.icon
                   const isActive = pathname === item.href
                   return (

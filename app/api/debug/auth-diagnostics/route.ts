@@ -12,9 +12,6 @@ export async function GET(request: NextRequest) {
   const cookieInfo = cookies.map(c => ({
     name: c.name,
     value: c.value.substring(0, 20) + '...', // Truncate for security
-    httpOnly: c.httpOnly,
-    secure: c.secure,
-    sameSite: c.sameSite
   }))
   
   // Check for session cookies

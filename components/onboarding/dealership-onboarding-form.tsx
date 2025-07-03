@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, Circle, Upload, X, Plus } from 'lucide-react'
 
 interface OnboardingData {
-  // Dealer Information - matching SEO Werks form exactly
+  // Dealer Information
   dealerName: string;
   package: 'PLATINUM' | 'GOLD' | 'SILVER';
   mainBrand: string;
@@ -104,8 +104,8 @@ export default function DealershipOnboardingForm() {
 
   // Load saved data from localStorage on mount
   useEffect(() => {
-    const savedData = localStorage.getItem('seoworks-onboarding-data')
-    const savedStep = localStorage.getItem('seoworks-onboarding-step')
+    const savedData = localStorage.getItem('dealer-onboarding-data')
+    const savedStep = localStorage.getItem('dealer-onboarding-step')
     
     if (savedData) {
       try {
@@ -123,8 +123,8 @@ export default function DealershipOnboardingForm() {
 
   // Save data to localStorage whenever formData changes
   useEffect(() => {
-    localStorage.setItem('seoworks-onboarding-data', JSON.stringify(formData))
-    localStorage.setItem('seoworks-onboarding-step', currentStep)
+    localStorage.setItem('dealer-onboarding-data', JSON.stringify(formData))
+    localStorage.setItem('dealer-onboarding-step', currentStep)
   }, [formData, currentStep])
 
   const updateField = (field: keyof OnboardingData, value: any) => {
@@ -238,7 +238,7 @@ export default function DealershipOnboardingForm() {
     setSubmitStatus({ type: null, message: '' })
 
     try {
-      // Transform data to match our SEOWorks integration API format
+      // Transform data to match our backend integration API format
       const onboardingData = {
         businessName: formData.dealerName,
         clientEmail: formData.dealerContactEmail,
@@ -272,12 +272,12 @@ export default function DealershipOnboardingForm() {
         const result = await response.json()
         setSubmitStatus({
           type: 'success',
-          message: 'Onboarding submitted successfully! Your dealership has been registered with SEOWorks.'
+          message: 'Onboarding submitted successfully! Your dealership has been registered and setup will begin shortly.'
         })
         
         // Clear saved data on successful submission
-        localStorage.removeItem('seoworks-onboarding-data')
-        localStorage.removeItem('seoworks-onboarding-step')
+        localStorage.removeItem('dealer-onboarding-data')
+        localStorage.removeItem('dealer-onboarding-step')
         
         // Reset form
         setFormData(INITIAL_DATA)
@@ -504,11 +504,11 @@ export default function DealershipOnboardingForm() {
             id="siteAccessNotes"
             value={formData.siteAccessNotes}
             onChange={(e) => updateField('siteAccessNotes', e.target.value)}
-            placeholder={`1. Need site access (full access, metadata, seo) and blog access: please provide us a login or create a new one under access@seowerks.ai Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.
+            placeholder={`1. Need site access (full access, metadata, seo) and blog access: please provide us a login or create a new one under access@rylieseo.com Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.
 
-2. Google Business Profile access: add our email access@seowerks.ai as a Manager.
+2. Google Business Profile access: add our email access@rylieseo.com as a Manager.
 
-3. Google Analytics (GA4) access. Viewer only access is fine: add our email access@seowerks.ai.`}
+3. Google Analytics (GA4) access. Viewer only access is fine: add our email access@rylieseo.com.`}
             rows={8}
           />
         </div>
@@ -695,7 +695,7 @@ export default function DealershipOnboardingForm() {
         <CardHeader>
           <CardTitle>Review Your Information</CardTitle>
           <p className="text-sm text-gray-600">
-            Please review all information before submitting to SEOWorks
+            Please review all information before submitting
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -774,13 +774,10 @@ export default function DealershipOnboardingForm() {
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="bg-blue-600 text-white px-4 py-2 rounded-lg text-lg font-bold">
-              SEO<span className="text-blue-200">Works</span>.ai
-            </div>
-            <span className="ml-4 text-2xl font-bold text-gray-700">Onboarding</span>
+            <span className="text-3xl font-bold text-gray-700">Dealer Onboarding</span>
           </div>
           <p className="text-lg text-gray-600">
-            Complete your dealership onboarding to get started with SEOWorks services
+            Complete your dealership onboarding to get started with our SEO services
           </p>
         </div>
 

@@ -58,7 +58,7 @@ export default function FocusRequestPage() {
       const requestData = await requestResponse.json()
       const requestId = requestData.data.id
 
-      // Then send it to SEOWorks as a focus request
+      // Then send it as a focus request
       const focusResponse = await fetch('/api/seoworks/send-focus-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,12 +66,12 @@ export default function FocusRequestPage() {
       })
 
       if (!focusResponse.ok) {
-        throw new Error('Failed to send focus request to SEOWorks')
+        throw new Error('Failed to send focus request')
       }
 
       const focusData = await focusResponse.json()
       
-      setSuccess(`Focus request "${formData.title}" has been sent to SEOWorks successfully!`)
+      setSuccess(`Focus request "${formData.title}" has been submitted successfully!`)
       
       // Reset form
       setFormData({
@@ -112,14 +112,14 @@ export default function FocusRequestPage() {
             Create Focus Request
           </CardTitle>
           <CardDescription>
-            Submit a high-priority SEO task that will be sent directly to SEOWorks for immediate attention
+            Submit a high-priority SEO task for immediate attention
           </CardDescription>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="secondary" className="flex items-center gap-1">
               <Zap className="h-3 w-3" />
               High Priority
             </Badge>
-            <Badge variant="outline">Direct to SEOWorks</Badge>
+            <Badge variant="outline">Priority Processing</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -254,7 +254,7 @@ export default function FocusRequestPage() {
             <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
               <h4 className="font-medium text-blue-900 mb-2">Focus Request Benefits:</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Sent directly to SEOWorks for immediate attention</li>
+                <li>• Immediate attention and priority processing</li>
                 <li>• Higher priority in the work queue</li>
                 <li>• Faster turnaround time</li>
                 <li>• Direct communication with SEO specialists</li>

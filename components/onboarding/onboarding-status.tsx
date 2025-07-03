@@ -14,7 +14,7 @@ interface OnboardingRecord {
   createdAt: string
   contactName: string
   email: string
-  seoworksResponse: any
+  backendResponse: any
 }
 
 export default function OnboardingStatus() {
@@ -114,7 +114,7 @@ export default function OnboardingStatus() {
           <CardContent className="text-center py-8">
             <p className="text-gray-600">No onboarding records found.</p>
             <Button
-              onClick={() => window.location.href = '/onboarding/seoworks'}
+              onClick={() => window.location.href = '/onboarding/dealer'}
               className="mt-4"
             >
               Start Onboarding
@@ -153,15 +153,15 @@ export default function OnboardingStatus() {
                   )}
                 </div>
                 
-                {onboarding.seoworksResponse && (
+                {onboarding.backendResponse && (
                   <div className="mt-4 p-3 bg-gray-50 rounded-md">
                     <div className="text-sm">
-                      <span className="font-medium">SEOWorks Response:</span>
+                      <span className="font-medium">Backend Response:</span>
                       <div className="mt-1">
-                        {onboarding.seoworksResponse.success ? (
-                          <span className="text-green-600">✓ {onboarding.seoworksResponse.message}</span>
+                        {onboarding.backendResponse.success ? (
+                          <span className="text-green-600">✓ {onboarding.backendResponse.message}</span>
                         ) : (
-                          <span className="text-red-600">✗ {onboarding.seoworksResponse.error || 'Submission failed'}</span>
+                          <span className="text-red-600">✗ {onboarding.backendResponse.error || 'Submission failed'}</span>
                         )}
                       </div>
                     </div>

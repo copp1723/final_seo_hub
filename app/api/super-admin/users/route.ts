@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 import { z } from 'zod'
 import { UserRole } from '@prisma/client'
+import { sendInvitationEmail, createDefaultUserPreferences } from '@/lib/mailgun/invitation'
+import { logger } from '@/lib/logger'
 
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -161,9 +163,39 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ 
-      message: 'User created successfully',
-      user 
+    // Create default user preferences for the new user
+    await createDefaultUserPreferences(user.id)
+
+    // Send invitation email to the new user
+    const invitedBy = authResult.user.name || authResult.user.email || 'Super Administrator'
+    const invitationSent = await sendInvitationEmail({
+      user: user as any, // Cast to include all User fields
+      invitedBy,
+      skipPreferences: true // New user doesn't have preferences loaded yet
+    })
+
+    if (invitationSent) {
+      logger.info('User created by Super Admin and invitation email sent successfully', {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        agencyId: user.agencyId,
+        invitedBy
+      })
+    } else {
+      logger.warn('User created by Super Admin but invitation email failed to send', {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        agencyId: user.agencyId,
+        invitedBy
+      })
+    }
+
+    return NextResponse.json({
+      message: `User created successfully${invitationSent ? ' and invitation email sent' : ' but invitation email failed'}`,
+      user,
+      invitationSent
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)

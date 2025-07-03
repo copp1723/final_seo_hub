@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { UserRole } from '@prisma/client'
 import { z } from 'zod'
+import { sendInvitationEmail, createDefaultUserPreferences } from '@/lib/mailgun/invitation'
+import { logger } from '@/lib/logger'
 
 // Validation schema for creating a user
 const createUserSchema = z.object({
@@ -91,7 +93,41 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
       select: { id: true, email: true, name: true, role: true, agencyId: true, createdAt: true },
     })
 
-    return NextResponse.json({ success: true, data: { user: newUser }, message: 'User created successfully' }, { status: 201 })
+    // Create default user preferences for the new user
+    await createDefaultUserPreferences(newUser.id)
+
+    // Send invitation email to the new user
+    const invitedBy = user.name || user.email || 'Agency Administrator'
+    const invitationSent = await sendInvitationEmail({
+      user: newUser as any, // Cast to include all User fields
+      invitedBy,
+      skipPreferences: true // New user doesn't have preferences loaded yet
+    })
+
+    if (invitationSent) {
+      logger.info('User created and invitation email sent successfully', {
+        userId: newUser.id,
+        email: newUser.email,
+        agencyId,
+        invitedBy
+      })
+    } else {
+      logger.warn('User created but invitation email failed to send', {
+        userId: newUser.id,
+        email: newUser.email,
+        agencyId,
+        invitedBy
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        user: newUser,
+        invitationSent
+      },
+      message: `User created successfully${invitationSent ? ' and invitation email sent' : ' but invitation email failed'}`
+    }, { status: 201 })
   } catch (error) {
     console.error(`Error creating user for agency ${agencyId}:`, error)
     return errorResponse('Failed to create user.', 500)

@@ -158,8 +158,9 @@ export default function NewRequestPage() {
                 value={formData.targetCities}
                 onChange={(e) => setFormData({ ...formData, targetCities: e.target.value })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
-                placeholder="e.g., Austin, San Antonio, Houston"
+                placeholder="e.g., Austin, TX, San Antonio, TX, Oklahoma City, OK"
               />
+              <p className="text-xs text-gray-500 mt-1">Include state codes (City, State). Include cities in neighboring states if relevant.</p>
             </div>
 
             <div>

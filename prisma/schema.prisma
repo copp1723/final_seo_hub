@@ -190,6 +190,9 @@ model Request {
   // SEO Package info
   packageType PackageType?
 
+  // SEOWorks integration
+  seoworksTaskId String? // Direct mapping to SEOWorks task ID
+
   // Progress tracking (for current month)
   pagesCompleted        Int @default(0)
   blogsCompleted        Int @default(0)
@@ -202,7 +205,7 @@ model Request {
   targetCities Json? // Array of target cities
   targetModels Json? // Array of target models
 
-  // Completed content info  
+  // Completed content info
   completedTasks Json? // Array of {title, url, type, completedAt}
   contentUrl     String? // Primary URL (deprecated, use completedTasks)
   pageTitle      String? // Primary title (deprecated, use completedTasks)
@@ -213,6 +216,9 @@ model Request {
   // Tasks relationship
   tasks Task[]
 
+  // SEOWorks task mappings
+  seoworksTaskMappings SEOWorksTaskMapping[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -220,6 +226,7 @@ model Request {
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
+  @@index([seoworksTaskId])
 }
 
 // GA4 Integration
@@ -411,4 +418,29 @@ model SystemSettings {
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// SEOWorks task mapping for tracking external task IDs
+model SEOWorksTaskMapping {
+  id String @id @default(cuid())
+  
+  // Request relationship
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  // SEOWorks task details
+  seoworksTaskId String @unique
+  taskType       String
+  status         String @default("pending")
+  
+  // Additional metadata
+  metadata Json? // Store additional SEOWorks task data
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([requestId])
+  @@index([seoworksTaskId])
+  @@index([status])
 }

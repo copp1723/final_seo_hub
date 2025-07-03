@@ -27,10 +27,10 @@ export default function TargetInformationStep() {
         <Textarea
           id="targetCities"
           {...register('targetCities')}
-          placeholder="e.g., New York; Los Angeles; Chicago"
+          placeholder="e.g., Denver, CO; Kansas City, MO; Oklahoma City, OK"
           rows={3}
         />
-        <p className="text-xs text-gray-500 mt-1">Enter cities separated by semicolons.</p>
+        <p className="text-xs text-gray-500 mt-1">Enter cities with state codes (City, State) separated by semicolons. Include cities in neighboring states if relevant.</p>
         {errors.targetCities && <p className="text-red-500 text-sm mt-1">{errors.targetCities.message}</p>}
       </div>
 

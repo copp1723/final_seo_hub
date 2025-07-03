@@ -82,7 +82,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function queueEmailWithPreferences(
   userId: string,
-  emailType: 'requestCreated' | 'statusChanged' | 'taskCompleted' | 'weeklySummary',
+  emailType: 'requestCreated' | 'statusChanged' | 'taskCompleted' | 'weeklySummary' | 'invitation',
   emailOptions: EmailOptions
 ): Promise<boolean> {
   try {

@@ -36,8 +36,16 @@ interface TrafficTabProps {
 }
 
 export default function TrafficTab({ gaData, gaError, gaMetrics, chartOptions }: TrafficTabProps) {
+  // Safely format dates with validation
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Invalid'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Invalid'
+    return format(date, 'MMM d')
+  }
+
   const trafficChartData = {
-    labels: gaData?.overview.dates.map((date: string) => format(new Date(date), 'MMM d')) || [],
+    labels: gaData?.overview.dates?.map((date: string) => formatDate(date)).filter((label: string) => label !== 'Invalid') || [],
     datasets: [
       {
         label: 'Sessions',

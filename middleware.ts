@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Public routes that don't require authentication
-  const publicRoutes = ['/auth/signin', '/auth/error', '/api/health', '/api/onboarding', '/api/debug', '/api/seoworks/webhook']
+  const publicRoutes = ['/auth/signin', '/auth/error', '/api/health', '/api/onboarding', '/api/debug', '/api/seoworks/webhook', '/api/seoworks/webhook-test']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   // Allow access to API routes needed before authentication or onboarding is complete

@@ -141,6 +141,54 @@ export function welcomeEmailTemplate(user: User): { subject: string; html: strin
   }
 }
 
+// User invitation email template
+export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?: string): { subject: string; html: string } {
+  const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const finalLoginUrl = loginUrl || `${appUrl}/auth/signin`
+  
+  const content = `
+    <h2>You've been invited to SEO Hub!</h2>
+    <p>Hi ${user.name || 'there'},</p>
+    <p>You've been invited to join SEO Hub by <strong>${invitedBy}</strong>. SEO Hub is your AI-powered platform for managing SEO requests efficiently.</p>
+    
+    <h3>Getting Started</h3>
+    <p>To access your account, simply click the button below and sign in with your email address:</p>
+    
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+        Sign In to SEO Hub
+      </a>
+    </div>
+    
+    <p><strong>Your account details:</strong></p>
+    <ul>
+      <li><strong>Email:</strong> ${user.email}</li>
+      <li><strong>Role:</strong> ${user.role.replace('_', ' ')}</li>
+      ${user.agencyId ? '<li><strong>Agency:</strong> Assigned to your organization</li>' : ''}
+    </ul>
+    
+    <h3>What you can do with SEO Hub:</h3>
+    <ul>
+      <li><strong>Create Requests:</strong> Submit SEO content requests for pages, blogs, and more</li>
+      <li><strong>Track Progress:</strong> Monitor the status of your requests in real-time</li>
+      <li><strong>AI Chat Assistant:</strong> Get instant help with SEO questions and strategies</li>
+      <li><strong>Analytics Integration:</strong> Connect Google Analytics and Search Console for insights</li>
+    </ul>
+    
+    <p>If you have any questions or need help getting started, our support team is here to assist you!</p>
+    
+    <p style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+      <strong>Note:</strong> If you didn't expect this invitation, you can safely ignore this email.
+    </p>
+  `
+
+  return {
+    subject: 'Welcome to SEO Hub - You\'ve been invited!',
+    html: baseTemplate(content, unsubscribeUrl)
+  }
+}
+
 // Request created confirmation template
 export function requestCreatedTemplate(request: Request, user: User): { subject: string; html: string } {
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'requestCreated')

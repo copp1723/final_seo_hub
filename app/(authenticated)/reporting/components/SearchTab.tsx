@@ -46,8 +46,16 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
     )
   }
 
+  // Safely format dates with validation
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Invalid'
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Invalid'
+    return format(date, 'MMM d')
+  }
+
   const performanceChartData = {
-    labels: scData?.performanceByDate.dates.map((date: string) => format(new Date(date), 'MMM d')) || [],
+    labels: scData?.performanceByDate.dates?.map((date: string) => formatDate(date)).filter((label: string) => label !== 'Invalid') || [],
     datasets: [
       {
         label: 'Clicks',
@@ -72,7 +80,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
   }
 
   const ctrChartData = {
-    labels: scData?.performanceByDate.dates.map((date: string) => format(new Date(date), 'MMM d')) || [],
+    labels: scData?.performanceByDate.dates?.map((date: string) => formatDate(date)).filter((label: string) => label !== 'Invalid') || [],
     datasets: [
       {
         label: 'CTR (%)',

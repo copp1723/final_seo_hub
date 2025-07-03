@@ -76,21 +76,55 @@ export async function POST(request: NextRequest) {
   try {
     const { eventType, data } = payload
 
-    // Find the request by external ID
-    const requestRecord = await prisma.request.findFirst({
+    // Find the request by external ID - try multiple lookup strategies
+    let requestRecord = null
+    
+    // Strategy 1: Direct lookup by our internal request ID
+    requestRecord = await prisma.request.findFirst({
       where: { id: data.externalId },
       include: { user: true }
     })
+    
+    // Strategy 2: If not found, try lookup by SEOWorks task ID
+    if (!requestRecord) {
+      requestRecord = await prisma.request.findFirst({
+        where: { seoworksTaskId: data.externalId },
+        include: { user: true }
+      })
+    }
+    
+    // Strategy 3: If still not found, try lookup via SEOWorksTaskMapping
+    if (!requestRecord) {
+      const taskMapping = await prisma.sEOWorksTaskMapping.findUnique({
+        where: { seoworksTaskId: data.externalId },
+        include: {
+          request: {
+            include: { user: true }
+          }
+        }
+      })
+      if (taskMapping) {
+        requestRecord = taskMapping.request
+      }
+    }
 
     if (!requestRecord) {
       logger.warn('Request not found for webhook', {
         externalId: data.externalId,
         eventType,
+        clientId: data.clientId,
+        clientEmail: data.clientEmail,
         path: '/api/seoworks/webhook',
         method: 'POST'
       })
       // Still return success to avoid retries from SEOWorks
-      return successResponse(null, 'Webhook received (no matching request found)')
+      return successResponse({
+        message: 'Webhook received (no matching request found)',
+        eventType,
+        externalId: data.externalId,
+        clientId: data.clientId,
+        clientEmail: data.clientEmail
+      })
     }
 
     // Handle different event types
@@ -120,11 +154,16 @@ export async function POST(request: NextRequest) {
       method: 'POST'
     })
 
-    return successResponse({ 
+    return successResponse({
+      success: true,
       message: 'Webhook processed successfully',
       eventType,
-      clientId: requestRecord.userId,
-      clientEmail: requestRecord.user.email
+      requestId: requestRecord.id,
+      externalId: data.externalId,
+      clientId: data.clientId || requestRecord.userId,
+      clientEmail: data.clientEmail || requestRecord.user.email,
+      taskType: data.taskType,
+      status: data.status
     })
   } catch (error) {
     logger.error('Webhook processing error', error, {

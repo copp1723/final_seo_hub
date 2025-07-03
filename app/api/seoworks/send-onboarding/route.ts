@@ -158,7 +158,10 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Dealer onboarding failed', error)
+    logger.error('Dealer onboarding failed', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return errorResponse('Dealer onboarding failed', 500)
   }
 }

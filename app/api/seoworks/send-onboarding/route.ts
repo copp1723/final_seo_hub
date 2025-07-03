@@ -88,7 +88,7 @@ async function sendToSEOWorks(data: DealerOnboardingData) {
 
   } catch (error) {
     logger.error('Failed to send onboarding data to SEOWorks', {
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       businessName: data.businessName,
       payload: seoworksPayload
     })
@@ -131,15 +131,13 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         title: `SEO Package Setup - ${dealerData.businessName}`,
-        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})`,
+        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}`,
         type: 'setup',
         packageType: dealerData.package as any,
         targetUrl: dealerData.websiteUrl,
         keywords: dealerData.targetVehicleModels,
         targetCities: dealerData.targetCities,
-        targetModels: dealerData.targetVehicleModels,
-        // Store the SEOWorks client ID for future reference
-        seoworksTaskId: seoworksResult.clientId
+        targetModels: dealerData.targetVehicleModels
       }
     })
 

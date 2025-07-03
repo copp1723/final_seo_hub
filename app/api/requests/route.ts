@@ -132,9 +132,38 @@ export async function POST(request: NextRequest) {
         targetModels: data.targetModels || [],
       },
       include: {
-        user: true
+        user: true,
+        agency: true
       }
     })
+    
+    // Send focus request to SEOWorks
+    try {
+      const seoworksResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/seoworks/send-focus-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ requestId: newRequest.id })
+      })
+      
+      if (!seoworksResponse.ok) {
+        logger.warn('Failed to send request to SEOWorks', {
+          requestId: newRequest.id,
+          status: seoworksResponse.status,
+          statusText: seoworksResponse.statusText
+        })
+      } else {
+        logger.info('Request sent to SEOWorks successfully', {
+          requestId: newRequest.id
+        })
+      }
+    } catch (seoworksError) {
+      logger.error('Error sending request to SEOWorks', seoworksError, {
+        requestId: newRequest.id
+      })
+      // Don't fail the request creation if SEOWorks integration fails
+    }
     
     // Send request created email notification
     const emailTemplate = requestCreatedTemplate(newRequest, newRequest.user)

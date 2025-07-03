@@ -113,3 +113,60 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth()
+    
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    const userId = session.user.id
+    
+    // For now, we'll create mock data since we don't have an onboarding table yet
+    // In a real implementation, you'd fetch from a dedicated onboarding table
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        activePackageType: true,
+        onboardingCompleted: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    })
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+    
+    // Create a mock onboarding record based on user data
+    const onboardingRecords = user.onboardingCompleted ? [{
+      id: user.id,
+      businessName: user.name || 'Unknown Business',
+      package: user.activePackageType || 'SILVER',
+      status: 'submitted',
+      submittedAt: user.updatedAt.toISOString(),
+      createdAt: user.createdAt.toISOString(),
+      contactName: user.name || 'Unknown Contact',
+      email: user.email || '',
+      seoworksResponse: {
+        success: true,
+        message: 'Successfully submitted to SEOWorks'
+      }
+    }] : []
+    
+    return NextResponse.json({
+      onboardings: onboardingRecords
+    })
+    
+  } catch (error) {
+    logger.error('Error fetching onboarding records', error)
+    return NextResponse.json({
+      error: 'Failed to fetch onboarding records'
+    }, { status: 500 })
+  }
+}

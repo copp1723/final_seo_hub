@@ -39,6 +39,8 @@ export function Navigation() {
   const [isAgencyMenuOpen, setIsAgencyMenuOpen] = useState(false) // For Agency Admin dropdown
   const [isSuperAdminMenuOpen, setIsSuperAdminMenuOpen] = useState(false) // For Super Admin dropdown
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const agencyMenuRef = useRef<HTMLDivElement>(null)
+  const superAdminMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/auth/signin' })
@@ -49,16 +51,16 @@ export function Navigation() {
     function handleClickOutside(event: MouseEvent) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false)
-        // Also close agency menu if click is outside and it's open
-        // This assumes agencyMenuRef would be part of userMenuRef or handled similarly if separate
-        // For robust separate dropdowns, each would need its own ref and potentially its own listener or a combined logic.
-        // Given the current structure where agency dropdown is near user menu, this might be sufficient.
+      }
+      if (agencyMenuRef.current && !agencyMenuRef.current.contains(event.target as Node)) {
         setIsAgencyMenuOpen(false)
+      }
+      if (superAdminMenuRef.current && !superAdminMenuRef.current.contains(event.target as Node)) {
         setIsSuperAdminMenuOpen(false)
       }
     }
 
-    if (isUserMenuOpen || isAgencyMenuOpen || isSuperAdminMenuOpen) { // Listen if any menu is open
+    if (isUserMenuOpen || isAgencyMenuOpen || isSuperAdminMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
@@ -118,17 +120,18 @@ export function Navigation() {
 
               {/* Agency Admin Dropdown (Desktop) */}
               {user?.role === 'AGENCY_ADMIN' && user.agencyId && agencyAdminNavItems.length > 0 && (
-                <div className="ml-3 relative" ref={userMenuRef}> {/* May need a separate ref if it interferes with userMenuRef */}
+                <div className="ml-3 relative" ref={agencyMenuRef}>
                   <button
                     onClick={() => setIsAgencyMenuOpen(!isAgencyMenuOpen)}
-                    className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer"
+                    type="button"
                   >
                     <Briefcase className="h-4 w-4 mr-2" />
                     Agency Admin
                     <ChevronDown className={cn("h-4 w-4 ml-1 transition-transform", isAgencyMenuOpen && "rotate-180")} />
                   </button>
                   {isAgencyMenuOpen && (
-                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50" style={{ pointerEvents: 'auto' }}>
                       {agencyAdminNavItems.map(item => {
                         const Icon = item.icon
                         const isActive = pathname === item.href
@@ -137,13 +140,15 @@ export function Navigation() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                              'flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
+                              'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
                               isActive && 'bg-gray-100'
                             )}
                             onClick={() => setIsAgencyMenuOpen(false)}
                           >
-                            <Icon className="h-4 w-4 mr-2" />
-                            {item.label}
+                            <span className="flex items-center">
+                              <Icon className="h-4 w-4 mr-2" />
+                              {item.label}
+                            </span>
                           </Link>
                         )
                       })}
@@ -154,17 +159,18 @@ export function Navigation() {
 
               {/* Super Admin Dropdown (Desktop) */}
               {user?.role === 'SUPER_ADMIN' && superAdminNavItems.length > 0 && (
-                <div className="ml-3 relative">
+                <div className="ml-3 relative" ref={superAdminMenuRef}>
                   <button
                     onClick={() => setIsSuperAdminMenuOpen(!isSuperAdminMenuOpen)}
-                    className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    className="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer"
+                    type="button"
                   >
                     <Settings className="h-4 w-4 mr-2" />
                     Super Admin
                     <ChevronDown className={cn("h-4 w-4 ml-1 transition-transform", isSuperAdminMenuOpen && "rotate-180")} />
                   </button>
                   {isSuperAdminMenuOpen && (
-                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50" style={{ pointerEvents: 'auto' }}>
                       {superAdminNavItems.map(item => {
                         const Icon = item.icon
                         const isActive = pathname === item.href
@@ -173,13 +179,15 @@ export function Navigation() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                              'flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
+                              'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
                               isActive && 'bg-gray-100'
                             )}
                             onClick={() => setIsSuperAdminMenuOpen(false)}
                           >
-                            <Icon className="h-4 w-4 mr-2" />
-                            {item.label}
+                            <span className="flex items-center">
+                              <Icon className="h-4 w-4 mr-2" />
+                              {item.label}
+                            </span>
                           </Link>
                         )
                       })}

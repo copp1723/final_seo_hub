@@ -43,6 +43,13 @@ export async function POST(request: NextRequest) {
     // Add timestamp
     formData.timestamp = new Date().toISOString()
     
+    // Add client identification for SEOWorks mapping
+    const onboardingPayloadWithClient = {
+      ...formData,
+      clientId: userId, // Unique identifier for mapping
+      clientEmail: session.user.email,
+    }
+    
     // Send to SEOWorks webhook if configured
     if (process.env.SEOWORKS_WEBHOOK_URL && process.env.SEOWORKS_API_KEY) {
       try {
@@ -52,7 +59,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
             'x-api-key': process.env.SEOWORKS_API_KEY
           },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(onboardingPayloadWithClient)
         })
         
         const result = await response.json()

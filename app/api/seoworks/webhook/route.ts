@@ -122,7 +122,9 @@ export async function POST(request: NextRequest) {
 
     return successResponse({ 
       message: 'Webhook processed successfully',
-      eventType 
+      eventType,
+      clientId: requestRecord.userId,
+      clientEmail: requestRecord.user.email
     })
   } catch (error) {
     logger.error('Webhook processing error', error, {

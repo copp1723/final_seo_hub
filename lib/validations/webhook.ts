@@ -16,6 +16,10 @@ export const seoworksWebhookSchema = z.object({
     taskType: z.string().min(1),
     status: z.string().min(1),
     
+    // Client identification fields
+    clientId: z.string().optional(),
+    clientEmail: z.string().optional(),
+    
     // Optional fields
     agencyName: z.string().optional(),
     assignedTo: z.string().optional(),

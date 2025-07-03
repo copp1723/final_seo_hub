@@ -16,6 +16,11 @@ services:
           type: web
           name: rylie-seo-hub
           property: host
+      - key: NEXTAUTH_URL_INTERNAL
+        fromService:
+          type: web
+          name: rylie-seo-hub
+          property: hostInternal
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: GOOGLE_CLIENT_ID

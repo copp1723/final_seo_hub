@@ -10,15 +10,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users } from 'lucide-react'
+import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users, UserPlus, Mail, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
+import { DeleteUserDialog } from '@/components/admin/delete-user-dialog'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 
 type AgencyUser = Pick<User, 'id' | 'name' | 'email' | 'role' | 'createdAt' | 'updatedAt'>
 
 const USER_ROLES_EDITABLE_BY_AGENCY_ADMIN = [UserRole.USER, UserRole.AGENCY_ADMIN]
 const USER_ROLES_EDITABLE_BY_SUPER_ADMIN = Object.values(UserRole)
 
+interface Invitation {
+  id: string
+  email: string
+  name?: string | null
+  role: UserRole
+  message?: string | null
+  acceptedAt?: string | null
+  expiresAt: string
+  createdAt: string
+  inviter: {
+    id: string
+    name?: string | null
+    email: string
+  }
+  acceptedBy?: {
+    id: string
+    name?: string | null
+    email: string
+  } | null
+}
 
 export default function AgencyUsersPage() {
   const router = useRouter()
@@ -41,6 +65,16 @@ export default function AgencyUsersPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [userToDelete, setUserToDelete] = useState<AgencyUser | null>(null)
 
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    name: '',
+    role: UserRole.USER,
+    message: ''
+  })
+  const [inviteLoading, setInviteLoading] = useState(false)
 
   const fetchUsers = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
@@ -68,9 +102,31 @@ export default function AgencyUsersPage() {
     }
   }, [status, session, agencyId])
 
+  const fetchInvitations = async () => {
+    try {
+      const response = await fetch(`/api/admin/agencies/${agencyId}/invitations`)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to fetch invitations')
+      }
+      const data = await response.json()
+      setInvitations(data.invitations || [])
+    } catch (err) {
+      console.error('Error fetching invitations:', err)
+    }
+  }
+
   useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
+    if (session) {
+      if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
+        setError("Access Denied. You don&apos;t have permission to manage these users.")
+        setIsLoading(false)
+        return
+      }
+      fetchUsers()
+      fetchInvitations()
+    }
+  }, [session, agencyId])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -209,6 +265,51 @@ export default function AgencyUsersPage() {
     return [UserRole.USER]; // Default to least privilege
   }
 
+  const handleInviteUser = async () => {
+    setInviteLoading(true)
+    try {
+      const response = await fetch(`/api/admin/agencies/${agencyId}/invitations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inviteForm)
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send invitation')
+      }
+      
+      toast('Invitation sent successfully!', 'success')
+      setShowInviteDialog(false)
+      setInviteForm({ email: '', name: '', role: UserRole.USER, message: '' })
+      fetchInvitations() // Refresh invitations list
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to send invitation', 'error')
+    } finally {
+      setInviteLoading(false)
+    }
+  }
+
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!confirm('Are you sure you want to delete this invitation?')) return
+    
+    try {
+      const response = await fetch(`/api/admin/agencies/${agencyId}/invitations?invitationId=${invitationId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete invitation')
+      }
+      
+      toast('Invitation deleted successfully', 'success')
+      fetchInvitations() // Refresh invitations list
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to delete invitation', 'error')
+    }
+  }
 
   if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
   if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
@@ -222,102 +323,315 @@ export default function AgencyUsersPage() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold flex items-center"><Users className="mr-3 h-8 w-8" />Manage Agency Users</h1>
-        <Button onClick={openModalForCreate}><PlusCircle className="mr-2 h-5 w-5" /> Add New User</Button>
+        <h1 className="text-3xl font-bold">Manage Users</h1>
+        <Button 
+          onClick={() => setShowInviteDialog(true)}
+          className="flex items-center gap-2"
+        >
+          <UserPlus className="h-4 w-4" />
+          Invite User
+        </Button>
       </div>
 
-      {isLoading && <div className="flex justify-center items-center py-10"><LoadingSpinner /></div>}
-      {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-
-      {!isLoading && !error && users.length === 0 && (
-        <p className="text-center text-gray-500 py-10">No users found for this agency.</p>
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      {!isLoading && !error && users.length > 0 && (
-        <div className="overflow-x-auto bg-white shadow-md rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>{formatDate(user.createdAt)}</TableCell>
-                  <TableCell>{formatDate(user.updatedAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => openModalForEdit(user)} className="mr-2">
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    {user.id !== session?.user.id && ( // Prevent deleting self via button
-                      <Button variant="ghost" size="sm" onClick={() => openDeleteConfirm(user)} disabled={user.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users">Active Users</TabsTrigger>
+          <TabsTrigger value="invitations" className="relative">
+            Invitations
+            {invitations.filter(inv => !inv.acceptedAt && new Date(inv.expiresAt) > new Date()).length > 0 && (
+              <Badge className="ml-2" variant="secondary">
+                {invitations.filter(inv => !inv.acceptedAt && new Date(inv.expiresAt) > new Date()).length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Add/Edit User Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <TabsContent value="users">
+          {isLoading ? (
+            <p className="text-center text-gray-500">Loading users...</p>
+          ) : users.length === 0 ? (
+            <p className="text-center text-gray-500">No users found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white rounded-lg shadow">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">{user.name || 'No name'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {editingUser?.id === user.id ? (
+                          <Select
+                            value={editingUser.role}
+                            onValueChange={(value) => setEditingUser({ ...editingUser, role: value as UserRole })}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getEditableRoles().map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {role.replace('_', ' ')}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            {user.role.replace('_', ' ')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {editingUser?.id === user.id ? (
+                          <>
+                            <button
+                              onClick={() => handleSubmit(new Event('submit'))}
+                              className="text-green-600 hover:text-green-900 mr-2"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingUser(null)}
+                              className="text-gray-600 hover:text-gray-900"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setEditingUser(user)}
+                              className="text-indigo-600 hover:text-indigo-900 mr-2"
+                            >
+                              Edit
+                            </button>
+                            {user.id !== session?.user.id && (
+                              <button
+                                onClick={() => setSelectedUserId(user.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="invitations">
+          {invitations.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No invitations sent yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {invitations.map((invitation) => {
+                const isExpired = new Date(invitation.expiresAt) < new Date()
+                const isAccepted = !!invitation.acceptedAt
+                const isPending = !isExpired && !isAccepted
+                
+                return (
+                  <div key={invitation.id} className="bg-white rounded-lg shadow p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          <span className="font-medium">{invitation.email}</span>
+                          {invitation.name && (
+                            <span className="text-gray-500">({invitation.name})</span>
+                          )}
+                          <Badge variant={
+                            isAccepted ? 'default' : 
+                            isExpired ? 'secondary' : 
+                            'outline'
+                          }>
+                            {invitation.role.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span>Invited by {invitation.inviter.name || invitation.inviter.email}</span>
+                          <span>•</span>
+                          <span>{new Date(invitation.createdAt).toLocaleDateString()}</span>
+                          
+                          {isAccepted && invitation.acceptedBy && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3 text-green-500" />
+                                Accepted by {invitation.acceptedBy.name || invitation.acceptedBy.email}
+                              </span>
+                            </>
+                          )}
+                          
+                          {isExpired && !isAccepted && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 text-red-500">
+                                <Clock className="h-3 w-3" />
+                                Expired
+                              </span>
+                            </>
+                          )}
+                          
+                          {isPending && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 text-yellow-600">
+                                <Clock className="h-3 w-3" />
+                                Expires {new Date(invitation.expiresAt).toLocaleDateString()}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        
+                        {invitation.message && (
+                          <p className="mt-2 text-sm text-gray-600 italic">
+                            &ldquo;{invitation.message}&rdquo;
+                          </p>
+                        )}
+                      </div>
+                      
+                      {isPending && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteInvitation(invitation.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <DeleteUserDialog
+        userId={selectedUserId}
+        onClose={() => setSelectedUserId(null)}
+        onDeleted={() => {
+          fetchUsers()
+          setSelectedUserId(null)
+        }}
+      />
+
+      {/* Invite User Dialog */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingUser ? 'Edit User' : 'Add New User'}</DialogTitle>
+            <DialogTitle>Invite User to Agency</DialogTitle>
             <DialogDescription>
-              {editingUser ? 'Update the details for this user.' : 'Enter the details for the new user.'}
+              Send an invitation email to add a new user to your agency.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <Input name="name" placeholder="Name" value={formData.name} onChange={handleInputChange} required />
-              <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleInputChange} required disabled={!!editingUser} />
-              <Select value={formData.role} onValueChange={handleRoleChange}>
-                <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="invite-email">Email Address</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="user@example.com"
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="invite-name">Name (Optional)</Label>
+              <Input
+                id="invite-name"
+                placeholder="John Doe"
+                value={inviteForm.name}
+                onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="invite-role">Role</Label>
+              <Select
+                value={inviteForm.role}
+                onValueChange={(value) => setInviteForm({ ...inviteForm, role: value as UserRole })}
+              >
+                <SelectTrigger id="invite-role">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {getEditableRoles().map(role => (
+                  {getEditableRoles().map((role) => (
                     <SelectItem key={role} value={role}>
-                      {role}
+                      {role.replace('_', ' ')}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <DialogFooter>
-              <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-              <Button type="submit">{editingUser ? 'Save Changes' : 'Create User'}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Confirm Deletion</DialogTitle>
-                <DialogDescription>
-                    Are you sure you want to delete the user: <strong>{userToDelete?.name} ({userToDelete?.email})</strong>? This action cannot be undone.
-                </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-                <Button variant="destructive" onClick={handleDeleteUser}>Delete User</Button>
-            </DialogFooter>
+            
+            <div>
+              <Label htmlFor="invite-message">Personal Message (Optional)</Label>
+              <Textarea
+                id="invite-message"
+                placeholder="Add a personal message to the invitation..."
+                value={inviteForm.message}
+                onChange={(e) => setInviteForm({ ...inviteForm, message: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowInviteDialog(false)}
+              disabled={inviteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleInviteUser}
+              disabled={!inviteForm.email || inviteLoading}
+              className="flex items-center gap-2"
+            >
+              {inviteLoading ? (
+                'Sending...'
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Send Invitation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

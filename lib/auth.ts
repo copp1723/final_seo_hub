@@ -53,8 +53,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         profile: profile?.email 
       })
       try {
-        // The PrismaAdapter will create the user after this callback returns true
-        // We'll ensure default values are set in the session callback instead
+        // Auto-assign user to agency based on email domain
+        if (user.email) {
+          const emailDomain = user.email.split('@')[1].toLowerCase()
+          
+          // Check if there's an agency with matching domain
+          const agency = await prisma.agency.findUnique({
+            where: { domain: emailDomain }
+          })
+          
+          if (agency) {
+            // Check if user already exists in database
+            const existingUser = await prisma.user.findUnique({
+              where: { email: user.email }
+            })
+            
+            if (!existingUser) {
+              // This is a new user, they'll be created by the adapter
+              // We'll update them with the agency in the session callback
+              console.log(`New user ${user.email} will be assigned to agency ${agency.name} based on domain ${emailDomain}`)
+            }
+          }
+        }
+        
         return true
       } catch (error) {
         console.error('SignIn callback error:', error)
@@ -71,6 +92,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.role = userRole || UserRole.USER;
         session.user.agencyId = (user as any).agencyId
         session.user.onboardingCompleted = (user as any).onboardingCompleted !== undefined ? (user as any).onboardingCompleted : false
+        
+        // Check if user needs agency assignment based on email domain
+        const needsAgencyAssignment = 
+          !session.user.agencyId && 
+          user.email &&
+          session.user.role === UserRole.USER; // Only auto-assign regular users
+        
+        if (needsAgencyAssignment) {
+          const emailDomain = user.email!.split('@')[1].toLowerCase()
+          const agency = await prisma.agency.findUnique({
+            where: { domain: emailDomain }
+          })
+          
+          if (agency) {
+            // Update user with agency assignment
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { agencyId: agency.id }
+            })
+            session.user.agencyId = agency.id
+            console.log(`User ${user.email} auto-assigned to agency ${agency.name} based on domain ${emailDomain}`)
+          }
+        }
         
         // Ensure user has required fields set in database
         // Check if any of the crucial fields are null, undefined, or not the correct type

@@ -99,6 +99,10 @@ model User {
 
   // Audit logs
   auditLogs AuditLog[]
+  
+  // Invitations
+  invitationsSent     Invitation[] @relation("InvitationsSent")
+  invitationsAccepted Invitation[] @relation("InvitationsAccepted")
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -158,8 +162,9 @@ model Agency {
   settings Json @default("{}")
 
   // Relationships
-  users    User[]
-  requests Request[]
+  users       User[]
+  requests    Request[]
+  invitations Invitation[]
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -418,6 +423,45 @@ model SystemSettings {
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Invitation model for agency admins to invite dealers
+model Invitation {
+  id String @id @default(cuid())
+  
+  // Inviter information
+  inviterId String
+  inviter   User   @relation("InvitationsSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  
+  // Agency information
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  
+  // Invitee information
+  email         String
+  name          String?
+  role          UserRole @default(USER)
+  
+  // Invitation status
+  token         String   @unique @default(cuid())
+  expiresAt     DateTime
+  acceptedAt    DateTime?
+  acceptedById  String?
+  acceptedBy    User?    @relation("InvitationsAccepted", fields: [acceptedById], references: [id], onDelete: SetNull)
+  
+  // Additional metadata
+  message       String? @db.Text // Optional personalized message from inviter
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([email])
+  @@index([token])
+  @@index([agencyId])
+  @@index([inviterId])
+  @@index([expiresAt])
+  @@unique([email, agencyId]) // Prevent duplicate invitations to same email for same agency
 }
 
 // SEOWorks task mapping for tracking external task IDs

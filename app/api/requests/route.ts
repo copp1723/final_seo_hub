@@ -28,31 +28,24 @@ export async function GET(request: NextRequest) {
   try {
     let where: Prisma.RequestWhereInput = {}
 
-    // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
-    // Otherwise, fetch requests for the individual user.
-    if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
+    // Determine access level based on user role
+    if (user.role === UserRole.SUPER_ADMIN) {
+      // SUPER_ADMIN sees all requests if no filters applied
+      // If they want to see only their own, they should use a different endpoint
+      // For now, we'll show all requests they have access to
+      where = {} // No filtering, see all requests
+    } else if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
+      // AGENCY_ADMIN sees all requests in their agency
       where.agencyId = user.agencyId
-    } else if (user.role === UserRole.SUPER_ADMIN) {
-      // SUPER_ADMIN can see all requests if no specific agencyId is provided via a different route
-      // For this route, we assume they want to see their own requests or all if not filtered by agency
-      // To see all agency requests, they would use a dedicated admin route.
-      // If they have an agencyId, it implies they might be acting as an admin for that agency.
-      // However, the current logic is simple: SUPER_ADMIN sees all if not constrained.
-      // For this specific route /api/requests, let's keep it to their own requests *unless* an agency filter is added later.
-      // For now, this means they see requests associated with their user ID, or all if no user ID constraint is applied.
-      // This part might need refinement based on exact SUPER_ADMIN viewing requirements on this generic endpoint.
-      // The most straightforward interpretation for /api/requests is "my requests" or "my agency's requests".
-      // For "all requests in the system", a dedicated /api/admin/requests endpoint would be more appropriate.
-      // Thus, if a SUPER_ADMIN is not specifically an AGENCY_ADMIN for an agency, they see their own.
-      // If they *are* also an AGENCY_ADMIN (e.g. agencyId is set on their user), the AGENCY_ADMIN rule above applies.
-      // If they are a SUPER_ADMIN and no agencyId, they see their own requests.
-      // This behavior can be changed if SUPER_ADMINs should see *all* requests through this endpoint.
-      where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views.
-    }
-    else {
+    } else if (user.role === UserRole.ADMIN && user.agencyId) {
+      // ADMIN with agency sees all requests in their agency
+      where.agencyId = user.agencyId
+    } else {
+      // Regular users only see their own requests
       where.userId = user.id
     }
 
+    // Apply additional filters
     if (statusParam && statusParam !== 'all') {
       where.status = statusParam as RequestStatus
     }
@@ -80,12 +73,22 @@ export async function GET(request: NextRequest) {
     const requests = await prisma.request.findMany({
       where,
       orderBy,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          }
+        }
+      }
     })
 
     logger.info('Requests fetched successfully', {
       userId: authResult.user.id,
       count: requests.length,
       filters: { status: statusParam, type, searchQuery, sortBy, sortOrder },
+      accessLevel: user.role,
       path: '/api/requests',
       method: 'GET'
     })

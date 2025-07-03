@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma generate && npm run type-check && next build",
-    "start": "next start -p ${PORT:-3001}",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "jest",

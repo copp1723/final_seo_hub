@@ -47,6 +47,7 @@ services:
         value: US
       - key: CRON_SECRET
         generateValue: true
+    staticPublishPath: ./public
 
 databases:
   - name: rylie-seo-hub-db

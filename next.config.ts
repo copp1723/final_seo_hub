@@ -78,6 +78,30 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Headers for static assets
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Headers specifically for CSS files
+        source: '/_next/static/css/:path*',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/css',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
         // Apply security headers to all routes
         source: '/:path*',
         headers: [

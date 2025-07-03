@@ -10,7 +10,7 @@ const updateAgencySchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -29,7 +29,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden: Super admin access required' }, { status: 403 })
     }
 
-    const agencyId = params.id
+    const { id: agencyId } = await params
 
     // Check if agency exists
     const existingAgency = await prisma.agency.findUnique({
@@ -120,7 +120,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -139,7 +139,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden: Super admin access required' }, { status: 403 })
     }
 
-    const agencyId = params.id
+    const { id: agencyId } = await params
 
     // Check if agency exists and get user count
     const existingAgency = await prisma.agency.findUnique({
@@ -202,7 +202,7 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
@@ -221,7 +221,7 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden: Super admin access required' }, { status: 403 })
     }
 
-    const agencyId = params.id
+    const { id: agencyId } = await params
 
     const agency = await prisma.agency.findUnique({
       where: { id: agencyId },

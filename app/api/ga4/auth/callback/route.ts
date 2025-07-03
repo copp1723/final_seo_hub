@@ -40,32 +40,46 @@ export async function GET(request: NextRequest) {
     // Import encryption function
     const { encrypt } = await import('@/lib/encryption')
 
-    // Try to fetch property info from Google Analytics
-    let propertyId = null
-    let propertyName = null
+    // Check if user already has a property selected
+    const existingConnection = await prisma.gA4Connection.findUnique({
+      where: { userId: state }
+    })
     
-    try {
-      oauth2Client.setCredentials(tokens)
-      const analyticsAdmin = google.analyticsadmin({ version: 'v1beta', auth: oauth2Client })
-      const response = await analyticsAdmin.accounts.list()
-      
-      if (response.data.accounts && response.data.accounts.length > 0) {
-        const account = response.data.accounts[0]
+    // Try to fetch property info from Google Analytics
+    let propertyId = existingConnection?.propertyId || null
+    let propertyName = existingConnection?.propertyName || null
+    
+    // Only fetch new property if none was previously selected
+    if (!propertyId) {
+      try {
+        oauth2Client.setCredentials(tokens)
+        const analyticsAdmin = google.analyticsadmin({ version: 'v1beta', auth: oauth2Client })
+        const response = await analyticsAdmin.accounts.list()
         
-        // Get properties for the first account
-        const propertiesResponse = await analyticsAdmin.properties.list({
-          filter: `parent:${account.name}`
-        })
-        
-        if (propertiesResponse.data.properties && propertiesResponse.data.properties.length > 0) {
-          const property = propertiesResponse.data.properties[0]
-          propertyId = property.name?.split('/').pop() || null
-          propertyName = property.displayName || null
+        if (response.data.accounts && response.data.accounts.length > 0) {
+          const account = response.data.accounts[0]
+          
+          // Get properties for the first account
+          const propertiesResponse = await analyticsAdmin.properties.list({
+            filter: `parent:${account.name}`
+          })
+          
+          if (propertiesResponse.data.properties && propertiesResponse.data.properties.length > 0) {
+            const property = propertiesResponse.data.properties[0]
+            propertyId = property.name?.split('/').pop() || null
+            propertyName = property.displayName || null
+          }
         }
+      } catch (propError) {
+        logger.error('Failed to fetch GA4 property info', propError)
+        // Continue without property info
       }
-    } catch (propError) {
-      logger.error('Failed to fetch GA4 property info', propError)
-      // Continue without property info
+    } else {
+      logger.info('Preserving existing property selection', {
+        userId: state,
+        propertyId,
+        propertyName
+      })
     }
 
     await prisma.gA4Connection.upsert({

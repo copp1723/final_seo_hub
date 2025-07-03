@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       take: 5
     })
 
-    const topActions = topActionsRaw.map(item => ({
+    const topActions = topActionsRaw.map((item: any) => ({
       action: item.action,
       count: item._count.action
     }))
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
 
     // Get user details for top users
     const topUsers = await Promise.all(
-      topUsersRaw.map(async (item) => {
+      topUsersRaw.map(async (item: any) => {
         const user = await prisma.user.findUnique({
           where: { id: item.userId },
           select: { name: true, email: true }

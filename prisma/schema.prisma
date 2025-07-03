@@ -97,6 +97,9 @@ model User {
   // Relation to MonthlyUsage
   monthlyUsageHistory MonthlyUsage[]
 
+  // Audit logs
+  auditLogs AuditLog[]
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -347,4 +350,65 @@ model Task {
   @@index([requestId, status])
   @@index([status, dueDate])
   @@index([type, status])
+}
+
+// Audit logging for compliance and security
+model AuditLog {
+  id String @id @default(cuid())
+  
+  // User who performed the action
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Action details
+  action     String // e.g., "USER_CREATE", "SYSTEM_SETTINGS_UPDATE", "REQUEST_DELETE"
+  resource   String // e.g., "User", "Request", "SystemSettings"
+  resourceId String? // ID of the affected resource
+  
+  // Additional context
+  details   Json? // Additional action-specific data
+  ipAddress String?
+  userAgent String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+// System-wide configuration settings
+model SystemSettings {
+  id String @id @default(cuid())
+  
+  // Feature flags
+  maintenanceMode     Boolean @default(false)
+  newUserRegistration Boolean @default(true)
+  emailNotifications  Boolean @default(true)
+  auditLogging        Boolean @default(true)
+  
+  // Limits and quotas
+  maxUsersPerAgency   Int @default(50)
+  maxRequestsPerUser  Int @default(1000)
+  maxFileUploadSize   Int @default(10) // MB
+  
+  // Email settings
+  smtpHost      String @default("")
+  smtpPort      Int    @default(587)
+  smtpUser      String @default("")
+  smtpFromEmail String @default("")
+  
+  // System messages
+  maintenanceMessage String @default("The system is currently under maintenance. Please try again later.")
+  welcomeMessage     String @default("Welcome to our SEO management platform! Get started by exploring your dashboard.")
+  
+  // API settings
+  rateLimitPerMinute     Int @default(60)
+  sessionTimeoutMinutes  Int @default(480) // 8 hours
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

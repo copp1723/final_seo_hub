@@ -8,21 +8,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { PackageType, RequestPriority } from '@prisma/client'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Target, Zap } from 'lucide-react'
 import Link from 'next/link'
 
-export default function NewRequestPage() {
+export default function FocusRequestPage() {
   const router = useRouter()
   const { data: session } = useSession()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'page',
-    priority: 'MEDIUM' as RequestPriority,
-    packageType: 'SILVER' as PackageType,
+    priority: 'HIGH' as RequestPriority, // Default to HIGH for focus requests
+    packageType: 'GOLD' as PackageType,
     targetCities: '',
     targetModels: '',
     keywords: '',
@@ -35,9 +36,11 @@ export default function NewRequestPage() {
 
     setLoading(true)
     setError('')
+    setSuccess('')
 
     try {
-      const response = await fetch('/api/requests', {
+      // First create the request
+      const requestResponse = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -48,13 +51,48 @@ export default function NewRequestPage() {
         }),
       })
 
-      if (!response.ok) {
+      if (!requestResponse.ok) {
         throw new Error('Failed to create request')
       }
 
-      router.push('/requests')
+      const requestData = await requestResponse.json()
+      const requestId = requestData.data.id
+
+      // Then send it to SEOWorks as a focus request
+      const focusResponse = await fetch('/api/seoworks/send-focus-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId }),
+      })
+
+      if (!focusResponse.ok) {
+        throw new Error('Failed to send focus request to SEOWorks')
+      }
+
+      const focusData = await focusResponse.json()
+      
+      setSuccess(`Focus request "${formData.title}" has been sent to SEOWorks successfully!`)
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        type: 'page',
+        priority: 'HIGH',
+        packageType: 'GOLD',
+        targetCities: '',
+        targetModels: '',
+        keywords: '',
+        targetUrl: '',
+      })
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/requests')
+      }, 2000)
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit request')
+      setError(err instanceof Error ? err.message : 'Failed to submit focus request')
     } finally {
       setLoading(false)
     }
@@ -69,10 +107,20 @@ export default function NewRequestPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create New Request</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-blue-600" />
+            Create Focus Request
+          </CardTitle>
           <CardDescription>
-            Submit a new SEO task request for your monthly package (regular priority)
+            Submit a high-priority SEO task that will be sent directly to SEOWorks for immediate attention
           </CardDescription>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Zap className="h-3 w-3" />
+              High Priority
+            </Badge>
+            <Badge variant="outline">Direct to SEOWorks</Badge>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,27 +130,34 @@ export default function NewRequestPage() {
               </div>
             )}
 
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                {success}
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
+              <label className="block text-sm font-medium mb-1">Title *</label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
-                placeholder="e.g., Create blog about Toyota Camry features"
+                placeholder="e.g., Urgent: Create landing page for Toyota Camry promotion"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+              <label className="block text-sm font-medium mb-1">Description *</label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Provide details about what you need..."
+                placeholder="Provide detailed requirements for this focus request..."
                 rows={4}
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">Be specific about your requirements and timeline</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -127,9 +182,9 @@ export default function NewRequestPage() {
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as RequestPriority })}
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                 >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
                   <option value="HIGH">High</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="LOW">Low</option>
                 </select>
               </div>
             </div>
@@ -141,7 +196,7 @@ export default function NewRequestPage() {
                   <Button
                     key={pkg}
                     type="button"
-                    variant={formData.packageType === pkg ? 'primary' : 'secondary'}
+                    variant={formData.packageType === pkg ? 'default' : 'secondary'}
                     size="sm"
                     onClick={() => setFormData({ ...formData, packageType: pkg })}
                   >
@@ -196,9 +251,20 @@ export default function NewRequestPage() {
               />
             </div>
 
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
+              <h4 className="font-medium text-blue-900 mb-2">Focus Request Benefits:</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Sent directly to SEOWorks for immediate attention</li>
+                <li>• Higher priority in the work queue</li>
+                <li>• Faster turnaround time</li>
+                <li>• Direct communication with SEO specialists</li>
+              </ul>
+            </div>
+
             <div className="flex gap-2 pt-4">
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Request'}
+              <Button type="submit" disabled={loading} className="flex items-center gap-2">
+                <Target className="h-4 w-4" />
+                {loading ? 'Sending Focus Request...' : 'Send Focus Request'}
               </Button>
               <Button type="button" variant="secondary" onClick={() => router.push('/requests')}>
                 Cancel

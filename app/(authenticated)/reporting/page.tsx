@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { SelectItem, SelectTrigger } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
@@ -313,17 +313,18 @@ export default function ReportingPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <SelectTrigger 
-                className="w-48"
-                value={selectedRange}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedRange(e.target.value)}
-              >
-                {DATE_RANGES.map(range => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectTrigger>
+              <Select value={selectedRange} onValueChange={setSelectedRange}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DATE_RANGES.map(range => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 variant="secondary"
                 onClick={() => {

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -195,10 +196,12 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
           <p className="text-sm text-gray-600 mt-1">Manage and track all your SEO tasks</p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Task
-        </Button>
+        <Link href="/focus-request">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Focus Request
+          </Button>
+        </Link>
       </div>
 
       {/* Task Statistics */}
@@ -281,26 +284,26 @@ export default function TasksPage() {
         <TabsList className="grid w-full max-w-md grid-cols-4">
           <TabsTrigger value="all">
             All Tasks
-            <Badge variant="info" className="ml-2 h-5 px-1">
+            <Badge variant="secondary" className="ml-2 h-5 px-1">
               {taskStats.total}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="active">
             Active
-            <Badge variant="info" className="ml-2 h-5 px-1">
+            <Badge variant="secondary" className="ml-2 h-5 px-1">
               {taskStats.pending + taskStats.inProgress}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="completed">
             Completed
-            <Badge variant="info" className="ml-2 h-5 px-1">
+            <Badge variant="secondary" className="ml-2 h-5 px-1">
               {taskStats.completed}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="overdue">
             Overdue
             {taskStats.overdue > 0 && (
-              <Badge variant="error" className="ml-2 h-5 px-1">
+              <Badge variant="destructive" className="ml-2 h-5 px-1">
                 {taskStats.overdue}
               </Badge>
             )}

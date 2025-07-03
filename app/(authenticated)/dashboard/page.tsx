@@ -269,9 +269,9 @@ export default async function DashboardPage() {
                   <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Link href="/requests/new" passHref>
+                  <Link href="/focus-request" passHref>
                     <Button className="w-full justify-between">
-                      Create New Request <ArrowRight className="h-4 w-4 ml-2" />
+                      Create Focus Request <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </Link>
                   <Link href="/requests" passHref>
@@ -436,9 +436,9 @@ export default async function DashboardPage() {
                 <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Link href="/requests/new" passHref>
+                <Link href="/focus-request" passHref>
                   <Button className="w-full justify-between">
-                    Create New Request <ArrowRight className="h-4 w-4 ml-2" />
+                    Create Focus Request <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </Link>
                 <Link href="/requests" passHref>

@@ -138,10 +138,10 @@ export default function RequestsPage() {
 
   const getStatusBadgeVariant = (status: RequestStatus) => {
     switch (status) {
-      case 'COMPLETED': return 'success'
-      case 'IN_PROGRESS': return 'warning'
-      case 'CANCELLED': return 'error'
-      default: return 'default'
+      case 'COMPLETED': return 'default'
+      case 'IN_PROGRESS': return 'secondary'
+      case 'CANCELLED': return 'destructive'
+      default: return 'outline'
     }
   }
 
@@ -171,10 +171,10 @@ export default function RequestsPage() {
           <h1 className="text-2xl font-bold text-gray-900">SEO Requests</h1>
           <p className="text-sm text-gray-600 mt-1">Track your monthly SEO package progress</p>
         </div>
-        <Link href="/requests/new">
+        <Link href="/focus-request">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            New Request
+            Focus Request
           </Button>
         </Link>
       </div>

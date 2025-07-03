@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline"
+  variant?: "default" | "secondary" | "destructive" | "outline" | "info" | "warning" | "success" | "error"
 }
 
 function Badge({ className, variant = "default", ...props }: BadgeProps) {
@@ -19,6 +19,14 @@ function Badge({ className, variant = "default", ...props }: BadgeProps) {
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80":
             variant === "destructive",
           "text-foreground": variant === "outline",
+          "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200":
+            variant === "info",
+          "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-200":
+            variant === "warning",
+          "border-transparent bg-green-100 text-green-800 hover:bg-green-200":
+            variant === "success",
+          "border-transparent bg-red-100 text-red-800 hover:bg-red-200":
+            variant === "error",
         },
         className
       )}

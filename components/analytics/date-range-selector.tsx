@@ -1,17 +1,16 @@
-import { Select } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from 'lucide-react'
 
-export interface DateRange {
-  label: string
+export interface DateRangeOption {
   value: string
-  startDate: string
-  endDate: string
+  label: string
+  getDates: () => { startDate: Date; endDate: Date }
 }
 
 interface DateRangeSelectorProps {
   value: string
   onChange: (value: string) => void
-  ranges: DateRange[]
+  ranges: DateRangeOption[]
   className?: string
 }
 
@@ -21,14 +20,18 @@ export function DateRangeSelector({ value, onChange, ranges, className = '' }: D
       <Calendar className="h-4 w-4 text-gray-500" />
       <Select
         value={value}
-        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
-        className="w-48"
+        onValueChange={onChange}
       >
-        {ranges.map(range => (
-          <option key={range.value} value={range.value}>
-            {range.label}
-          </option>
-        ))}
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select date range" />
+        </SelectTrigger>
+        <SelectContent>
+          {ranges.map((range) => (
+            <SelectItem key={range.value} value={range.value}>
+              {range.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
       </Select>
     </div>
   )

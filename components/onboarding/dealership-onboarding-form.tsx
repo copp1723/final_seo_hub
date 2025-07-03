@@ -238,24 +238,25 @@ export default function DealershipOnboardingForm() {
     setSubmitStatus({ type: null, message: '' })
 
     try {
-      // Transform data to match our SEOWorks integration format
+      // Transform data to match our SEOWorks integration API format
       const onboardingData = {
-        dealerName: formData.dealerName,
-        dealerAddress: `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`,
-        dealerPhone: formData.dealerContactPhone,
-        dealerWebsite: formData.dealerWebsiteUrl,
-        contactName: formData.dealerContactName,
-        contactEmail: formData.dealerContactEmail,
-        contactPhone: formData.dealerContactPhone,
-        targetCities: formData.targetCities.filter(Boolean),
-        targetModels: formData.targetVehicleModels.filter(Boolean),
-        packageType: formData.package,
-        // Additional fields from the comprehensive form
-        contactTitle: formData.dealerContactTitle,
-        billingEmail: formData.billingContactEmail,
+        businessName: formData.dealerName,
+        clientEmail: formData.dealerContactEmail,
+        package: formData.package,
         mainBrand: formData.mainBrand,
         otherBrand: formData.otherBrand,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        contactName: formData.dealerContactName,
+        contactTitle: formData.dealerContactTitle,
+        phone: formData.dealerContactPhone,
+        websiteUrl: formData.dealerWebsiteUrl,
+        billingEmail: formData.billingContactEmail,
         siteAccessNotes: formData.siteAccessNotes,
+        targetVehicleModels: formData.targetVehicleModels.filter(Boolean),
+        targetCities: formData.targetCities.filter(Boolean),
         targetDealers: formData.targetDealers.filter(Boolean)
       }
 

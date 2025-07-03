@@ -113,15 +113,16 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.onrender.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https: blob:",
-              "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' https://openrouter.ai https://www.googleapis.com https://accounts.google.com https://*.google.com ws://localhost:* wss://localhost:*",
+              "font-src 'self' https://fonts.gstatic.com data:",
+              "connect-src 'self' https://openrouter.ai https://www.googleapis.com https://accounts.google.com https://*.google.com https://*.onrender.com ws://localhost:* wss://localhost:* wss://*.onrender.com",
               "frame-src 'self' https://accounts.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
-              "form-action 'self' https://accounts.google.com"
+              "form-action 'self' https://accounts.google.com",
+              "worker-src 'self' blob:"
             ].join('; ')
           }
         ],

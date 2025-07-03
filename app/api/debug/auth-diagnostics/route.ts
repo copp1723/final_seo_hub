@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 
 export async function GET(request: NextRequest) {
-  const headersList = headers()
+  const headersList = await headers()
   const host = headersList.get('host')
   const forwardedProto = headersList.get('x-forwarded-proto')
   const forwardedHost = headersList.get('x-forwarded-host')
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       isSecureContext: process.env.NEXTAUTH_URL?.startsWith('https://'),
       isProduction: process.env.NODE_ENV === 'production'
     },
-    recommendations: []
+    recommendations: [] as string[]
   }
   
   // Add recommendations based on diagnostics

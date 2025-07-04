@@ -78,6 +78,9 @@ export default function AgencyUsersPage() {
   })
   const [inviteLoading, setInviteLoading] = useState(false)
 
+  // Email validation helper
+  const isEmailValid = (email: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email.trim())
+
   const fetchUsers = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
     if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
@@ -128,7 +131,7 @@ export default function AgencyUsersPage() {
       fetchUsers()
       fetchInvitations()
     }
-  }, [session, agencyId])
+  }, [session, agencyId, fetchUsers])
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -648,7 +651,7 @@ export default function AgencyUsersPage() {
             </Button>
             <Button
               onClick={handleInviteUser}
-              disabled={!inviteForm.email || inviteLoading}
+              disabled={!inviteForm.email || !isEmailValid(inviteForm.email) || inviteLoading}
               className="flex items-center gap-2"
             >
               {inviteLoading ? (

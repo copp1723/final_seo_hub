@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
     })
 
     // Send invitation email
-    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/accept-invitation?token=${invitation.token}`
+    const inviteUrl = `${process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL}/auth/accept-invitation?token=${invitation.token}`
     const inviterName = user.name || user.email || 'An administrator'
 
     const emailSent = await sendEmail({

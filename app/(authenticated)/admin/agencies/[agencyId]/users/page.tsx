@@ -10,13 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users, UserPlus, Mail, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users, UserPlus, Mail, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
 import { DeleteUserDialog } from '@/components/admin/delete-user-dialog'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Send } from 'lucide-react'
 
 type AgencyUser = Pick<User, 'id' | 'name' | 'email' | 'role' | 'createdAt' | 'updatedAt'>
 
@@ -336,9 +339,9 @@ export default function AgencyUsersPage() {
       </div>
 
       {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert className="mb-6 border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">{error}</AlertDescription>
         </Alert>
       )}
 

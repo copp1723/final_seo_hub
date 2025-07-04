@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
-import { toast } from '@/lib/utils/toast'
+import { toast } from '@/hooks/use-toast'
 
 interface DeleteUserDialogProps {
   userId: string | null

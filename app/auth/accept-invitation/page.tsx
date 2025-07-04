@@ -46,7 +46,7 @@ export default function AcceptInvitationPage() {
     }
 
     fetchInvitation()
-  }, [token])
+  }, [token, fetchInvitation])
 
   const fetchInvitation = async () => {
     try {

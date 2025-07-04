@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/components/ui/use-toast'
 import { Send, X } from 'lucide-react'
 
 interface EscalationModalProps {
@@ -18,6 +19,7 @@ interface EscalationModalProps {
 export function EscalationModal({ open, onClose, context }: EscalationModalProps) {
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const { toast } = useToast()
 
   const handleSubmit = async () => {
     setSubmitting(true)
@@ -37,15 +39,28 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
 
       if (response.ok) {
         onClose()
-        // Show success feedback
-        alert('Your question has been sent to the SEO team. You can track the response in your Requests page.')
+        setAdditionalNotes('')
+        // Show success toast
+        toast({
+          title: "Request Sent Successfully",
+          description: "Your question has been sent to the SEO team. You can track the response in your Requests page.",
+          variant: "success",
+        })
       } else {
         const errorData = await response.json()
-        alert(`Failed to send request: ${errorData.error || 'Unknown error'}`)
+        toast({
+          title: "Failed to Send Request",
+          description: errorData.error || 'Unknown error occurred. Please try again.',
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error('Escalation error:', error)
-      alert('Failed to send request. Please try again or contact support.')
+      toast({
+        title: "Network Error",
+        description: "Failed to send request. Please check your connection and try again.",
+        variant: "destructive",
+      })
     } finally {
       setSubmitting(false)
     }

@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { Navigation } from '@/components/layout/navigation'
+import { Toaster } from '@/components/ui/toaster'
 
 export default async function AuthenticatedLayout({
   children,
@@ -17,6 +18,7 @@ export default async function AuthenticatedLayout({
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       <main>{children}</main>
+      <Toaster />
     </div>
   )
 }

@@ -52,6 +52,7 @@ export function SEOChat() {
   const [loading, setLoading] = useState(false)
   const [showEscalation, setShowEscalation] = useState(false)
   const [escalationContext, setEscalationContext] = useState<{question: string; answer: string} | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
 
   const handleSend = async (text?: string) => {
     const messageText = text || input
@@ -72,11 +73,19 @@ export function SEOChat() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText }),
+        body: JSON.stringify({
+          message: messageText,
+          conversationId: conversationId
+        }),
       })
 
       const result = await response.json()
       const data = result.data || result // Handle both new and old response formats
+
+      // Update conversation ID if we got a new one
+      if (data.conversationId && data.conversationId !== conversationId) {
+        setConversationId(data.conversationId)
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),

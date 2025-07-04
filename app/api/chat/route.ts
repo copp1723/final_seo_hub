@@ -3,6 +3,7 @@ import { successResponse } from '@/lib/api-auth'
 import { createPostHandler } from '@/lib/api-middleware'
 import { logger } from '@/lib/logger'
 import { SEO_KNOWLEDGE_BASE } from '@/lib/seo-knowledge'
+import { generateChatResponse } from '@/lib/openrouter'
 import { z } from 'zod'
 
 const chatRequestSchema = z.object({
@@ -78,24 +79,74 @@ export const POST = createPostHandler<z.infer<typeof chatRequestSchema>>(
   async (req, { user, body }) => {
     const { message, conversationId } = body!
 
-    // Find the best matching response from knowledge base
-    const content = findBestMatch(message)
-    
-    const response = {
-      id: Math.random().toString(36).substring(7),
-      content,
-      conversationId: conversationId || 'new',
-      timestamp: new Date().toISOString(),
+    try {
+      // First, try to find a knowledge base match
+      const knowledgeBaseAnswer = findBestMatch(message)
+      const hasKnowledgeMatch = !knowledgeBaseAnswer.includes("I'd be happy to help with that question!")
+      
+      let content: string
+      let finalConversationId: string
+
+      // If OpenRouter is configured and we want enhanced responses, use LLM
+      if (process.env.OPENROUTER_API_KEY) {
+        try {
+          const llmResponse = await generateChatResponse(
+            message,
+            conversationId,
+            hasKnowledgeMatch ? knowledgeBaseAnswer : undefined
+          )
+          content = llmResponse.content
+          finalConversationId = llmResponse.conversationId
+        } catch (llmError) {
+          logger.warn('LLM generation failed, falling back to knowledge base', {
+            error: llmError,
+            userId: user?.id
+          })
+          // Fallback to knowledge base
+          content = knowledgeBaseAnswer
+          finalConversationId = conversationId || 'kb-' + Math.random().toString(36).substring(7)
+        }
+      } else {
+        // Use knowledge base only
+        content = knowledgeBaseAnswer
+        finalConversationId = conversationId || 'kb-' + Math.random().toString(36).substring(7)
+      }
+
+      const response = {
+        id: Math.random().toString(36).substring(7),
+        content,
+        conversationId: finalConversationId,
+        timestamp: new Date().toISOString(),
+        source: process.env.OPENROUTER_API_KEY ? 'llm' : 'knowledge_base'
+      }
+
+      logger.info('Chat request processed', {
+        userId: user?.id,
+        conversationId: finalConversationId,
+        messageLength: message.length,
+        hasKnowledgeMatch,
+        source: response.source
+      })
+
+      return successResponse(response)
+    } catch (error) {
+      logger.error('Chat processing error', {
+        error,
+        userId: user?.id,
+        message: message.substring(0, 100)
+      })
+
+      // Final fallback
+      const fallbackResponse = {
+        id: Math.random().toString(36).substring(7),
+        content: "I apologize, but I'm experiencing technical difficulties. Please try again in a moment, or feel free to escalate your question to our SEO team for immediate assistance.",
+        conversationId: conversationId || 'error-' + Math.random().toString(36).substring(7),
+        timestamp: new Date().toISOString(),
+        source: 'fallback'
+      }
+
+      return successResponse(fallbackResponse)
     }
-
-    logger.info('Chat request processed', {
-      userId: user?.id,
-      conversationId,
-      messageLength: message.length,
-      hasMatch: content !== 'fallback'
-    })
-
-    return successResponse(response)
   },
   {
     validateBody: chatRequestSchema,

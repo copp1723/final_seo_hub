@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, ChangeEvent, FormEvent } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { User, UserRole } from '@prisma/client'
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { toast } from '@/hooks/use-toast'
-import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users, UserPlus, Mail, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users, UserPlus, Mail, Clock, CheckCircle, XCircle, AlertCircle, Send } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
 import { DeleteUserDialog } from '@/components/admin/delete-user-dialog'
@@ -19,7 +19,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Send } from 'lucide-react'
 
 type AgencyUser = Pick<User, 'id' | 'name' | 'email' | 'role' | 'createdAt' | 'updatedAt'>
 
@@ -131,7 +130,7 @@ export default function AgencyUsersPage() {
     }
   }, [session, agencyId])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
@@ -152,7 +151,7 @@ export default function AgencyUsersPage() {
     setIsModalOpen(true)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!session) return
 

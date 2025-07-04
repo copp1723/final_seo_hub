@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
-import { getServerSession } from 'next-auth'
 import { auth } from '@/lib/auth'
 
 const acceptInvitationSchema = z.object({

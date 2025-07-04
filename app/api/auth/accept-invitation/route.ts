@@ -1,0 +1,1 @@
+const token = searchParams.get('token') ?? undefined 

@@ -2,10 +2,11 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
+import { PackageType } from '@prisma/client'
 
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = '7f3e9b5d2a8c4f6e1b9d3c7a5e8f2b4d6c9a1e3f7b5d9c2a6e4f8b1d3c7a9e5f'
-const SEOWORKS_ONBOARD_URL = 'https://api.seowerks.ai/rylie-onboard.cfm'
+const SEOWORKS_ONBOARD_URL = 'https://api.seoworks.ai/rylie-onboard.cfm'
 
 interface DealerOnboardingData {
   businessName: string
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
         email: dealerData.clientEmail,
         name: dealerData.contactName,
         role: 'USER',
-        activePackageType: dealerData.package as any,
+        activePackageType: dealerData.package as PackageType,
         onboardingCompleted: true,
         currentBillingPeriodStart: new Date(),
         currentBillingPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)),
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
         title: `SEO Package Setup - ${dealerData.businessName}`,
         description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}`,
         type: 'setup',
-        packageType: dealerData.package as any,
+        packageType: dealerData.package as PackageType,
         targetUrl: dealerData.websiteUrl,
         keywords: dealerData.targetVehicleModels,
         targetCities: dealerData.targetCities,

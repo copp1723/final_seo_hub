@@ -80,24 +80,31 @@ export async function POST(request: NextRequest) {
       }, 'You are already a member of this agency.')
     }
 
-    // Update the user with the agency and role
-    const updatedUser = await prisma.user.update({
-      where: { email: session.user.email },
-      data: {
-        agencyId: invitation.agencyId,
-        role: invitation.role,
-        name: invitation.name || session.user.name // Use invitation name if provided
-      }
+    // Use transaction for atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Update the user with the agency and role
+      const updatedUser = await tx.user.update({
+        where: { email: session.user.email },
+        data: {
+          agencyId: invitation.agencyId,
+          role: invitation.role,
+          name: invitation.name || session.user.name
+        }
+      })
+
+      // Mark invitation as accepted
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: {
+          acceptedAt: new Date(),
+          acceptedById: updatedUser.id
+        }
+      })
+
+      return { updatedUser }
     })
 
-    // Mark invitation as accepted
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: {
-        acceptedAt: new Date(),
-        acceptedById: updatedUser.id
-      }
-    })
+    const { updatedUser } = result
 
     logger.info('Invitation accepted', {
       invitationId: invitation.id,

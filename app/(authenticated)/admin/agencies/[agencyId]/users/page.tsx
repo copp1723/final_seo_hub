@@ -314,6 +314,33 @@ export default function AgencyUsersPage() {
     }
   }
 
+  const handleUpdateUser = async (userId: string) => {
+    if (!editingUser) return
+    
+    try {
+      const response = await fetch(`/api/admin/agencies/${agencyId}/users`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          name: editingUser.name,
+          role: editingUser.role
+        })
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update user')
+      }
+      
+      toast('User updated successfully', 'success')
+      setEditingUser(null)
+      fetchUsers() // Refresh the list
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to update user', 'error')
+    }
+  }
+
   if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
   if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
      return (

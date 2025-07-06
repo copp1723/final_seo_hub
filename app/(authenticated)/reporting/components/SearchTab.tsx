@@ -36,7 +36,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
         <p className="text-gray-600 mb-4">{scError}</p>
         {scError.includes('not connected') && (
           <button 
-            onClick={() => window.location.href = '/settings'}
+            onClick={() => window.location.href = '/api/search-console/connect'}
             className="text-blue-600 hover:underline"
           >
             Connect Search Console

@@ -8,13 +8,21 @@ import { logger } from '@/lib/logger'
 export async function GET(req: Request) {
   const session = await auth()
   if (!session?.user) {
+    logger.error('Search Console callback: No session found')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
+  const error = searchParams.get('error')
+  
+  if (error) {
+    logger.error('Search Console OAuth error from Google', { error, userId: session.user.id })
+    return NextResponse.redirect(new URL('/settings?error=search_console_denied', process.env.NEXTAUTH_URL!))
+  }
   
   if (!code) {
+    logger.error('Search Console callback: No authorization code provided')
     return NextResponse.json(
       { error: 'No authorization code provided' },
       { status: 400 }
@@ -40,6 +48,10 @@ export async function GET(req: Request) {
     
     const sitesResponse = await searchConsole.sites.list()
     const verifiedSites = sitesResponse.data.siteEntry?.map(site => site.siteUrl!) || []
+    
+    // Use the first verified site as default, or null if none
+    const primarySite = verifiedSites.length > 0 ? verifiedSites[0] : null
+    const siteName = primarySite ? new URL(primarySite).hostname : null
 
     // Save or update tokens
     const encryptedAccessToken = encrypt(tokens.access_token!)
@@ -51,19 +63,39 @@ export async function GET(req: Request) {
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+        siteUrl: primarySite,
+        siteName: siteName,
       },
       create: {
         userId: session.user.id,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+        siteUrl: primarySite,
+        siteName: siteName,
       },
     })
 
-    // Redirect to settings page
-    return NextResponse.redirect(new URL('/settings/search-console', process.env.NEXTAUTH_URL!))
+    logger.info('Search Console connected successfully', { 
+      userId: session.user.id, 
+      sitesCount: verifiedSites.length,
+      primarySite 
+    })
+
+    // Redirect to settings page with success message
+    return NextResponse.redirect(new URL('/settings?success=search_console_connected', process.env.NEXTAUTH_URL!))
   } catch (error) {
-    logger.error('Search Console OAuth error', error, { userId: session.user.id })
+    logger.error('Search Console OAuth callback error', error, { 
+      userId: session.user.id,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined
+    })
+    
+    // Check for specific error types
+    if (error instanceof Error && error.message.includes('invalid_grant')) {
+      return NextResponse.redirect(new URL('/settings?error=search_console_invalid_grant', process.env.NEXTAUTH_URL!))
+    }
+    
     return NextResponse.json(
       { error: 'Failed to connect Search Console' },
       { status: 500 }

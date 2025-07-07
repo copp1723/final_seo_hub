@@ -180,7 +180,11 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
         {messages.map((message) => (
           <div key={message.id}>
             <MessageBubble
-              message={message}
+              message={{
+                ...message,
+                role: message.sender === 'user' ? 'user' : 'assistant',
+                timestamp: new Date(message.timestamp)
+              }}
               onEscalate={() => setEscalateMessage(message)}
             />
             
@@ -264,9 +268,12 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
       {/* Escalation Modal */}
       {escalateMessage && (
         <EscalationModal
-          isOpen={!!escalateMessage}
+          open={!!escalateMessage}
           onClose={() => setEscalateMessage(null)}
-          message={escalateMessage}
+          context={{
+            question: escalateMessage.content,
+            answer: escalateMessage.content
+          }}
         />
       )}
     </div>

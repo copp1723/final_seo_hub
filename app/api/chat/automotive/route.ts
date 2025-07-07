@@ -280,7 +280,8 @@ function findEnhancedKnowledgeMatch(query: string, metadata: any): string {
       let enhanced = faq.answer
       
       if (metadata.dealershipInfo?.currentPackage) {
-        const pkg = SEO_KNOWLEDGE_BASE.packages[metadata.dealershipInfo.currentPackage]
+        const packageName = metadata.dealershipInfo.currentPackage as keyof typeof SEO_KNOWLEDGE_BASE.packages
+        const pkg = SEO_KNOWLEDGE_BASE.packages[packageName]
         enhanced += `\n\nWith your ${metadata.dealershipInfo.currentPackage} package, you receive ${pkg.pages} pages, ${pkg.blogs} blogs, and ${pkg.gbpPosts} GBP posts monthly to support this strategy.`
       }
       

@@ -16,7 +16,7 @@ interface CacheStats {
 }
 
 export class PerformanceCache<T = any> {
-  private memoryCache: Map<string, CacheEntry<T>>;
+  protected memoryCache: Map<string, CacheEntry<T>>;
   private readonly maxSize: number;
   private readonly defaultTTL: number;
   private stats: CacheStats;

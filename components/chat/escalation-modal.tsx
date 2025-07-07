@@ -69,20 +69,20 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-row items-center justify-between">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <Card className="w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <CardHeader className="flex flex-row items-center justify-between border-b shrink-0">
           <CardTitle>Send to SEO Team</CardTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 hover:bg-gray-100"
           >
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 overflow-y-auto flex-1 py-4">
           <div>
             <p className="text-sm font-medium mb-1">Your Question:</p>
             <p className="text-sm text-gray-600">{context.question}</p>
@@ -90,7 +90,7 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
           
           <div>
             <p className="text-sm font-medium mb-1">AI Response:</p>
-            <p className="text-sm text-gray-600 line-clamp-3">{context.answer}</p>
+            <p className="text-sm text-gray-600 whitespace-pre-wrap">{context.answer}</p>
           </div>
 
           <div>

@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { User, Bot, AlertCircle } from 'lucide-react'
+import { MarkdownRenderer } from './markdown-renderer'
 
 interface Message {
   id: string
@@ -30,10 +31,14 @@ export function MessageBubble({ message, onEscalate }: MessageBubbleProps) {
         </div>
         
         <div>
-          <div className={`rounded-lg px-4 py-2 ${
+          <div className={`rounded-lg px-4 py-3 ${
             isUser ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
           }`}>
-            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+            {isUser ? (
+              <p className="text-sm">{message.content}</p>
+            ) : (
+              <MarkdownRenderer content={message.content} />
+            )}
           </div>
           
           {!isUser && onEscalate && (

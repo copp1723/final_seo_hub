@@ -12,9 +12,6 @@ export default function ChatPage() {
 
   // Demo dealership info - in production this would come from session/database
   const dealershipInfo = {
-    brand: 'Toyota',
-    location: 'Dallas, TX',
-    inventorySize: 450,
     currentPackage: 'gold' as const
   }
 

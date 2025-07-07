@@ -6,9 +6,6 @@ import { Brain, Car, TrendingUp, Target } from 'lucide-react'
 export default function AutomotiveChatPage() {
   // In production, this would come from user session/database
   const dealershipInfo = {
-    brand: 'Toyota',
-    location: 'Dallas, TX',
-    inventorySize: 450,
     currentPackage: 'gold' as const
   }
 
@@ -77,27 +74,21 @@ export default function AutomotiveChatPage() {
           {/* Current Context */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Your Profile</CardTitle>
+              <CardTitle className="text-lg">Current Package</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Dealership:</span>
-                  <Badge variant="outline">{dealershipInfo.brand}</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Location:</span>
-                  <span className="text-sm font-medium">{dealershipInfo.location}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Inventory:</span>
-                  <span className="text-sm font-medium">{dealershipInfo.inventorySize} vehicles</span>
-                </div>
-                <div className="flex justify-between">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">SEO Package:</span>
                   <Badge className="capitalize bg-yellow-100 text-yellow-800">
                     {dealershipInfo.currentPackage}
                   </Badge>
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>• 5 pages per month</p>
+                  <p>• 6 blog posts</p>
+                  <p>• 12 GBP posts</p>
+                  <p>• 10 SEO improvements</p>
                 </div>
               </div>
             </CardContent>

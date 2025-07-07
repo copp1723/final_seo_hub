@@ -150,7 +150,7 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
   }
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Header with context */}
       <div className="border-b px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center justify-between">

@@ -12,6 +12,8 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     const elements: React.ReactNode[] = []
     let currentList: string[] = []
     let listType: 'ul' | 'ol' | null = null
+    let inCodeBlock = false
+    let codeBlockContent: string[] = []
     
     const flushList = () => {
       if (currentList.length > 0 && listType) {
@@ -28,9 +30,49 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       }
     }
     
+    const flushCodeBlock = () => {
+      if (codeBlockContent.length > 0) {
+        // For JSON or technical content, render as a simple formatted note
+        const content = codeBlockContent.join('\n')
+        if (content.includes('"@type"') || content.includes('json')) {
+          elements.push(
+            <div key={elements.length} className="bg-blue-50 border border-blue-200 rounded p-3 my-2">
+              <p className="text-xs font-medium text-blue-900 mb-1">Technical Implementation Details</p>
+              <p className="text-xs text-blue-700">Schema markup configuration available - ask for specific implementation guidance.</p>
+            </div>
+          )
+        } else {
+          // For non-JSON code, show as preformatted text
+          elements.push(
+            <pre key={elements.length} className="bg-gray-100 rounded p-3 text-xs overflow-x-auto my-2">
+              {content}
+            </pre>
+          )
+        }
+        codeBlockContent = []
+      }
+    }
+    
     lines.forEach((line, index) => {
       // Skip empty lines at the start
       if (index === 0 && line.trim() === '') return
+      
+      // Code blocks
+      if (line.trim().startsWith('```')) {
+        if (inCodeBlock) {
+          flushCodeBlock()
+          inCodeBlock = false
+        } else {
+          flushList()
+          inCodeBlock = true
+        }
+        return
+      }
+      
+      if (inCodeBlock) {
+        codeBlockContent.push(line)
+        return
+      }
       
       // Headers
       if (line.startsWith('### ')) {
@@ -88,6 +130,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     })
     
     flushList()
+    flushCodeBlock()
     return elements
   }
   

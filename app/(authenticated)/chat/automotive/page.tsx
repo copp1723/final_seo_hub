@@ -10,25 +10,25 @@ export default function AutomotiveChatPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Automotive SEO Expert Assistant</h1>
-        <p className="text-gray-600">
-          Advanced AI-powered SEO consultation specifically designed for automotive dealerships
+    <div className="h-[calc(100vh-4rem)] flex flex-col p-4">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold">Automotive SEO Expert Assistant</h1>
+        <p className="text-sm text-gray-600">
+          Advanced AI-powered SEO consultation for automotive dealerships
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
         {/* Main Chat Interface */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
+        <div className="lg:col-span-2 min-h-0">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="shrink-0">
               <CardTitle>SEO Consultation</CardTitle>
               <CardDescription>
                 Get expert advice on inventory optimization, local rankings, and lead generation
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 flex-1 min-h-0">
               <AutomotiveSEOChat dealershipInfo={dealershipInfo} />
             </CardContent>
           </Card>

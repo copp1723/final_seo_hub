@@ -5,13 +5,22 @@ import { logger } from '@/lib/logger'
 import { SEO_KNOWLEDGE_BASE } from '@/lib/seo-knowledge'
 import { z } from 'zod'
 import OpenAI from 'openai'
-import { 
-  AUTOMOTIVE_SEO_EXPERT_PROMPT, 
+import {
+  AUTOMOTIVE_SEO_EXPERT_PROMPT,
   enhanceAutomotiveContext,
   enhanceResponse,
   generateAnalyticsInsights,
-  AUTOMOTIVE_KNOWLEDGE 
+  AUTOMOTIVE_KNOWLEDGE
 } from '@/app/lib/ai/automotive-seo-agent'
+import {
+  getCompletedTasks,
+  searchTasksByQuery,
+  findTasksByTopic,
+  generateTaskContext,
+  detectTaskRelatedIntents,
+  getTaskStatistics,
+  TaskReference
+} from '@/lib/ai/task-context'
 
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(1000),
@@ -163,11 +172,54 @@ export const POST = createPostHandler<z.infer<typeof chatRequestSchema>>(
         }
       }
 
+      // Detect task-related intents
+      const taskIntents = detectTaskRelatedIntents(message)
+      const hasTaskIntent = taskIntents.length > 0
+
+      // Retrieve relevant completed tasks if needed
+      let taskContext = ''
+      if (hasTaskIntent || currentIntents.some(i => ['ranking_analysis', 'content_strategy', 'inventory_seo'].includes(i))) {
+        try {
+          // Get completed tasks for the user
+          const completedTasks = await getCompletedTasks({
+            userId: user!.id,
+            limit: 30,
+            includeKeywords: true,
+            dateRange: {
+              from: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) // Last 6 months
+            }
+          })
+
+          let relevantTasks: TaskReference[] = []
+
+          // Search for relevant tasks based on query
+          if (hasTaskIntent) {
+            relevantTasks = searchTasksByQuery(completedTasks, message)
+          } else {
+            // Find tasks by detected intents/topics
+            for (const intent of currentIntents) {
+              const topicTasks = findTasksByTopic(completedTasks, intent.replace('_', ' '))
+              relevantTasks.push(...topicTasks)
+            }
+            // Remove duplicates and limit results
+            relevantTasks = Array.from(new Map(relevantTasks.map(t => [t.id, t])).values()).slice(0, 8)
+          }
+
+          if (relevantTasks.length > 0) {
+            taskContext = generateTaskContext(relevantTasks)
+          }
+        } catch (error) {
+          logger.error('Error retrieving task context:', error)
+          // Continue without task context if there's an error
+        }
+      }
+
       // Build enhanced context
       const enhancedContext = enhanceAutomotiveContext(
         message,
         conversation.metadata.dealershipInfo,
-        conversation.messages
+        conversation.messages,
+        taskContext
       )
 
       // Prepare messages with enhanced context
@@ -211,12 +263,12 @@ export const POST = createPostHandler<z.infer<typeof chatRequestSchema>>(
           aiResponse = enhanceResponse(aiResponse, message, true)
         } catch (error) {
           logger.error('OpenRouter API error:', error)
-          // Fallback to knowledge base
-          aiResponse = findEnhancedKnowledgeMatch(message, conversation.metadata)
+          // Fallback to knowledge base with task context
+          aiResponse = findEnhancedKnowledgeMatch(message, conversation.metadata, taskContext)
         }
       } else {
-        // Use enhanced knowledge base matching
-        aiResponse = findEnhancedKnowledgeMatch(message, conversation.metadata)
+        // Use enhanced knowledge base matching with task context
+        aiResponse = findEnhancedKnowledgeMatch(message, conversation.metadata, taskContext)
       }
 
       // Update conversation history
@@ -229,16 +281,31 @@ export const POST = createPostHandler<z.infer<typeof chatRequestSchema>>(
       // Generate smart suggestions
       const suggestions = generateSmartSuggestions(conversation)
 
+      // Add task-aware suggestions if we found relevant tasks
+      if (taskContext && taskIntents.length > 0) {
+        if (taskIntents.includes('task_history')) {
+          suggestions.unshift("What other similar work have you completed?")
+        }
+        if (taskIntents.includes('similar_tasks')) {
+          suggestions.unshift("Can you show me examples of this type of work?")
+        }
+        if (taskIntents.includes('task_examples')) {
+          suggestions.unshift("How did you approach this in previous projects?")
+        }
+      }
+
       const response = {
         id: Math.random().toString(36).substring(7),
         content: aiResponse,
         conversationId: conversation.id,
         timestamp: new Date().toISOString(),
         metadata: {
-          intents: currentIntents,
+          intents: [...currentIntents, ...taskIntents],
           topics: currentTopics,
-          suggestions: suggestions,
-          source: process.env.OPENROUTER_API_KEY ? 'automotive_ai' : 'enhanced_knowledge'
+          suggestions: suggestions.slice(0, 3), // Keep only top 3 suggestions
+          source: process.env.OPENROUTER_API_KEY ? 'automotive_ai' : 'enhanced_knowledge',
+          hasTaskContext: !!taskContext,
+          taskIntents: taskIntents
         }
       }
 
@@ -269,7 +336,7 @@ export const POST = createPostHandler<z.infer<typeof chatRequestSchema>>(
 )
 
 // Enhanced knowledge matching with automotive context
-function findEnhancedKnowledgeMatch(query: string, metadata: any): string {
+function findEnhancedKnowledgeMatch(query: string, metadata: any, taskContext?: string): string {
   const lower = query.toLowerCase()
   const intents = detectIntent(query)
   
@@ -337,8 +404,19 @@ Would you like specific recommendations for your inventory size and market?`
 Your current package includes GBP posts to support this strategy. Would you like help optimizing your local presence?`
   }
   
+  // Check for task-related queries first
+  if (taskContext) {
+    const taskIntents = detectTaskRelatedIntents(query)
+    if (taskIntents.length > 0) {
+      let response = "Based on your completed SEO work, here's what I can tell you:\n\n"
+      response += taskContext
+      response += "\n\nHow can I help you build on this previous work or tackle something similar?"
+      return response
+    }
+  }
+
   // Default sophisticated response
-  return `I understand you're looking for automotive SEO insights. While I need more specific information to provide targeted advice, here are key areas where I can help:
+  let response = `I understand you're looking for automotive SEO insights. While I need more specific information to provide targeted advice, here are key areas where I can help:
 
 **Strategic Planning:**
 • Inventory-based content optimization
@@ -356,7 +434,13 @@ Your current package includes GBP posts to support this strategy. Would you like
 • Model comparison pages that convert
 • Service department SEO
 • Finance calculator optimization
-• Review generation strategies
+• Review generation strategies`
 
-What specific challenge can I help you solve today?`
+  // Add task context if available but not task-specific query
+  if (taskContext) {
+    response += `\n\n**Your Recent SEO Work:**\n${taskContext.split('\n').slice(0, 5).join('\n')}...`
+  }
+
+  response += `\n\nWhat specific challenge can I help you solve today?`
+  return response
 }

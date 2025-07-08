@@ -195,7 +195,8 @@ export const enhanceAutomotiveContext = (
     inventorySize?: number
     currentPackage?: string
   },
-  conversationHistory?: any[]
+  conversationHistory?: any[],
+  taskContext?: string
 ) => {
   let enhancedContext = AUTOMOTIVE_SEO_EXPERT_PROMPT
 
@@ -249,6 +250,11 @@ export const enhanceAutomotiveContext = (
 - Cover competitor content gap analysis
 - Mention differentiation strategies
 - Include local SERP domination tactics`
+  }
+
+  // Add task context if provided
+  if (taskContext) {
+    enhancedContext += `\n\n${taskContext}`
   }
 
   return enhancedContext

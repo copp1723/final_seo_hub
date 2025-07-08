@@ -93,38 +93,108 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    // Strategy 3: If still not found, try lookup via SEOWorksTaskMapping
-    if (!requestRecord) {
-      const taskMapping = await prisma.sEOWorksTaskMapping.findUnique({
-        where: { seoworksTaskId: data.externalId },
-        include: {
-          request: {
-            include: { user: true }
-          }
+    // Strategy 3: If still not found and we have clientId/clientEmail, try to match by client + task type
+    // This handles tasks created directly in SEOWorks without a focus request
+    if (!requestRecord && (data.clientId || data.clientEmail)) {
+      // First, find the user
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            data.clientId ? { id: data.clientId } : {},
+            data.clientEmail ? { email: data.clientEmail } : {}
+          ].filter(condition => Object.keys(condition).length > 0)
         }
       })
-      if (taskMapping) {
-        requestRecord = taskMapping.request
+      
+      if (user) {
+        // Look for a pending request of the same type for this user
+        requestRecord = await prisma.request.findFirst({
+          where: {
+            userId: user.id,
+            type: data.taskType.toLowerCase(),
+            status: { in: ['PENDING', 'IN_PROGRESS'] },
+            seoworksTaskId: null // Not yet linked to a SEOWorks task
+          },
+          orderBy: { createdAt: 'asc' }, // Get the oldest unlinked request
+          include: { user: true }
+        })
+        
+        // If found, link this SEOWorks task to our request
+        if (requestRecord) {
+          await prisma.request.update({
+            where: { id: requestRecord.id },
+            data: { seoworksTaskId: data.externalId }
+          })
+          logger.info('Linked SEOWorks task to existing request', {
+            requestId: requestRecord.id,
+            seoworksTaskId: data.externalId,
+            userId: user.id
+          })
+        }
       }
     }
 
     if (!requestRecord) {
-      logger.warn('Request not found for webhook', {
-        externalId: data.externalId,
-        eventType,
-        clientId: data.clientId,
-        clientEmail: data.clientEmail,
-        path: '/api/seoworks/webhook',
-        method: 'POST'
-      })
-      // Still return success to avoid retries from SEOWorks
-      return successResponse({
-        message: 'Webhook received (no matching request found)',
-        eventType,
-        externalId: data.externalId,
-        clientId: data.clientId,
-        clientEmail: data.clientEmail
-      })
+      // Strategy 4: If still no request found, this might be a task created directly in SEOWorks
+      // Create a new request to track it if we can identify the user
+      if (data.clientId || data.clientEmail) {
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              data.clientId ? { id: data.clientId } : {},
+              data.clientEmail ? { email: data.clientEmail } : {}
+            ].filter(condition => Object.keys(condition).length > 0)
+          }
+        })
+        
+        if (user && eventType === 'task.completed') {
+          // Create a new request to track this externally created task
+          requestRecord = await prisma.request.create({
+            data: {
+              userId: user.id,
+              title: data.deliverables?.[0]?.title || `SEOWorks ${data.taskType} Task`,
+              description: `Task created directly in SEOWorks\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
+              type: data.taskType.toLowerCase(),
+              status: 'COMPLETED',
+              seoworksTaskId: data.externalId,
+              completedAt: new Date(data.completionDate || Date.now()),
+              completedTasks: data.deliverables || [],
+              // Set completed counters based on task type
+              pagesCompleted: data.taskType.toLowerCase() === 'page' ? 1 : 0,
+              blogsCompleted: data.taskType.toLowerCase() === 'blog' ? 1 : 0,
+              gbpPostsCompleted: data.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
+              improvementsCompleted: ['improvement', 'maintenance'].includes(data.taskType.toLowerCase()) ? 1 : 0
+            },
+            include: { user: true }
+          })
+          
+          logger.info('Created new request for externally created SEOWorks task', {
+            requestId: requestRecord.id,
+            seoworksTaskId: data.externalId,
+            userId: user.id,
+            taskType: data.taskType
+          })
+        }
+      }
+      
+      if (!requestRecord) {
+        logger.warn('Request not found and could not create one for webhook', {
+          externalId: data.externalId,
+          eventType,
+          clientId: data.clientId,
+          clientEmail: data.clientEmail,
+          path: '/api/seoworks/webhook',
+          method: 'POST'
+        })
+        // Still return success to avoid retries from SEOWorks
+        return successResponse({
+          message: 'Webhook received (no matching request found)',
+          eventType,
+          externalId: data.externalId,
+          clientId: data.clientId,
+          clientEmail: data.clientEmail
+        })
+      }
     }
 
     // Handle different event types

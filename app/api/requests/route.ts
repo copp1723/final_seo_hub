@@ -139,27 +139,14 @@ export async function POST(request: NextRequest) {
     
     // Send focus request to SEOWorks
     try {
-      const seoworksResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/seoworks/send-focus-request`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ requestId: newRequest.id })
+      // Skip SEOWorks integration for now - it's causing issues
+      // This can be triggered manually from the UI if needed
+      logger.info('Request created - SEOWorks integration can be triggered separately', {
+        requestId: newRequest.id,
+        type: data.type
       })
-      
-      if (!seoworksResponse.ok) {
-        logger.warn('Failed to send request to SEOWorks', {
-          requestId: newRequest.id,
-          status: seoworksResponse.status,
-          statusText: seoworksResponse.statusText
-        })
-      } else {
-        logger.info('Request sent to SEOWorks successfully', {
-          requestId: newRequest.id
-        })
-      }
     } catch (seoworksError) {
-      logger.error('Error sending request to SEOWorks', seoworksError, {
+      logger.error('Error with SEOWorks integration', seoworksError, {
         requestId: newRequest.id
       })
       // Don't fail the request creation if SEOWorks integration fails

@@ -135,12 +135,19 @@ export async function POST(request: NextRequest) {
     // Send to SEOWorks
     const seoworksResult = await sendFocusRequestToSEOWorks(focusRequestData)
 
-    // Update request to mark it as sent to SEOWorks
+    // Extract task ID from SEOWorks response if available
+    const seoworksTaskId = seoworksResult.seoworksResponse?.taskId || 
+                          seoworksResult.seoworksResponse?.id || 
+                          seoworksResult.seoworksResponse?.task_id ||
+                          null
+
+    // Update request to mark it as sent to SEOWorks and store their task ID
     await prisma.request.update({
       where: { id: requestData.id },
       data: {
         description: `${requestData.description}\n\n[Sent to SEOWorks at ${new Date().toISOString()}]`,
-        status: 'IN_PROGRESS' // Move to in progress since it's now with SEOWorks
+        status: 'IN_PROGRESS', // Move to in progress since it's now with SEOWorks
+        seoworksTaskId: seoworksTaskId // Store Jeff's task ID for webhook matching
       }
     })
 

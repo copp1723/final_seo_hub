@@ -21,6 +21,7 @@ import {
   Settings // For system settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useBranding } from '@/hooks/use-branding'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -34,6 +35,7 @@ export function Navigation() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const user = session?.user
+  const branding = useBranding()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isAgencyMenuOpen, setIsAgencyMenuOpen] = useState(false) // For Agency Admin dropdown
@@ -91,7 +93,7 @@ export function Navigation() {
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
               <Link href="/dashboard" className="text-xl font-bold text-gray-900">
-                Rylie SEO Hub
+                {branding.companyName}
               </Link>
             </div>
 

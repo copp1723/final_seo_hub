@@ -2,8 +2,10 @@
 
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useBranding } from '@/hooks/use-branding'
 
 export default function GA4CallbackPage() {
+  const branding = useBranding()
   const router = useRouter()
   const searchParams = useSearchParams()
   const status = searchParams.get('status')
@@ -30,7 +32,7 @@ export default function GA4CallbackPage() {
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Google Analytics Connected!</h1>
             <p className="text-gray-600 mb-4">
-              Your Google Analytics 4 account has been successfully connected to SEO Hub.
+              Your Google Analytics 4 account has been successfully connected to {branding.companyName}.
             </p>
             <p className="text-sm text-gray-500">
               Redirecting you back to settings...

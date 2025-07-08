@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sendInvitationEmail } from '@/lib/mailgun/invitation'
 import { userInvitationTemplate } from '@/lib/mailgun/templates'
 import { logger } from '@/lib/logger'
+import { getBrandingFromRequest } from '@/lib/branding/config'
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,8 +41,11 @@ export async function GET(request: NextRequest) {
       improvementsUsedThisPeriod: 0
     }
 
+    // Get branding configuration
+    const branding = getBrandingFromRequest(request)
+
     // Test template generation
-    const template = userInvitationTemplate(mockUser, invitedBy)
+    const template = userInvitationTemplate(mockUser, invitedBy, undefined, branding)
 
     // Test email sending
     const invitationSent = await sendInvitationEmail({
@@ -62,7 +66,7 @@ export async function GET(request: NextRequest) {
         template: {
           subject: template.subject,
           htmlLength: template.html.length,
-          hasLoginButton: template.html.includes('Sign In to SEO Hub'),
+          hasLoginButton: template.html.includes(`Sign In to ${branding.companyName}`),
           hasUserDetails: template.html.includes(testEmail)
         },
         invitationSent,

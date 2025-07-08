@@ -78,7 +78,7 @@ export default function OverviewTab({
         {/* Search Console Metrics */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Organic Clicks</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Organic Sessions</CardTitle>
             <MousePointerClick className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
@@ -86,7 +86,7 @@ export default function OverviewTab({
               {scData?.overview?.clicks?.toLocaleString() || '0'}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              {organicPercentage > 0 ? `${organicPercentage}% of total traffic` : 'From search results'}
+              {organicPercentage > 0 ? `${organicPercentage}% of total sessions` : 'From organic search'}
             </p>
           </CardContent>
         </Card>
@@ -133,7 +133,7 @@ export default function OverviewTab({
                       yAxisID: 'y'
                     }] : []),
                     ...(scData ? [{
-                      label: 'Organic Clicks',
+                      label: 'Organic Sessions',
                       data: scData.performanceByDate.metrics.clicks || [],
                       borderColor: 'rgb(168, 85, 247)',
                       backgroundColor: 'rgba(168, 85, 247, 0.1)',

@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import { Home, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useBranding } from '@/hooks/use-branding'
 
 export default function GlobalError({
   error,
@@ -13,6 +14,8 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const branding = useBranding()
+  
   useEffect(() => {
     // Log the error to an error reporting service
     console.error('Global error:', error)
@@ -26,7 +29,7 @@ export default function GlobalError({
             {/* Logo/Brand */}
             <Link href="/dashboard" className="inline-block">
               <h1 className="text-2xl font-bold text-gray-900 mb-8">
-                Rylie SEO Hub
+                {branding.companyName}
               </h1>
             </Link>
             

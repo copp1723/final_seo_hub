@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, TrendingUp, Car, MapPin, BarChart } from 'lucide-react'
+import { Send, Bot, User, TrendingUp, Car, MapPin, BarChart, AlertCircle } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ interface Message {
   content: string
   sender: 'user' | 'assistant'
   timestamp: string
+  originalQuery?: string
   metadata?: {
     intents?: string[]
     topics?: string[]
@@ -185,7 +186,18 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
                 role: message.sender === 'user' ? 'user' : 'assistant',
                 timestamp: new Date(message.timestamp)
               }}
-              onEscalate={() => setEscalateMessage(message)}
+              onEscalate={() => {
+                // Find the original user question that led to this AI response
+                const messageIndex = messages.findIndex(m => m.id === message.id)
+                const originalQuery = messageIndex > 0 && messages[messageIndex - 1].sender === 'user'
+                  ? messages[messageIndex - 1].content
+                  : message.content
+                
+                setEscalateMessage({
+                  ...message,
+                  originalQuery
+                })
+              }}
             />
             
             {/* Show metadata badges */}
@@ -225,6 +237,34 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
         
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Send to SEO Team - Prominent Placement */}
+      {messages.length > 1 && !isLoading && (
+        <div className="px-4 py-3 border-t bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Need expert help?</p>
+              <p className="text-xs text-gray-600">Get personalized assistance from our SEO team</p>
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                const lastMessage = messages[messages.length - 1]
+                const lastUserMessage = messages.slice().reverse().find(m => m.sender === 'user')
+                setEscalateMessage({
+                  ...lastMessage,
+                  originalQuery: lastUserMessage?.content || lastMessage.content
+                })
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium shadow-md"
+            >
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Send to SEO Team
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Smart Suggestions */}
       {smartSuggestions.length > 0 && !isLoading && (
@@ -272,7 +312,8 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
           onClose={() => setEscalateMessage(null)}
           context={{
             question: escalateMessage.content,
-            answer: escalateMessage.content
+            answer: escalateMessage.content,
+            originalQuery: escalateMessage.originalQuery
           }}
         />
       )}

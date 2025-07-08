@@ -13,6 +13,7 @@ interface EscalationModalProps {
   context: {
     question: string
     answer: string
+    originalQuery?: string
   }
 }
 
@@ -31,7 +32,7 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: `Chat Escalation: ${context.question.substring(0, 60)}${context.question.length > 60 ? '...' : ''}`,
-          description: `**Original Question:**\n${context.question}\n\n**AI Assistant Response:**\n${context.answer}\n\n**Additional Context:**\n${additionalNotes || 'No additional notes provided.'}\n\n---\n*This request was escalated from the AI chat assistant.*`,
+          description: `**Original User Query:**\n${context.originalQuery || context.question}\n\n**Specific Question:**\n${context.question}\n\n**AI Assistant Response:**\n${context.answer}\n\n**Additional Context:**\n${additionalNotes || 'No additional notes provided.'}\n\n---\n*This request was escalated from the AI chat assistant for expert review.*`,
           type: 'improvement', // Use existing valid type
           priority: 'MEDIUM',
         }),
@@ -83,6 +84,13 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
           </Button>
         </CardHeader>
         <CardContent className="space-y-4 overflow-y-auto flex-1 py-4">
+          {context.originalQuery && context.originalQuery !== context.question && (
+            <div>
+              <p className="text-sm font-medium mb-1 text-blue-700">Original Query:</p>
+              <p className="text-sm text-gray-600 bg-blue-50 p-2 rounded">{context.originalQuery}</p>
+            </div>
+          )}
+          
           <div>
             <p className="text-sm font-medium mb-1">Your Question:</p>
             <p className="text-sm text-gray-600">{context.question}</p>

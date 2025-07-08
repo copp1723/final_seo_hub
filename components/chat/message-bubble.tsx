@@ -43,13 +43,13 @@ export function MessageBubble({ message, onEscalate }: MessageBubbleProps) {
           
           {!isUser && onEscalate && (
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
               onClick={onEscalate}
-              className="mt-1 text-xs"
+              className="mt-2 text-sm bg-green-600 hover:bg-green-700 text-white font-medium shadow-md"
             >
-              <AlertCircle className="h-3 w-3 mr-1" />
-              Send to SEO team
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Send to SEO Team
             </Button>
           )}
         </div>

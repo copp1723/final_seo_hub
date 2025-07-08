@@ -2,6 +2,7 @@ import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
 import { logger } from '@/lib/logger'
 import { generateUnsubscribeUrl } from './secure-tokens'
+import { BrandingConfig, DEFAULT_BRANDING } from '@/lib/branding/config'
 
 // Initialize Mailgun client
 const mailgun = new Mailgun(FormData)
@@ -39,6 +40,7 @@ export interface EmailOptions {
   replyTo?: string
   tags?: string[]
   variables?: Record<string, any>
+  branding?: BrandingConfig
   attachments?: Array<{
     filename: string
     data: Buffer | string
@@ -50,14 +52,15 @@ export interface EmailOptions {
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     const { mg, domain } = getMailgunClient()
+    const branding = options.branding || DEFAULT_BRANDING
     
     const messageData = {
-      from: options.from || `SEO Hub <noreply@${domain}>`,
+      from: options.from || `${branding.emailFromName} <noreply@${domain}>`,
       to: Array.isArray(options.to) ? options.to : [options.to],
       subject: options.subject,
       html: options.html,
       text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML tags for text version
-      'h:Reply-To': options.replyTo || `support@${domain}`,
+      'h:Reply-To': options.replyTo || branding.supportEmail || `support@${domain}`,
       'o:tag': options.tags || ['transactional'],
       'h:X-Mailgun-Variables': JSON.stringify(options.variables || {}),
       attachment: options.attachments

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { logger } from '@/lib/logger'
 import { verifyUnsubscribeToken } from '@/lib/mailgun/secure-tokens'
+import { getBrandingFromRequest } from '@/lib/branding/config'
 
 // GET endpoint for unsubscribe link
 export async function GET(request: NextRequest) {
@@ -69,6 +70,9 @@ export async function GET(request: NextRequest) {
       emailType
     })
     
+    // Get branding configuration
+    const branding = getBrandingFromRequest(request)
+    
     // Return HTML response for browser
     const html = `
 <!DOCTYPE html>
@@ -76,7 +80,7 @@ export async function GET(request: NextRequest) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unsubscribed - SEO Hub</title>
+  <title>Unsubscribed - ${branding.companyName}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -96,7 +100,7 @@ export async function GET(request: NextRequest) {
       max-width: 400px;
     }
     h1 {
-      color: #2563eb;
+      color: ${branding.primaryColor};
       margin-bottom: 16px;
     }
     p {
@@ -105,7 +109,7 @@ export async function GET(request: NextRequest) {
       margin-bottom: 24px;
     }
     a {
-      color: #2563eb;
+      color: ${branding.primaryColor};
       text-decoration: none;
       font-weight: 500;
     }

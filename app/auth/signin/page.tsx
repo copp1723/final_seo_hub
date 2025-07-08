@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { PageLoading } from '@/components/ui/loading'
 import { GoogleIcon } from '@/components/icons'
 import { AuthLayout } from '@/components/layout/auth-layout'
+import { useBranding } from '@/hooks/use-branding'
 
 function SignInForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -37,10 +38,12 @@ function SignInForm() {
 }
 
 export default function SignInPage() {
+  const branding = useBranding()
+  
   return (
     <Suspense fallback={<PageLoading />}>
-      <AuthLayout 
-        title="Welcome to Rylie SEO Hub"
+      <AuthLayout
+        title={`Welcome to ${branding.companyName}`}
         subtitle="Sign in to manage your SEO requests"
       >
         <SignInForm />

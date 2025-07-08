@@ -1,16 +1,18 @@
 import { Request, User } from '@prisma/client'
 import { format } from 'date-fns'
 import { getUnsubscribeUrl } from './client'
+import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/branding/config'
 
 // Base template with header and footer
-function baseTemplate(content: string, unsubscribeUrl?: string): string {
+function baseTemplate(content: string, unsubscribeUrl?: string, branding?: BrandingConfig): string {
+  const config = branding || DEFAULT_BRANDING
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SEO Hub Notification</title>
+  <title>${config.companyName} Notification</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -27,7 +29,7 @@ function baseTemplate(content: string, unsubscribeUrl?: string): string {
       padding: 0;
     }
     .header {
-      background-color: #2563eb;
+      background-color: ${config.primaryColor};
       color: white;
       padding: 24px;
       text-align: center;
@@ -43,7 +45,7 @@ function baseTemplate(content: string, unsubscribeUrl?: string): string {
     .button {
       display: inline-block;
       padding: 12px 24px;
-      background-color: #2563eb;
+      background-color: ${config.primaryColor};
       color: white;
       text-decoration: none;
       border-radius: 6px;
@@ -51,7 +53,7 @@ function baseTemplate(content: string, unsubscribeUrl?: string): string {
       margin: 16px 0;
     }
     .button:hover {
-      background-color: #1d4ed8;
+      background-color: ${config.secondaryColor};
     }
     .footer {
       background-color: #f8f9fa;
@@ -96,15 +98,15 @@ function baseTemplate(content: string, unsubscribeUrl?: string): string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>SEO Hub</h1>
+      <h1>${config.companyName}</h1>
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      <p>This email was sent by SEO Hub - Your AI-Powered SEO Request Management Platform</p>
+      <p>This email was sent by ${config.companyName} - Your AI-Powered SEO Request Management Platform</p>
       ${unsubscribeUrl ? `<p><a href="${unsubscribeUrl}">Unsubscribe from these notifications</a></p>` : ''}
-      <p>&copy; ${new Date().getFullYear()} SEO Hub. All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} ${config.companyName}. All rights reserved.</p>
     </div>
   </div>
 </body>
@@ -113,15 +115,16 @@ function baseTemplate(content: string, unsubscribeUrl?: string): string {
 }
 
 // Welcome email template
-export function welcomeEmailTemplate(user: User): { subject: string; html: string } {
+export function welcomeEmailTemplate(user: User, branding?: BrandingConfig): { subject: string; html: string } {
+  const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'welcome')
   
   const content = `
-    <h2>Welcome to SEO Hub, ${user.name || 'there'}!</h2>
-    <p>We're excited to have you on board. SEO Hub is your AI-powered platform for managing SEO requests efficiently.</p>
+    <h2>Welcome to ${config.companyName}, ${user.name || 'there'}!</h2>
+    <p>We're excited to have you on board. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently.</p>
     
     <h3>Getting Started</h3>
-    <p>Here's what you can do with SEO Hub:</p>
+    <p>Here's what you can do with ${config.companyName}:</p>
     <ul>
       <li><strong>Create Requests:</strong> Submit SEO content requests for pages, blogs, and more</li>
       <li><strong>Track Progress:</strong> Monitor the status of your requests in real-time</li>
@@ -136,28 +139,29 @@ export function welcomeEmailTemplate(user: User): { subject: string; html: strin
   `
 
   return {
-    subject: 'Welcome to SEO Hub',
-    html: baseTemplate(content, unsubscribeUrl)
+    subject: `Welcome to ${config.companyName}`,
+    html: baseTemplate(content, unsubscribeUrl, config)
   }
 }
 
 // User invitation email template
-export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?: string): { subject: string; html: string } {
+export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string } {
+  const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const finalLoginUrl = loginUrl || `${appUrl}/auth/signin`
   
   const content = `
-    <h2>You've been invited to SEO Hub!</h2>
+    <h2>You've been invited to ${config.companyName}!</h2>
     <p>Hi ${user.name || 'there'},</p>
-    <p>You've been invited to join SEO Hub by <strong>${invitedBy}</strong>. SEO Hub is your AI-powered platform for managing SEO requests efficiently.</p>
+    <p>You've been invited to join ${config.companyName} by <strong>${invitedBy}</strong>. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently.</p>
     
     <h3>Getting Started</h3>
     <p>To access your account, simply click the button below and sign in with your email address:</p>
     
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-        Sign In to SEO Hub
+      <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${config.primaryColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+        Sign In to ${config.companyName}
       </a>
     </div>
     
@@ -168,7 +172,7 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
       ${user.agencyId ? '<li><strong>Agency:</strong> Assigned to your organization</li>' : ''}
     </ul>
     
-    <h3>What you can do with SEO Hub:</h3>
+    <h3>What you can do with ${config.companyName}:</h3>
     <ul>
       <li><strong>Create Requests:</strong> Submit SEO content requests for pages, blogs, and more</li>
       <li><strong>Track Progress:</strong> Monitor the status of your requests in real-time</li>
@@ -184,13 +188,14 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
   `
 
   return {
-    subject: 'Welcome to SEO Hub - You\'ve been invited!',
-    html: baseTemplate(content, unsubscribeUrl)
+    subject: `Welcome to ${config.companyName} - You've been invited!`,
+    html: baseTemplate(content, unsubscribeUrl, config)
   }
 }
 
 // Request created confirmation template
-export function requestCreatedTemplate(request: Request, user: User): { subject: string; html: string } {
+export function requestCreatedTemplate(request: Request, user: User, branding?: BrandingConfig): { subject: string; html: string } {
+  const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'requestCreated')
   
   const content = `
@@ -219,17 +224,19 @@ export function requestCreatedTemplate(request: Request, user: User): { subject:
 
   return {
     subject: `Request Created: ${request.title}`,
-    html: baseTemplate(content, unsubscribeUrl)
+    html: baseTemplate(content, unsubscribeUrl, config)
   }
 }
 
 // Status changed notification template
 export function statusChangedTemplate(
-  request: Request, 
-  user: User, 
-  oldStatus: string, 
-  newStatus: string
+  request: Request,
+  user: User,
+  oldStatus: string,
+  newStatus: string,
+  branding?: BrandingConfig
 ): { subject: string; html: string } {
+  const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'statusChanged')
   
   const statusMessages = {
@@ -269,7 +276,7 @@ export function statusChangedTemplate(
 
   return {
     subject: `Request ${newStatus === 'COMPLETED' ? 'Completed' : 'Updated'}: ${request.title}`,
-    html: baseTemplate(content, unsubscribeUrl)
+    html: baseTemplate(content, unsubscribeUrl, config)
   }
 }
 
@@ -277,8 +284,10 @@ export function statusChangedTemplate(
 export function taskCompletedTemplate(
   request: Request,
   user: User,
-  taskDetails: { title: string; type: string; url?: string }
+  taskDetails: { title: string; type: string; url?: string },
+  branding?: BrandingConfig
 ): { subject: string; html: string } {
+  const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'taskCompleted')
   
   const content = `
@@ -317,7 +326,7 @@ export function taskCompletedTemplate(
 
   return {
     subject: `Task Completed: ${taskDetails.title}`,
-    html: baseTemplate(content, unsubscribeUrl)
+    html: baseTemplate(content, unsubscribeUrl, config)
   }
 }
 
@@ -330,12 +339,14 @@ export function weeklySummaryTemplate(
     inProgressRequests: number
     completedTasks: Array<{ title: string; type: string; completedAt: Date }>
     upcomingTasks: Array<{ title: string; type: string; priority: string }>
-  }
+  },
+  branding?: BrandingConfig
 ): { subject: string; html: string } {
+  const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'weeklySummary')
   
   const content = `
-    <h2>Your Weekly SEO Hub Summary</h2>
+    <h2>Your Weekly ${config.companyName} Summary</h2>
     <p>Hi ${user.name || 'there'},</p>
     <p>Here's your weekly progress report for the week ending ${format(new Date(), 'MMMM d, yyyy')}.</p>
     
@@ -378,7 +389,7 @@ export function weeklySummaryTemplate(
   `
 
   return {
-    subject: 'Your Weekly SEO Hub Summary',
-    html: baseTemplate(content, unsubscribeUrl)
+    subject: `Your Weekly ${config.companyName} Summary`,
+    html: baseTemplate(content, unsubscribeUrl, config)
   }
 }

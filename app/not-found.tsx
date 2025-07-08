@@ -4,8 +4,11 @@ import Link from 'next/link'
 import { Home, ArrowLeft, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useBranding } from '@/hooks/use-branding'
 
 export default function NotFound() {
+  const branding = useBranding()
+  
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -13,7 +16,7 @@ export default function NotFound() {
           {/* Logo/Brand */}
           <Link href="/dashboard" className="inline-block">
             <h1 className="text-2xl font-bold text-gray-900 mb-8">
-              Rylie SEO Hub
+              {branding.companyName}
             </h1>
           </Link>
           

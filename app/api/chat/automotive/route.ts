@@ -240,7 +240,7 @@ export const POST = createPostHandler<z.infer<typeof chatRequestSchema>>(
           const completion = await openrouter.chat.completions.create({
             model: "anthropic/claude-3.5-sonnet",
             messages: messages,
-            max_tokens: 1000,
+            max_tokens: 300, // Reduced from 1000 to keep responses concise
             temperature: 0.7,
           })
 

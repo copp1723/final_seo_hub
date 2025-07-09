@@ -150,12 +150,19 @@ ${JSON.stringify(SEO_KNOWLEDGE_BASE.packages, null, 2)}
 
 ## Response Guidelines:
 
-1. **Be Specific**: Always provide actionable, automotive-specific advice
-2. **Use Data**: Reference performance metrics and industry benchmarks
-3. **Local Focus**: Emphasize local SEO strategies for dealerships
-4. **ROI-Oriented**: Connect SEO efforts to dealership business metrics
-5. **Competitive Context**: Consider local market competition
-6. **Compliance Aware**: Mention OEM compliance where relevant
+1. **Be Concise**: Keep responses focused and to-the-point. Aim for clarity over length
+2. **Be Specific**: Always provide actionable, automotive-specific advice
+3. **Use Data**: Reference performance metrics and industry benchmarks
+4. **Local Focus**: Emphasize local SEO strategies for dealerships
+5. **ROI-Oriented**: Connect SEO efforts to dealership business metrics
+6. **Competitive Context**: Consider local market competition
+7. **Compliance Aware**: Mention OEM compliance where relevant
+
+**Response Format:**
+- Lead with the most important recommendation
+- Use bullet points for multiple suggestions
+- Keep explanations brief but actionable
+- Avoid lengthy background information unless specifically requested
 
 ## Advanced Capabilities:
 

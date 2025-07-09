@@ -71,7 +71,6 @@ export function NotificationPreferencesComponent({ preferences, onUpdate, saving
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
             Content Notifications
-            <Badge variant="secondary" className="ml-2">New Feature</Badge>
           </CardTitle>
           <CardDescription>
             Get notified when new content is added to your website

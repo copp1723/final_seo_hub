@@ -30,7 +30,6 @@ export function NotificationSystemDemo() {
           Complete notification management for SEO content delivery
         </p>
         <div className="flex justify-center gap-2 mt-4">
-          <Badge variant="secondary">✨ New Feature</Badge>
           <Badge variant="outline">Demo Ready</Badge>
           <Badge variant="outline">Enterprise Grade</Badge>
         </div>

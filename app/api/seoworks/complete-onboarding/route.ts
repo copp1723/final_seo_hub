@@ -24,9 +24,10 @@ interface DealerOnboardingData {
   websiteUrl: string
   billingEmail: string
   siteAccessNotes?: string
-  targetVehicleModels: string[] // Array from our form
-  targetCities: string[] // Array in "City, State" format
-  targetDealers: string[] // Array from our form
+  targetVehicleModels: string[]
+  targetCities: string[]
+  targetDealers: string[]
+  userId?: string  // For invited users
 }
 
 async function sendToSEOWorks(data: DealerOnboardingData) {
@@ -97,40 +98,43 @@ async function sendToSEOWorks(data: DealerOnboardingData) {
   }
 }
 
-// This endpoint is called for standalone dealer onboarding (not invited users)
+// This endpoint is called by invited users completing onboarding
 export async function POST(request: NextRequest) {
   try {
     const dealerData: DealerOnboardingData = await request.json()
     
-    logger.info('Received standalone dealer onboarding data', {
+    logger.info('Received dealer onboarding completion from invited user', {
       businessName: dealerData.businessName,
       package: dealerData.package,
-      clientEmail: dealerData.clientEmail
+      userId: dealerData.userId
     })
 
-    // Check if user already exists - prevent duplicates from invited users
+    // For invited users, we should have a userId
+    if (!dealerData.userId) {
+      return errorResponse('User ID is required for invited user onboarding', 400)
+    }
+
+    // Find the existing user created by agency admin
     const existingUser = await prisma.user.findUnique({
-      where: { email: dealerData.clientEmail }
+      where: { id: dealerData.userId },
+      include: { agency: true }
     })
 
-    if (existingUser) {
-      logger.warn('User already exists for standalone onboarding', {
-        email: dealerData.clientEmail,
-        existingUserId: existingUser.id,
-        businessName: dealerData.businessName
-      })
-      return errorResponse('A user with this email already exists. If you were invited by an agency, please use the invitation link provided.', 409)
+    if (!existingUser) {
+      return errorResponse('User not found', 404)
+    }
+
+    if (existingUser.onboardingCompleted) {
+      return errorResponse('User has already completed onboarding', 400)
     }
 
     // Send to SEOWorks
     const seoworksResult = await sendToSEOWorks(dealerData)
 
-    // Create new user for standalone onboarding
-    const user = await prisma.user.create({
+    // Update the existing user with onboarding completion and package info
+    const updatedUser = await prisma.user.update({
+      where: { id: dealerData.userId },
       data: {
-        email: dealerData.clientEmail,
-        name: dealerData.contactName,
-        role: 'USER',
         activePackageType: dealerData.package as PackageType,
         onboardingCompleted: true,
         currentBillingPeriodStart: new Date(),
@@ -139,16 +143,15 @@ export async function POST(request: NextRequest) {
         blogsUsedThisPeriod: 0,
         gbpPostsUsedThisPeriod: 0,
         improvementsUsedThisPeriod: 0
-        // Note: agencyId is null for standalone users
       }
     })
 
     // Create initial request
     const setupRequest = await prisma.request.create({
       data: {
-        userId: user.id,
+        userId: existingUser.id,
         title: `SEO Package Setup - ${dealerData.businessName}`,
-        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}`,
+        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}\nManaged by Agency: ${existingUser.agency?.name || 'N/A'}`,
         type: 'setup',
         packageType: dealerData.package as PackageType,
         targetUrl: dealerData.websiteUrl,
@@ -158,17 +161,17 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    logger.info('Standalone dealer onboarding completed', {
-      userId: user.id,
+    logger.info('Invited user onboarding completed', {
+      userId: existingUser.id,
       requestId: setupRequest.id,
       seoworksClientId: seoworksResult.clientId,
       businessName: dealerData.businessName,
-      userType: 'standalone'
+      agencyId: existingUser.agencyId
     })
 
     return successResponse({
       message: 'Dealer onboarding completed successfully',
-      userId: user.id,
+      userId: existingUser.id,
       requestId: setupRequest.id,
       seoworksClientId: seoworksResult.clientId,
       businessName: dealerData.businessName,
@@ -176,7 +179,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    logger.error('Dealer onboarding failed', {
+    logger.error('Invited user onboarding failed', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     })

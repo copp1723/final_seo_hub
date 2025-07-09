@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -93,6 +94,10 @@ const CAR_BRANDS = [
 ]
 
 export default function DealershipOnboardingForm() {
+  const searchParams = useSearchParams()
+  const invitedUserId = searchParams.get('token') // User ID from invitation URL
+  const isInvited = searchParams.get('invited') === 'true' // Flag to indicate this is from invitation
+  
   const [currentStep, setCurrentStep] = useState('dealer')
   const [formData, setFormData] = useState<OnboardingData>(INITIAL_DATA)
   const [completedSteps, setCompletedSteps] = useState<string[]>([])
@@ -257,10 +262,16 @@ export default function DealershipOnboardingForm() {
         siteAccessNotes: formData.siteAccessNotes,
         targetVehicleModels: formData.targetVehicleModels.filter(Boolean),
         targetCities: formData.targetCities.filter(Boolean),
-        targetDealers: formData.targetDealers.filter(Boolean)
+        targetDealers: formData.targetDealers.filter(Boolean),
+        ...(isInvited && invitedUserId ? { userId: invitedUserId } : {})
       }
 
-      const response = await fetch('/api/seoworks/send-onboarding', {
+      // Use different endpoint for invited users vs standalone onboarding
+      const apiEndpoint = isInvited && invitedUserId
+        ? '/api/seoworks/complete-onboarding'
+        : '/api/seoworks/send-onboarding'
+
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -270,19 +281,38 @@ export default function DealershipOnboardingForm() {
 
       if (response.ok) {
         const result = await response.json()
-        setSubmitStatus({
-          type: 'success',
-          message: 'Onboarding submitted successfully! Your dealership has been registered and setup will begin shortly.'
-        })
         
-        // Clear saved data on successful submission
-        localStorage.removeItem('dealer-onboarding-data')
-        localStorage.removeItem('dealer-onboarding-step')
-        
-        // Reset form
-        setFormData(INITIAL_DATA)
-        setCurrentStep('dealer')
-        setCompletedSteps([])
+        if (isInvited && invitedUserId) {
+          // For invited users, show success and redirect to dashboard
+          setSubmitStatus({
+            type: 'success',
+            message: 'Onboarding completed successfully! You can now access your SEO dashboard. Redirecting...'
+          })
+          
+          // Clear saved data
+          localStorage.removeItem('dealer-onboarding-data')
+          localStorage.removeItem('dealer-onboarding-step')
+          
+          // Redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            window.location.href = '/dashboard'
+          }, 2000)
+        } else {
+          // For standalone onboarding
+          setSubmitStatus({
+            type: 'success',
+            message: 'Onboarding submitted successfully! Your dealership has been registered and setup will begin shortly.'
+          })
+          
+          // Clear saved data on successful submission
+          localStorage.removeItem('dealer-onboarding-data')
+          localStorage.removeItem('dealer-onboarding-step')
+          
+          // Reset form
+          setFormData(INITIAL_DATA)
+          setCurrentStep('dealer')
+          setCompletedSteps([])
+        }
       } else {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Submission failed')
@@ -774,11 +804,23 @@ export default function DealershipOnboardingForm() {
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <span className="text-3xl font-bold text-gray-700">Dealer Onboarding</span>
+            <span className="text-3xl font-bold text-gray-700">
+              {isInvited ? 'Complete Your Dealership Setup' : 'Dealer Onboarding'}
+            </span>
           </div>
           <p className="text-lg text-gray-600">
-            Complete your dealership onboarding to get started with our SEO services
+            {isInvited
+              ? 'Welcome! Complete your dealership setup to activate your SEO services'
+              : 'Complete your dealership onboarding to get started with our SEO services'
+            }
           </p>
+          {isInvited && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg inline-block">
+              <p className="text-sm text-blue-700">
+                <strong>✉️ Invited User:</strong> This onboarding will complete your account setup and connect you to SEO Works.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Progress Steps */}

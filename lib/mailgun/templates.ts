@@ -149,7 +149,11 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const finalLoginUrl = loginUrl || `${appUrl}/auth/signin`
+  
+  // For dealership users, direct them to onboarding instead of just sign-in
+  const isDealershipUser = user.role === 'USER' && user.agencyId
+  const onboardingUrl = `${appUrl}/onboarding/seoworks?token=${user.id}&invited=true`
+  const finalLoginUrl = loginUrl || (isDealershipUser ? onboardingUrl : `${appUrl}/auth/signin`)
   
   const content = `
     <h2>You've been invited to ${config.companyName}!</h2>
@@ -157,13 +161,25 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
     <p>You've been invited to join ${config.companyName} by <strong>${invitedBy}</strong>. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently.</p>
     
     <h3>Getting Started</h3>
-    <p>To access your account, simply click the button below and sign in with your email address:</p>
-    
-    <div style="text-align: center; margin: 32px 0;">
-      <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${config.primaryColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-        Sign In to ${config.companyName}
-      </a>
-    </div>
+    ${isDealershipUser ? `
+      <p>As a dealership user, you'll need to complete your onboarding to get started with SEO services. Click the button below to begin:</p>
+      
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${config.primaryColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+          Complete Dealership Onboarding
+        </a>
+      </div>
+      
+      <p style="font-size: 14px; color: #6b7280;">This will set up your SEO package and connect you with our SEO Works platform.</p>
+    ` : `
+      <p>To access your account, simply click the button below and sign in with your email address:</p>
+      
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${config.primaryColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+          Sign In to ${config.companyName}
+        </a>
+      </div>
+    `}
     
     <p><strong>Your account details:</strong></p>
     <ul>

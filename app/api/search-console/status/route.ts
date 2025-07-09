@@ -13,19 +13,34 @@ export async function GET() {
     })
 
     if (!connection) {
-      return NextResponse.json({ connected: false })
+      return NextResponse.json({
+        connected: false,
+        debug: 'No connection found in database'
+      })
     }
 
-    // TODO: Fetch actual metrics from Search Console
-    // For now, return connection status only
+    // Debug information
+    const debugInfo = {
+      hasAccessToken: !!connection.accessToken,
+      hasRefreshToken: !!connection.refreshToken,
+      siteUrl: connection.siteUrl,
+      siteName: connection.siteName,
+      expiresAt: connection.expiresAt,
+      createdAt: connection.createdAt,
+      updatedAt: connection.updatedAt
+    }
+
     return NextResponse.json({
       connected: true,
       siteUrl: connection.siteUrl,
       siteName: connection.siteName,
-      // metrics: searchConsoleMetrics (to be implemented)
+      debug: debugInfo
     })
   } catch (error) {
     logger.error('Search Console status error', error, { userId: authResult.user.id })
-    return NextResponse.json({ connected: false })
+    return NextResponse.json({
+      connected: false,
+      debug: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    })
   }
 }

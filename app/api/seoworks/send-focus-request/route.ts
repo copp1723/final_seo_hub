@@ -90,9 +90,36 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
 // This endpoint is called when a request is created to send it to SEOWorks
 export async function POST(request: NextRequest) {
   try {
-    const { requestId } = await request.json()
+    logger.info('SEOWorks send-focus-request endpoint called')
+    
+    const rawBody = await request.text()
+    logger.info('SEOWorks send-focus-request raw body', {
+      rawBody: rawBody,
+      bodyLength: rawBody.length
+    })
+    
+    let parsedBody
+    try {
+      parsedBody = JSON.parse(rawBody)
+    } catch (parseError) {
+      logger.error('SEOWorks send-focus-request JSON parse failed', parseError, {
+        rawBody: rawBody
+      })
+      return errorResponse('Invalid JSON in request body', 400)
+    }
+    
+    const { requestId } = parsedBody
+    logger.info('SEOWorks send-focus-request parsed data', {
+      requestId: requestId,
+      hasRequestId: !!requestId,
+      requestIdType: typeof requestId
+    })
     
     if (!requestId) {
+      logger.error('SEOWorks send-focus-request missing requestId', {
+        parsedBody: parsedBody,
+        requestIdValue: requestId
+      })
       return errorResponse('Request ID is required', 400)
     }
 

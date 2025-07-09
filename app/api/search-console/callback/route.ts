@@ -47,11 +47,49 @@ export async function GET(req: Request) {
     })
     
     const sitesResponse = await searchConsole.sites.list()
-    const verifiedSites = sitesResponse.data.siteEntry?.map(site => site.siteUrl!) || []
+    const allSites = sitesResponse.data.siteEntry || []
     
-    // Use the first verified site as default, or null if none
-    const primarySite = verifiedSites.length > 0 ? verifiedSites[0] : null
+    // Filter for sites with sufficient permissions for API access
+    const fullAccessSites = allSites.filter(site =>
+      site.permissionLevel === 'siteOwner' ||
+      site.permissionLevel === 'siteFullUser'
+    )
+
+    const restrictedAccessSites = allSites.filter(site =>
+      site.permissionLevel === 'siteRestrictedUser'
+    )
+
+    // Prefer full access sites, but allow restricted access as fallback
+    const primarySite = fullAccessSites.length > 0
+      ? fullAccessSites[0].siteUrl!
+      : (restrictedAccessSites.length > 0
+          ? restrictedAccessSites[0].siteUrl!
+          : (allSites.length > 0 ? allSites[0].siteUrl! : null))
+
     const siteName = primarySite ? new URL(primarySite).hostname : null
+
+    // Check if we have any sites with API access
+    if (allSites.length === 0) {
+      logger.error('No Search Console sites found for user', { userId: session.user.id })
+      return NextResponse.redirect(new URL('/settings?error=no_search_console_sites', process.env.NEXTAUTH_URL!))
+    }
+
+    if (fullAccessSites.length === 0 && restrictedAccessSites.length === 0) {
+      logger.error('No Search Console sites with sufficient permissions', {
+        userId: session.user.id,
+        sitesFound: allSites.map(s => ({ url: s.siteUrl, permission: s.permissionLevel }))
+      })
+      return NextResponse.redirect(new URL('/settings?error=insufficient_search_console_permissions', process.env.NEXTAUTH_URL!))
+    }
+    
+    logger.info('Search Console sites found', {
+      userId: session.user.id,
+      totalSites: allSites.length,
+      fullAccessSites: fullAccessSites.length,
+      restrictedAccessSites: restrictedAccessSites.length,
+      selectedSite: primarySite,
+      allSitesPermissions: allSites.map(s => ({ url: s.siteUrl, permission: s.permissionLevel }))
+    })
 
     // Save or update tokens
     const encryptedAccessToken = encrypt(tokens.access_token!)
@@ -76,10 +114,12 @@ export async function GET(req: Request) {
       },
     })
 
-    logger.info('Search Console connected successfully', { 
-      userId: session.user.id, 
-      sitesCount: verifiedSites.length,
-      primarySite 
+    logger.info('Search Console connected successfully', {
+      userId: session.user.id,
+      sitesCount: allSites.length,
+      fullAccessSitesCount: fullAccessSites.length,
+      restrictedAccessSitesCount: restrictedAccessSites.length,
+      primarySite
     })
 
     // Redirect to settings page with success message

@@ -23,18 +23,65 @@ function getCacheKey(userId: string, params: any): string {
 }
 
 export async function POST(request: NextRequest) {
+  let searchConsoleConnection: any = null
   try {
+    logger.info('Search Console performance request started', {
+      path: '/api/search-console/performance',
+      method: 'POST'
+    })
+
     const session = await auth()
     
     if (!session?.user?.id) {
+      logger.warn('Search Console performance request unauthorized', {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        hasUserId: !!session?.user?.id
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    logger.info('Search Console performance auth successful', {
+      userId: session.user.id
+    })
+
     // Parse and validate request body
-    const body = await request.json()
+    let body: any
+    try {
+      body = await request.json()
+      logger.info('Search Console performance request body parsed', {
+        userId: session.user.id,
+        bodyKeys: Object.keys(body || {}),
+        bodyContent: body,
+        bodyType: typeof body,
+        isNull: body === null,
+        isUndefined: body === undefined
+      })
+    } catch (parseError) {
+      logger.error('Search Console performance request body parse failed', parseError, {
+        userId: session.user.id,
+        parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+      })
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
+
     const validationResult = performanceRequestSchema.safeParse(body)
     
     if (!validationResult.success) {
+      logger.error('Search Console performance validation failed', {
+        userId: session.user.id,
+        errors: validationResult.error.errors,
+        body: body,
+        bodyType: typeof body,
+        validationErrors: validationResult.error.errors.map(err => ({
+          path: err.path,
+          message: err.message,
+          code: err.code
+        }))
+      })
       return NextResponse.json(
         { error: 'Invalid request data', details: validationResult.error.errors },
         { status: 400 }
@@ -42,6 +89,14 @@ export async function POST(request: NextRequest) {
     }
 
     const { startDate, endDate, dimensions, searchType, rowLimit } = validationResult.data
+    logger.info('Search Console performance validation successful', {
+      userId: session.user.id,
+      startDate,
+      endDate,
+      dimensions,
+      searchType,
+      rowLimit
+    })
 
     // Check cache first
     const cacheKey = getCacheKey(session.user.id, { startDate, endDate, dimensions, searchType })
@@ -52,11 +107,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has Search Console connection
-    const searchConsoleConnection = await prisma.searchConsoleConnection.findUnique({
+    logger.info('Checking Search Console connection', {
+      userId: session.user.id
+    })
+
+    searchConsoleConnection = await prisma.searchConsoleConnection.findUnique({
       where: { userId: session.user.id }
     })
 
+    logger.info('Search Console connection query result', {
+      userId: session.user.id,
+      hasConnection: !!searchConsoleConnection,
+      hasSiteUrl: !!searchConsoleConnection?.siteUrl,
+      siteUrl: searchConsoleConnection?.siteUrl,
+      refreshToken: !!searchConsoleConnection?.refreshToken,
+      accessToken: !!searchConsoleConnection?.accessToken
+    })
+
     if (!searchConsoleConnection || !searchConsoleConnection.siteUrl) {
+      logger.warn('Search Console not connected', {
+        userId: session.user.id,
+        hasConnection: !!searchConsoleConnection,
+        hasSiteUrl: !!searchConsoleConnection?.siteUrl
+      })
       return NextResponse.json(
         { error: 'Search Console not connected. Please connect your Search Console account in settings.' },
         { status: 404 }
@@ -64,9 +137,39 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Search Console service
-    const searchConsoleService = await getSearchConsoleService(session.user.id)
+    logger.info('Initializing Search Console service', {
+      userId: session.user.id,
+      siteUrl: searchConsoleConnection.siteUrl
+    })
+
+    let searchConsoleService
+    try {
+      searchConsoleService = await getSearchConsoleService(session.user.id)
+      logger.info('Search Console service initialized successfully', {
+        userId: session.user.id
+      })
+    } catch (serviceError) {
+      logger.error('Failed to initialize Search Console service', serviceError, {
+        userId: session.user.id,
+        siteUrl: searchConsoleConnection.siteUrl,
+        serviceError: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
+      })
+      return NextResponse.json(
+        {
+          error: 'Search Console service unavailable. Please reconnect your Search Console account.',
+          details: process.env.NODE_ENV === 'development' ? (serviceError instanceof Error ? serviceError.message : String(serviceError)) : undefined
+        },
+        { status: 503 }
+      )
+    }
 
     // Prepare batch requests
+    logger.info('Starting Search Console API batch requests', {
+      userId: session.user.id,
+      siteUrl: searchConsoleConnection.siteUrl,
+      dateRange: { startDate, endDate }
+    })
+
     const [
       overviewData,
       topQueriesData,
@@ -80,6 +183,12 @@ export async function POST(request: NextRequest) {
         dimensions: [],
         searchType,
         rowLimit: 1
+      }).catch(error => {
+        logger.error('Overview data request failed', error, {
+          userId: session.user.id,
+          siteUrl: searchConsoleConnection.siteUrl
+        })
+        throw error
       }),
       // Top search queries
       searchConsoleService.getSearchAnalytics(searchConsoleConnection.siteUrl, {
@@ -88,6 +197,12 @@ export async function POST(request: NextRequest) {
         dimensions: ['query'],
         searchType,
         rowLimit: 25
+      }).catch(error => {
+        logger.error('Top queries data request failed', error, {
+          userId: session.user.id,
+          siteUrl: searchConsoleConnection.siteUrl
+        })
+        throw error
       }),
       // Top pages
       searchConsoleService.getSearchAnalytics(searchConsoleConnection.siteUrl, {
@@ -96,6 +211,12 @@ export async function POST(request: NextRequest) {
         dimensions: ['page'],
         searchType,
         rowLimit: 10
+      }).catch(error => {
+        logger.error('Top pages data request failed', error, {
+          userId: session.user.id,
+          siteUrl: searchConsoleConnection.siteUrl
+        })
+        throw error
       }),
       // Performance over time
       searchConsoleService.getSearchAnalytics(searchConsoleConnection.siteUrl, {
@@ -104,8 +225,22 @@ export async function POST(request: NextRequest) {
         dimensions: ['date'],
         searchType,
         rowLimit: 1000
+      }).catch(error => {
+        logger.error('Performance by date data request failed', error, {
+          userId: session.user.id,
+          siteUrl: searchConsoleConnection.siteUrl
+        })
+        throw error
       })
     ])
+
+    logger.info('Search Console API batch requests completed successfully', {
+      userId: session.user.id,
+      overviewRows: overviewData?.rows?.length || 0,
+      topQueriesRows: topQueriesData?.rows?.length || 0,
+      topPagesRows: topPagesData?.rows?.length || 0,
+      performanceByDateRows: performanceByDateData?.rows?.length || 0
+    })
 
     // Process the data
     const processedData = {
@@ -138,11 +273,31 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Search Console performance API error', error, {
       path: '/api/search-console/performance',
-      method: 'POST'
+      method: 'POST',
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      errorName: error instanceof Error ? error.constructor.name : typeof error,
+      searchConsoleConnectionExists: !!searchConsoleConnection,
+      hasRefreshToken: !!searchConsoleConnection?.refreshToken,
+      hasAccessToken: !!searchConsoleConnection?.accessToken,
+      siteUrl: searchConsoleConnection?.siteUrl
     })
 
+    // Return more specific error information in development
+    const errorMessage = process.env.NODE_ENV === 'development'
+      ? (error instanceof Error ? error.message : 'Unknown error')
+      : 'Failed to fetch search performance data'
+
     return NextResponse.json(
-      { error: 'Failed to fetch search performance data' },
+      {
+        error: errorMessage,
+        debug: process.env.NODE_ENV === 'development' ? {
+          type: error instanceof Error ? error.constructor.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+          hasConnection: !!searchConsoleConnection,
+          hasTokens: !!searchConsoleConnection?.refreshToken && !!searchConsoleConnection?.accessToken
+        } : undefined
+      },
       { status: 500 }
     )
   }

@@ -102,20 +102,106 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  logger.info('Focus request creation started', {
+    path: '/api/requests',
+    method: 'POST'
+  })
+
   // Apply rate limiting
   const rateLimitResponse = await rateLimits.api(request)
-  if (rateLimitResponse) return rateLimitResponse
+  if (rateLimitResponse) {
+    logger.warn('Focus request rate limited', {
+      path: '/api/requests'
+    })
+    return rateLimitResponse
+  }
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) {
+    logger.warn('Focus request unauthorized', {
+      authenticated: authResult.authenticated,
+      hasUser: !!authResult.user
+    })
+    return authResult.response
+  }
+
+  logger.info('Focus request auth successful', {
+    userId: authResult.user.id,
+    userRole: authResult.user.role,
+    agencyId: authResult.user.agencyId
+  })
+
+  // Log the raw request body for debugging
+  const rawBody = await request.text()
+  logger.info('Focus request raw body received', {
+    userId: authResult.user.id,
+    bodyLength: rawBody.length,
+    rawBody: rawBody
+  })
+
+  // Re-create the request with the body for validation
+  const requestWithBody = new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    body: rawBody
+  })
   
   // Validate request body
-  const validation = await validateRequest(request, createRequestSchema)
-  if (!validation.success) return validation.error
+  const validation = await validateRequest(requestWithBody, createRequestSchema)
+  if (!validation.success) {
+    // Get detailed error message from the response
+    let errorDetails = 'Unknown validation error'
+    try {
+      if (validation.error instanceof Response) {
+        const errorText = await validation.error.text()
+        errorDetails = errorText
+      }
+    } catch (e) {
+      errorDetails = 'Could not parse validation error'
+    }
+    
+    logger.error('Focus request validation failed', {
+      userId: authResult.user.id,
+      validationError: validation.error,
+      rawBody: rawBody,
+      errorDetails: errorDetails,
+      bodyParsed: JSON.parse(rawBody),
+      requestHeaders: Object.fromEntries(request.headers.entries())
+    })
+    return validation.error
+  }
   
   const { data } = validation
+  logger.info('Focus request validation successful', {
+    userId: authResult.user.id,
+    requestData: {
+      title: data.title,
+      type: data.type,
+      priority: data.priority,
+      packageType: data.packageType,
+      keywordsCount: data.keywords?.length || 0,
+      targetCitiesCount: data.targetCities?.length || 0,
+      targetModelsCount: data.targetModels?.length || 0
+    }
+  })
   
   try {
+    logger.info('Creating focus request in database', {
+      userId: authResult.user.id,
+      requestData: {
+        title: data.title,
+        description: data.description,
+        type: data.type,
+        priority: data.priority,
+        packageType: data.packageType,
+        targetUrl: data.targetUrl,
+        keywords: data.keywords,
+        targetCities: data.targetCities,
+        targetModels: data.targetModels,
+        agencyId: authResult.user.agencyId
+      }
+    })
+
     const newRequest = await prisma.request.create({
       data: {
         userId: authResult.user.id,
@@ -135,6 +221,13 @@ export async function POST(request: NextRequest) {
         user: true,
         agency: true
       }
+    })
+
+    logger.info('Focus request created successfully in database', {
+      userId: authResult.user.id,
+      requestId: newRequest.id,
+      title: newRequest.title,
+      type: newRequest.type
     })
     
     // Send focus request to SEOWorks

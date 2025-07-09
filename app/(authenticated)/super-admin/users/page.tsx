@@ -229,7 +229,14 @@ export default function SuperAdminUsersPage() {
       AGENCY_ADMIN: 'bg-blue-100 text-blue-800',
       USER: 'bg-gray-100 text-gray-800'
     }
-    return <Badge className={variants[role]}>{role}</Badge>
+    const validVariants: Record<string, string> = {
+      SUPER_ADMIN: 'bg-red-100 text-red-800',
+      AGENCY_ADMIN: 'bg-blue-100 text-blue-800',
+      DEALERSHIP_ADMIN: 'bg-green-100 text-green-800',
+      USER: 'bg-gray-100 text-gray-800',
+      ADMIN: 'bg-blue-100 text-blue-800' // Legacy support
+    }
+    return <Badge className={validVariants[role] || 'bg-gray-100 text-gray-800'}>{role}</Badge>
   }
 
   const SortableHeader = ({ column, label }: { column: string; label: string }) => (

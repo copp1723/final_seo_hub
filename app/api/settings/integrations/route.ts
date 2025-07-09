@@ -13,10 +13,15 @@ export async function GET(request: NextRequest) {
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {
+    // Get user's dealership for connection queries
+    if (!authResult.user.dealershipId) {
+      return errorResponse('User not assigned to a dealership', 400)
+    }
+
     // Fetch all integration statuses in parallel
     const [ga4Connection, searchConsoleConnection] = await Promise.all([
       prisma.gA4Connection.findUnique({
-        where: { userId: authResult.user.id },
+        where: { dealershipId: authResult.user.dealershipId },
         select: {
           propertyId: true,
           propertyName: true,
@@ -25,7 +30,7 @@ export async function GET(request: NextRequest) {
         }
       }),
       prisma.searchConsoleConnection.findUnique({
-        where: { userId: authResult.user.id },
+        where: { dealershipId: authResult.user.dealershipId },
         select: {
           siteUrl: true,
           siteName: true,

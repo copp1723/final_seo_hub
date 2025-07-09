@@ -94,11 +94,7 @@ export async function POST(req: NextRequest) {
         where: { id: user.id },
         data: {
           name: payload.contactName,
-          activePackageType: packageType,
-          onboardingCompleted: true,
-          // Set billing period to current month
-          currentBillingPeriodStart: new Date(),
-          currentBillingPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1))
+          onboardingCompleted: true
         }
       })
     } else {
@@ -108,16 +104,7 @@ export async function POST(req: NextRequest) {
           email: payload.clientEmail,
           name: payload.contactName,
           role: UserRole.USER,
-          activePackageType: packageType,
-          onboardingCompleted: true,
-          // Set billing period to current month
-          currentBillingPeriodStart: new Date(),
-          currentBillingPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-          // Reset usage counters
-          pagesUsedThisPeriod: 0,
-          blogsUsedThisPeriod: 0,
-          gbpPostsUsedThisPeriod: 0,
-          improvementsUsedThisPeriod: 0
+          onboardingCompleted: true
         }
       })
 
@@ -128,10 +115,15 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    // Note: This route creates users without dealership context
+    // Package type information will need to be set through dealership management
     // Create initial request with onboarding data
     const setupRequest = await prisma.request.create({
       data: {
         userId: user.id,
+        // Note: agencyId and dealershipId are null for legacy onboarding
+        agencyId: null,
+        dealershipId: null,
         title: `SEO Package Setup - ${payload.businessName}`,
         description: `Initial SEO setup for ${payload.businessName} (${payload.mainBrand})\n\nBusiness Details:\n- Contact: ${payload.contactName} (${payload.contactTitle})\n- Phone: ${payload.phone}\n- Address: ${payload.address}, ${payload.city}, ${payload.state} ${payload.zipCode}\n- Website: ${payload.websiteUrl}\n- Billing: ${payload.billingEmail}\n\nTarget Dealers: ${targetDealers.join('; ')}\n\nOnboarded via SEOWorks at ${payload.timestamp}`,
         type: 'setup',

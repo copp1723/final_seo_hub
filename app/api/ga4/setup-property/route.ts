@@ -13,9 +13,22 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get user's dealership ID
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { dealershipId: true }
+    })
+
+    if (!user?.dealershipId) {
+      return NextResponse.json(
+        { error: 'User not assigned to dealership' },
+        { status: 400 }
+      )
+    }
+
     // Get existing GA4 connection
     const connection = await prisma.gA4Connection.findUnique({
-      where: { userId: session.user.id }
+      where: { dealershipId: user.dealershipId }
     })
 
     if (!connection) {
@@ -64,7 +77,7 @@ export async function POST() {
 
       // Update the connection with property info
       await prisma.gA4Connection.update({
-        where: { userId: session.user.id },
+        where: { dealershipId: user.dealershipId },
         data: {
           propertyId,
           propertyName,
@@ -74,6 +87,7 @@ export async function POST() {
 
       logger.info('GA4 property information updated', {
         userId: session.user.id,
+        dealershipId: user.dealershipId,
         propertyId,
         propertyName
       })

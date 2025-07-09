@@ -58,23 +58,29 @@ export const optimizedQueries = {
             settings: true
           }
         },
-        preferences: true,
-        searchConsoleConnection: {
+        dealership: {
           select: {
             id: true,
-            siteUrl: true,
-            siteName: true,
-            updatedAt: true
+            name: true,
+            searchConsoleConnection: {
+              select: {
+                id: true,
+                siteUrl: true,
+                siteName: true,
+                updatedAt: true
+              }
+            },
+            ga4Connection: {
+              select: {
+                id: true,
+                propertyId: true,
+                propertyName: true,
+                updatedAt: true
+              }
+            }
           }
         },
-        ga4Connection: {
-          select: {
-            id: true,
-            propertyId: true,
-            propertyName: true,
-            updatedAt: true
-          }
-        }
+        preferences: true
       }
     })
   },

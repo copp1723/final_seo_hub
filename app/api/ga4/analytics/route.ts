@@ -62,13 +62,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: cachedData.data, cached: true })
     }
 
-    // Check if user has GA4 connection
+    // Get user's dealership ID
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { dealershipId: true }
+    })
+
+    if (!user?.dealershipId) {
+      return NextResponse.json(
+        { error: 'User not assigned to dealership' },
+        { status: 400 }
+      )
+    }
+
+    // Check if dealership has GA4 connection
     const ga4Connection = await prisma.gA4Connection.findUnique({
-      where: { userId: session.user.id }
+      where: { dealershipId: user.dealershipId }
     })
 
     if (!ga4Connection || !ga4Connection.propertyId) {
-      logger.warn('No GA4 connection found', { userId: session.user.id })
+      logger.warn('No GA4 connection found', {
+        userId: session.user.id,
+        dealershipId: user.dealershipId
+      })
       return NextResponse.json(
         { error: 'GA4 not connected. Please connect your Google Analytics account in settings.' },
         { status: 404 }
@@ -77,6 +93,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('Found GA4 connection', {
       userId: session.user.id,
+      dealershipId: user.dealershipId,
       propertyId: ga4Connection.propertyId,
       propertyName: ga4Connection.propertyName
     })
@@ -94,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize GA4 service
-    const ga4Service = new GA4Service(session.user.id)
+    const ga4Service = new GA4Service(user.dealershipId)
 
     // Prepare batch requests for different reports
     const batchRequests = [

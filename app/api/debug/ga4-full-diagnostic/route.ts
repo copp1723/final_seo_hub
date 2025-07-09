@@ -13,19 +13,31 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Get user's dealership
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { dealership: true }
+    })
+
+    if (!user?.dealershipId) {
+      return NextResponse.json({
+        error: 'No dealership assigned to user'
+      }, { status: 400 })
+    }
+
     // Get GA4 connection
     const ga4Connection = await prisma.gA4Connection.findUnique({
-      where: { userId: session.user.id }
+      where: { dealershipId: user.dealershipId }
     })
 
     if (!ga4Connection || !ga4Connection.propertyId) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'GA4 not connected',
         suggestion: 'Please connect GA4 in settings'
       }, { status: 404 })
     }
 
-    const ga4Service = new GA4Service(session.user.id)
+    const ga4Service = new GA4Service(user.dealershipId)
     const diagnostics: any = {
       connection: {
         propertyId: ga4Connection.propertyId,

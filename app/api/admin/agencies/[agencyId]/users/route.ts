@@ -66,7 +66,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
     const { email, name, role } = validation.data
 
     // Ensure AGENCY_ADMIN cannot create SUPER_ADMIN or escalate roles beyond AGENCY_ADMIN
-    if (user.role === UserRole.AGENCY_ADMIN && (role === UserRole.SUPER_ADMIN || role === UserRole.ADMIN)) {
+    if (user.role === UserRole.AGENCY_ADMIN && (role === UserRole.SUPER_ADMIN || role === UserRole.AGENCY_ADMIN)) {
         return errorResponse('AGENCY_ADMIN cannot create SUPER_ADMIN or ADMIN users.', 403)
     }
     // Ensure AGENCY_ADMIN cannot assign themselves as SUPER_ADMIN or ADMIN
@@ -179,7 +179,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ age
           return errorResponse('AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles.', 403);
         }
         // AGENCY_ADMIN cannot change a SUPER_ADMIN or ADMIN's role
-        if (userToUpdate.role === UserRole.SUPER_ADMIN || userToUpdate.role === UserRole.ADMIN) {
+        if (userToUpdate.role === UserRole.SUPER_ADMIN || userToUpdate.role === UserRole.AGENCY_ADMIN) {
           return errorResponse('AGENCY_ADMIN cannot change the role of a SUPER_ADMIN or ADMIN.', 403)
         }
       }
@@ -238,14 +238,8 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
         return errorResponse('You cannot delete yourself.', 403)
     }
     if (userMakingRequest.role === UserRole.AGENCY_ADMIN) {
-        if (userToDelete.role === UserRole.SUPER_ADMIN || userToDelete.role === UserRole.ADMIN) {
+        if (userToDelete.role === UserRole.SUPER_ADMIN || userToDelete.role === UserRole.AGENCY_ADMIN) {
             return errorResponse('AGENCY_ADMIN cannot delete SUPER_ADMIN or ADMIN users.', 403)
-        }
-        if (userToDelete.role === UserRole.AGENCY_ADMIN && userToDelete.id !== userMakingRequest.id) {
-            // Potentially allow deleting other AGENCY_ADMINs within the same agency
-            // For now, let's be restrictive: an AGENCY_ADMIN cannot delete another AGENCY_ADMIN.
-            // This could be relaxed if business logic allows.
-            // return errorResponse('AGENCY_ADMIN cannot delete another AGENCY_ADMIN in the same agency.', 403);
         }
     }
      if (userToDelete.role === UserRole.SUPER_ADMIN) {

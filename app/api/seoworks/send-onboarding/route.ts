@@ -131,15 +131,9 @@ export async function POST(request: NextRequest) {
         email: dealerData.clientEmail,
         name: dealerData.contactName,
         role: 'USER',
-        activePackageType: dealerData.package as PackageType,
-        onboardingCompleted: true,
-        currentBillingPeriodStart: new Date(),
-        currentBillingPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-        pagesUsedThisPeriod: 0,
-        blogsUsedThisPeriod: 0,
-        gbpPostsUsedThisPeriod: 0,
-        improvementsUsedThisPeriod: 0
-        // Note: agencyId is null for standalone users
+        onboardingCompleted: true
+        // Note: agencyId and dealershipId are null for standalone users
+        // Package tracking is now managed at dealership level
       }
     })
 
@@ -147,6 +141,9 @@ export async function POST(request: NextRequest) {
     const setupRequest = await prisma.request.create({
       data: {
         userId: user.id,
+        // Note: agencyId and dealershipId are null for standalone users
+        agencyId: null,
+        dealershipId: null,
         title: `SEO Package Setup - ${dealerData.businessName}`,
         description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}`,
         type: 'setup',

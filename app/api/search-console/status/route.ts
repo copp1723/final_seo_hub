@@ -8,8 +8,21 @@ export async function GET() {
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   try {
+    // Get user's dealership ID
+    const user = await prisma.user.findUnique({
+      where: { id: authResult.user.id },
+      select: { dealershipId: true }
+    })
+
+    if (!user?.dealershipId) {
+      return NextResponse.json({
+        connected: false,
+        debug: 'User not assigned to dealership'
+      })
+    }
+
     const connection = await prisma.searchConsoleConnection.findUnique({
-      where: { userId: authResult.user.id }
+      where: { dealershipId: user.dealershipId }
     })
 
     if (!connection) {

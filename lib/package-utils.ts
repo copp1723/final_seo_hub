@@ -1,4 +1,4 @@
-import { PackageType, User } from '@prisma/client'
+import { PackageType, Dealership } from '@prisma/client'
 import { SEO_KNOWLEDGE_BASE } from './seo-knowledge'
 import { prisma } from './prisma'
 import { getMonth, getYear, startOfMonth, endOfMonth, isAfter } from 'date-fns'
@@ -69,40 +69,40 @@ export function getPackageTotalTasks(packageType: PackageType): number {
 }
 
 /**
- * Ensures the user's billing period is current. If a new period has started,
+ * Ensures the dealership's billing period is current. If a new period has started,
  * it archives the previous period's usage and resets counters for the new period.
  */
-export async function ensureUserBillingPeriodAndRollover(userId: string): Promise<User> {
-  let user = await prisma.user.findUnique({ where: { id: userId } })
-  if (!user) throw new Error(`User with ID ${userId} not found.`)
+export async function ensureDealershipBillingPeriodAndRollover(dealershipId: string): Promise<Dealership> {
+  let dealership = await prisma.dealership.findUnique({ where: { id: dealershipId } })
+  if (!dealership) throw new Error(`Dealership with ID ${dealershipId} not found.`)
 
   const now = new Date()
 
   // If no active package or billing period, nothing to do for rollover.
   // Initial setup is handled during package activation.
-  if (!user.activePackageType || !user.currentBillingPeriodStart || !user.currentBillingPeriodEnd) {
-    return user
+  if (!dealership.activePackageType || !dealership.currentBillingPeriodStart || !dealership.currentBillingPeriodEnd) {
+    return dealership
   }
 
   // Check if the current date is past the current billing period's end.
-  if (isAfter(now, user.currentBillingPeriodEnd)) {
+  if (isAfter(now, dealership.currentBillingPeriodEnd)) {
     // Archive previous month's usage
     await prisma.monthlyUsage.create({
       data: {
-        userId: user.id,
-        month: getMonth(user.currentBillingPeriodStart) + 1, // date-fns getMonth is 0-indexed
-        year: getYear(user.currentBillingPeriodStart),
-        packageType: user.activePackageType,
-        pagesUsed: user.pagesUsedThisPeriod,
-        blogsUsed: user.blogsUsedThisPeriod,
-        gbpPostsUsed: user.gbpPostsUsedThisPeriod,
-        improvementsUsed: user.improvementsUsedThisPeriod,
+        dealershipId: dealership.id,
+        month: getMonth(dealership.currentBillingPeriodStart) + 1, // date-fns getMonth is 0-indexed
+        year: getYear(dealership.currentBillingPeriodStart),
+        packageType: dealership.activePackageType,
+        pagesUsed: dealership.pagesUsedThisPeriod,
+        blogsUsed: dealership.blogsUsedThisPeriod,
+        gbpPostsUsed: dealership.gbpPostsUsedThisPeriod,
+        improvementsUsed: dealership.improvementsUsedThisPeriod,
       },
     })
 
     // Reset counters and update billing period for the new month
-    user = await prisma.user.update({
-      where: { id: userId },
+    dealership = await prisma.dealership.update({
+      where: { id: dealershipId },
       data: {
         pagesUsedThisPeriod: 0,
         blogsUsedThisPeriod: 0,
@@ -113,88 +113,121 @@ export async function ensureUserBillingPeriodAndRollover(userId: string): Promis
       },
     })
   }
-  return user
+  return dealership
+}
+
+/**
+ * Legacy function for user-level operations - now looks up user's dealership
+ */
+export async function ensureUserBillingPeriodAndRollover(userId: string): Promise<Dealership | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  })
+  
+  if (!user?.dealershipId) {
+    return null // User not assigned to a dealership
+  }
+  
+  return ensureDealershipBillingPeriodAndRollover(user.dealershipId)
 }
 
 export type TaskType = 'pages' | 'blogs' | 'gbpPosts' | 'improvements'
 
 /**
- * Increments usage for a specific task type for a user.
- * Throws an error if the user has no active package or if the quota is exceeded.
+ * Increments usage for a specific task type for a dealership.
+ * Throws an error if the dealership has no active package or if the quota is exceeded.
  */
-export async function incrementUsage(userId: string, taskType: TaskType): Promise<User> {
-  let user = await ensureUserBillingPeriodAndRollover(userId)
+export async function incrementDealershipUsage(dealershipId: string, taskType: TaskType): Promise<Dealership> {
+  let dealership = await ensureDealershipBillingPeriodAndRollover(dealershipId)
 
-  if (!user.activePackageType) {
-    throw new Error('User does not have an active package.')
+  if (!dealership.activePackageType) {
+    throw new Error('Dealership does not have an active package.')
   }
 
-  const limits = getPackageLimits(user.activePackageType)
+  const limits = getPackageLimits(dealership.activePackageType)
   let currentUsage: number
   let limit: number
-  let updateData: Partial<User> = {}
+  let updateData: Partial<Dealership> = {}
 
   switch (taskType) {
     case 'pages':
-      currentUsage = user.pagesUsedThisPeriod
+      currentUsage = dealership.pagesUsedThisPeriod
       limit = limits.pages
-      updateData = { pagesUsedThisPeriod: user.pagesUsedThisPeriod + 1 }
+      updateData = { pagesUsedThisPeriod: dealership.pagesUsedThisPeriod + 1 } as any
       break
     case 'blogs':
-      currentUsage = user.blogsUsedThisPeriod
+      currentUsage = dealership.blogsUsedThisPeriod
       limit = limits.blogs
-      updateData = { blogsUsedThisPeriod: user.blogsUsedThisPeriod + 1 }
+      updateData = { blogsUsedThisPeriod: dealership.blogsUsedThisPeriod + 1 } as any
       break
     case 'gbpPosts':
-      currentUsage = user.gbpPostsUsedThisPeriod
+      currentUsage = dealership.gbpPostsUsedThisPeriod
       limit = limits.gbpPosts
-      updateData = { gbpPostsUsedThisPeriod: user.gbpPostsUsedThisPeriod + 1 }
+      updateData = { gbpPostsUsedThisPeriod: dealership.gbpPostsUsedThisPeriod + 1 } as any
       break
     case 'improvements':
-      currentUsage = user.improvementsUsedThisPeriod
+      currentUsage = dealership.improvementsUsedThisPeriod
       limit = limits.improvements
-      updateData = { improvementsUsedThisPeriod: user.improvementsUsedThisPeriod + 1 }
+      updateData = { improvementsUsedThisPeriod: dealership.improvementsUsedThisPeriod + 1 } as any
       break
     default:
       throw new Error(`Invalid task type: ${taskType}`)
   }
 
   if (currentUsage >= limit) {
-    throw new Error(`Usage limit for ${taskType} exceeded for user ${userId}.`)
+    throw new Error(`Usage limit for ${taskType} exceeded for dealership ${dealershipId}.`)
   }
 
-  user = await prisma.user.update({
-    where: { id: userId },
-    data: updateData,
+  // Create proper update data excluding read-only fields
+  const {id, agencyId, createdAt, updatedAt, ...allowedUpdateData} = updateData as any
+  
+  dealership = await prisma.dealership.update({
+    where: { id: dealershipId },
+    data: allowedUpdateData,
   })
-  return user
+  return dealership
 }
 
 /**
- * Gets the current package progress for the user for the current billing period.
+ * Legacy function for user-level operations - now works with user's dealership
  */
-export async function getUserPackageProgress(userId: string): Promise<PackageProgress | null> {
-  try {
-    const user = await ensureUserBillingPeriodAndRollover(userId)
+export async function incrementUsage(userId: string, taskType: TaskType): Promise<Dealership | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  })
+  
+  if (!user?.dealershipId) {
+    throw new Error('User is not assigned to a dealership.')
+  }
+  
+  return incrementDealershipUsage(user.dealershipId, taskType)
+}
 
-    if (!user || !user.activePackageType) {
-      console.log(`User ${userId} has no active package`)
+/**
+ * Gets the current package progress for the dealership for the current billing period.
+ */
+export async function getDealershipPackageProgress(dealershipId: string): Promise<PackageProgress | null> {
+  try {
+    const dealership = await ensureDealershipBillingPeriodAndRollover(dealershipId)
+
+    if (!dealership || !dealership.activePackageType) {
+      console.log(`Dealership ${dealershipId} has no active package`)
       return null
     }
 
-    const limits = getPackageLimits(user.activePackageType)
+    const limits = getPackageLimits(dealership.activePackageType)
 
     // Ensure all usage values are valid numbers (default to 0 if null/undefined)
-    const pagesUsed = user.pagesUsedThisPeriod ?? 0
-    const blogsUsed = user.blogsUsedThisPeriod ?? 0
-    const gbpPostsUsed = user.gbpPostsUsedThisPeriod ?? 0
-    const improvementsUsed = user.improvementsUsedThisPeriod ?? 0
+    const pagesUsed = dealership.pagesUsedThisPeriod ?? 0
+    const blogsUsed = dealership.blogsUsedThisPeriod ?? 0
+    const gbpPostsUsed = dealership.gbpPostsUsedThisPeriod ?? 0
+    const improvementsUsed = dealership.improvementsUsedThisPeriod ?? 0
 
     const totalCompleted = pagesUsed + blogsUsed + gbpPostsUsed + improvementsUsed
     const totalTasks = limits.pages + limits.blogs + limits.gbpPosts + limits.improvements
 
     return {
-      packageType: user.activePackageType,
+      packageType: dealership.activePackageType,
       pages: {
         completed: pagesUsed,
         total: limits.pages,
@@ -225,6 +258,27 @@ export async function getUserPackageProgress(userId: string): Promise<PackagePro
       },
       totalTasks: { completed: totalCompleted, total: totalTasks },
     }
+  } catch (error) {
+    console.error(`Error getting package progress for dealership ${dealershipId}:`, error)
+    return null
+  }
+}
+
+/**
+ * Legacy function for user-level operations - now works with user's dealership
+ */
+export async function getUserPackageProgress(userId: string): Promise<PackageProgress | null> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    })
+    
+    if (!user?.dealershipId) {
+      console.log(`User ${userId} is not assigned to a dealership`)
+      return null
+    }
+    
+    return getDealershipPackageProgress(user.dealershipId)
   } catch (error) {
     console.error(`Error getting package progress for user ${userId}:`, error)
     return null

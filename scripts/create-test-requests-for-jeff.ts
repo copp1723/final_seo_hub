@@ -16,7 +16,6 @@ async function createTestRequestsForJeff() {
           name: 'Jay Hatfield Test User',
           role: 'USER',
           onboardingCompleted: true,
-          activePackageType: PackageType.GOLD,
         }
       })
       console.log('Created test user:', testUser.id)

@@ -18,6 +18,15 @@ export default async function DashboardPage() {
   // Ensure we have a valid user ID
   const userId = session.user.id
   
+  // Get user's dealershipId first
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  })
+
+  if (!user?.dealershipId) {
+    return <div>No dealership assigned to this user.</div>
+  }
+  
   try {
     // Fetch cached dashboard data
     const { cachedQueries } = await import('@/lib/cache')
@@ -38,7 +47,7 @@ export default async function DashboardPage() {
     let gaConnected = false
     try {
       const gaConnection = await prisma.gA4Connection.findUnique({
-        where: { userId },
+        where: { dealershipId: user.dealershipId },
         select: { propertyId: true, propertyName: true }
       })
       

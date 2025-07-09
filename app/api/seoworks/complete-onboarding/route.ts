@@ -117,7 +117,10 @@ export async function POST(request: NextRequest) {
     // Find the existing user created by agency admin
     const existingUser = await prisma.user.findUnique({
       where: { id: dealerData.userId },
-      include: { agency: true }
+      include: {
+        agency: true,
+        dealership: true
+      }
     })
 
     if (!existingUser) {
@@ -128,15 +131,26 @@ export async function POST(request: NextRequest) {
       return errorResponse('User has already completed onboarding', 400)
     }
 
+    if (!existingUser.dealershipId) {
+      return errorResponse('User has no dealership assigned', 400)
+    }
+
     // Send to SEOWorks
     const seoworksResult = await sendToSEOWorks(dealerData)
 
-    // Update the existing user with onboarding completion and package info
+    // Update the user's onboarding status
     const updatedUser = await prisma.user.update({
       where: { id: dealerData.userId },
       data: {
+        onboardingCompleted: true
+      }
+    })
+
+    // Update dealership package info
+    await prisma.dealership.update({
+      where: { id: existingUser.dealershipId },
+      data: {
         activePackageType: dealerData.package as PackageType,
-        onboardingCompleted: true,
         currentBillingPeriodStart: new Date(),
         currentBillingPeriodEnd: new Date(new Date().setMonth(new Date().getMonth() + 1)),
         pagesUsedThisPeriod: 0,
@@ -150,6 +164,8 @@ export async function POST(request: NextRequest) {
     const setupRequest = await prisma.request.create({
       data: {
         userId: existingUser.id,
+        dealershipId: existingUser.dealershipId,
+        agencyId: existingUser.agencyId,
         title: `SEO Package Setup - ${dealerData.businessName}`,
         description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}\nManaged by Agency: ${existingUser.agency?.name || 'N/A'}`,
         type: 'setup',

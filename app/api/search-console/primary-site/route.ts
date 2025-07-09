@@ -19,10 +19,26 @@ export async function POST(req: Request) {
       )
     }
 
-    // Update the primary site for the user
+    // Get user's dealership ID
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { dealershipId: true }
+    })
+
+    if (!user?.dealershipId) {
+      return NextResponse.json(
+        { error: 'User not assigned to dealership' },
+        { status: 400 }
+      )
+    }
+
+    // Update the primary site for the dealership
     await prisma.searchConsoleConnection.update({
-      where: { userId: session.user.id },
-      data: { },
+      where: { dealershipId: user.dealershipId },
+      data: {
+        siteUrl: siteUrl,
+        siteName: new URL(siteUrl).hostname
+      },
     })
     
     return NextResponse.json({ success: true })

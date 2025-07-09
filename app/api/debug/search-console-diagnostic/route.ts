@@ -36,10 +36,23 @@ export async function GET() {
     try {
       await prisma.$connect()
       diagnostic.databaseChecks.connection = 'success'
+
+      // Get user's dealership
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        include: { dealership: true }
+      })
+
+      if (!user?.dealershipId) {
+        diagnostic.databaseChecks.noDealership = true
+        return NextResponse.json(diagnostic, { status: 200 })
+      }
+
+      diagnostic.databaseChecks.dealershipId = user.dealershipId
       
       // Check if searchConsoleConnection record exists
       const connection = await prisma.searchConsoleConnection.findUnique({
-        where: { userId: session.user.id }
+        where: { dealershipId: user.dealershipId }
       })
       
       diagnostic.databaseChecks.recordExists = !!connection

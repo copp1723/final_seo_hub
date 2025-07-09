@@ -91,12 +91,23 @@ export async function GET(req: Request) {
       allSitesPermissions: allSites.map(s => ({ url: s.siteUrl, permission: s.permissionLevel }))
     })
 
+    // Get user's dealership ID
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { dealershipId: true }
+    })
+
+    if (!user?.dealershipId) {
+      logger.error('User not assigned to dealership', { userId: session.user.id })
+      return NextResponse.redirect(new URL('/settings?error=user_not_assigned_to_dealership', process.env.NEXTAUTH_URL!))
+    }
+
     // Save or update tokens
     const encryptedAccessToken = encrypt(tokens.access_token!)
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
 
     await prisma.searchConsoleConnection.upsert({
-      where: { userId: session.user.id },
+      where: { dealershipId: user.dealershipId },
       update: {
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
@@ -105,7 +116,7 @@ export async function GET(req: Request) {
         siteName: siteName,
       },
       create: {
-        userId: session.user.id,
+        dealershipId: user.dealershipId,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

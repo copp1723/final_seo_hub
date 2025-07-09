@@ -40,9 +40,19 @@ export async function GET(request: NextRequest) {
     // Import encryption function
     const { encrypt } = await import('@/lib/encryption')
 
-    // Check if user already has a property selected
+    // Get user's dealership ID
+    const user = await prisma.user.findUnique({
+      where: { id: state },
+      select: { dealershipId: true }
+    })
+
+    if (!user?.dealershipId) {
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=User not assigned to dealership`)
+    }
+
+    // Check if dealership already has a property selected
     const existingConnection = await prisma.gA4Connection.findUnique({
-      where: { userId: state }
+      where: { dealershipId: user.dealershipId }
     })
     
     // Try to fetch property info from Google Analytics
@@ -77,15 +87,16 @@ export async function GET(request: NextRequest) {
     } else {
       logger.info('Preserving existing property selection', {
         userId: state,
+        dealershipId: user.dealershipId,
         propertyId,
         propertyName
       })
     }
 
     await prisma.gA4Connection.upsert({
-      where: { userId: state },
+      where: { dealershipId: user.dealershipId },
       create: {
-        userId: state,
+        dealershipId: user.dealershipId,
         accessToken: encrypt(tokens.access_token),
         refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

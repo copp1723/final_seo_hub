@@ -159,7 +159,7 @@ export default function AgencyUsersPage() {
       return;
     }
     // Prevent AGENCY_ADMIN from deleting SUPER_ADMIN or ADMIN
-    if (session.user.role === UserRole.AGENCY_ADMIN && (userToDelete.role === UserRole.SUPER_ADMIN || userToDelete.role === UserRole.ADMIN)) {
+    if (session.user.role === UserRole.AGENCY_ADMIN && (userToDelete.role === UserRole.SUPER_ADMIN || userToDelete.role === UserRole.AGENCY_ADMIN)) {
         toast("AGENCY_ADMINs cannot delete SUPER_ADMIN or ADMIN users.", 'error');
         setShowDeleteConfirm(false);
         return;
@@ -201,7 +201,7 @@ export default function AgencyUsersPage() {
     if (session?.user.role === UserRole.AGENCY_ADMIN) {
       // Agency admin cannot promote to ADMIN or SUPER_ADMIN
       // and cannot demote an ADMIN or SUPER_ADMIN
-      if (editingUser && (editingUser.role === UserRole.ADMIN || editingUser.role === UserRole.SUPER_ADMIN)) {
+      if (editingUser && (editingUser.role === UserRole.AGENCY_ADMIN || editingUser.role === UserRole.SUPER_ADMIN)) {
         return [editingUser.role]; // Can only keep current role for these users
       }
       return USER_ROLES_EDITABLE_BY_AGENCY_ADMIN;

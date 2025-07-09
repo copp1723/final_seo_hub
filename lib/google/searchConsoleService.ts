@@ -99,19 +99,19 @@ export class SearchConsoleService {
   }
 }
 
-// Helper to get service instance for a user
-export async function getSearchConsoleService(userId: string) {
+// Helper to get service instance for a dealership
+export async function getSearchConsoleService(dealershipId: string) {
   const token = await prisma.searchConsoleConnection.findUnique({
-    where: { userId },
+    where: { dealershipId },
   })
 
   if (!token) {
-    throw new Error('No Search Console token found for user')
+    throw new Error('No Search Console token found for dealership')
   }
 
   const accessToken = decrypt(token.accessToken)
-  const refreshToken = token.refreshToken 
-    ? decrypt(token.refreshToken) 
+  const refreshToken = token.refreshToken
+    ? decrypt(token.refreshToken)
     : undefined
 
   return new SearchConsoleService(accessToken, refreshToken)

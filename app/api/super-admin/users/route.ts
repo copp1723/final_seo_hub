@@ -149,11 +149,7 @@ export async function POST(request: NextRequest) {
         email,
         role,
         agencyId: agencyId || null,
-        onboardingCompleted: true, // Super admin created users are considered onboarded
-        pagesUsedThisPeriod: 0,
-        blogsUsedThisPeriod: 0,
-        gbpPostsUsedThisPeriod: 0,
-        improvementsUsedThisPeriod: 0
+        onboardingCompleted: true // Super admin created users are considered onboarded
       },
       include: {
         agency: true,
@@ -315,6 +311,12 @@ export async function DELETE(request: NextRequest) {
 
     // Delete user and all related data
     await prisma.$transaction(async (tx) => {
+      // Get user's dealership for integration cleanup
+      const userToDelete = await tx.user.findUnique({
+        where: { id: userId },
+        select: { dealershipId: true }
+      })
+
       // Delete user's requests and tasks
       await tx.task.deleteMany({
         where: { userId }
@@ -324,21 +326,33 @@ export async function DELETE(request: NextRequest) {
         where: { userId }
       })
       
-      // Delete user's integrations
-      await tx.gA4Connection.deleteMany({
-        where: { userId }
-      })
+      // Delete dealership integrations if this is the only user in the dealership
+      if (userToDelete?.dealershipId) {
+        const otherUsersInDealership = await tx.user.count({
+          where: {
+            dealershipId: userToDelete.dealershipId,
+            id: { not: userId }
+          }
+        })
+
+        // If this is the last user in the dealership, clean up dealership integrations
+        if (otherUsersInDealership === 0) {
+          await tx.gA4Connection.deleteMany({
+            where: { dealershipId: userToDelete.dealershipId }
+          })
+          
+          await tx.searchConsoleConnection.deleteMany({
+            where: { dealershipId: userToDelete.dealershipId }
+          })
+
+          await tx.monthlyUsage.deleteMany({
+            where: { dealershipId: userToDelete.dealershipId }
+          })
+        }
+      }
       
-      await tx.searchConsoleConnection.deleteMany({
-        where: { userId }
-      })
-      
-      // Delete user preferences and usage history
+      // Delete user preferences
       await tx.userPreferences.deleteMany({
-        where: { userId }
-      })
-      
-      await tx.monthlyUsage.deleteMany({
         where: { userId }
       })
       

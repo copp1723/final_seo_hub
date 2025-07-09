@@ -22,18 +22,6 @@ async function fixUserFields() {
       if (user.onboardingCompleted === null || user.onboardingCompleted === undefined) {
         updateData.onboardingCompleted = false
       }
-      if (user.pagesUsedThisPeriod === null || user.pagesUsedThisPeriod === undefined) {
-        updateData.pagesUsedThisPeriod = 0
-      }
-      if (user.blogsUsedThisPeriod === null || user.blogsUsedThisPeriod === undefined) {
-        updateData.blogsUsedThisPeriod = 0
-      }
-      if (user.gbpPostsUsedThisPeriod === null || user.gbpPostsUsedThisPeriod === undefined) {
-        updateData.gbpPostsUsedThisPeriod = 0
-      }
-      if (user.improvementsUsedThisPeriod === null || user.improvementsUsedThisPeriod === undefined) {
-        updateData.improvementsUsedThisPeriod = 0
-      }
       
       if (Object.keys(updateData).length > 0) {
         await prisma.user.update({

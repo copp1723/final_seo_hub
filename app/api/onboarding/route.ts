@@ -74,26 +74,42 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Update user record with onboarding data and initial billing setup
+    // Update user and dealership records with onboarding data and initial billing setup
     try {
-      const now = new Date()
-      const updateData: Prisma.UserUpdateInput = {
-        onboardingCompleted: true,
-        activePackageType: formData.package as PackageType,
-        currentBillingPeriodStart: startOfDay(now),
-        currentBillingPeriodEnd: endOfMonth(now),
-        pagesUsedThisPeriod: 0,
-        blogsUsedThisPeriod: 0,
-        gbpPostsUsedThisPeriod: 0,
-        improvementsUsedThisPeriod: 0,
+      // Get user's dealership
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { dealership: true }
+      })
+
+      if (!user?.dealershipId) {
+        logger.error('User has no dealership assigned', { userId })
+        return NextResponse.json({ error: 'No dealership assigned to user' }, { status: 400 })
       }
 
+      const now = new Date()
+      
+      // Update user onboarding status
       await prisma.user.update({
         where: { id: userId },
-        data: updateData,
-      });
+        data: { onboardingCompleted: true }
+      })
 
-      logger.info(`User ${userId} onboarding completed and package ${formData.package} activated.`);
+      // Update dealership package and billing info
+      await prisma.dealership.update({
+        where: { id: user.dealershipId },
+        data: {
+          activePackageType: formData.package as PackageType,
+          currentBillingPeriodStart: startOfDay(now),
+          currentBillingPeriodEnd: endOfMonth(now),
+          pagesUsedThisPeriod: 0,
+          blogsUsedThisPeriod: 0,
+          gbpPostsUsedThisPeriod: 0,
+          improvementsUsedThisPeriod: 0,
+        }
+      })
+
+      logger.info(`User ${userId} onboarding completed and dealership ${user.dealershipId} package ${formData.package} activated.`);
 
     } catch (dbError) {
       logger.error('Failed to update user onboarding status and package info:', dbError);
@@ -132,10 +148,14 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         email: true,
-        activePackageType: true,
         onboardingCompleted: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        dealership: {
+          select: {
+            activePackageType: true
+          }
+        }
       }
     })
     
@@ -147,7 +167,7 @@ export async function GET(request: NextRequest) {
     const onboardingRecords = user.onboardingCompleted ? [{
       id: user.id,
       businessName: user.name || 'Unknown Business',
-      package: user.activePackageType || 'SILVER',
+      package: user.dealership?.activePackageType || 'SILVER',
       status: 'submitted',
       submittedAt: user.updatedAt.toISOString(),
       createdAt: user.createdAt.toISOString(),

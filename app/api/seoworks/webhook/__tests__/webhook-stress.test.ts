@@ -1,11 +1,11 @@
 import { POST } from '../route'
-import { prisma } from '@/lib/prisma'
-import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
-import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
+import { prisma } from '../../../../../lib/prisma'
+import { queueEmailWithPreferences } from '../../../../../lib/mailgun/queue'
+import { contentAddedTemplate } from '../../../../../lib/mailgun/content-notifications'
 import { NextRequest } from 'next/server'
 
 // Mock dependencies
-jest.mock('@/lib/prisma', () => ({
+jest.mock('../../../../../lib/prisma', () => ({
   prisma: {
     request: {
       findFirst: jest.fn(),
@@ -18,15 +18,15 @@ jest.mock('@/lib/prisma', () => ({
   },
 }))
 
-jest.mock('@/lib/mailgun/queue', () => ({
+jest.mock('../../../../../lib/mailgun/queue', () => ({
   queueEmailWithPreferences: jest.fn(),
 }))
 
-jest.mock('@/lib/mailgun/content-notifications', () => ({
+jest.mock('../../../../../lib/mailgun/content-notifications', () => ({
   contentAddedTemplate: jest.fn(),
 }))
 
-jest.mock('@/lib/package-utils', () => ({
+jest.mock('../../../../../lib/package-utils', () => ({
   incrementUsage: jest.fn(),
   TaskType: 'pages' as const,
 }))
@@ -39,7 +39,13 @@ describe('SEOWorks Webhook - Stress Testing', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.resetAllMocks()
     process.env = { ...mockEnv }
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+    jest.resetAllMocks()
   })
 
   const createMockRequest = (payload: any) => {
@@ -109,8 +115,8 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         expect(response.status).toBe(200)
       })
 
-      // Should have called email queue for each
-      expect(queueEmailWithPreferences).toHaveBeenCalledTimes(10)
+      // Should have called email queue twice for each request (task completion + status change)
+      expect(queueEmailWithPreferences).toHaveBeenCalledTimes(20)
     }, 10000) // 10 second timeout
 
     it('should handle rapid sequential requests', async () => {
@@ -162,7 +168,8 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         expect(response.status).toBe(200)
       }
 
-      expect(queueEmailWithPreferences).toHaveBeenCalledTimes(5)
+      // Should have called email queue twice for each request (task completion + status change)
+      expect(queueEmailWithPreferences).toHaveBeenCalledTimes(10)
     })
   })
 

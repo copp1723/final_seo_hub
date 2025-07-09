@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
+import { NotificationPreferencesComponent } from '@/components/settings/notification-preferences'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
@@ -426,105 +427,18 @@ export default function SettingsPage() {
               <CardTitle>Notification Preferences</CardTitle>
               <CardDescription>Choose how you want to receive updates</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {loading ? (
-                <div className="animate-pulse space-y-4">
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                </div>
-              ) : notifications && (
-                <>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="email-notifications">Email Notifications</Label>
-                      <p className="text-sm text-gray-600">Receive notifications via email</p>
-                    </div>
-                    <Switch
-                      id="email-notifications"
-                      checked={notifications.emailNotifications}
-                      onCheckedChange={(checked) => 
-                        setNotifications({ ...notifications, emailNotifications: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="request-created">Request Created</Label>
-                      <p className="text-sm text-gray-600">Get notified when new requests are created</p>
-                    </div>
-                    <Switch
-                      id="request-created"
-                      checked={notifications.requestCreated}
-                      onCheckedChange={(checked) => 
-                        setNotifications({ ...notifications, requestCreated: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="status-changed">Status Updates</Label>
-                      <p className="text-sm text-gray-600">Get notified when request status changes</p>
-                    </div>
-                    <Switch
-                      id="status-changed"
-                      checked={notifications.statusChanged}
-                      onCheckedChange={(checked) => 
-                        setNotifications({ ...notifications, statusChanged: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="task-completed">Task Completions</Label>
-                      <p className="text-sm text-gray-600">Get notified when tasks are completed</p>
-                    </div>
-                    <Switch
-                      id="task-completed"
-                      checked={notifications.taskCompleted}
-                      onCheckedChange={(checked) => 
-                        setNotifications({ ...notifications, taskCompleted: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="weekly-summary">Weekly Summary</Label>
-                      <p className="text-sm text-gray-600">Receive weekly summary reports</p>
-                    </div>
-                    <Switch
-                      id="weekly-summary"
-                      checked={notifications.weeklySummary}
-                      onCheckedChange={(checked) => 
-                        setNotifications({ ...notifications, weeklySummary: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="marketing-emails">Marketing Emails</Label>
-                      <p className="text-sm text-gray-600">Receive product updates and announcements</p>
-                    </div>
-                    <Switch
-                      id="marketing-emails"
-                      checked={notifications.marketingEmails}
-                      onCheckedChange={(checked) => 
-                        setNotifications({ ...notifications, marketingEmails: checked })
-                      }
-                    />
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button onClick={saveNotifications} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save Preferences'}
-                    </Button>
-                  </div>
-                </>
-              )}
+            <CardContent>
+              <NotificationPreferencesComponent
+                preferences={notifications}
+                onUpdate={setNotifications}
+                saving={saving}
+              />
+              
+              <div className="pt-6 border-t">
+                <Button onClick={saveNotifications} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

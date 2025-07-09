@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
+import { DealershipSelector } from './dealership-selector'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -200,8 +201,9 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Desktop User Menu */}
-          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+          {/* Dealership Selector and Desktop User Menu */}
+          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+            <DealershipSelector />
             <div className="ml-3 relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -359,6 +361,13 @@ export function Navigation() {
                 })}
               </>
             )}
+          </div>
+          
+          {/* Mobile Dealership Selector */}
+          <div className="pt-4 pb-3 border-t border-gray-200">
+            <div className="px-4">
+              <DealershipSelector />
+            </div>
           </div>
           
           {/* Mobile User Info */}

@@ -23,8 +23,10 @@
     "clean:install": "npm run clean && npm install",
     "build:production": "prisma generate && prisma migrate deploy && npm run type-check && next build",
     "db:setup": "prisma generate && prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
     "db:setup-admins": "prisma db execute --schema=prisma/schema.prisma --file=scripts/setup-super-admins.sql",
-    "db:reset-with-admins": "prisma migrate reset --force && npm run db:setup-admins"
+    "db:reset-with-admins": "prisma migrate reset --force && npm run db:setup-admins",
+    "db:seed-sql": "prisma db execute --file=scripts/seed-data.sql"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

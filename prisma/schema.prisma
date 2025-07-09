@@ -10,7 +10,7 @@ datasource db {
 // Enums for type safety
 enum UserRole {
   USER
-  ADMIN
+  DEALERSHIP_ADMIN
   AGENCY_ADMIN
   SUPER_ADMIN
 }
@@ -57,9 +57,11 @@ model User {
   image         String?
   role          UserRole  @default(USER)
   
-  // Multi-tenant relationship
-  agencyId String?
-  agency   Agency? @relation(fields: [agencyId], references: [id])
+  // Multi-tenant relationships
+  agencyId     String?
+  agency       Agency?     @relation(fields: [agencyId], references: [id])
+  dealershipId String?
+  dealership   Dealership? @relation(fields: [dealershipId], references: [id])
 
   // OAuth accounts
   accounts Account[]
@@ -70,10 +72,6 @@ model User {
 
   // User's tasks
   tasks Task[]
-
-  // Google integrations
-  ga4Connection           GA4Connection?
-  searchConsoleConnection SearchConsoleConnection?
   
   // User preferences
   preferences   UserPreferences?
@@ -85,18 +83,6 @@ model User {
   // Onboarding status
   onboardingCompleted Boolean @default(false)
 
-  // Package and Billing Info
-  activePackageType          PackageType?
-  currentBillingPeriodStart  DateTime?
-  currentBillingPeriodEnd    DateTime?
-  pagesUsedThisPeriod        Int          @default(0)
-  blogsUsedThisPeriod        Int          @default(0)
-  gbpPostsUsedThisPeriod     Int          @default(0)
-  improvementsUsedThisPeriod Int          @default(0)
-
-  // Relation to MonthlyUsage
-  monthlyUsageHistory MonthlyUsage[]
-
   // Audit logs
   auditLogs AuditLog[]
 
@@ -106,6 +92,7 @@ model User {
 
   @@index([email])
   @@index([agencyId])
+  @@index([dealershipId])
   @@index([apiKey])
 }
 
@@ -158,14 +145,57 @@ model Agency {
   settings Json @default("{}")
 
   // Relationships
-  users    User[]
-  requests Request[]
+  users        User[]
+  requests     Request[]
+  dealerships  Dealership[]
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([domain])
+}
+
+// Dealership model - represents individual dealer locations within an agency
+model Dealership {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  website   String?
+  
+  // Agency relationship
+  agencyId  String
+  agency    Agency   @relation(fields: [agencyId], references: [id])
+  
+  // Dealership settings and branding
+  settings  Json     @default("{}")
+  
+  // Relationships
+  users     User[]
+  requests  Request[]
+  
+  // Analytics connections (dealership-specific)
+  ga4Connection           GA4Connection?
+  searchConsoleConnection SearchConsoleConnection?
+  
+  // Package and billing (dealership-specific)
+  activePackageType          PackageType?
+  currentBillingPeriodStart  DateTime?
+  currentBillingPeriodEnd    DateTime?
+  pagesUsedThisPeriod        Int          @default(0)
+  blogsUsedThisPeriod        Int          @default(0)
+  gbpPostsUsedThisPeriod     Int          @default(0)
+  improvementsUsedThisPeriod Int          @default(0)
+  
+  // Monthly usage history
+  monthlyUsageHistory MonthlyUsage[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([agencyId])
+  @@index([name])
 }
 
 // Main request model (formerly orders)
@@ -179,6 +209,10 @@ model Request {
   // Agency relationship
   agencyId String?
   agency   Agency? @relation(fields: [agencyId], references: [id])
+
+  // Dealership relationship
+  dealershipId String?
+  dealership   Dealership? @relation(fields: [dealershipId], references: [id])
 
   // Request details
   title       String
@@ -225,15 +259,16 @@ model Request {
 
   @@index([userId, status])
   @@index([agencyId, status])
+  @@index([dealershipId, status])
   @@index([status, createdAt])
   @@index([seoworksTaskId])
 }
 
-// GA4 Integration
+// GA4 Integration - now dealership-specific
 model GA4Connection {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String @id @default(cuid())
+  dealershipId String @unique
+  dealership   Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   // Encrypted tokens
   accessToken  String    @db.Text
@@ -248,11 +283,11 @@ model GA4Connection {
   updatedAt DateTime @updatedAt
 }
 
-// Model for storing historical monthly usage
+// Model for storing historical monthly usage - now dealership-specific
 model MonthlyUsage {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String @id @default(cuid())
+  dealershipId String
+  dealership   Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   month Int // 1-12
   year  Int
@@ -266,15 +301,15 @@ model MonthlyUsage {
 
   archivedAt DateTime @default(now())
 
-  @@unique([userId, month, year]) // Ensure only one record per user per month
-  @@index([userId])
+  @@unique([dealershipId, month, year]) // Ensure only one record per dealership per month
+  @@index([dealershipId])
 }
 
-// Search Console Integration
+// Search Console Integration - now dealership-specific
 model SearchConsoleConnection {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String @id @default(cuid())
+  dealershipId String @unique
+  dealership   Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   // Encrypted tokens
   accessToken  String    @db.Text

@@ -29,11 +29,6 @@ interface NotificationPreferences {
   marketingEmails: boolean
 }
 
-interface ApiKeyInfo {
-  apiKey: string | null
-  apiKeyCreatedAt: string | null
-  hasApiKey: boolean
-}
 
 interface IntegrationStatus {
   ga4: {
@@ -69,11 +64,8 @@ export default function SettingsPage() {
   // State for different sections
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [notifications, setNotifications] = useState<NotificationPreferences | null>(null)
-  const [apiKeyInfo, setApiKeyInfo] = useState<ApiKeyInfo | null>(null)
   const [integrations, setIntegrations] = useState<IntegrationStatus | null>(null)
   const [packageUsage, setPackageUsage] = useState<PackageUsage | null>(null)
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [newApiKey, setNewApiKey] = useState<string | null>(null)
   const [showPropertySelector, setShowPropertySelector] = useState(false)
   const [newPropertyId, setNewPropertyId] = useState('')
   const [newPropertyName, setNewPropertyName] = useState('')
@@ -143,7 +135,11 @@ export default function SettingsPage() {
             const profileRes = await fetch('/api/settings/profile')
             if (profileRes.ok) {
               const data = await profileRes.json()
-              setProfile(data.user)
+              // Fix: Extract user from the correct API response structure
+              const user = data.data?.user || data.user
+              setProfile(user)
+            } else {
+              setMessage({ type: 'error', text: 'Failed to load profile data' })
             }
             break
             
@@ -161,13 +157,6 @@ export default function SettingsPage() {
             }
             break
             
-          case 'api':
-            const apiRes = await fetch('/api/settings/api-key')
-            if (apiRes.ok) {
-              const data = await apiRes.json()
-              setApiKeyInfo(data)
-            }
-            break
             
           case 'integrations':
             const intRes = await fetch('/api/settings/integrations')
@@ -269,83 +258,6 @@ export default function SettingsPage() {
     }
   }
 
-  // Generate API key
-  const generateApiKey = async () => {
-    if (!confirm('Are you sure you want to generate a new API key? This will invalidate your existing key.')) {
-      return
-    }
-    
-    setSaving(true)
-    setMessage(null)
-    
-    try {
-      const res = await fetch('/api/settings/api-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmRegenerate: true })
-      })
-      
-      const data = await res.json()
-      
-      if (res.ok) {
-        setNewApiKey(data.apiKey)
-        setShowApiKey(true)
-        setApiKeyInfo({
-          apiKey: data.apiKey,
-          apiKeyCreatedAt: data.apiKeyCreatedAt,
-          hasApiKey: true
-        })
-        setMessage({ type: 'success', text: data.message })
-      } else {
-        setMessage({ type: 'error', text: 'Failed to generate API key' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to generate API key' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Delete API key
-  const deleteApiKey = async () => {
-    if (!confirm('Are you sure you want to delete your API key? This action cannot be undone.')) {
-      return
-    }
-    
-    setSaving(true)
-    setMessage(null)
-    
-    try {
-      const res = await fetch('/api/settings/api-key', {
-        method: 'DELETE'
-      })
-      
-      if (res.ok) {
-        setApiKeyInfo({
-          apiKey: null,
-          apiKeyCreatedAt: null,
-          hasApiKey: false
-        })
-        setNewApiKey(null)
-        setShowApiKey(false)
-        setMessage({ type: 'success', text: 'API key deleted successfully' })
-      } else {
-        setMessage({ type: 'error', text: 'Failed to delete API key' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to delete API key' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Copy API key to clipboard
-  const copyApiKey = () => {
-    if (newApiKey) {
-      navigator.clipboard.writeText(newApiKey)
-      setMessage({ type: 'success', text: 'API key copied to clipboard' })
-    }
-  }
 
   // Update GA4 property
   const handleUpdateProperty = async () => {
@@ -415,12 +327,11 @@ export default function SettingsPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-4 w-full">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="api">API Keys</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="usage">Usage</TabsTrigger>
+          <TabsTrigger value="usage">Monthly Usage</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
@@ -505,90 +416,6 @@ export default function SettingsPage() {
                     <Button onClick={saveNotifications} disabled={saving}>
                       {saving ? 'Saving...' : 'Save Preferences'}
                     </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="api" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>API Key Management</CardTitle>
-              <CardDescription>Manage your API access credentials</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {loading ? (
-                <div className="animate-pulse space-y-4">
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                </div>
-              ) : (
-                <>
-                  {apiKeyInfo?.hasApiKey && !newApiKey ? (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-gray-50 rounded-md">
-                        <p className="text-sm font-medium text-gray-700">Current API Key</p>
-                        <p className="font-mono text-sm mt-1">{apiKeyInfo.apiKey}</p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          Created on {formatDate(apiKeyInfo.apiKeyCreatedAt)}
-                        </p>
-                      </div>
-                      
-                      <div className="flex gap-3">
-                        <Button onClick={generateApiKey} disabled={saving}>
-                          Regenerate Key
-                        </Button>
-                        <Button variant="secondary" onClick={deleteApiKey} disabled={saving}>
-                          Delete Key
-                        </Button>
-                      </div>
-                    </div>
-                  ) : newApiKey ? (
-                    <div className="space-y-4">
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                        <p className="text-sm font-medium text-green-800 mb-2">
-                          New API Key Generated Successfully!
-                        </p>
-                        <p className="text-xs text-green-700 mb-3">
-                          Make sure to copy your API key now. You won't be able to see it again!
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 p-2 bg-white rounded border text-xs">
-                            {showApiKey ? newApiKey : '••••••••••••••••••••••••••••••••'}
-                          </code>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setShowApiKey(!showApiKey)}
-                          >
-                            {showApiKey ? 'Hide' : 'Show'}
-                          </Button>
-                          <Button size="sm" onClick={copyApiKey}>
-                            Copy
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <p className="text-sm text-gray-600">
-                        You don't have an API key yet. Generate one to access the API.
-                      </p>
-                      <Button onClick={generateApiKey} disabled={saving}>
-                        Generate API Key
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <div className="mt-6 p-4 bg-blue-50 rounded-md">
-                    <h4 className="text-sm font-medium text-blue-900">API Documentation</h4>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Use your API key in the Authorization header:
-                    </p>
-                    <code className="block mt-2 p-2 bg-blue-100 rounded text-xs">
-                      Authorization: Bearer YOUR_API_KEY
-                    </code>
                   </div>
                 </>
               )}
@@ -733,9 +560,9 @@ export default function SettingsPage() {
         <TabsContent value="usage" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Package Usage</CardTitle>
+              <CardTitle>Monthly Package Usage</CardTitle>
               <CardDescription>
-                Your SEO package usage for {packageUsage?.currentMonth?.month || 'Current Month'} {packageUsage?.currentMonth?.year || new Date().getFullYear()}
+                Track your SEO request usage for {packageUsage?.currentMonth?.month || 'Current Month'} {packageUsage?.currentMonth?.year || new Date().getFullYear()} - monitor pages, blogs, and GBP posts remaining in your package
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -16,7 +16,7 @@ const updatePreferencesSchema = z.object({
 // PATCH update specific user's notification preferences (admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
@@ -26,7 +26,7 @@ export async function PATCH(
     return errorResponse('Insufficient permissions', 403)
   }
   
-  const { userId } = params
+  const { userId } = await params
   
   try {
     // Parse request body

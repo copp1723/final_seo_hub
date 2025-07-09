@@ -8,8 +8,32 @@ class EmailQueue {
   private processing = false
   private maxRetries = 3
   private retryDelay = 5000 // 5 seconds
+  private failedEmails: Array<{ email: EmailOptions; retries: number; timestamp: Date }> = []
+
+  constructor() {
+    this.validateEmailConfig()
+  }
+
+  private validateEmailConfig(): void {
+    const required = ['MAILGUN_API_KEY', 'MAILGUN_DOMAIN', 'NEXT_PUBLIC_APP_URL']
+    const missing = required.filter(key => !process.env[key])
+    
+    if (missing.length > 0) {
+      logger.error('❌ Missing email configuration', { missing })
+      throw new Error(`Missing required environment variables: ${missing.join(', ')}`)
+    }
+    
+    logger.info('✅ Email configuration validated')
+  }
 
   async add(email: EmailOptions): Promise<void> {
+    // Log email attempt for debugging
+    logger.info('Adding email to queue', {
+      to: email.to,
+      subject: email.subject,
+      queueSize: this.queue.length
+    })
+    
     this.queue.push({ email, retries: 0 })
     
     // Start processing if not already running
@@ -46,6 +70,13 @@ class EmailQueue {
             }
           }, delay)
         } else if (!success) {
+          // Store failed email for debugging
+          this.failedEmails.push({
+            email: item.email,
+            retries: item.retries,
+            timestamp: new Date()
+          })
+          
           logger.error('Email send failed after max retries', undefined, {
             to: item.email.to,
             subject: item.email.subject,
@@ -71,6 +102,16 @@ class EmailQueue {
   // Clear the queue (useful for testing)
   clear(): void {
     this.queue = []
+  }
+
+  // Get failed emails for debugging
+  getFailedEmails(): Array<{ email: EmailOptions; retries: number; timestamp: Date }> {
+    return this.failedEmails
+  }
+
+  // Clear failed emails
+  clearFailedEmails(): void {
+    this.failedEmails = []
   }
 }
 

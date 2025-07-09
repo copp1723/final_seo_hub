@@ -1,22 +1,22 @@
-// Jest setup file for Next.js project
-import 'jest-environment-node'
+// Jest setup file
+global.process = {
+  ...global.process,
+  env: {
+    ...global.process.env,
+    NODE_ENV: 'test',
+    NEXT_PUBLIC_APP_URL: 'https://test.example.com',
+    SEOWORKS_WEBHOOK_SECRET: 'test-secret',
+  },
+};
 
-// Mock Next.js modules that aren't available in test environment
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    back: jest.fn(),
-  }),
-  useSearchParams: () => new URLSearchParams(),
-  usePathname: () => '/',
-}))
-
-// Mock environment variables for tests
-process.env.NODE_ENV = 'test'
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test'
-process.env.NEXTAUTH_SECRET = 'test-secret'
-process.env.NEXTAUTH_URL = 'http://localhost:3000'
-
-// Global test timeout
-jest.setTimeout(30000)
+// Mock console methods to reduce noise in tests
+global.console = {
+  ...console,
+  // Keep error and warn for debugging
+  error: jest.fn(console.error),
+  warn: jest.fn(console.warn),
+  // Silence other methods
+  log: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn(),
+};

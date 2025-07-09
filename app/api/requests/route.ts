@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     const newRequest = await prisma.request.create({
       data: {
         userId: authResult.user.id,
-        agencyId: authResult.user.agencyId,
+        agencyId: authResult.user.agencyId || null, // Handle null agencyId
         title: data.title,
         description: data.description,
         type: data.type,

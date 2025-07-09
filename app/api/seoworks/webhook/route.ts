@@ -5,6 +5,7 @@ import { errorResponse, successResponse } from '@/lib/api-auth'
 import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
+import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { RequestStatus } from '@prisma/client'
 import { incrementUsage, TaskType } from '@/lib/package-utils'
 import crypto from 'crypto'
@@ -248,12 +249,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Validate deliverables structure
+function validateDeliverables(deliverables: any): boolean {
+  if (!deliverables || !Array.isArray(deliverables)) return true // Allow empty
+  return deliverables.every(d => 
+    d && typeof d === 'object' && 
+    typeof d.title === 'string' &&
+    (!d.url || typeof d.url === 'string')
+  )
+}
+
 // Handle task completed event
 async function handleTaskCompleted(
   request: any, // Request with user
   data: any
 ) {
   try {
+    // Validate deliverables format
+    if (!validateDeliverables(data.deliverables)) {
+      logger.warn('Invalid deliverables format, using fallback', { 
+        taskId: data.externalId,
+        deliverables: data.deliverables 
+      })
+      data.deliverables = [] // Use empty array as fallback
+    }
     // Update request progress based on task type
     const updateData: any = {}
     
@@ -329,7 +348,13 @@ async function handleTaskCompleted(
     }
 
     // Send task completion email
-    const emailTemplate = taskCompletedTemplate(updatedRequest, request.user, completedTask)
+    // Use content-specific template for pages, blogs, and GBP posts
+    const isContentTask = ['page', 'blog', 'gbp_post', 'gbp-post'].includes(data.taskType.toLowerCase())
+    
+    const emailTemplate = isContentTask
+      ? contentAddedTemplate(updatedRequest, request.user, completedTask)
+      : taskCompletedTemplate(updatedRequest, request.user, completedTask)
+    
     await queueEmailWithPreferences(
       request.userId,
       'taskCompleted',

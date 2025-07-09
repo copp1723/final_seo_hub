@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,8 @@ export default function FocusRequestPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [requestCount, setRequestCount] = useState(0)
+  const [loadingCount, setLoadingCount] = useState(true)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -30,9 +32,37 @@ export default function FocusRequestPage() {
     targetUrl: '',
   })
 
+  // Fetch current month's request count
+  useEffect(() => {
+    const fetchRequestCount = async () => {
+      if (!session?.user?.id) return
+      
+      const now = new Date()
+      const month = now.getMonth() + 1 // 1-based month
+      const year = now.getFullYear()
+      
+      try {
+        const response = await fetch(`/api/requests/count?userId=${session.user.id}&month=${month}&year=${year}&type=all`)
+        if (response.ok) {
+          const data = await response.json()
+          setRequestCount(data.data?.count || 0)
+        }
+      } catch (err) {
+        console.error('Failed to fetch request count:', err)
+      } finally {
+        setLoadingCount(false)
+      }
+    }
+
+    fetchRequestCount()
+  }, [session?.user?.id])
+
+  const isAtLimit = requestCount >= 2
+  const remainingRequests = Math.max(0, 2 - requestCount)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!session) return
+    if (!session || isAtLimit) return
 
     setLoading(true)
     setError('')
@@ -123,6 +153,25 @@ export default function FocusRequestPage() {
           <CardDescription>
             Submit a high-priority SEO task for immediate attention
           </CardDescription>
+          
+          {/* Monthly Usage Indicator */}
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">
+                Monthly Focus Requests: {loadingCount ? '...' : `${requestCount} / 2 used`}
+              </span>
+              {!loadingCount && (
+                <Badge variant={isAtLimit ? "destructive" : remainingRequests === 1 ? "warning" : "default"}>
+                  {isAtLimit ? 'Limit Reached' : `${remainingRequests} remaining`}
+                </Badge>
+              )}
+            </div>
+            {isAtLimit && (
+              <p className="text-xs text-blue-700 mt-1">
+                Limit resets at the start of next month
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="secondary" className="flex items-center gap-1">
               <Zap className="h-3 w-3" />
@@ -154,6 +203,7 @@ export default function FocusRequestPage() {
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
                 placeholder="e.g., Urgent: Create landing page for Toyota Camry promotion"
                 required
+                disabled={isAtLimit}
               />
             </div>
 
@@ -166,6 +216,7 @@ export default function FocusRequestPage() {
                 rows={4}
                 required
                 minLength={10}
+                disabled={isAtLimit}
                 className={`${formData.description.length > 0 && formData.description.length < 10 ? 'border-red-300' : ''}`}
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -185,6 +236,7 @@ export default function FocusRequestPage() {
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  disabled={isAtLimit}
                 >
                   <option value="page">Page</option>
                   <option value="blog">Blog</option>
@@ -199,6 +251,7 @@ export default function FocusRequestPage() {
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as RequestPriority })}
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  disabled={isAtLimit}
                 >
                   <option value="HIGH">High</option>
                   <option value="MEDIUM">Medium</option>
@@ -217,6 +270,7 @@ export default function FocusRequestPage() {
                     variant={formData.packageType === pkg ? 'default' : 'secondary'}
                     size="sm"
                     onClick={() => setFormData({ ...formData, packageType: pkg })}
+                    disabled={isAtLimit}
                   >
                     {pkg}
                   </Button>
@@ -232,6 +286,7 @@ export default function FocusRequestPage() {
                 onChange={(e) => setFormData({ ...formData, targetCities: e.target.value })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
                 placeholder="e.g., Austin, TX, San Antonio, TX, Oklahoma City, OK"
+                disabled={isAtLimit}
               />
               <p className="text-xs text-gray-500 mt-1">Include state codes (City, State). Include cities in neighboring states if relevant.</p>
             </div>
@@ -244,6 +299,7 @@ export default function FocusRequestPage() {
                 onChange={(e) => setFormData({ ...formData, targetModels: e.target.value })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
                 placeholder="e.g., Toyota Camry, Honda Accord, Nissan Altima"
+                disabled={isAtLimit}
               />
             </div>
 
@@ -255,6 +311,7 @@ export default function FocusRequestPage() {
                 onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
                 placeholder="e.g., best family sedan, fuel efficient cars"
+                disabled={isAtLimit}
               />
             </div>
 
@@ -266,6 +323,7 @@ export default function FocusRequestPage() {
                 onChange={(e) => setFormData({ ...formData, targetUrl: e.target.value })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
                 placeholder="https://example.com/page"
+                disabled={isAtLimit}
               />
             </div>
 
@@ -280,10 +338,21 @@ export default function FocusRequestPage() {
             </div>
 
             <div className="flex gap-2 pt-4">
-              <Button type="submit" disabled={loading} className="flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                {loading ? 'Sending Focus Request...' : 'Send Focus Request'}
-              </Button>
+              {isAtLimit ? (
+                <div className="w-full p-4 bg-gray-100 border border-gray-300 rounded-md text-center">
+                  <p className="text-gray-600 font-medium">
+                    You've reached the maximum of 2 Focus Requests for this month.
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Your limit will reset on the 1st of next month.
+                  </p>
+                </div>
+              ) : (
+                <Button type="submit" disabled={loading} className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  {loading ? 'Sending Focus Request...' : 'Send Focus Request'}
+                </Button>
+              )}
               <Button type="button" variant="secondary" onClick={() => router.push('/requests')}>
                 Cancel
               </Button>

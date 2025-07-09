@@ -343,25 +343,26 @@ export default function ReportingPage() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="traffic">Traffic Analytics</TabsTrigger>
-            <TabsTrigger value="search">Search Performance</TabsTrigger>
+          <TabsList className="grid w-full max-w-4xl grid-cols-4">
+            <TabsTrigger value="overview">GA4 Overview</TabsTrigger>
+            <TabsTrigger value="traffic">GA4 Traffic Analytics</TabsTrigger>
+            <TabsTrigger value="search">GA4 Search Performance</TabsTrigger>
+            <TabsTrigger value="searchconsole">Search Console Performance</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab - Combined Metrics */}
+          {/* GA4 Overview Tab - Combined Metrics */}
           <TabsContent value="overview" className="space-y-6">
-            <OverviewTab 
-              gaData={gaData} 
-              scData={scData} 
-              gaError={gaError} 
+            <OverviewTab
+              gaData={gaData}
+              scData={scData}
+              gaError={gaError}
               scError={scError}
               gaMetrics={gaMetrics}
               chartOptions={chartOptions}
             />
           </TabsContent>
 
-          {/* Traffic Analytics Tab - GA4 Focused */}
+          {/* GA4 Traffic Analytics Tab - GA4 Focused */}
           <TabsContent value="traffic" className="space-y-6">
             <TrafficTab
               gaData={gaData}
@@ -371,8 +372,18 @@ export default function ReportingPage() {
             />
           </TabsContent>
 
-          {/* Search Performance Tab - Search Console Focused */}
+          {/* GA4 Search Performance Tab - GA4 Focused */}
           <TabsContent value="search" className="space-y-6">
+            <TrafficTab
+              gaData={gaData}
+              gaError={gaError}
+              gaMetrics={gaMetrics}
+              chartOptions={chartOptions}
+            />
+          </TabsContent>
+
+          {/* Search Console Performance Tab - Search Console Focused */}
+          <TabsContent value="searchconsole" className="space-y-6">
             <SearchTab
               scData={scData}
               scError={scError}

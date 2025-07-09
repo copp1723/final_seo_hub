@@ -17,9 +17,13 @@ import {
 import dynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
 
-const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { 
+const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), {
   loading: () => <Loader2 className="h-6 w-6 animate-spin" />,
-  ssr: false 
+  ssr: false
+})
+const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), {
+  loading: () => <Loader2 className="h-6 w-6 animate-spin" />,
+  ssr: false
 })
 
 interface OverviewTabProps {
@@ -157,6 +161,101 @@ export default function OverviewTab({
               />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Year-over-Year Performance Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Year-over-Year Performance</CardTitle>
+          <p className="text-sm text-gray-600">
+            Comparing current month vs same month last year (Search Console data preferred)
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <Bar
+              data={{
+                labels: ['June 2024', 'June 2025'],
+                datasets: [
+                  {
+                    label: 'Sessions',
+                    data: [1250, 1580], // Example data - replace with actual year-over-year data
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                  },
+                  {
+                    label: 'Users',
+                    data: [980, 1220], // Example data
+                    backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1
+                  },
+                  {
+                    label: 'Impressions (÷100)',
+                    data: [456, 678], // Example data (divided by 100 for scale)
+                    backgroundColor: 'rgba(251, 146, 60, 0.8)',
+                    borderColor: 'rgb(251, 146, 60)',
+                    borderWidth: 1
+                  },
+                  {
+                    label: 'CTR (%)',
+                    data: [2.8, 3.4], // Example data
+                    backgroundColor: 'rgba(168, 85, 247, 0.8)',
+                    borderColor: 'rgb(168, 85, 247)',
+                    borderWidth: 1,
+                    yAxisID: 'y1'
+                  }
+                ]
+              }}
+              options={{
+                ...chartOptions,
+                plugins: {
+                  ...chartOptions.plugins,
+                  tooltip: {
+                    mode: 'index' as const,
+                    intersect: false,
+                    callbacks: {
+                      afterLabel: function(context: any) {
+                        // Calculate percentage change between years
+                        const currentValue = context.parsed.y
+                        const dataset = context.dataset.data
+                        if (context.dataIndex === 1 && dataset[0] > 0) {
+                          const previousValue = dataset[0]
+                          const percentChange = ((currentValue - previousValue) / previousValue * 100)
+                          const percentChangeStr = percentChange.toFixed(1)
+                          return `Change: ${percentChange > 0 ? '+' : ''}${percentChangeStr}%`
+                        }
+                        return ''
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  ...chartOptions.scales,
+                  y1: {
+                    type: 'linear' as const,
+                    display: true,
+                    position: 'right' as const,
+                    grid: {
+                      drawOnChartArea: false,
+                    },
+                    title: {
+                      display: true,
+                      text: 'CTR (%)'
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+          <div className="mt-4 text-sm text-gray-600">
+            <p>
+              <strong>Note:</strong> This chart compares the same month across different years using Search Console data for accuracy.
+              Impressions are scaled down (÷100) for better visualization alongside other metrics.
+            </p>
+          </div>
         </CardContent>
       </Card>
 

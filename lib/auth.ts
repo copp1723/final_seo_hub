@@ -47,14 +47,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     signIn: async ({ user, account, profile }) => {
-      console.log('SignIn callback triggered:', { 
-        user: user.email, 
-        account: account?.provider, 
-        profile: profile?.email 
+      console.log('SignIn callback triggered:', {
+        user: user.email,
+        account: account?.provider,
+        profile: profile?.email
       })
       try {
-        // The PrismaAdapter will create the user after this callback returns true
-        // We'll ensure default values are set in the session callback instead
+        // Only allow users who have been invited (exist in our database)
+        if (!user.email) {
+          console.log('SignIn denied: No email provided')
+          return false
+        }
+
+        // Check if user exists in our database (has been invited)
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email }
+        })
+
+        if (!existingUser) {
+          console.log('SignIn denied: User not invited', { email: user.email })
+          return false
+        }
+
+        console.log('SignIn allowed: User found in database', {
+          email: user.email,
+          userId: existingUser.id,
+          role: existingUser.role
+        })
         return true
       } catch (error) {
         console.error('SignIn callback error:', error)

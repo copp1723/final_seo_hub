@@ -55,15 +55,37 @@ export async function GET(request: NextRequest) {
       health.database = 'error'
     }
 
-    // Check email service health (basic SMTP settings validation)
+    // Check email service health (Mailgun configuration validation)
     try {
-      const systemSettings = await prisma.systemSettings.findFirst()
-      if (systemSettings?.emailNotifications) {
-        if (!systemSettings.smtpHost || !systemSettings.smtpFromEmail) {
+      // Check Mailgun environment variables
+      const hasMailgunApiKey = !!process.env.MAILGUN_API_KEY
+      const hasMailgunDomain = !!process.env.MAILGUN_DOMAIN
+      const hasAppUrl = !!process.env.NEXT_PUBLIC_APP_URL
+      
+      if (!hasMailgunApiKey || !hasMailgunDomain) {
+        health.email = 'error'
+        console.warn('Missing Mailgun configuration:', {
+          hasApiKey: hasMailgunApiKey,
+          hasDomain: hasMailgunDomain,
+          hasAppUrl
+        })
+      } else if (!hasAppUrl) {
+        health.email = 'warning'
+        console.warn('Missing NEXT_PUBLIC_APP_URL for email links')
+      } else {
+        // Try to validate Mailgun configuration
+        try {
+          const { getMailgunClient } = require('@/lib/mailgun/client')
+          const { mg, domain } = getMailgunClient()
+          if (mg && domain) {
+            health.email = 'healthy'
+          } else {
+            health.email = 'warning'
+          }
+        } catch (mailgunError) {
+          console.error('Mailgun client initialization failed:', mailgunError)
           health.email = 'warning'
         }
-        // In a real implementation, you might try to connect to SMTP server
-        // For now, we'll just check if settings are configured
       }
     } catch (error) {
       console.error('Email health check failed:', error)

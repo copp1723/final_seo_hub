@@ -6,14 +6,30 @@ import { validateRequest, notificationPreferencesSchema } from '@/lib/validation
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
+  logger.info('🔍 GET /api/settings/notifications - Start')
+  
   // Apply rate limiting
   const rateLimitResponse = await rateLimits.api(request)
-  if (rateLimitResponse) return rateLimitResponse
+  if (rateLimitResponse) {
+    logger.warn('⚠️ Rate limited')
+    return rateLimitResponse
+  }
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  logger.info('🔐 Auth result:', {
+    authenticated: authResult.authenticated,
+    userId: authResult.user?.id,
+    hasUser: !!authResult.user
+  })
+  
+  if (!authResult.authenticated || !authResult.user) {
+    logger.error('❌ Authentication failed')
+    return authResult.response
+  }
   
   try {
+    logger.info('🗄️ Querying userPreferences', { userId: authResult.user.id })
+    
     const preferences = await prisma.userPreferences.findUnique({
       where: { userId: authResult.user.id },
       select: {
@@ -26,6 +42,11 @@ export async function GET(request: NextRequest) {
       }
     })
     
+    logger.info('📊 Query result:', {
+      found: !!preferences,
+      preferences: preferences ? 'exists' : 'null'
+    })
+    
     // Return default preferences if none exist
     const defaultPreferences = {
       emailNotifications: true,
@@ -36,11 +57,18 @@ export async function GET(request: NextRequest) {
       marketingEmails: false,
     }
     
-    return successResponse({ 
-      preferences: preferences || defaultPreferences 
+    const result = preferences || defaultPreferences
+    logger.info('✅ Returning preferences:', result)
+    
+    return successResponse({
+      preferences: result
     })
   } catch (error) {
-    logger.error('Error fetching notification preferences:', error, { userId: authResult.user.id })
+    logger.error('💥 Database error in notification preferences:', error, {
+      userId: authResult.user.id,
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error)
+    })
     return errorResponse('Failed to fetch notification preferences', 500)
   }
 }

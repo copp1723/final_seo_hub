@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { NotificationPreferencesComponent } from '@/components/settings/notification-preferences'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ProfileData {
   name: string
@@ -60,6 +60,7 @@ interface PackageUsage {
 export default function SettingsPage() {
   const { data: session, update } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -76,6 +77,59 @@ export default function SettingsPage() {
   const [showPropertySelector, setShowPropertySelector] = useState(false)
   const [newPropertyId, setNewPropertyId] = useState('')
   const [newPropertyName, setNewPropertyName] = useState('')
+
+  // Handle URL parameters for success/error messages
+  useEffect(() => {
+    const error = searchParams.get('error')
+    const success = searchParams.get('success')
+
+    if (error) {
+      let errorMessage = 'An error occurred'
+
+      switch (error) {
+        case 'search_console_denied':
+          errorMessage = 'Search Console access was denied. Please try again and grant permissions.'
+          break
+        case 'no_search_console_sites':
+          errorMessage = 'No Search Console properties found. Please verify a website in Google Search Console first.'
+          break
+        case 'insufficient_search_console_permissions':
+          errorMessage = 'Insufficient permissions for Search Console. You need "Full User" or "Owner" access to the property.'
+          break
+        case 'search_console_invalid_grant':
+          errorMessage = 'Search Console authorization expired. Please reconnect.'
+          break
+        default:
+          errorMessage = `Error: ${error.replace(/_/g, ' ')}`
+      }
+
+      setMessage({ type: 'error', text: errorMessage })
+      setActiveTab('integrations') // Switch to integrations tab to show the error
+    }
+
+    if (success) {
+      let successMessage = 'Operation completed successfully'
+
+      switch (success) {
+        case 'search_console_connected':
+          successMessage = 'Search Console connected successfully!'
+          break
+        default:
+          successMessage = success.replace(/_/g, ' ')
+      }
+
+      setMessage({ type: 'success', text: successMessage })
+      setActiveTab('integrations') // Switch to integrations tab to show the success
+    }
+
+    // Clear URL parameters after showing message
+    if (error || success) {
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('error')
+      newUrl.searchParams.delete('success')
+      window.history.replaceState({}, '', newUrl.toString())
+    }
+  }, [searchParams])
 
   // Fetch data based on active tab
   useEffect(() => {
@@ -95,9 +149,15 @@ export default function SettingsPage() {
             
           case 'notifications':
             const notifRes = await fetch('/api/settings/notifications')
+            
             if (notifRes.ok) {
               const data = await notifRes.json()
-              setNotifications(data.preferences)
+              // Fix: Extract preferences from the correct API response structure
+              const preferences = data.data?.preferences || data.preferences
+              setNotifications(preferences)
+            } else {
+              const errorData = await notifRes.text()
+              setMessage({ type: 'error', text: `Failed to load notifications: ${notifRes.status}` })
             }
             break
             
@@ -428,17 +488,26 @@ export default function SettingsPage() {
               <CardDescription>Choose how you want to receive updates</CardDescription>
             </CardHeader>
             <CardContent>
-              <NotificationPreferencesComponent
-                preferences={notifications}
-                onUpdate={setNotifications}
-                saving={saving}
-              />
-              
-              <div className="pt-6 border-t">
-                <Button onClick={saveNotifications} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Preferences'}
-                </Button>
-              </div>
+              {loading ? (
+                <div className="animate-pulse space-y-4">
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              ) : (
+                <>
+                  <NotificationPreferencesComponent
+                    preferences={notifications}
+                    onUpdate={setNotifications}
+                    saving={saving}
+                  />
+                  
+                  <div className="pt-6 border-t">
+                    <Button onClick={saveNotifications} disabled={saving}>
+                      {saving ? 'Saving...' : 'Save Preferences'}
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

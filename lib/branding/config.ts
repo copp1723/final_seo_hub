@@ -23,11 +23,11 @@ export const DEFAULT_BRANDING: BrandingConfig = {
 
 export const AGENCY_BRANDINGS: Record<string, BrandingConfig> = {
   'rylie': {
-    companyName: 'Rylie SEO Hub',
+    companyName: 'SEO Hub',
     primaryColor: '#2563eb',
     secondaryColor: '#1d4ed8',
-    emailFromName: 'Rylie SEO',
-    supportEmail: 'support@rylieseo.com',
+    emailFromName: 'SEO Hub',
+    supportEmail: 'support@seohub.com',
     domain: 'rylie-seo-hub.onrender.com'
   },
   'sally': {

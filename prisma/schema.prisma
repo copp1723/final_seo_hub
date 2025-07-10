@@ -83,6 +83,10 @@ model User {
   // Onboarding status
   onboardingCompleted Boolean @default(false)
 
+  // Invitation token for passwordless authentication
+  invitationToken String? @unique
+  invitationTokenExpires DateTime?
+
   // Audit logs
   auditLogs AuditLog[]
 
@@ -94,6 +98,7 @@ model User {
   @@index([agencyId])
   @@index([dealershipId])
   @@index([apiKey])
+  @@index([invitationToken])
 }
 
 // NextAuth required models

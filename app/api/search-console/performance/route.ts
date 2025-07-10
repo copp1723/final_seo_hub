@@ -98,13 +98,26 @@ export async function POST(request: NextRequest) {
       rowLimit
     })
 
-    // Get user's dealership
+    // Get user's dealership or handle agency admin access
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { dealership: true }
+      include: { dealership: true },
+      select: { dealershipId: true, role: true, agencyId: true, dealership: true }
     })
 
-    if (!user?.dealershipId) {
+    let targetDealershipId = user?.dealershipId
+    
+    // If user is agency admin, they might be accessing on behalf of a dealership
+    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+      // For agency admins, we need a dealershipId parameter or default behavior
+      // For now, return an appropriate error since this endpoint needs dealership context
+      return NextResponse.json(
+        { error: 'Agency admins must specify dealership context for search console data' },
+        { status: 400 }
+      )
+    }
+
+    if (!targetDealershipId) {
       logger.error('User has no dealership assigned', {
         userId: session.user.id
       })
@@ -115,7 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check cache first
-    const cacheKey = getCacheKey(user.dealershipId, { startDate, endDate, dimensions, searchType })
+    const cacheKey = getCacheKey(targetDealershipId, { startDate, endDate, dimensions, searchType })
     const cachedData = cache.get(cacheKey)
     
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
@@ -125,16 +138,16 @@ export async function POST(request: NextRequest) {
     // Check if dealership has Search Console connection
     logger.info('Checking Search Console connection', {
       userId: session.user.id,
-      dealershipId: user.dealershipId
+      dealershipId: targetDealershipId
     })
 
     searchConsoleConnection = await prisma.searchConsoleConnection.findUnique({
-      where: { dealershipId: user.dealershipId }
+      where: { dealershipId: targetDealershipId }
     })
 
     logger.info('Search Console connection query result', {
       userId: session.user.id,
-      dealershipId: user.dealershipId,
+      dealershipId: targetDealershipId,
       hasConnection: !!searchConsoleConnection,
       hasSiteUrl: !!searchConsoleConnection?.siteUrl,
       siteUrl: searchConsoleConnection?.siteUrl,
@@ -145,7 +158,7 @@ export async function POST(request: NextRequest) {
     if (!searchConsoleConnection || !searchConsoleConnection.siteUrl) {
       logger.warn('Search Console not connected', {
         userId: session.user.id,
-        dealershipId: user.dealershipId,
+        dealershipId: targetDealershipId,
         hasConnection: !!searchConsoleConnection,
         hasSiteUrl: !!searchConsoleConnection?.siteUrl
       })
@@ -163,15 +176,15 @@ export async function POST(request: NextRequest) {
 
     let searchConsoleService
     try {
-      searchConsoleService = await getSearchConsoleService(user.dealershipId)
+      searchConsoleService = await getSearchConsoleService(targetDealershipId)
       logger.info('Search Console service initialized successfully', {
         userId: session.user.id,
-        dealershipId: user.dealershipId
+        dealershipId: targetDealershipId
       })
     } catch (serviceError) {
       logger.error('Failed to initialize Search Console service', serviceError, {
         userId: session.user.id,
-        dealershipId: user.dealershipId,
+        dealershipId: targetDealershipId,
         siteUrl: searchConsoleConnection.siteUrl,
         serviceError: serviceError instanceof Error ? serviceError.message : 'Unknown service error'
       })
@@ -187,7 +200,7 @@ export async function POST(request: NextRequest) {
     // Prepare batch requests
     logger.info('Starting Search Console API batch requests', {
       userId: session.user.id,
-      dealershipId: user.dealershipId,
+      dealershipId: targetDealershipId,
       siteUrl: searchConsoleConnection.siteUrl,
       dateRange: { startDate, endDate }
     })
@@ -208,7 +221,7 @@ export async function POST(request: NextRequest) {
       }).catch(error => {
         logger.error('Overview data request failed', error, {
           userId: session.user.id,
-          dealershipId: user.dealershipId,
+          dealershipId: targetDealershipId,
           siteUrl: searchConsoleConnection.siteUrl
         })
         throw error
@@ -223,7 +236,7 @@ export async function POST(request: NextRequest) {
       }).catch(error => {
         logger.error('Top queries data request failed', error, {
           userId: session.user.id,
-          dealershipId: user.dealershipId,
+          dealershipId: targetDealershipId,
           siteUrl: searchConsoleConnection.siteUrl
         })
         throw error
@@ -238,7 +251,7 @@ export async function POST(request: NextRequest) {
       }).catch(error => {
         logger.error('Top pages data request failed', error, {
           userId: session.user.id,
-          dealershipId: user.dealershipId,
+          dealershipId: targetDealershipId,
           siteUrl: searchConsoleConnection.siteUrl
         })
         throw error
@@ -253,7 +266,7 @@ export async function POST(request: NextRequest) {
       }).catch(error => {
         logger.error('Performance by date data request failed', error, {
           userId: session.user.id,
-          dealershipId: user.dealershipId,
+          dealershipId: targetDealershipId,
           siteUrl: searchConsoleConnection.siteUrl
         })
         throw error
@@ -262,7 +275,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('Search Console API batch requests completed successfully', {
       userId: session.user.id,
-      dealershipId: user.dealershipId,
+      dealershipId: targetDealershipId,
       overviewRows: overviewData?.rows?.length || 0,
       topQueriesRows: topQueriesData?.rows?.length || 0,
       topPagesRows: topPagesData?.rows?.length || 0,

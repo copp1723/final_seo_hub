@@ -62,13 +62,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: cachedData.data, cached: true })
     }
 
-    // Get user's dealership ID
+    // Get user's dealership ID or handle agency admin access
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { dealershipId: true }
+      select: { dealershipId: true, role: true, agencyId: true }
     })
 
-    if (!user?.dealershipId) {
+    let targetDealershipId = user?.dealershipId
+    
+    // If user is agency admin, they might be accessing on behalf of a dealership
+    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+      // For agency admins, we need a dealershipId parameter or default behavior
+      // For now, return an appropriate error since this endpoint needs dealership context
+      return NextResponse.json(
+        { error: 'Agency admins must specify dealership context for analytics data' },
+        { status: 400 }
+      )
+    }
+
+    if (!targetDealershipId) {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -77,13 +89,13 @@ export async function POST(request: NextRequest) {
 
     // Check if dealership has GA4 connection
     const ga4Connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: user.dealershipId }
+      where: { dealershipId: targetDealershipId }
     })
 
     if (!ga4Connection || !ga4Connection.propertyId) {
       logger.warn('No GA4 connection found', {
         userId: session.user.id,
-        dealershipId: user.dealershipId
+        dealershipId: targetDealershipId
       })
       return NextResponse.json(
         { error: 'GA4 not connected. Please connect your Google Analytics account in settings.' },
@@ -93,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('Found GA4 connection', {
       userId: session.user.id,
-      dealershipId: user.dealershipId,
+      dealershipId: targetDealershipId,
       propertyId: ga4Connection.propertyId,
       propertyName: ga4Connection.propertyName
     })
@@ -111,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize GA4 service
-    const ga4Service = new GA4Service(user.dealershipId)
+    const ga4Service = new GA4Service(targetDealershipId)
 
     // Prepare batch requests for different reports
     const batchRequests = [

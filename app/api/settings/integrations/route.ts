@@ -13,15 +13,24 @@ export async function GET(request: NextRequest) {
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {
-    // Get user's dealership for connection queries
-    if (!authResult.user.dealershipId) {
+    // Get user's dealership for connection queries or handle agency admin access
+    let targetDealershipId = authResult.user.dealershipId
+    
+    // If user is agency admin, they might be accessing on behalf of a dealership
+    if (!targetDealershipId && authResult.user.role === 'AGENCY_ADMIN' && authResult.user.agencyId) {
+      // For agency admins, we need a dealershipId parameter or default behavior
+      // For now, return an appropriate error since this endpoint needs dealership context
+      return errorResponse('Agency admins must specify dealership context for integration settings', 400)
+    }
+    
+    if (!targetDealershipId) {
       return errorResponse('User not assigned to a dealership', 400)
     }
 
     // Fetch all integration statuses in parallel
     const [ga4Connection, searchConsoleConnection] = await Promise.all([
       prisma.gA4Connection.findUnique({
-        where: { dealershipId: authResult.user.dealershipId },
+        where: { dealershipId: targetDealershipId },
         select: {
           propertyId: true,
           propertyName: true,
@@ -30,7 +39,7 @@ export async function GET(request: NextRequest) {
         }
       }),
       prisma.searchConsoleConnection.findUnique({
-        where: { dealershipId: authResult.user.dealershipId },
+        where: { dealershipId: targetDealershipId },
         select: {
           siteUrl: true,
           siteName: true,

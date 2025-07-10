@@ -34,9 +34,9 @@ async function generateInvitationToken() {
       }
     })
     
-    // Generate invitation URL
+    // Generate invitation URL - IMPORTANT: Use /api/invitation not /api/auth/invitation
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
-    const invitationUrl = `${baseUrl}/api/auth/invitation?token=${invitationToken}`
+    const invitationUrl = `${baseUrl}/api/invitation?token=${invitationToken}`
     
     console.log('\n🎯 INVITATION TOKEN GENERATED!')
     console.log('📧 Email:', email)

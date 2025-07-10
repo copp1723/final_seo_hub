@@ -16,6 +16,8 @@ const sampleUser: User = {
   apiKey: null,
   apiKeyCreatedAt: null,
   onboardingCompleted: true,
+  invitationToken: null,
+  invitationTokenExpires: null,
   createdAt: new Date(),
   updatedAt: new Date()
 }

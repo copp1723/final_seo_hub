@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { propertyId, propertyName } = await request.json()
+    const { propertyId, propertyName, dealershipId } = await request.json()
 
     if (!propertyId) {
       return NextResponse.json({ error: 'Property ID is required' }, { status: 400 })
@@ -22,22 +22,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid property ID format' }, { status: 400 })
     }
 
-    // Get user's dealership ID
+    // Get user's info
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { dealershipId: true }
+      select: { dealershipId: true, role: true, agencyId: true }
     })
 
-    if (!user?.dealershipId) {
+    // Determine target dealership
+    let targetDealershipId = dealershipId || user?.dealershipId
+    
+    // If agency admin is setting property for a specific dealership
+    if (dealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+      // Verify the dealership belongs to the agency
+      const dealership = await prisma.dealership.findFirst({
+        where: {
+          id: dealershipId,
+          agencyId: user.agencyId
+        }
+      })
+      
+      if (!dealership) {
+        return NextResponse.json(
+          { error: 'Dealership not found or does not belong to your agency' },
+          { status: 403 }
+        )
+      }
+      targetDealershipId = dealershipId
+    }
+
+    if (!targetDealershipId) {
       return NextResponse.json(
-        { error: 'User not assigned to dealership' },
+        { error: 'No dealership context available' },
         { status: 400 }
       )
     }
 
     // Update the GA4 connection with the specified property
     const connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: user.dealershipId }
+      where: { dealershipId: targetDealershipId }
     })
 
     if (!connection) {
@@ -48,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     await prisma.gA4Connection.update({
-      where: { dealershipId: user.dealershipId },
+      where: { dealershipId: targetDealershipId },
       data: {
         propertyId,
         propertyName: propertyName || `Property ${propertyId}`,
@@ -58,9 +80,10 @@ export async function POST(request: NextRequest) {
 
     logger.info('GA4 property manually updated', {
       userId: session.user.id,
-      dealershipId: user.dealershipId,
+      dealershipId: targetDealershipId,
       propertyId,
-      propertyName
+      propertyName,
+      isAgencyAdmin: user?.role === 'AGENCY_ADMIN'
     })
 
     return NextResponse.json({

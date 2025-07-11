@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { siteUrl } = await req.json()
+    const { siteUrl, dealershipId } = await req.json()
     
     if (!siteUrl) {
       return NextResponse.json(
@@ -19,22 +19,44 @@ export async function POST(req: Request) {
       )
     }
 
-    // Get user's dealership ID
+    // Get user's info
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { dealershipId: true }
+      select: { dealershipId: true, role: true, agencyId: true }
     })
 
-    if (!user?.dealershipId) {
+    // Determine target dealership
+    let targetDealershipId = dealershipId || user?.dealershipId
+    
+    // If agency admin is setting site for a specific dealership
+    if (dealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+      // Verify the dealership belongs to the agency
+      const dealership = await prisma.dealership.findFirst({
+        where: {
+          id: dealershipId,
+          agencyId: user.agencyId
+        }
+      })
+      
+      if (!dealership) {
+        return NextResponse.json(
+          { error: 'Dealership not found or does not belong to your agency' },
+          { status: 403 }
+        )
+      }
+      targetDealershipId = dealershipId
+    }
+
+    if (!targetDealershipId) {
       return NextResponse.json(
-        { error: 'User not assigned to dealership' },
+        { error: 'No dealership context available' },
         { status: 400 }
       )
     }
 
     // Update the primary site for the dealership
     await prisma.searchConsoleConnection.update({
-      where: { dealershipId: user.dealershipId },
+      where: { dealershipId: targetDealershipId },
       data: {
         siteUrl: siteUrl,
         siteName: new URL(siteUrl).hostname

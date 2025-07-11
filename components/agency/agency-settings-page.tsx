@@ -10,8 +10,9 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Building, Globe, Phone, Mail, MapPin, Users, Settings, CreditCard, Shield, Store, PlusCircle } from 'lucide-react'
+import { Building, Globe, Phone, Mail, MapPin, Users, Settings, CreditCard, Shield, Store, PlusCircle, BarChart3 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { IntegrationPropertyManager } from './integration-property-manager'
 
 interface AgencyProfile {
   id: string
@@ -254,7 +255,7 @@ export function AgencySettingsPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
             Profile
@@ -262,6 +263,10 @@ export function AgencySettingsPage() {
           <TabsTrigger value="dealerships" className="flex items-center gap-2">
             <Store className="h-4 w-4" />
             Dealerships
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Integrations
           </TabsTrigger>
           <TabsTrigger value="contact" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
@@ -545,6 +550,10 @@ export function AgencySettingsPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-6">
+          <IntegrationPropertyManager />
         </TabsContent>
 
         <TabsContent value="contact" className="space-y-6">

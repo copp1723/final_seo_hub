@@ -21,7 +21,9 @@ import {
   Search,
   MousePointerClick,
   Percent,
-  Hash
+  Hash,
+  BarChart3,
+  Settings
 } from 'lucide-react'
 import { format, subDays, startOfMonth, endOfMonth, startOfYear } from 'date-fns'
 import dynamic from 'next/dynamic'
@@ -150,6 +152,21 @@ interface SearchConsoleData {
   }
 }
 
+interface GA4Property {
+  propertyId: string
+  propertyName: string
+  accountName: string
+  accountId: string
+}
+
+interface SearchConsoleSite {
+  siteUrl: string
+  siteName: string
+  permissionLevel: string
+  hasFullAccess: boolean
+  canUseApi: boolean
+}
+
 export default function ReportingPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(false)
@@ -159,7 +176,99 @@ export default function ReportingPage() {
   const [scData, setScData] = useState<SearchConsoleData | null>(null)
   const [selectedRange, setSelectedRange] = useState('30days')
   const [isRefreshing, setIsRefreshing] = useState(false)
+  
+  // Property selector states
+  const [ga4Properties, setGa4Properties] = useState<GA4Property[]>([])
+  const [searchConsoleSites, setSearchConsoleSites] = useState<SearchConsoleSite[]>([])
+  const [currentGA4Property, setCurrentGA4Property] = useState<string>('')
+  const [currentSearchConsoleSite, setCurrentSearchConsoleSite] = useState<string>('')
+  const [loadingProperties, setLoadingProperties] = useState(false)
+  const [savingGA4, setSavingGA4] = useState(false)
+  const [savingSC, setSavingSC] = useState(false)
+  
   const { toast } = useToast()
+
+  // Fetch available properties and sites
+  const fetchProperties = async () => {
+    setLoadingProperties(true)
+    try {
+      // Fetch GA4 properties
+      const ga4Response = await fetch('/api/ga4/list-properties')
+      if (ga4Response.ok) {
+        const ga4Data = await ga4Response.json()
+        setGa4Properties(ga4Data.properties || [])
+        setCurrentGA4Property(ga4Data.currentPropertyId || '')
+      }
+
+      // Fetch Search Console sites
+      const scResponse = await fetch('/api/search-console/list-sites')
+      if (scResponse.ok) {
+        const scData = await scResponse.json()
+        setSearchConsoleSites(scData.sites || [])
+        setCurrentSearchConsoleSite(scData.currentSiteUrl || '')
+      }
+    } catch (error) {
+      console.error('Failed to fetch properties:', error)
+    } finally {
+      setLoadingProperties(false)
+    }
+  }
+
+  // Update GA4 property
+  const updateGA4Property = async (propertyId: string) => {
+    setSavingGA4(true)
+    try {
+      const property = ga4Properties.find(p => p.propertyId === propertyId)
+      const response = await fetch('/api/ga4/set-property', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyId,
+          propertyName: property?.propertyName || `Property ${propertyId}`
+        })
+      })
+      
+      if (response.ok) {
+        setCurrentGA4Property(propertyId)
+        toast('GA4 property updated successfully', 'success')
+        // Refresh analytics data
+        fetchAllData()
+      } else {
+        const error = await response.json()
+        toast('Failed to update GA4 property', 'error', { description: error.error })
+      }
+    } catch (error) {
+      toast('Failed to update GA4 property', 'error')
+    } finally {
+      setSavingGA4(false)
+    }
+  }
+
+  // Update Search Console site
+  const updateSearchConsoleSite = async (siteUrl: string) => {
+    setSavingSC(true)
+    try {
+      const response = await fetch('/api/search-console/primary-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteUrl })
+      })
+      
+      if (response.ok) {
+        setCurrentSearchConsoleSite(siteUrl)
+        toast('Search Console site updated successfully', 'success')
+        // Refresh analytics data
+        fetchAllData()
+      } else {
+        const error = await response.json()
+        toast('Failed to update Search Console site', 'error', { description: error.error })
+      }
+    } catch (error) {
+      toast('Failed to update Search Console site', 'error')
+    } finally {
+      setSavingSC(false)
+    }
+  }
 
   // Fetch both GA4 and Search Console data
   const fetchAllData = async (showLoadingToast = false) => {
@@ -236,6 +345,7 @@ export default function ReportingPage() {
   // Initial load and when date range changes
   useEffect(() => {
     fetchAllData()
+    fetchProperties()
   }, [selectedRange])
 
   // Calculate GA4 summary metrics
@@ -337,6 +447,93 @@ export default function ReportingPage() {
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Property Selectors */}
+        <div className="mb-6 p-4 bg-white rounded-lg border shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Data Sources</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('/settings', '_blank')}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* GA4 Property Selector */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-blue-500" />
+                <label className="text-sm font-medium text-gray-700">GA4 Property</label>
+              </div>
+              <Select 
+                value={currentGA4Property} 
+                onValueChange={updateGA4Property}
+                disabled={loadingProperties || savingGA4}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={loadingProperties ? "Loading..." : "Select GA4 property"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ga4Properties.map((property) => (
+                    <SelectItem key={property.propertyId} value={property.propertyId}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{property.propertyName}</span>
+                        <span className="text-xs text-gray-500">
+                          {property.accountName} • ID: {property.propertyId}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {savingGA4 && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Updating property...
+                </div>
+              )}
+            </div>
+
+            {/* Search Console Site Selector */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-green-500" />
+                <label className="text-sm font-medium text-gray-700">Search Console Site</label>
+              </div>
+              <Select 
+                value={currentSearchConsoleSite} 
+                onValueChange={updateSearchConsoleSite}
+                disabled={loadingProperties || savingSC}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={loadingProperties ? "Loading..." : "Select Search Console site"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {searchConsoleSites.filter(site => site.canUseApi).map((site) => (
+                    <SelectItem key={site.siteUrl} value={site.siteUrl}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{site.siteName}</span>
+                        <span className="text-xs text-gray-500">
+                          {site.siteUrl} • {site.hasFullAccess ? 'Full Access' : 'Restricted'}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {savingSC && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Updating site...
+                </div>
+              )}
             </div>
           </div>
         </div>

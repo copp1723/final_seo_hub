@@ -1,4 +1,4 @@
-import { parse } from 'csv-parse/sync'
+import { parse } from '@/lib/utils/csv-parser'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { dealershipCsvRowSchema, DealershipCsvRow, CSV_VALIDATION_RULES } from '@/lib/validations/dealership-csv'

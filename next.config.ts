@@ -1,18 +1,15 @@
+import { withSentryConfig } from '@sentry/nextjs'
 import type { NextConfig } from 'next'
 
+/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  reactStrictMode: true,
+  
+  // Ignore ESLint errors during build
   eslint: {
     ignoreDuringBuilds: true,
   },
-  typescript: {
-    // We'll handle type errors during development
-    ignoreBuildErrors: false,
-  },
-  // Performance optimizations
-  compress: true,
-  poweredByHeader: false,
-  generateEtags: true,
-  reactStrictMode: true,
   
   // Image optimization
   images: {

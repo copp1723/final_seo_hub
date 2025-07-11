@@ -148,25 +148,25 @@ export function DealershipSelector() {
         onClick={() => setIsOpen(!isOpen)}
         disabled={isSwitching}
         className={cn(
-          "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-          "border border-gray-300 bg-white hover:bg-gray-50",
+          "flex items-center space-x-1.5 px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
+          "border border-gray-200 bg-white hover:bg-gray-50",
           "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
           isSwitching && "opacity-50 cursor-not-allowed"
         )}
       >
         {isSwitching ? (
-          <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-500" />
         ) : (
-          <Building2 className="h-4 w-4 text-gray-500" />
+          <Building2 className="h-3.5 w-3.5 text-gray-500" />
         )}
         
-        <span className="text-gray-700 max-w-[150px] truncate">
+        <span className="text-gray-700 max-w-[120px] lg:max-w-[150px] truncate text-xs lg:text-sm">
           {currentDealership?.name || 'Select Dealership'}
         </span>
         
         <ChevronDown 
           className={cn(
-            "h-4 w-4 text-gray-500 transition-transform",
+            "h-3 w-3 text-gray-500 transition-transform",
             isOpen && "rotate-180"
           )} 
         />
@@ -174,7 +174,7 @@ export function DealershipSelector() {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+        <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50">
           <div className="py-1">
             <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
               Select Dealership

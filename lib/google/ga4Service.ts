@@ -33,6 +33,10 @@ export class GA4Service {
       throw new Error('No GA4 connection found for user');
     }
 
+    console.log('DEBUG: GA4Service connection.accessToken type:', typeof connection.accessToken, 'value:', connection.accessToken)
+    if (!connection.accessToken) {
+      throw new Error('Access token is null or undefined in GA4Service')
+    }
     const accessToken = decrypt(connection.accessToken);
     const refreshToken = connection.refreshToken 
       ? decrypt(connection.refreshToken) 

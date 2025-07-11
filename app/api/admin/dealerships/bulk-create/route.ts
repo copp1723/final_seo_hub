@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
           dealershipId: created.id,
           propertyId: dealership.ga4PropertyId,
           propertyName: dealership.name + " - GA4"
+          // accessToken, refreshToken, and expiresAt will be set when user connects
         }
       })
     }
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
           dealershipId: created.id,
           siteUrl: dealership.searchConsoleUrl,
           siteName: dealership.name + " - Search Console"
+          // accessToken, refreshToken, and expiresAt will be set when user connects
         }
       })
     }

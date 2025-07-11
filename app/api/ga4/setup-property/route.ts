@@ -45,6 +45,14 @@ export async function POST() {
       process.env.NEXTAUTH_URL + '/api/ga4/auth/callback'
     )
 
+    console.log('DEBUG: GA4 connection.accessToken type:', typeof connection.accessToken, 'value:', connection.accessToken)
+    if (!connection.accessToken) {
+      return NextResponse.json(
+        { error: 'Access token is missing from GA4 connection' },
+        { status: 400 }
+      )
+    }
+    
     oauth2Client.setCredentials({
       access_token: decrypt(connection.accessToken),
       refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined,

@@ -109,6 +109,10 @@ export async function getSearchConsoleService(dealershipId: string) {
     throw new Error('No Search Console token found for dealership')
   }
 
+  console.log('DEBUG: SearchConsole token.accessToken type:', typeof token.accessToken, 'value:', token.accessToken)
+  if (!token.accessToken) {
+    throw new Error('Access token is null or undefined in SearchConsoleService')
+  }
   const accessToken = decrypt(token.accessToken)
   const refreshToken = token.refreshToken
     ? decrypt(token.refreshToken)

@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 const analyticsRequestSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
-  metrics: z.array(z.string()).optional().default(['sessions', 'activeUsers', 'screenPageViews']),
+  metrics: z.array(z.string()).optional().default(['sessions', 'totalUsers', 'eventCount']),
   dimensions: z.array(z.string()).optional()
 })
 
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       // Top pages
       {
         dateRanges: [{ startDate, endDate }],
-        metrics: [{ name: 'sessions' }, { name: 'screenPageViews' }],
+        metrics: [{ name: 'sessions' }, { name: 'eventCount' }],
         dimensions: [{ name: 'pagePath' }],
         limit: 10,
         orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
@@ -188,8 +188,8 @@ export async function POST(request: NextRequest) {
       topPagesCount: processedData.topPages.length,
       trafficSourcesCount: processedData.trafficSources.length,
       totalSessions: processedData.overview.metrics.sessions?.reduce((a, b) => a + b, 0) || 0,
-      totalUsers: processedData.overview.metrics.activeUsers?.reduce((a, b) => a + b, 0) || 0,
-      totalPageViews: processedData.overview.metrics.screenPageViews?.reduce((a, b) => a + b, 0) || 0
+      totalUsers: processedData.overview.metrics.totalUsers?.reduce((a, b) => a + b, 0) || 0,
+      totalEvents: processedData.overview.metrics.eventCount?.reduce((a, b) => a + b, 0) || 0
     })
 
     // Cache the processed data
@@ -285,7 +285,7 @@ function processTopPagesReport(report: any) {
   return report.rows.map((row: any) => ({
     page: row.dimensionValues?.[0]?.value || 'Unknown',
     sessions: parseInt(row.metricValues?.[0]?.value) || 0,
-    screenPageViews: parseInt(row.metricValues?.[1]?.value) || 0
+    eventCount: parseInt(row.metricValues?.[1]?.value) || 0
   }))
 }
 

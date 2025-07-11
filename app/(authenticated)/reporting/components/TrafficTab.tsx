@@ -57,7 +57,7 @@ export default function TrafficTab({ gaData, gaError, gaMetrics, chartOptions }:
       },
       {
         label: 'Users',
-        data: gaData?.overview.metrics.activeUsers || [],
+        data: gaData?.overview.metrics.totalUsers || [],
         borderColor: 'rgb(16, 185, 129)',
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         fill: true,

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { 
   AreaChart, 
@@ -90,14 +91,14 @@ interface AnalyticsData {
     dates: string[]
     metrics: {
       sessions?: number[]
-      activeUsers?: number[]
-      screenPageViews?: number[]
+      totalUsers?: number[]
+      eventCount?: number[]
     }
   }
   topPages: Array<{
     page: string
     sessions: number
-    screenPageViews: number
+    eventCount: number
   }>
   trafficSources: Array<{
     source: string
@@ -185,6 +186,7 @@ export default function ReportingPage() {
   const [loadingProperties, setLoadingProperties] = useState(false)
   const [savingGA4, setSavingGA4] = useState(false)
   const [savingSC, setSavingSC] = useState(false)
+  const [isSearchConsoleAutoSynced, setIsSearchConsoleAutoSynced] = useState(true) // Default to auto-synced
   
   const { toast } = useToast()
 
@@ -231,6 +233,37 @@ export default function ReportingPage() {
       if (response.ok) {
         setCurrentGA4Property(propertyId)
         toast('GA4 property updated successfully', 'success')
+        
+        // Auto-sync Search Console site based on GA4 property name
+        if (property?.propertyName) {
+          // Extract domain from property name (e.g., "AcuraColumbus.com - GA4" -> "acuracolumbus.com")
+          const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}/i)
+          
+          if (domainMatch) {
+            const domain = domainMatch[0].toLowerCase()
+            
+            // Find matching Search Console site
+            const matchingSite = searchConsoleSites.find(site => {
+              const siteUrl = site.siteUrl.toLowerCase()
+              // Check if the site URL contains the domain
+              return siteUrl.includes(domain) || 
+                     siteUrl.includes(`www.${domain}`) ||
+                     siteUrl === `https://${domain}/` ||
+                     siteUrl === `https://www.${domain}/` ||
+                     siteUrl === `http://${domain}/` ||
+                     siteUrl === `http://www.${domain}/`
+            })
+            
+            if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
+              // Auto-update Search Console site
+              await updateSearchConsoleSite(matchingSite.siteUrl)
+              toast('Search Console site automatically matched to GA4 property', 'info')
+            } else if (!matchingSite) {
+              toast('No matching Search Console site found for this GA4 property', 'info')
+            }
+          }
+        }
+        
         // Refresh analytics data
         fetchAllData()
       } else {
@@ -348,6 +381,37 @@ export default function ReportingPage() {
     fetchProperties()
   }, [selectedRange])
 
+  // Auto-sync Search Console when properties are loaded
+  useEffect(() => {
+    if (isSearchConsoleAutoSynced && ga4Properties.length > 0 && searchConsoleSites.length > 0 && currentGA4Property) {
+      const property = ga4Properties.find(p => p.propertyId === currentGA4Property)
+      if (property?.propertyName) {
+        // Extract domain from property name
+        const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}/i)
+        
+        if (domainMatch) {
+          const domain = domainMatch[0].toLowerCase()
+          
+          // Find matching Search Console site
+          const matchingSite = searchConsoleSites.find(site => {
+            const siteUrl = site.siteUrl.toLowerCase()
+            return siteUrl.includes(domain) || 
+                   siteUrl.includes(`www.${domain}`) ||
+                   siteUrl === `https://${domain}/` ||
+                   siteUrl === `https://www.${domain}/` ||
+                   siteUrl === `http://${domain}/` ||
+                   siteUrl === `http://www.${domain}/`
+          })
+          
+          if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
+            // Auto-update Search Console site
+            updateSearchConsoleSite(matchingSite.siteUrl)
+          }
+        }
+      }
+    }
+  }, [ga4Properties, searchConsoleSites, currentGA4Property, isSearchConsoleAutoSynced])
+
   // Calculate GA4 summary metrics
   const calculateGaMetrics = () => {
     if (!gaData?.overview.metrics) return { sessions: 0, users: 0, pageviews: 0 }
@@ -356,8 +420,8 @@ export default function ReportingPage() {
     
     return {
       sessions: sum(gaData.overview.metrics.sessions),
-      users: sum(gaData.overview.metrics.activeUsers),
-      pageviews: sum(gaData.overview.metrics.screenPageViews)
+      users: sum(gaData.overview.metrics.totalUsers),
+      pageviews: sum(gaData.overview.metrics.eventCount)
     }
   }
 
@@ -503,17 +567,31 @@ export default function ReportingPage() {
 
             {/* Search Console Site Selector */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-green-500" />
-                <label className="text-sm font-medium text-gray-700">Search Console Site</label>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-green-500" />
+                  <label className="text-sm font-medium text-gray-700">Search Console Site</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="auto-sync-switch" className="text-xs text-gray-500">Auto-sync</label>
+                  <Switch
+                    id="auto-sync-switch"
+                    checked={isSearchConsoleAutoSynced}
+                    onCheckedChange={(checked) => setIsSearchConsoleAutoSynced(checked)}
+                  />
+                </div>
               </div>
               <Select 
                 value={currentSearchConsoleSite} 
                 onValueChange={updateSearchConsoleSite}
-                disabled={loadingProperties || savingSC}
+                disabled={loadingProperties || savingSC || isSearchConsoleAutoSynced}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder={loadingProperties ? "Loading..." : "Select Search Console site"} />
+                  <SelectValue placeholder={
+                    loadingProperties ? "Loading..." : 
+                    isSearchConsoleAutoSynced ? "Auto-synced with GA4 property" :
+                    "Select Search Console site"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {searchConsoleSites.filter(site => site.canUseApi).map((site) => (
@@ -533,6 +611,11 @@ export default function ReportingPage() {
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Updating site...
                 </div>
+              )}
+              {isSearchConsoleAutoSynced && (
+                <p className="text-xs text-gray-500">
+                  Search Console site is automatically matched to the selected GA4 property
+                </p>
               )}
             </div>
           </div>

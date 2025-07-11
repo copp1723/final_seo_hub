@@ -6,14 +6,14 @@ interface AnalyticsData {
     dates: string[]
     metrics: {
       sessions?: number[]
-      users?: number[]
-      pageviews?: number[]
+      totalUsers?: number[]
+      eventCount?: number[]
     }
   }
   topPages: Array<{
     page: string
     sessions: number
-    pageviews: number
+    eventCount: number
   }>
   trafficSources: Array<{
     source: string

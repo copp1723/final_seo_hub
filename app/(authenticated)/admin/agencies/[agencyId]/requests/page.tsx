@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { toast } from '@/hooks/use-toast' // Assuming you have a toast hook
+import { toast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { ArrowUpDown, Eye } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils' // Assuming you have a utils file
@@ -97,10 +97,17 @@ export default function AgencyRequestsPage() {
         const errorData = await response.json()
         throw new Error(errorData.error || `Failed to fetch ${DEALERSHIP_TERMINOLOGY} requests`)
       }
-      const data: PaginatedResponse = await response.json()
-      setRequests(data.requests)
-      setTotalRequests(data.pagination.total)
-      setTotalPages(data.pagination.totalPages)
+      const responseData = await response.json()
+      
+      // Handle the wrapped response structure from successResponse
+      if (responseData.success && responseData.data) {
+        const data = responseData.data
+        setRequests(data.requests)
+        setTotalRequests(data.pagination.total)
+        setTotalPages(data.pagination.totalPages)
+      } else {
+        throw new Error(responseData.error || 'Invalid response format')
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : `An unknown error occurred while fetching ${DEALERSHIP_TERMINOLOGY} requests.`
       setError(errorMessage)

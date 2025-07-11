@@ -79,12 +79,21 @@ export function AgencySettingsPage() {
 
   const fetchAgencyProfile = async () => {
     try {
+      console.log('Fetching agency profile...')
       const response = await fetch('/api/agency/profile')
+      console.log('Agency profile response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('Agency profile data:', data)
         setAgency(data.agency)
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Agency profile fetch failed:', response.status, errorData)
+        setMessage({ type: 'error', text: `Failed to load agency profile: ${errorData.error || 'Unknown error'}` })
       }
     } catch (error) {
+      console.error('Agency profile fetch error:', error)
       setMessage({ type: 'error', text: 'Failed to load agency profile' })
     } finally {
       setLoading(false)

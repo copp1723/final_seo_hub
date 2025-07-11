@@ -73,6 +73,7 @@ export function Navigation() {
   }, [isUserMenuOpen, isAgencyMenuOpen, isSuperAdminMenuOpen])
 
   const agencyAdminNavItems = user?.role === 'AGENCY_ADMIN' && user.agencyId ? [
+    { href: '/agency/settings', label: 'Agency Settings', icon: Settings },
     { href: `/admin/agencies/${user.agencyId}/requests`, label: 'All Dealership Requests', icon: Briefcase },
     { href: `/admin/agencies/${user.agencyId}/users`, label: 'Manage Agency Users', icon: Users },
   ] : []

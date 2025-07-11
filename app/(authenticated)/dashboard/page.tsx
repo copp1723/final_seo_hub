@@ -169,7 +169,7 @@ export default async function DashboardPage() {
             {packageProgress && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg font-medium">Package Usage - {packageProgress.packageType}</CardTitle>
+                  <CardTitle className="text-lg font-medium">{packageProgress.packageType} WORK THIS MONTH</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">

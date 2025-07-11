@@ -103,7 +103,12 @@ export async function GET() {
     }
 
     // If this is an agency admin, also get the current property mappings for all dealerships
-    let dealershipMappings = []
+    let dealershipMappings: Array<{
+      dealershipId: string
+      dealershipName: string
+      currentPropertyId: string | null
+      currentPropertyName: string | null
+    }> = []
     if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       const agencyDealerships = await prisma.dealership.findMany({
         where: { agencyId: user.agencyId },
@@ -121,8 +126,8 @@ export async function GET() {
       dealershipMappings = agencyDealerships.map(d => ({
         dealershipId: d.id,
         dealershipName: d.name,
-        currentPropertyId: d.ga4Connection?.propertyId,
-        currentPropertyName: d.ga4Connection?.propertyName
+        currentPropertyId: d.ga4Connection?.propertyId || null,
+        currentPropertyName: d.ga4Connection?.propertyName || null
       }))
     }
 

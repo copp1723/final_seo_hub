@@ -92,7 +92,12 @@ export async function GET() {
     })
 
     // If this is an agency admin, also get the current site mappings for all dealerships
-    let dealershipMappings = []
+    let dealershipMappings: Array<{
+      dealershipId: string
+      dealershipName: string
+      currentSiteUrl: string | null
+      currentSiteName: string | null
+    }> = []
     if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       const agencyDealerships = await prisma.dealership.findMany({
         where: { agencyId: user.agencyId },
@@ -110,8 +115,8 @@ export async function GET() {
       dealershipMappings = agencyDealerships.map(d => ({
         dealershipId: d.id,
         dealershipName: d.name,
-        currentSiteUrl: d.searchConsoleConnection?.siteUrl,
-        currentSiteName: d.searchConsoleConnection?.siteName
+        currentSiteUrl: d.searchConsoleConnection?.siteUrl || null,
+        currentSiteName: d.searchConsoleConnection?.siteName || null
       }))
     }
 

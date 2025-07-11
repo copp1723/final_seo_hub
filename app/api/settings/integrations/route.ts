@@ -16,11 +16,50 @@ export async function GET(request: NextRequest) {
     // Get user's dealership for connection queries or handle agency admin access
     let targetDealershipId = authResult.user.dealershipId
     
-    // If user is agency admin, they might be accessing on behalf of a dealership
+    // For agency admins without a dealership, show empty integrations state
+    // This allows them to see the UI and connect integrations
     if (!targetDealershipId && authResult.user.role === 'AGENCY_ADMIN' && authResult.user.agencyId) {
-      // For agency admins, we need a dealershipId parameter or default behavior
-      // For now, return an appropriate error since this endpoint needs dealership context
-      return errorResponse('Agency admins must specify dealership context for integration settings', 400)
+      // Return empty integrations state for agency admins
+      const integrations = {
+        ga4: {
+          connected: false,
+          propertyId: null,
+          propertyName: null,
+          connectedAt: null,
+          lastUpdated: null,
+        },
+        searchConsole: {
+          connected: false,
+          siteUrl: null,
+          siteName: null,
+          connectedAt: null,
+          lastUpdated: null,
+        }
+      }
+      
+      return successResponse({ integrations })
+    }
+    
+    // For SUPER_ADMIN without dealership, also show empty state
+    if (!targetDealershipId && authResult.user.role === 'SUPER_ADMIN') {
+      const integrations = {
+        ga4: {
+          connected: false,
+          propertyId: null,
+          propertyName: null,
+          connectedAt: null,
+          lastUpdated: null,
+        },
+        searchConsole: {
+          connected: false,
+          siteUrl: null,
+          siteName: null,
+          connectedAt: null,
+          lastUpdated: null,
+        }
+      }
+      
+      return successResponse({ integrations })
     }
     
     if (!targetDealershipId) {

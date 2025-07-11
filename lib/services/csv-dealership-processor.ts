@@ -2,7 +2,7 @@ import { parse } from 'csv-parse/sync'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { dealershipCsvRowSchema, DealershipCsvRow, CSV_VALIDATION_RULES } from '@/lib/validations/dealership-csv'
-import crypto from 'crypto'
+import { randomUUID } from 'crypto'
 
 export interface ProcessingResult {
   success: boolean
@@ -40,7 +40,7 @@ export class CsvDealershipProcessor {
     fileSize: number
   ): Promise<string> {
     try {
-      const processingId = crypto.randomUUID()
+      const processingId = randomUUID()
       
       // For now, we'll store this in the audit log since we don't have a dedicated table
       // In a production environment, you'd want a dedicated csv_processing_logs table

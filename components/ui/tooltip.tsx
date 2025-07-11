@@ -1,10 +1,57 @@
 import React, { ReactNode, useState } from 'react';
 
 interface TooltipProps {
-  content: ReactNode;
+  content?: ReactNode;
   children: ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
 }
+
+interface TooltipProviderProps {
+  children: ReactNode;
+  delayDuration?: number;
+}
+
+interface TooltipTriggerProps {
+  children: ReactNode;
+  asChild?: boolean;
+}
+
+interface TooltipContentProps {
+  children: ReactNode;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+  sideOffset?: number;
+}
+
+export const TooltipProvider: React.FC<TooltipProviderProps> = ({ children }) => {
+  return <>{children}</>;
+};
+
+export const TooltipTrigger: React.FC<TooltipTriggerProps> = ({ children }) => {
+  return <>{children}</>;
+};
+
+export const TooltipContent: React.FC<TooltipContentProps> = ({ children, side = 'top' }) => {
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        zIndex: 1000,
+        whiteSpace: 'nowrap',
+        background: 'rgba(30, 30, 30, 0.95)',
+        color: '#fff',
+        padding: '6px 10px',
+        borderRadius: 4,
+        fontSize: 13,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        pointerEvents: 'none',
+        ...getPositionStyle(side),
+      }}
+      role="tooltip"
+    >
+      {children}
+    </span>
+  );
+};
 
 export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 'top' }) => {
   const [visible, setVisible] = useState(false);
@@ -18,7 +65,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 
       tabIndex={0}
     >
       {children}
-      {visible && (
+      {visible && content && (
         <span
           style={{
             position: 'absolute',

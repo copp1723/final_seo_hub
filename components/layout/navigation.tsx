@@ -111,7 +111,7 @@ export function Navigation() {
                   const Icon = item.icon
                   const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
                   return (
-                    <Tooltip key={item.href} delayDuration={200}>
+                    <Tooltip key={item.href}>
                       <TooltipTrigger asChild>
                         <Link
                           href={item.href}

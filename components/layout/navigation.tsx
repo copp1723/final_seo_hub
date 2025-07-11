@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
 import { DealershipSelector } from './dealership-selector'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import Tooltip from '@/components/ui/tooltip'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -106,32 +106,32 @@ export function Navigation() {
 
             {/* Desktop Navigation Links */}
             <div className="flex items-center gap-6">
-              <TooltipProvider>
-                {navItems.map((item) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
-                  return (
-                    <Tooltip key={item.href}>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href={item.href}
-                          className={cn(
-                            'inline-flex items-center px-2 py-1 rounded-md text-base font-medium transition-colors',
-                            isActive
-                              ? 'text-blue-700 bg-blue-50'
-                              : 'text-gray-700 hover:text-blue-700 hover:bg-blue-50'
-                          )}
-                          style={{ fontWeight: 500 }}
-                        >
-                          <Icon className="h-5 w-5 mr-2" />
-                          {item.label}
-                        </Link>
-                      </TooltipTrigger>
-                      {item.tooltip && <TooltipContent>{item.tooltip}</TooltipContent>}
-                    </Tooltip>
-                  )
-                })}
-              </TooltipProvider>
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
+                const link = (
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      'inline-flex items-center px-2 py-1 rounded-md text-base font-medium transition-colors',
+                      isActive
+                        ? 'text-blue-700 bg-blue-50'
+                        : 'text-gray-700 hover:text-blue-700 hover:bg-blue-50'
+                    )}
+                    style={{ fontWeight: 500 }}
+                  >
+                    <Icon className="h-5 w-5 mr-2" />
+                    {item.label}
+                  </Link>
+                );
+                return item.tooltip ? (
+                  <Tooltip key={item.href} content={item.tooltip}>
+                    {link}
+                  </Tooltip>
+                ) : (
+                  <span key={item.href}>{link}</span>
+                );
+              })}
 
               {/* Agency Admin Dropdown (Desktop) */}
               {user?.role === 'AGENCY_ADMIN' && user.agencyId && agencyAdminNavItems.length > 0 && (

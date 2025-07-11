@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { UserRole } from '@prisma/client'
 import { sendInvitationEmail, createDefaultUserPreferences } from '@/lib/mailgun/invitation'
 import { logger } from '@/lib/logger'
+import crypto from 'crypto'
 
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -143,12 +144,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Generate invitation token for magic link authentication
+    const invitationToken = crypto.randomBytes(32).toString('hex')
+    const invitationTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+
     const user = await prisma.user.create({
       data: {
         name,
         email,
         role,
         agencyId: agencyId || null,
+        invitationToken,
+        invitationTokenExpires,
         onboardingCompleted: true // Super admin created users are considered onboarded
       },
       include: {
@@ -162,11 +169,16 @@ export async function POST(request: NextRequest) {
     // Create default user preferences for the new user
     await createDefaultUserPreferences(user.id)
 
-    // Send invitation email to the new user
+    // Generate the magic link URL
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const magicLinkUrl = `${baseUrl}/api/invitation?token=${invitationToken}`
+
+    // Send invitation email to the new user with magic link
     const invitedBy = authResult.user.name || authResult.user.email || 'Super Administrator'
     const invitationSent = await sendInvitationEmail({
       user: user as any, // Cast to include all User fields
       invitedBy,
+      loginUrl: magicLinkUrl, // Pass the magic link URL
       skipPreferences: true // New user doesn't have preferences loaded yet
     })
 

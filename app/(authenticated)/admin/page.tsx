@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { PlusCircle, Building2, Users, FileText } from 'lucide-react'
+import Link from 'next/link'
 
 interface Agency {
   id: string
@@ -105,10 +106,21 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage agencies and system settings</p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
-          <PlusCircle className="h-4 w-4" />
-          Create Agency
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+            <PlusCircle className="h-4 w-4" />
+            Create Agency
+          </Button>
+          {/* Bulk Create Dealerships button for super admins */}
+          {session?.user?.role === 'SUPER_ADMIN' && (
+            <Link href="/admin/bulk-create-dealerships">
+              <Button variant="outline" className="flex items-center gap-2">
+                <PlusCircle className="h-4 w-4" />
+                Bulk Create Dealerships
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Create Agency Form */}

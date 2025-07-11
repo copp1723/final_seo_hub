@@ -18,7 +18,8 @@ import {
   Users, // For Manage Agency Users
   Briefcase, // For Agency Admin section or specific agency views
   Building2, // For agencies
-  Settings // For system settings
+  Settings, // For system settings
+  PlusCircle // For Bulk Create Dealerships
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
@@ -86,6 +87,8 @@ export function Navigation() {
     { href: '/super-admin/agencies', label: 'All Agencies', icon: Building2 },
     { href: '/super-admin/system', label: 'System Settings', icon: Settings },
     { href: '/super-admin/audit', label: 'Audit Logs', icon: FileText },
+    // Bulk create dealerships link
+    { href: '/admin/bulk-create-dealerships', label: 'Bulk Create Dealerships', icon: PlusCircle },
   ] : []
 
   return (

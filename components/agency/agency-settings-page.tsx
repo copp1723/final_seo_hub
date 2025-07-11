@@ -86,7 +86,12 @@ export function AgencySettingsPage() {
       if (response.ok) {
         const data = await response.json()
         console.log('Agency profile data:', data)
-        setAgency(data.agency)
+        // Handle the wrapped response structure from successResponse
+        if (data.success && data.data) {
+          setAgency(data.data.agency)
+        } else {
+          setAgency(data.agency) // Fallback for direct response
+        }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Agency profile fetch failed:', response.status, errorData)
@@ -113,7 +118,12 @@ export function AgencySettingsPage() {
       
       if (response.ok) {
         const updatedData = await response.json()
-        setAgency(updatedData.agency)
+        // Handle the wrapped response structure from successResponse
+        if (updatedData.success && updatedData.data) {
+          setAgency(updatedData.data.agency)
+        } else {
+          setAgency(updatedData.agency) // Fallback for direct response
+        }
         setMessage({ type: 'success', text: `${section} updated successfully` })
         setTimeout(() => setMessage(null), 3000)
       } else {

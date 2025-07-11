@@ -46,7 +46,7 @@ Dealership Two,https://dealership2.com,987654321,https://dealership2.com`
 
   const createDealerships = async () => {
     if (!csvData.trim()) {
-      toast({ title: 'Error', description: 'Please enter CSV data' })
+      toast('Error', 'error', { description: 'Please enter CSV data' })
       return
     }
 
@@ -79,9 +79,9 @@ Dealership Two,https://dealership2.com,987654321,https://dealership2.com`
         setResults([...newResults])
       }
       
-      toast({ title: 'Success', description: `Processed ${dealerships.length} dealerships` })
+      toast('Success', 'success', { description: `Processed ${dealerships.length} dealerships` })
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to parse CSV data' })
+      toast('Error', 'error', { description: 'Failed to parse CSV data' })
     } finally {
       setIsCreating(false)
     }

@@ -276,7 +276,7 @@ model GA4Connection {
   dealership   Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   // Encrypted tokens
-  accessToken  String    @db.Text
+  accessToken  String?   @db.Text
   refreshToken String?   @db.Text
   expiresAt    DateTime?
 
@@ -317,7 +317,7 @@ model SearchConsoleConnection {
   dealership   Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   // Encrypted tokens
-  accessToken  String    @db.Text
+  accessToken  String?   @db.Text
   refreshToken String?   @db.Text
   expiresAt    DateTime?
 

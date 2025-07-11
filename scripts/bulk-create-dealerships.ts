@@ -29,8 +29,7 @@ async function createDealerships(agencyId: string) {
         data: {
           name: dealership.name,
           website: dealership.website,
-          agencyId: agencyId,
-          onboardingCompleted: false
+          agencyId: agencyId
         }
       })
       

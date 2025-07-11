@@ -4,13 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await auth()
-    
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const session = await auth()
+  
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
+  try {
     // Check if user is agency admin or super admin
     if (session.user.role !== 'AGENCY_ADMIN' && session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
@@ -40,8 +40,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: dealership.name,
         website: dealership.website,
-        agencyId: targetAgencyId,
-        onboardingCompleted: false
+        agencyId: targetAgencyId
       }
     })
 
@@ -74,8 +73,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ 
-      id: created.id, 
+    return NextResponse.json({
+      id: created.id,
       name: created.name,
       ga4Connected: !!dealership.ga4PropertyId,
       searchConsoleConnected: !!dealership.searchConsoleUrl

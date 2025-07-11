@@ -101,8 +101,12 @@ export async function POST(request: NextRequest) {
     // Get user's dealership or handle agency admin access
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { dealership: true },
-      select: { dealershipId: true, role: true, agencyId: true, dealership: true }
+      select: {
+        dealershipId: true,
+        role: true,
+        agencyId: true,
+        dealership: true
+      }
     })
 
     let targetDealershipId = user?.dealershipId

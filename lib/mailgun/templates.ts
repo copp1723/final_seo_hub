@@ -150,7 +150,8 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   
-  // For dealership users, direct them to onboarding instead of just sign-in
+  // If a magic link URL is provided, use it for all users
+  // Otherwise, fall back to the default behavior
   const isDealershipUser = user.role === 'USER' && user.agencyId
   const onboardingUrl = `${appUrl}/onboarding/seoworks?token=${user.id}&invited=true`
   const finalLoginUrl = loginUrl || (isDealershipUser ? onboardingUrl : `${appUrl}/auth/signin`)

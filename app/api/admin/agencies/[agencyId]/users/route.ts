@@ -5,6 +5,7 @@ import { UserRole } from '@prisma/client'
 import { z } from 'zod'
 import { sendInvitationEmail, createDefaultUserPreferences } from '@/lib/mailgun/invitation'
 import { logger } from '@/lib/logger'
+import crypto from 'crypto'
 
 // Validation schema for creating a user
 const createUserSchema = z.object({
@@ -82,12 +83,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
 
     // For now, users are created without passwords and would typically sign in via OAuth.
     // If direct password sign-in is needed, password hashing and storage would be added here.
+    
+    // Generate invitation token for magic link authentication
+    const invitationToken = crypto.randomBytes(32).toString('hex')
+    const invitationTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    
     const newUser = await prisma.user.create({
       data: {
         email,
         name,
         role: role || UserRole.USER, // Default to USER if not provided
         agencyId,
+        invitationToken,
+        invitationTokenExpires,
         // onboardingCompleted will default to false as per schema
       },
       select: { id: true, email: true, name: true, role: true, agencyId: true, createdAt: true },
@@ -96,11 +104,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
     // Create default user preferences for the new user
     await createDefaultUserPreferences(newUser.id)
 
-    // Send invitation email to the new user
+    // Generate the magic link URL
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const magicLinkUrl = `${baseUrl}/api/invitation?token=${invitationToken}`
+
+    // Send invitation email to the new user with magic link
     const invitedBy = user.name || user.email || 'Agency Administrator'
     const invitationSent = await sendInvitationEmail({
       user: newUser as any, // Cast to include all User fields
       invitedBy,
+      loginUrl: magicLinkUrl, // Pass the magic link URL
       skipPreferences: true // New user doesn't have preferences loaded yet
     })
 

@@ -62,7 +62,13 @@ export async function GET(request: NextRequest) {
 
     // Set the session cookie - use NEXTAUTH_URL for proper production redirects
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
-    const response = NextResponse.redirect(new URL('/dashboard', baseUrl))
+    
+    // Redirect dealership users who haven't completed onboarding to the onboarding page
+    const redirectUrl = (user.role === 'USER' && user.agencyId && !user.onboardingCompleted)
+      ? '/onboarding/seoworks?invited=true'
+      : '/dashboard'
+    
+    const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
     
     // Use the correct cookie name based on environment
     const isProduction = process.env.NODE_ENV === 'production'

@@ -24,12 +24,13 @@ import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
 import { DealershipSelector } from './dealership-selector'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/tasks', label: 'Tasks', icon: ListChecks },
-  { href: '/requests', label: 'Requests', icon: FileText },
-  { href: '/chat', label: 'AI Assistant', icon: MessageSquare },
+  { href: '/tasks', label: 'Tasks', icon: ListChecks, tooltip: 'Work items assigned to you or your team.' },
+  { href: '/requests', label: 'Requests', icon: FileText, tooltip: 'Client-submitted SEO requests. Track status and progress.' },
+  { href: '/chat', label: 'SEO Expert', icon: MessageSquare, tooltip: 'Chat with our AI-powered automotive SEO expert.' },
   { href: '/reporting', label: 'Analytics', icon: BarChart },
 ]
 
@@ -90,38 +91,44 @@ export function Navigation() {
   return (
     <nav className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-16 items-center">
           {/* Logo and Desktop Navigation */}
-          <div className="flex">
+          <div className="flex items-center gap-8 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-xl font-bold text-gray-900">
+              <Link href="/dashboard" className="text-xl font-bold text-gray-900 tracking-tight">
                 {branding.companyName}
               </Link>
             </div>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
-                
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium',
-                      isActive
-                        ? 'border-blue-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    )}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {item.label}
-                  </Link>
-                )
-              })}
+            <div className="flex items-center gap-6">
+              <TooltipProvider>
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
+                  return (
+                    <Tooltip key={item.href} delayDuration={200}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            'inline-flex items-center px-2 py-1 rounded-md text-base font-medium transition-colors',
+                            isActive
+                              ? 'text-blue-700 bg-blue-50'
+                              : 'text-gray-700 hover:text-blue-700 hover:bg-blue-50'
+                          )}
+                          style={{ fontWeight: 500 }}
+                        >
+                          <Icon className="h-5 w-5 mr-2" />
+                          {item.label}
+                        </Link>
+                      </TooltipTrigger>
+                      {item.tooltip && <TooltipContent>{item.tooltip}</TooltipContent>}
+                    </Tooltip>
+                  )
+                })}
+              </TooltipProvider>
 
               {/* Agency Admin Dropdown (Desktop) */}
               {user?.role === 'AGENCY_ADMIN' && user.agencyId && agencyAdminNavItems.length > 0 && (
@@ -203,8 +210,8 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Dealership Selector and Desktop User Menu */}
-          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+          {/* Right side: Agency Admin dropdown, Dealership Selector, User menu */}
+          <div className="flex items-center gap-4">
             {user?.role === 'SUPER_ADMIN' && <UserImpersonation />}
             <DealershipSelector />
             <div className="ml-3 relative" ref={userMenuRef}>

@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html, body {
+  font-family: 'Inter', 'Helvetica Neue', Arial, 'Liberation Sans', 'Nimbus Sans', 'Roboto', sans-serif;
+  font-size: 16px;
+  color: #222;
+  background: #fafbfc;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: #18181b;
+  letter-spacing: -0.01em;
+}
+
+.text-muted-foreground, .text-gray-600, .text-gray-500 {
+  color: #6b7280 !important;
+  font-weight: 400;
+}
+
+.text-secondary {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+button, .btn, .Button {
+  font-family: inherit;
+  font-weight: 500;
+}
+
+input, select, textarea {
+  font-family: inherit;
+} 

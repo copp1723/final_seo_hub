@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, RequestStatus } from '@prisma/client'
 import { prisma } from './prisma'
 
 /**
@@ -9,7 +9,7 @@ import { prisma } from './prisma'
 export const batchOperations = {
   // Update multiple requests in a single transaction
   async updateRequestStatuses(
-    updates: Array<{ id: string; status: any; completedAt?: Date }>
+    updates: Array<{ id: string; status: RequestStatus; completedAt?: Date }>
   ) {
     return prisma.$transaction(
       updates.map(update =>
@@ -90,7 +90,7 @@ export const optimizedQueries = {
     userId: string
     page: number
     pageSize: number
-    status?: any
+    status?: RequestStatus
     search?: string
     orderBy?: 'createdAt' | 'updatedAt' | 'completedAt'
     orderDirection?: 'asc' | 'desc'
@@ -105,7 +105,7 @@ export const optimizedQueries = {
       orderDirection = 'desc'
     } = params
 
-    const where: any = {
+    const where: Prisma.RequestWhereInput = {
       userId,
       ...(status && { status }),
       ...(search && {
@@ -172,8 +172,9 @@ export const optimizedQueries = {
       prisma.request.groupBy({
         by: ['status'] as const,
         where: { userId },
-        _count: { _all: true }
-      } as any),
+        _count: { _all: true },
+        orderBy: { status: 'asc' }
+      }),
       // Monthly completed
       prisma.request.count({
         where: {
@@ -211,9 +212,9 @@ export const optimizedQueries = {
     ])
 
     return {
-      statusCounts: statusCounts.reduce((acc, item: any) => ({
+      statusCounts: statusCounts.reduce((acc, item) => ({
         ...acc,
-        [item.status]: item._count?._all || 0
+        [item.status]: (typeof item._count === 'object' ? item._count._all : item._count) || 0
       }), {}),
       monthlyCompleted,
       recentRequests,

@@ -4,7 +4,7 @@ export interface LogContext {
   userId?: string
   path?: string
   method?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export class Logger {
@@ -70,7 +70,7 @@ export class Logger {
   /**
    * Extract safe error details
    */
-  private getErrorDetails(error: unknown): Record<string, any> {
+  private getErrorDetails(error: unknown): Record<string, unknown> {
     if (!error) return {}
     
     if (error instanceof Error) {
@@ -99,7 +99,7 @@ export class Logger {
   private sendToMonitoring(
     level: 'error' | 'warn' | 'info',
     message: string,
-    context?: any
+    context?: Record<string, unknown>
   ) {
     try {
       if (level === 'error') {

@@ -29,7 +29,7 @@ import { LoadingSpinner } from '@/components/ui/loading'
 // Types
 // ---------------------------------------------------------------------------
 
-type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
+type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH'
 // Extend or refine as needed – kept broad for demonstration purposes
 type TaskType = 'PAGE' | 'BLOG' | 'GBP_POST' | 'IMPROVEMENT'
@@ -178,15 +178,30 @@ export default function TasksPage() {
     }
   }
 
-  const handleStatusChange = (taskId: string, newStatus: any) => {
-    console.log('Status change:', taskId, newStatus)
-    // TODO: Implement API call to update task status
-  }
+  // Update task status via API
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to update task status');
+      }
+      // Optionally, refresh tasks or show a notification here
+      // For now, just reload the page
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      // Optionally, show a toast notification
+    }
+  };
 
+  // Navigate to task details page
   const handleViewDetails = (taskId: string) => {
-    console.log('View details:', taskId)
-    // TODO: Navigate to task details or open modal
-  }
+    router.push(`/tasks/${taskId}`);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">

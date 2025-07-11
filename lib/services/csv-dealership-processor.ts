@@ -9,7 +9,7 @@ export interface ProcessingResult {
   totalRows: number
   successfulRows: number
   failedRows: number
-  errors: Array<{ row: number; error: string; data?: any }>
+  errors: Array<{ row: number; error: string; data?: Record<string, unknown> }>
   createdDealerships: Array<{ id: string; name: string }>
   processingId: string
 }
@@ -24,7 +24,7 @@ export interface ProcessingLogData {
   rowsProcessed: number
   rowsSuccessful: number
   rowsFailed: number
-  errorDetails?: any
+  errorDetails?: Record<string, unknown>
   createdAt: Date
   completedAt?: Date
 }
@@ -100,8 +100,8 @@ export class CsvDealershipProcessor {
               totalRows: result.totalRows,
               successfulRows: result.successfulRows,
               failedRows: result.failedRows,
-              errors: result.errors,
-              createdDealerships: result.createdDealerships
+              errorCount: result.errors?.length || 0,
+              createdCount: result.createdDealerships?.length || 0
             }
           }
         })
@@ -163,7 +163,7 @@ export class CsvDealershipProcessor {
           
           try {
             // Clean and validate row data
-            const rawRow = records[i] as Record<string, any>
+            const rawRow = records[i] as Record<string, string>
             const cleanedRow = {
               name: String(rawRow.name || '').trim(),
               website: String(rawRow.website || '').trim(),
@@ -210,37 +210,14 @@ export class CsvDealershipProcessor {
               name: dealership.name 
             })
 
-            // Create GA4 connection if provided
-            if (validatedRow.ga4PropertyId) {
-              await tx.gA4Connection.create({
-                data: {
-                  dealershipId: dealership.id,
-                  propertyId: validatedRow.ga4PropertyId,
-                  propertyName: `${validatedRow.name} - GA4`
-                }
-              })
-              logger.info('Created GA4 connection', {
-                processingId,
-                dealershipId: dealership.id,
-                propertyId: validatedRow.ga4PropertyId
-              })
-            }
-
-            // Create Search Console connection if provided
-            if (validatedRow.searchConsoleUrl) {
-              await tx.searchConsoleConnection.create({
-                data: {
-                  dealershipId: dealership.id,
-                  siteUrl: validatedRow.searchConsoleUrl,
-                  siteName: `${validatedRow.name} - Search Console`
-                }
-              })
-              logger.info('Created Search Console connection', {
-                processingId,
-                dealershipId: dealership.id,
-                siteUrl: validatedRow.searchConsoleUrl
-              })
-            }
+            // Note: GA4 and Search Console connections will be created separately
+            // when users actually connect their accounts through the UI
+            logger.info('Dealership created - GA4/Search Console setup will be done separately', {
+              processingId,
+              dealershipId: dealership.id,
+              hasGA4PropertyId: !!validatedRow.ga4PropertyId,
+              hasSearchConsoleUrl: !!validatedRow.searchConsoleUrl
+            })
 
             result.createdDealerships.push({
               id: dealership.id,
@@ -260,7 +237,7 @@ export class CsvDealershipProcessor {
             result.errors.push({
               row: rowNumber,
               error: errorMessage,
-              data: records[i]
+              data: records[i] as Record<string, unknown>
             })
             result.failedRows++
           }

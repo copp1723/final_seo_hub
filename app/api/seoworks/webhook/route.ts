@@ -250,10 +250,35 @@ export async function POST(request: NextRequest) {
 }
 
 // Validate deliverables structure
-function validateDeliverables(deliverables: any): boolean {
+// --- Types for SEOWorks Webhook Payloads ---
+interface SeoworksDeliverable {
+  type: string;
+  title: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
+interface SeoworksWebhookData {
+  externalId: string;
+  clientId?: string;
+  clientEmail?: string;
+  taskType: string;
+  status: string;
+  completionDate?: string;
+  deliverables?: SeoworksDeliverable[];
+  [key: string]: unknown;
+}
+
+interface SeoworksWebhookPayload {
+  eventType: string;
+  data: SeoworksWebhookData;
+}
+
+// --- Type-safe deliverables validation ---
+function validateDeliverables(deliverables: SeoworksDeliverable[] | undefined): boolean {
   if (!deliverables || !Array.isArray(deliverables)) return true // Allow empty
-  return deliverables.every(d => 
-    d && typeof d === 'object' && 
+  return deliverables.every(d =>
+    d && typeof d === 'object' &&
     typeof d.title === 'string' &&
     (!d.url || typeof d.url === 'string')
   )
@@ -261,20 +286,20 @@ function validateDeliverables(deliverables: any): boolean {
 
 // Handle task completed event
 async function handleTaskCompleted(
-  request: any, // Request with user
-  data: any
+  request: any, // TODO: Replace with precise Prisma type
+  data: SeoworksWebhookData
 ) {
   try {
     // Validate deliverables format
     if (!validateDeliverables(data.deliverables)) {
-      logger.warn('Invalid deliverables format, using fallback', { 
+      logger.warn('Invalid deliverables format, using fallback', {
         taskId: data.externalId,
-        deliverables: data.deliverables 
+        deliverables: data.deliverables
       })
       data.deliverables = [] // Use empty array as fallback
     }
     // Update request progress based on task type
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     
     // Increment the appropriate counter
     switch (data.taskType.toLowerCase()) {
@@ -398,8 +423,8 @@ async function handleTaskCompleted(
 
 // Handle task updated event
 async function handleTaskUpdated(
-  request: any,
-  data: any
+  request: any, // TODO: Replace with precise Prisma type
+  data: SeoworksWebhookData
 ) {
   // For now, just log the update
   logger.info('Task updated webhook received', {
@@ -411,8 +436,8 @@ async function handleTaskUpdated(
 
 // Handle task cancelled event
 async function handleTaskCancelled(
-  request: any,
-  data: any
+  request: any, // TODO: Replace with precise Prisma type
+  data: SeoworksWebhookData
 ) {
   try {
     // Update request status to cancelled if not already completed
@@ -421,7 +446,7 @@ async function handleTaskCancelled(
         where: { id: request.id },
         data: { status: RequestStatus.CANCELLED }
       })
-
+  
       // Send status change email
       const statusTemplate = statusChangedTemplate(
         updatedRequest,
@@ -453,7 +478,7 @@ async function handleTaskCancelled(
 }
 
 // Determine if request should be marked as completed
-function shouldMarkRequestAsCompleted(request: any, data: any): boolean {
+function shouldMarkRequestAsCompleted(request: any, data: SeoworksWebhookData): boolean {
   // This is a simplified logic - adjust based on your business rules
   // For example, check if all required tasks for the package are completed
   

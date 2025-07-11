@@ -435,123 +435,129 @@ export default function SettingsPage() {
                   <div className="h-20 bg-gray-200 rounded"></div>
                   <div className="h-20 bg-gray-200 rounded"></div>
                 </div>
-              ) : integrations && (
-                <>
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium">Google Analytics 4</h4>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {integrations.ga4.connected 
-                            ? `Connected to ${integrations.ga4.propertyName || 'GA4 Property'}`
-                            : 'Not connected'
-                          }
-                        </p>
-                        {integrations.ga4.connected && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Connected on {formatDate(integrations.ga4.connectedAt)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {integrations.ga4.connected && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowPropertySelector(!showPropertySelector)}
-                          >
-                            Change Property
-                          </Button>
-                        )}
-                        <Button
-                          variant={integrations.ga4.connected ? 'secondary' : 'primary'}
-                          size="sm"
-                          onClick={() => router.push('/api/ga4/auth/connect')}
-                        >
-                          {integrations.ga4.connected ? 'Reconnect' : 'Connect'}
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Property Selector */}
-                    {integrations.ga4.connected && showPropertySelector && (
-                      <div className="mt-4 p-4 bg-gray-50 rounded border">
-                        <h5 className="font-medium mb-3">Select GA4 Property</h5>
-                        <div className="space-y-3">
-                          <div>
-                            <Label htmlFor="propertyId">Property ID</Label>
-                            <Input
-                              id="propertyId"
-                              type="text"
-                              placeholder="e.g., 320759942"
-                              value={newPropertyId}
-                              onChange={(e) => setNewPropertyId(e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="propertyName">Property Name (Optional)</Label>
-                            <Input
-                              id="propertyName"
-                              type="text"
-                              placeholder="e.g., Jay Hatfield Chevrolet"
-                              value={newPropertyName}
-                              onChange={(e) => setNewPropertyName(e.target.value)}
-                              className="mt-1"
-                            />
+              ) : (
+                session?.user?.role === 'SUPER_ADMIN' || session?.user?.role === 'AGENCY_ADMIN' ? (
+                  integrations && (
+                    <>
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium">Google Analytics 4</h4>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {integrations.ga4.connected 
+                                ? `Connected to ${integrations.ga4.propertyName || 'GA4 Property'}`
+                                : 'Not connected'
+                              }
+                            </p>
+                            {integrations.ga4.connected && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Connected on {formatDate(integrations.ga4.connectedAt)}
+                              </p>
+                            )}
                           </div>
                           <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              onClick={handleUpdateProperty}
-                              disabled={!newPropertyId || saving}
+                            {integrations.ga4.connected && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowPropertySelector(!showPropertySelector)}
+                              >
+                                Change Property
+                              </Button>
+                            )}
+                            <Button
+                              variant={integrations.ga4.connected ? 'secondary' : 'primary'}
+                              size="sm"
+                              onClick={() => router.push('/api/ga4/auth/connect')}
                             >
-                              {saving ? 'Updating...' : 'Update Property'}
+                              {integrations.ga4.connected ? 'Reconnect' : 'Connect'}
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => setShowPropertySelector(false)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            <p className="font-medium mb-1">Available Properties:</p>
-                            <p>• Jay Hatfield Chevrolet: 320759942</p>
-                            <p>• Jay Hatfield Motorsports: 317592148</p>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Google Search Console</h4>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {integrations.searchConsole.connected 
-                            ? `Connected to ${integrations.searchConsole.siteName || 'Search Console'}`
-                            : 'Not connected'
-                          }
-                        </p>
-                        {integrations.searchConsole.connected && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Connected on {formatDate(integrations.searchConsole.connectedAt)}
-                          </p>
+                        {/* Property Selector */}
+                        {integrations.ga4.connected && showPropertySelector && (
+                          <div className="mt-4 p-4 bg-gray-50 rounded border">
+                            <h5 className="font-medium mb-3">Select GA4 Property</h5>
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor="propertyId">Property ID</Label>
+                                <Input
+                                  id="propertyId"
+                                  type="text"
+                                  placeholder="e.g., 320759942"
+                                  value={newPropertyId}
+                                  onChange={(e) => setNewPropertyId(e.target.value)}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="propertyName">Property Name (Optional)</Label>
+                                <Input
+                                  id="propertyName"
+                                  type="text"
+                                  placeholder="e.g., Jay Hatfield Chevrolet"
+                                  value={newPropertyName}
+                                  onChange={(e) => setNewPropertyName(e.target.value)}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  onClick={handleUpdateProperty}
+                                  disabled={!newPropertyId || saving}
+                                >
+                                  {saving ? 'Updating...' : 'Update Property'}
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => setShowPropertySelector(false)}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                <p className="font-medium mb-1">Available Properties:</p>
+                                <p>• Jay Hatfield Chevrolet: 320759942</p>
+                                <p>• Jay Hatfield Motorsports: 317592148</p>
+                              </div>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <Button
-                        variant={integrations.searchConsole.connected ? 'secondary' : 'primary'}
-                        size="sm"
-                        onClick={() => router.push('/api/search-console/connect')}
-                      >
-                        {integrations.searchConsole.connected ? 'Reconnect' : 'Connect'}
-                      </Button>
-                    </div>
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">Google Search Console</h4>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {integrations.searchConsole.connected 
+                                ? `Connected to ${integrations.searchConsole.siteName || 'Search Console'}`
+                                : 'Not connected'
+                              }
+                            </p>
+                            {integrations.searchConsole.connected && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Connected on {formatDate(integrations.searchConsole.connectedAt)}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            variant={integrations.searchConsole.connected ? 'secondary' : 'primary'}
+                            size="sm"
+                            onClick={() => router.push('/api/search-console/connect')}
+                          >
+                            {integrations.searchConsole.connected ? 'Reconnect' : 'Connect'}
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )
+                ) : (
+                  <div className="p-4 text-gray-500 text-center">
+                    You do not have permission to manage integrations. Please contact your agency admin or super admin.
                   </div>
-                </>
+                )
               )}
             </CardContent>
           </Card>

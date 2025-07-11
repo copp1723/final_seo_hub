@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
 import { DealershipSelector } from './dealership-selector'
+import { UserImpersonation } from '@/components/admin/user-impersonation'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -203,6 +204,7 @@ export function Navigation() {
 
           {/* Dealership Selector and Desktop User Menu */}
           <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+            {user?.role === 'SUPER_ADMIN' && <UserImpersonation />}
             <DealershipSelector />
             <div className="ml-3 relative" ref={userMenuRef}>
               <button
@@ -365,7 +367,8 @@ export function Navigation() {
           
           {/* Mobile Dealership Selector */}
           <div className="pt-4 pb-3 border-t border-gray-200">
-            <div className="px-4">
+            <div className="px-4 space-y-2">
+              {user?.role === 'SUPER_ADMIN' && <UserImpersonation />}
               <DealershipSelector />
             </div>
           </div>

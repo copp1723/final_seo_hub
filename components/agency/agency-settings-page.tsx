@@ -10,7 +10,8 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Building, Globe, Phone, Mail, MapPin, Users, Settings, CreditCard, Shield } from 'lucide-react'
+import { Building, Globe, Phone, Mail, MapPin, Users, Settings, CreditCard, Shield, Store, PlusCircle } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
 interface AgencyProfile {
   id: string
@@ -41,15 +42,38 @@ interface AgencyProfile {
   }
 }
 
+interface Dealership {
+  id: string
+  name: string
+  website?: string
+  address?: string
+  phone?: string
+  activePackageType?: string
+  createdAt: string
+}
+
 export function AgencySettingsPage() {
   const [agency, setAgency] = useState<AgencyProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [activeTab, setActiveTab] = useState('profile')
+  
+  // Dealership management state
+  const [dealerships, setDealerships] = useState<Dealership[]>([])
+  const [showCreateDealership, setShowCreateDealership] = useState(false)
+  const [creatingDealership, setCreatingDealership] = useState(false)
+  const [dealershipForm, setDealershipForm] = useState({
+    name: '',
+    website: '',
+    address: '',
+    phone: '',
+    activePackageType: 'GOLD'
+  })
 
   useEffect(() => {
     fetchAgencyProfile()
+    fetchDealerships()
   }, [])
 
   const fetchAgencyProfile = async () => {
@@ -118,6 +142,54 @@ export function AgencySettingsPage() {
     return Math.round((completed / fields.length) * 100)
   }
 
+  const fetchDealerships = async () => {
+    try {
+      const response = await fetch('/api/dealerships/switch')
+      if (response.ok) {
+        const data = await response.json()
+        setDealerships(data.availableDealerships || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch dealerships:', error)
+    }
+  }
+
+  const createDealership = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCreatingDealership(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/dealerships/bulk-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dealership: dealershipForm
+        })
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Dealership created successfully!' })
+        setShowCreateDealership(false)
+        setDealershipForm({
+          name: '',
+          website: '',
+          address: '',
+          phone: '',
+          activePackageType: 'GOLD'
+        })
+        fetchDealerships() // Refresh the list
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Failed to create dealership' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to create dealership' })
+    } finally {
+      setCreatingDealership(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto py-6">
@@ -182,14 +254,18 @@ export function AgencySettingsPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
             Profile
           </TabsTrigger>
+          <TabsTrigger value="dealerships" className="flex items-center gap-2">
+            <Store className="h-4 w-4" />
+            Dealerships
+          </TabsTrigger>
           <TabsTrigger value="contact" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
-            Contact & Address
+            Contact
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -319,6 +395,154 @@ export function AgencySettingsPage() {
                   <p className="text-sm text-purple-700">User Limit</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dealerships" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Dealership Management</CardTitle>
+                  <CardDescription>
+                    Manage dealerships under your agency
+                  </CardDescription>
+                </div>
+                <Dialog open={showCreateDealership} onOpenChange={setShowCreateDealership}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Dealership
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Create New Dealership</DialogTitle>
+                      <DialogDescription>
+                        Add a new dealership to your agency
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={createDealership} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dealership-name">Dealership Name *</Label>
+                        <Input
+                          id="dealership-name"
+                          value={dealershipForm.name}
+                          onChange={(e) => setDealershipForm({ ...dealershipForm, name: e.target.value })}
+                          placeholder="e.g., Downtown Toyota"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dealership-website">Website</Label>
+                        <Input
+                          id="dealership-website"
+                          value={dealershipForm.website}
+                          onChange={(e) => setDealershipForm({ ...dealershipForm, website: e.target.value })}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dealership-address">Address</Label>
+                        <Input
+                          id="dealership-address"
+                          value={dealershipForm.address}
+                          onChange={(e) => setDealershipForm({ ...dealershipForm, address: e.target.value })}
+                          placeholder="123 Main St, City, State"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dealership-phone">Phone</Label>
+                        <Input
+                          id="dealership-phone"
+                          value={dealershipForm.phone}
+                          onChange={(e) => setDealershipForm({ ...dealershipForm, phone: e.target.value })}
+                          placeholder="(555) 123-4567"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="package-type">Default Package</Label>
+                        <Select 
+                          value={dealershipForm.activePackageType} 
+                          onValueChange={(value) => setDealershipForm({ ...dealershipForm, activePackageType: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SILVER">Silver Package</SelectItem>
+                            <SelectItem value="GOLD">Gold Package</SelectItem>
+                            <SelectItem value="PLATINUM">Platinum Package</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setShowCreateDealership(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={creatingDealership}>
+                          {creatingDealership ? 'Creating...' : 'Create Dealership'}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dealerships.length === 0 ? (
+                <div className="text-center py-12">
+                  <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Dealerships Yet</h3>
+                  <p className="text-gray-600 mb-4">
+                    Get started by adding your first dealership
+                  </p>
+                  <Button onClick={() => setShowCreateDealership(true)}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add First Dealership
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {dealerships.map((dealership) => (
+                    <Card key={dealership.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-medium">{dealership.name}</h4>
+                            {dealership.website && (
+                              <p className="text-sm text-muted-foreground">{dealership.website}</p>
+                            )}
+                            {dealership.address && (
+                              <p className="text-sm text-muted-foreground mt-1">{dealership.address}</p>
+                            )}
+                            {dealership.phone && (
+                              <p className="text-sm text-muted-foreground">{dealership.phone}</p>
+                            )}
+                          </div>
+                          {dealership.activePackageType && (
+                            <Badge variant="outline">
+                              {dealership.activePackageType}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              {dealerships.length > 0 && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Quick Tips</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Each dealership can have its own GA4 and Search Console connections</li>
+                    <li>• Assign users to dealerships to give them access</li>
+                    <li>• Dealerships inherit your agency's branding by default</li>
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

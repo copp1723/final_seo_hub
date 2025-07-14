@@ -98,7 +98,7 @@ export function AgencySettingsPage() {
   // Fetch users after agency profile is loaded
   useEffect(() => {
     if (agency?.id) {
-      fetchAgencyUsers()
+      fetchAgencyUsers(agency.id)
     }
   }, [agency?.id])
 
@@ -199,21 +199,12 @@ export function AgencySettingsPage() {
     }
   }
 
-  const fetchAgencyUsers = async () => {
+  const fetchAgencyUsers = async (agencyId: string) => {
     try {
-      // First get the agency profile to get the agency ID
-      const profileResponse = await fetch('/api/agency/profile')
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json()
-        const agencyData = profileData.success && profileData.data ? profileData.data.agency : profileData.agency
-        
-        if (agencyData?.id) {
-          const response = await fetch(`/api/admin/agencies/${agencyData.id}/users`)
-          if (response.ok) {
-            const data = await response.json()
-            setAgencyUsers(data.users || [])
-          }
-        }
+      const response = await fetch(`/api/admin/agencies/${agencyId}/users`)
+      if (response.ok) {
+        const data = await response.json()
+        setAgencyUsers(data.users || [])
       }
     } catch (error) {
       console.error('Failed to fetch agency users:', error)
@@ -281,10 +272,16 @@ export function AgencySettingsPage() {
           email: '',
           role: 'AGENCY_ADMIN'
         })
-        fetchAgencyUsers() // Refresh the list
+        if (agency?.id) {
+          fetchAgencyUsers(agency.id) // Refresh the list
+        }
       } else {
         const error = await response.json()
-        setMessage({ type: 'error', text: error.error || 'Failed to invite user' })
+        if (response.status === 409) {
+          setMessage({ type: 'error', text: 'A user with this email already exists. Please use a different email address or check if they are already in your team.' })
+        } else {
+          setMessage({ type: 'error', text: error.error || 'Failed to invite user' })
+        }
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to invite user' })

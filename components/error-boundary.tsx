@@ -19,16 +19,34 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public static getDerivedStateFromError(error: Error): State {
+    // Log specific React errors for debugging
+    if (error.message.includes('Minified React error #310')) {
+      console.error('React Hook Error #310 detected - likely conditional hook usage:', error)
+    }
     return { hasError: true, error }
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logger.error('React Error Boundary caught an error', error, {
+    // Enhanced logging for React errors
+    const errorDetails = {
       errorInfo: {
         componentStack: errorInfo.componentStack,
         errorBoundary: true
-      }
-    })
+      },
+      isReactError: error.message.includes('Minified React error'),
+      errorNumber: error.message.match(/#(\d+)/)?.[1] || 'unknown'
+    }
+
+    logger.error('React Error Boundary caught an error', error, errorDetails)
+
+    // Also log to console in production for debugging
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Production React Error:', {
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack
+      })
+    }
   }
 
   public render() {

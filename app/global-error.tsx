@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Home, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useBranding } from '@/hooks/use-branding'
+import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/branding/config'
 
 export default function GlobalError({
   error,
@@ -14,7 +14,21 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  const branding = useBranding()
+  // Use a safer approach for branding in global error to avoid hook dependency issues
+  const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING)
+
+  useEffect(() => {
+    // Safely get branding without depending on session hooks
+    if (typeof window !== 'undefined') {
+      try {
+        const domainBranding = getBrandingFromDomain(window.location.hostname)
+        setBranding(domainBranding)
+      } catch (err) {
+        // Fallback to default branding if there's any error
+        setBranding(DEFAULT_BRANDING)
+      }
+    }
+  }, [])
   
   useEffect(() => {
     // Log the error to an error reporting service

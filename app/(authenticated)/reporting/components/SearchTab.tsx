@@ -1,16 +1,20 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
+import { Button } from '@/components/ui/button'
+import {
   Search,
   MousePointerClick,
   Percent,
   Hash,
   TrendingUp,
   AlertCircle,
-  Eye
+  Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import { format } from 'date-fns'
 import dynamic from 'next/dynamic'
@@ -28,6 +32,28 @@ interface SearchTabProps {
 }
 
 export default function SearchTab({ scData, scError, chartOptions }: SearchTabProps) {
+  const [sortField, setSortField] = useState<'clicks' | 'impressions' | 'ctr' | 'position'>('clicks')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+
+  const handleSort = (field: 'clicks' | 'impressions' | 'ctr' | 'position') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('desc')
+    }
+  }
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3" />
+    return sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+  }
+
+  const sortedQueries = scData?.topQueries ? [...scData.topQueries].sort((a: any, b: any) => {
+    const aValue = a[sortField]
+    const bValue = b[sortField]
+    return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
+  }) : []
   if (scError) {
     return (
       <Card className="p-8 text-center">
@@ -96,7 +122,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
   return (
     <>
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Clicks</CardTitle>
@@ -138,14 +164,27 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Avg. Position</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Avg. Top 10 Position</CardTitle>
             <Hash className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
+              {scData?.top10AveragePosition?.position ? scData.top10AveragePosition.position.toFixed(1) : '-'}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Top performing queries</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Overall Avg. Position</CardTitle>
+            <Hash className="h-4 w-4 text-gray-400" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-gray-500">
               {scData?.overview?.position ? scData.overview.position.toFixed(1) : '-'}
             </p>
-            <p className="text-xs text-gray-500 mt-1">Average ranking</p>
+            <p className="text-xs text-gray-400 mt-1">All queries (incl. long-tail)</p>
           </CardContent>
         </Card>
       </div>
@@ -189,14 +228,50 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2 px-4">Query</th>
-                  <th className="text-right py-2 px-4">Clicks</th>
-                  <th className="text-right py-2 px-4">Impressions</th>
-                  <th className="text-right py-2 px-4">CTR</th>
-                  <th className="text-right py-2 px-4">Position</th>
+                  <th className="text-right py-2 px-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('clicks')}
+                      className="h-auto p-1 font-medium"
+                    >
+                      Clicks {getSortIcon('clicks')}
+                    </Button>
+                  </th>
+                  <th className="text-right py-2 px-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('impressions')}
+                      className="h-auto p-1 font-medium"
+                    >
+                      Impressions {getSortIcon('impressions')}
+                    </Button>
+                  </th>
+                  <th className="text-right py-2 px-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('ctr')}
+                      className="h-auto p-1 font-medium"
+                    >
+                      CTR {getSortIcon('ctr')}
+                    </Button>
+                  </th>
+                  <th className="text-right py-2 px-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('position')}
+                      className="h-auto p-1 font-medium"
+                    >
+                      Position {getSortIcon('position')}
+                    </Button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {scData?.topQueries?.map((query: any, index: number) => (
+                {sortedQueries.map((query: any, index: number) => (
                   <tr key={index} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4 max-w-xs truncate">{query.query}</td>
                     <td className="text-right py-2 px-4">{query.clicks.toLocaleString()}</td>

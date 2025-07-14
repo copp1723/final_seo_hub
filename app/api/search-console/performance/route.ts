@@ -287,11 +287,14 @@ export async function POST(request: NextRequest) {
     })
 
     // Process the data
+    const topQueries = processTopQueries(topQueriesData)
     const processedData = {
       overview: processOverviewData(overviewData),
-      topQueries: processTopQueries(topQueriesData),
+      topQueries: topQueries,
       topPages: processTopPages(topPagesData),
       performanceByDate: processPerformanceByDate(performanceByDateData),
+      // Add top 10 average position calculation
+      top10AveragePosition: calculateTop10AveragePosition(topQueries),
       metadata: {
         siteUrl: searchConsoleConnection.siteUrl,
         dateRange: { startDate, endDate }
@@ -403,4 +406,31 @@ function processPerformanceByDate(data: any) {
   })
 
   return { dates, metrics }
+}
+
+function calculateTop10AveragePosition(topQueries: any[]) {
+  if (!topQueries || topQueries.length === 0) {
+    return {
+      position: 0,
+      count: 0
+    }
+  }
+
+  // Take only top 10 queries (sorted by clicks, which is how Search Console returns them)
+  const top10 = topQueries.slice(0, 10)
+  
+  if (top10.length === 0) {
+    return {
+      position: 0,
+      count: 0
+    }
+  }
+
+  const totalPosition = top10.reduce((sum: number, query: any) => sum + (query.position || 0), 0)
+  const averagePosition = totalPosition / top10.length
+
+  return {
+    position: averagePosition,
+    count: top10.length
+  }
 }

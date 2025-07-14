@@ -329,6 +329,19 @@ export default function OverviewTab({
                     </div>
                   ))}
                 </div>
+                {scData?.top10AveragePosition?.position && (
+                  <div className="mt-3 pt-3 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Top 10 Avg Position</span>
+                      <Badge variant="success">
+                        #{scData.top10AveragePosition.position.toFixed(1)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Based on {scData.top10AveragePosition.count} top performing queries
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

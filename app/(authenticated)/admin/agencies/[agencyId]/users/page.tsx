@@ -158,9 +158,9 @@ export default function AgencyUsersPage() {
       setShowDeleteConfirm(false);
       return;
     }
-    // Prevent AGENCY_ADMIN from deleting SUPER_ADMIN or ADMIN
-    if (session.user.role === UserRole.AGENCY_ADMIN && (userToDelete.role === UserRole.SUPER_ADMIN || userToDelete.role === UserRole.AGENCY_ADMIN)) {
-        toast("AGENCY_ADMINs cannot delete SUPER_ADMIN or ADMIN users.", 'error');
+    // Prevent AGENCY_ADMIN from deleting SUPER_ADMIN
+    if (session.user.role === UserRole.AGENCY_ADMIN && userToDelete.role === UserRole.SUPER_ADMIN) {
+        toast("AGENCY_ADMINs cannot delete SUPER_ADMIN users.", 'error');
         setShowDeleteConfirm(false);
         return;
     }
@@ -199,10 +199,10 @@ export default function AgencyUsersPage() {
       return USER_ROLES_EDITABLE_BY_SUPER_ADMIN;
     }
     if (session?.user.role === UserRole.AGENCY_ADMIN) {
-      // Agency admin cannot promote to ADMIN or SUPER_ADMIN
-      // and cannot demote an ADMIN or SUPER_ADMIN
-      if (editingUser && (editingUser.role === UserRole.AGENCY_ADMIN || editingUser.role === UserRole.SUPER_ADMIN)) {
-        return [editingUser.role]; // Can only keep current role for these users
+      // Agency admin cannot promote to SUPER_ADMIN
+      // and cannot demote a SUPER_ADMIN
+      if (editingUser && editingUser.role === UserRole.SUPER_ADMIN) {
+        return [editingUser.role]; // Can only keep current role for SUPER_ADMIN
       }
       return USER_ROLES_EDITABLE_BY_AGENCY_ADMIN;
     }
@@ -261,7 +261,12 @@ export default function AgencyUsersPage() {
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     {user.id !== session?.user.id && ( // Prevent deleting self via button
-                      <Button variant="ghost" size="sm" onClick={() => openDeleteConfirm(user)} disabled={user.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirm(user)} 
+                        disabled={user.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN}
+                      >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     )}

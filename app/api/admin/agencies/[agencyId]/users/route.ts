@@ -66,12 +66,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
 
     const { email, name, role } = validation.data
 
-    // Ensure AGENCY_ADMIN cannot create SUPER_ADMIN or escalate roles beyond AGENCY_ADMIN
-    if (user.role === UserRole.AGENCY_ADMIN && (role === UserRole.SUPER_ADMIN || role === UserRole.AGENCY_ADMIN)) {
-        return errorResponse('AGENCY_ADMIN cannot create SUPER_ADMIN or ADMIN users.', 403)
+    // Ensure AGENCY_ADMIN cannot create SUPER_ADMIN
+    if (user.role === UserRole.AGENCY_ADMIN && role === UserRole.SUPER_ADMIN) {
+        return errorResponse('AGENCY_ADMIN cannot create SUPER_ADMIN users.', 403)
     }
-    // Ensure AGENCY_ADMIN cannot assign themselves as SUPER_ADMIN or ADMIN
-     if (user.role === UserRole.AGENCY_ADMIN && role && role !== UserRole.USER && role !== UserRole.AGENCY_ADMIN) {
+    // Ensure AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles
+    if (user.role === UserRole.AGENCY_ADMIN && role && role !== UserRole.USER && role !== UserRole.AGENCY_ADMIN) {
       return errorResponse('AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles.', 403);
     }
 
@@ -191,9 +191,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ age
         if (role !== UserRole.USER && role !== UserRole.AGENCY_ADMIN) {
           return errorResponse('AGENCY_ADMIN can only assign USER or AGENCY_ADMIN roles.', 403);
         }
-        // AGENCY_ADMIN cannot change a SUPER_ADMIN or ADMIN's role
-        if (userToUpdate.role === UserRole.SUPER_ADMIN || userToUpdate.role === UserRole.AGENCY_ADMIN) {
-          return errorResponse('AGENCY_ADMIN cannot change the role of a SUPER_ADMIN or ADMIN.', 403)
+        // AGENCY_ADMIN cannot change a SUPER_ADMIN's role
+        if (userToUpdate.role === UserRole.SUPER_ADMIN) {
+          return errorResponse('AGENCY_ADMIN cannot change the role of a SUPER_ADMIN.', 403)
         }
       }
       // SUPER_ADMIN can change any role, but cannot demote another SUPER_ADMIN (unless it's themselves)
@@ -251,8 +251,8 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
         return errorResponse('You cannot delete yourself.', 403)
     }
     if (userMakingRequest.role === UserRole.AGENCY_ADMIN) {
-        if (userToDelete.role === UserRole.SUPER_ADMIN || userToDelete.role === UserRole.AGENCY_ADMIN) {
-            return errorResponse('AGENCY_ADMIN cannot delete SUPER_ADMIN or ADMIN users.', 403)
+        if (userToDelete.role === UserRole.SUPER_ADMIN) {
+            return errorResponse('AGENCY_ADMIN cannot delete SUPER_ADMIN users.', 403)
         }
     }
      if (userToDelete.role === UserRole.SUPER_ADMIN) {

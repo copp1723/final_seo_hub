@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Building, Globe, Phone, Mail, MapPin, Users, Settings, CreditCard, Shield, Store, PlusCircle, BarChart3 } from 'lucide-react'
+import { Building, Globe, Phone, Mail, MapPin, Users, Settings, CreditCard, Shield, Store, PlusCircle, BarChart3, UserPlus, Crown } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { IntegrationPropertyManager } from './integration-property-manager'
 
@@ -53,6 +53,14 @@ interface Dealership {
   createdAt: string
 }
 
+interface AgencyUser {
+  id: string
+  name: string | null
+  email: string
+  role: string
+  createdAt: string
+}
+
 export function AgencySettingsPage() {
   const [agency, setAgency] = useState<AgencyProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,10 +80,27 @@ export function AgencySettingsPage() {
     activePackageType: 'GOLD'
   })
 
+  // Team management state
+  const [agencyUsers, setAgencyUsers] = useState<AgencyUser[]>([])
+  const [showInviteUser, setShowInviteUser] = useState(false)
+  const [invitingUser, setInvitingUser] = useState(false)
+  const [inviteForm, setInviteForm] = useState({
+    name: '',
+    email: '',
+    role: 'AGENCY_ADMIN'
+  })
+
   useEffect(() => {
     fetchAgencyProfile()
     fetchDealerships()
   }, [])
+
+  // Fetch users after agency profile is loaded
+  useEffect(() => {
+    if (agency?.id) {
+      fetchAgencyUsers()
+    }
+  }, [agency?.id])
 
   const fetchAgencyProfile = async () => {
     try {
@@ -174,6 +199,27 @@ export function AgencySettingsPage() {
     }
   }
 
+  const fetchAgencyUsers = async () => {
+    try {
+      // First get the agency profile to get the agency ID
+      const profileResponse = await fetch('/api/agency/profile')
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json()
+        const agencyData = profileData.success && profileData.data ? profileData.data.agency : profileData.agency
+        
+        if (agencyData?.id) {
+          const response = await fetch(`/api/admin/agencies/${agencyData.id}/users`)
+          if (response.ok) {
+            const data = await response.json()
+            setAgencyUsers(data.users || [])
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch agency users:', error)
+    }
+  }
+
   const createDealership = async (e: React.FormEvent) => {
     e.preventDefault()
     setCreatingDealership(true)
@@ -207,6 +253,43 @@ export function AgencySettingsPage() {
       setMessage({ type: 'error', text: 'Failed to create dealership' })
     } finally {
       setCreatingDealership(false)
+    }
+  }
+
+  const inviteUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!agency?.id) {
+      setMessage({ type: 'error', text: 'Agency information not available' })
+      return
+    }
+    
+    setInvitingUser(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch(`/api/admin/agencies/${agency.id}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inviteForm)
+      })
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'User invited successfully! They will receive an email with login instructions.' })
+        setShowInviteUser(false)
+        setInviteForm({
+          name: '',
+          email: '',
+          role: 'AGENCY_ADMIN'
+        })
+        fetchAgencyUsers() // Refresh the list
+      } else {
+        const error = await response.json()
+        setMessage({ type: 'error', text: error.error || 'Failed to invite user' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to invite user' })
+    } finally {
+      setInvitingUser(false)
     }
   }
 
@@ -274,10 +357,14 @@ export function AgencySettingsPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
             Profile
+          </TabsTrigger>
+          <TabsTrigger value="team" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Team
           </TabsTrigger>
           <TabsTrigger value="dealerships" className="flex items-center gap-2">
             <Store className="h-4 w-4" />
@@ -419,6 +506,147 @@ export function AgencySettingsPage() {
                   <p className="text-sm text-purple-700">User Limit</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Team Management</CardTitle>
+                  <CardDescription>
+                    Manage agency administrators and team members
+                  </CardDescription>
+                </div>
+                <Dialog open={showInviteUser} onOpenChange={setShowInviteUser}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite Team Member
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                      <DialogTitle>Invite Team Member</DialogTitle>
+                      <DialogDescription>
+                        Invite a new agency administrator to your team
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={inviteUser} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-name">Full Name *</Label>
+                        <Input
+                          id="invite-name"
+                          value={inviteForm.name}
+                          onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })}
+                          placeholder="John Doe"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-email">Email Address *</Label>
+                        <Input
+                          id="invite-email"
+                          type="email"
+                          value={inviteForm.email}
+                          onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                          placeholder="john@example.com"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="invite-role">Role</Label>
+                        <Select 
+                          value={inviteForm.role} 
+                          onValueChange={(value) => setInviteForm({ ...inviteForm, role: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AGENCY_ADMIN">
+                              <div className="flex items-center gap-2">
+                                <Crown className="h-4 w-4" />
+                                Agency Admin
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="USER">
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                User
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Agency Admins can manage users, dealerships, and settings
+                        </p>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setShowInviteUser(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={invitingUser}>
+                          {invitingUser ? 'Sending Invite...' : 'Send Invitation'}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {agencyUsers.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Team Members Yet</h3>
+                  <p className="text-gray-600 mb-4">
+                    Invite agency administrators to help manage your account
+                  </p>
+                  <Button onClick={() => setShowInviteUser(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Invite First Team Member
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {agencyUsers.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Users className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{user.name || 'No name'}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={user.role === 'AGENCY_ADMIN' ? 'default' : 'secondary'}>
+                          {user.role === 'AGENCY_ADMIN' && <Crown className="h-3 w-3 mr-1" />}
+                          {user.role === 'AGENCY_ADMIN' ? 'Admin' : 'User'}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground">
+                          Joined {new Date(user.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {agencyUsers.length > 0 && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Team Permissions</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• <strong>Agency Admins</strong> can manage all agency settings, users, and dealerships</li>
+                    <li>• <strong>Users</strong> can access assigned dealerships and create requests</li>
+                    <li>• All team members receive email invitations with secure login links</li>
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

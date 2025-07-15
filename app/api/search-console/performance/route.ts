@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    let targetDealershipId = user?.dealershipId
+    const targetDealershipId = user?.dealershipId
     
     // If user is agency admin, they might be accessing on behalf of a dealership
     if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {

@@ -9,10 +9,12 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, CheckCircle, Clock, ArrowRight, MessageSquare, AlertCircle, Activity, Users, Eye, Loader2 } from 'lucide-react'
+import { FileText, CheckCircle, Clock, ArrowRight, AlertCircle, Activity, Loader2, Plus, BarChart } from 'lucide-react'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
 import ErrorBoundary from '@/components/error-boundary'
 import { useToast } from '@/hooks/use-toast'
+
+import { RecentActivityTimeline } from '@/components/dashboard/RecentActivityTimeline'
 
 interface PackageProgress {
   packageType: string | null
@@ -31,6 +33,14 @@ interface LatestRequest {
   improvementsCompleted: number
 }
 
+interface Activity {
+  id: string
+  description: string
+  time: string
+  type: string
+  metadata?: any
+}
+
 interface DashboardData {
   activeRequests: number
   totalRequests: number
@@ -47,6 +57,7 @@ export default function DashboardPage() {
   const { toast } = useToast()
   
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -68,16 +79,29 @@ export default function DashboardPage() {
     try {
       setLoading(true)
       setError(null)
-      
-      const response = await fetch('/api/dashboard/stats')
-      
-      if (!response.ok) {
-        const errorData = await response.json()
+
+      // Fetch both dashboard stats and recent activity in parallel
+      const [statsResponse, activityResponse] = await Promise.all([
+        fetch('/api/dashboard/stats'),
+        fetch('/api/dashboard/recent-activity')
+      ])
+
+      if (!statsResponse.ok) {
+        const errorData = await statsResponse.json()
         throw new Error(errorData.error || 'Failed to fetch dashboard data')
       }
-      
-      const result = await response.json()
-      setDashboardData(result.data)
+
+      const statsResult = await statsResponse.json()
+      setDashboardData(statsResult.data)
+
+      // Handle activity response (don't fail if this fails)
+      if (activityResponse.ok) {
+        const activityResult = await activityResponse.json()
+        setRecentActivity(activityResult.data || [])
+      } else {
+        console.warn('Failed to fetch recent activity')
+        setRecentActivity([])
+      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
@@ -155,216 +179,174 @@ export default function DashboardPage() {
           )}
           
           {/* Top Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Active Requests</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-gray-600">SEO Work in Progress</CardTitle>
+                <Clock className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{data.activeRequests}</p>
-                <p className="text-xs text-gray-500 mt-1">Currently in progress</p>
+                <p className="text-xs text-gray-500 mt-1">Active projects</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Tasks Completed</CardTitle>
-                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-gray-600">Completed This Month</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{data.tasksCompletedThisMonth}</p>
-                <p className="text-xs text-gray-500 mt-1">{data.tasksSubtitle}</p>
+                <p className="text-xs text-gray-500 mt-1">Pages, blogs & posts</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Requests</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-gray-600">Total SEO Work</CardTitle>
+                <FileText className="h-4 w-4 text-purple-500" />
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{data.totalRequests}</p>
-                <p className="text-xs text-gray-500 mt-1">All time</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Analytics</CardTitle>
-                <Activity className={`h-4 w-4 ${data.gaConnected ? 'text-green-500' : 'text-gray-400'}`} />
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{data.gaConnected ? '✅' : '❌'}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {data.gaConnected ? 'GA4 Connected' : 'Not Connected'}
-                </p>
+                <p className="text-xs text-gray-500 mt-1">All time requests</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Package Progress Summary */}
-          {data.latestRequest && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Current Package Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Pages:</span>
-                      <span className="ml-2 font-medium">{data.latestRequest.pagesCompleted}</span>
+          {/* Performance Trends Widget */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Package Progress Summary */}
+              {data.latestRequest && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium">Current Package Progress</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">Pages:</span>
+                          <span className="ml-2 font-medium">{data.latestRequest.pagesCompleted}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Blogs:</span>
+                          <span className="ml-2 font-medium">{data.latestRequest.blogsCompleted}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">GBP Posts:</span>
+                          <span className="ml-2 font-medium">{data.latestRequest.gbpPostsCompleted}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Improvements:</span>
+                          <span className="ml-2 font-medium">{data.latestRequest.improvementsCompleted}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-600">Blogs:</span>
-                      <span className="ml-2 font-medium">{data.latestRequest.blogsCompleted}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">GBP Posts:</span>
-                      <span className="ml-2 font-medium">{data.latestRequest.gbpPostsCompleted}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Improvements:</span>
-                      <span className="ml-2 font-medium">{data.latestRequest.improvementsCompleted}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </CardContent>
+                </Card>
+              )}
 
-          {/* Package Progress */}
-          {data.packageProgress && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">{data.packageProgress.packageType} WORK THIS MONTH</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Pages</span>
-                      <span>{data.packageProgress.pages.used} / {data.packageProgress.pages.limit}</span>
+              {/* Package Progress */}
+              {data.packageProgress && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium">{data.packageProgress.packageType} WORK THIS MONTH</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Pages</span>
+                          <span>{data.packageProgress.pages.used} / {data.packageProgress.pages.limit}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{ width: `${data.packageProgress.pages.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Blog Posts</span>
+                          <span>{data.packageProgress.blogs.used} / {data.packageProgress.blogs.limit}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full"
+                            style={{ width: `${data.packageProgress.blogs.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>GBP Posts</span>
+                          <span>{data.packageProgress.gbpPosts.used} / {data.packageProgress.gbpPosts.limit}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-purple-500 h-2 rounded-full"
+                            style={{ width: `${data.packageProgress.gbpPosts.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>Improvements</span>
+                          <span>{data.packageProgress.improvements.used} / {data.packageProgress.improvements.limit}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-orange-500 h-2 rounded-full"
+                            style={{ width: `${data.packageProgress.improvements.percentage}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-500 h-2 rounded-full" 
-                        style={{ width: `${data.packageProgress.pages.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Blog Posts</span>
-                      <span>{data.packageProgress.blogs.used} / {data.packageProgress.blogs.limit}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-500 h-2 rounded-full" 
-                        style={{ width: `${data.packageProgress.blogs.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>GBP Posts</span>
-                      <span>{data.packageProgress.gbpPosts.used} / {data.packageProgress.gbpPosts.limit}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-purple-500 h-2 rounded-full" 
-                        style={{ width: `${data.packageProgress.gbpPosts.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Improvements</span>
-                      <span>{data.packageProgress.improvements.used} / {data.packageProgress.improvements.limit}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-orange-500 h-2 rounded-full" 
-                        style={{ width: `${data.packageProgress.improvements.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
-          {/* Analytics Status and Quick Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {data.gaConnected && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-green-500" />
-                    Analytics Connected
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-gray-600">
-                    Your Google Analytics 4 is connected and ready to show insights.
-                  </p>
-                  <Link href="/reporting" passHref>
-                    <Button className="w-full justify-between">
-                      View Analytics Dashboard <Activity className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
+            {/* Recent Activity Timeline */}
+            <div>
+              <RecentActivityTimeline activities={recentActivity} />
+            </div>
+          </div>
 
-            {!data.gaConnected && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-yellow-500" />
-                    Connect Analytics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-gray-600">
-                    Connect Google Analytics to see your website performance metrics.
-                  </p>
-                  <Link href="/settings/ga4" passHref>
-                    <Button variant="outline" className="w-full justify-between">
-                      Connect GA4 <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-medium">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-medium">What would you like to do?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Link href="/focus-request" passHref>
-                  <Button className="w-full justify-between">
-                    Create Focus Request <ArrowRight className="h-4 w-4 ml-2" />
+                  <Button className="w-full h-20 flex flex-col items-center justify-center space-y-2">
+                    <Plus className="h-6 w-6" />
+                    <span>Request SEO Work</span>
                   </Button>
                 </Link>
                 <Link href="/requests" passHref>
-                  <Button variant="secondary" className="w-full justify-between">
-                    View All Requests <ArrowRight className="h-4 w-4 ml-2" />
+                  <Button variant="secondary" className="w-full h-20 flex flex-col items-center justify-center space-y-2">
+                    <FileText className="h-6 w-6" />
+                    <span>View My Requests</span>
                   </Button>
                 </Link>
-                <Link href="/chat" passHref>
-                  <Button variant="outline" className="w-full justify-between">
-                    Ask SEO Assistant <MessageSquare className="h-4 w-4 ml-2" />
+                <Link href="/reporting" passHref>
+                  <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2">
+                    <BarChart className="h-6 w-6" />
+                    <span>View Reports</span>
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </ErrorBoundary>

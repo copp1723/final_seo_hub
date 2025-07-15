@@ -7,32 +7,25 @@ import { signOut, useSession } from 'next-auth/react'
 import {
   Home,
   FileText,
-  MessageSquare,
   BarChart,
   Menu,
   X,
   User,
   LogOut,
   ChevronDown,
-  ListChecks,
-  Users, // For Manage Agency Users
-  Briefcase, // For Agency Admin section or specific agency views
-  Building2, // For agencies
-  Settings, // For system settings
-  PlusCircle // For Bulk Create Dealerships
+  Settings,
+  PlusCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
 import { DealershipSelector } from './dealership-selector'
-import { UserImpersonation } from '@/components/admin/user-impersonation'
-import Tooltip from '@/components/ui/tooltip'
+
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/tasks', label: 'Tasks', icon: ListChecks, tooltip: 'Work items assigned to you or your team.' },
-  { href: '/requests', label: 'Requests', icon: FileText, tooltip: 'Client-submitted SEO requests. Track status and progress.' },
-  { href: '/chat', label: 'SEO Expert', icon: MessageSquare, tooltip: 'Chat with our AI-powered automotive SEO expert.' },
-  { href: '/reporting', label: 'Analytics', icon: BarChart },
+  { href: '/requests', label: 'My Requests', icon: FileText },
+  { href: '/focus-request', label: 'New Request', icon: PlusCircle },
+  { href: '/reporting', label: 'Reports', icon: BarChart },
 ]
 
 export function Navigation() {
@@ -42,11 +35,7 @@ export function Navigation() {
   const branding = useBranding()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [isAgencyMenuOpen, setIsAgencyMenuOpen] = useState(false) // For Agency Admin dropdown
-  const [isSuperAdminMenuOpen, setIsSuperAdminMenuOpen] = useState(false) // For Super Admin dropdown
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const agencyMenuRef = useRef<HTMLDivElement>(null)
-  const superAdminMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/auth/signin' })
@@ -58,37 +47,19 @@ export function Navigation() {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false)
       }
-      if (agencyMenuRef.current && !agencyMenuRef.current.contains(event.target as Node)) {
-        setIsAgencyMenuOpen(false)
-      }
-      if (superAdminMenuRef.current && !superAdminMenuRef.current.contains(event.target as Node)) {
-        setIsSuperAdminMenuOpen(false)
-      }
     }
 
-    if (isUserMenuOpen || isAgencyMenuOpen || isSuperAdminMenuOpen) {
+    if (isUserMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => {
         document.removeEventListener('mousedown', handleClickOutside)
       }
     }
-  }, [isUserMenuOpen, isAgencyMenuOpen, isSuperAdminMenuOpen])
+  }, [isUserMenuOpen])
 
-  const agencyAdminNavItems = user?.role === 'AGENCY_ADMIN' && user.agencyId ? [
-    { href: '/agency/settings', label: 'Agency Settings', icon: Settings },
-    { href: `/admin/agencies/${user.agencyId}/requests`, label: 'All Dealership Requests', icon: Briefcase },
-    { href: `/admin/agencies/${user.agencyId}/users`, label: 'Manage Agency Users', icon: Users },
-  ] : []
-
-  // Super Admin navigation items
-  const superAdminNavItems = user?.role === 'SUPER_ADMIN' ? [
-    { href: '/super-admin', label: 'Super Admin Dashboard', icon: Briefcase },
-    { href: '/super-admin/users', label: 'All Users', icon: Users },
-    { href: '/super-admin/agencies', label: 'All Agencies', icon: Building2 },
-    { href: '/super-admin/system', label: 'System Settings', icon: Settings },
-    { href: '/super-admin/audit', label: 'Audit Logs', icon: FileText },
-    // Bulk create dealerships link
-    { href: '/admin/bulk-create-dealerships', label: 'Bulk Create Dealerships', icon: PlusCircle },
+  // Admin navigation items - simplified
+  const adminNavItems = user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? [
+    { href: '/admin', label: 'Admin', icon: Settings },
   ] : []
 
   return (
@@ -104,124 +75,53 @@ export function Navigation() {
               </Link>
             </div>
 
-            {/* Desktop Navigation Links - Hidden on small screens */}
+            {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-1 lg:gap-3">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
-                const link = (
+                const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/')) || (item.href === '/focus-request' && pathname?.startsWith('/focus-request'))
+                return (
                   <Link
+                    key={item.href}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-2 lg:px-3 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                      'inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
                       isActive
                         ? 'text-blue-700 bg-blue-50'
                         : 'text-gray-600 hover:text-blue-700 hover:bg-blue-50'
                     )}
                   >
-                    <Icon className="h-4 w-4 mr-1.5" />
-                    <span className="hidden lg:inline">{item.label}</span>
-                    <span className="lg:hidden">{item.label.split(' ')[0]}</span>
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.label}
                   </Link>
-                );
-                return item.tooltip ? (
-                  <Tooltip key={item.href} content={item.tooltip}>
-                    {link}
-                  </Tooltip>
-                ) : (
-                  <span key={item.href}>{link}</span>
-                );
+                )
               })}
-
-              {/* Agency Admin Dropdown (Desktop) */}
-              {user?.role === 'AGENCY_ADMIN' && user.agencyId && agencyAdminNavItems.length > 0 && (
-                <div className="ml-1 relative" ref={agencyMenuRef}>
-                  <button
-                    onClick={() => setIsAgencyMenuOpen(!isAgencyMenuOpen)}
-                    className="inline-flex items-center px-2 py-1 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
-                    type="button"
+              
+              {/* Admin Link */}
+              {adminNavItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname?.startsWith('/admin') || pathname?.startsWith('/super-admin')
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      isActive
+                        ? 'text-blue-700 bg-blue-50'
+                        : 'text-gray-600 hover:text-blue-700 hover:bg-blue-50'
+                    )}
                   >
-                    <Briefcase className="h-4 w-4 mr-1.5" />
-                    <span className="hidden xl:inline">Agency Admin</span>
-                    <span className="xl:hidden">Agency</span>
-                    <ChevronDown className={cn("h-3 w-3 ml-1 transition-transform", isAgencyMenuOpen && "rotate-180")} />
-                  </button>
-                  {isAgencyMenuOpen && (
-                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                      {agencyAdminNavItems.map(item => {
-                        const Icon = item.icon
-                        const isActive = pathname === item.href
-                        return (
-                           <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                              'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
-                              isActive && 'bg-gray-100'
-                            )}
-                            onClick={() => setIsAgencyMenuOpen(false)}
-                          >
-                            <span className="flex items-center">
-                              <Icon className="h-4 w-4 mr-2" />
-                              {item.label}
-                            </span>
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Super Admin Dropdown (Desktop) */}
-              {user?.role === 'SUPER_ADMIN' && superAdminNavItems.length > 0 && (
-                <div className="ml-1 relative" ref={superAdminMenuRef}>
-                  <button
-                    onClick={() => setIsSuperAdminMenuOpen(!isSuperAdminMenuOpen)}
-                    className="inline-flex items-center px-2 py-1 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
-                    type="button"
-                  >
-                    <Settings className="h-4 w-4 mr-1.5" />
-                    <span className="hidden xl:inline">Super Admin</span>
-                    <span className="xl:hidden">Admin</span>
-                    <ChevronDown className={cn("h-3 w-3 ml-1 transition-transform", isSuperAdminMenuOpen && "rotate-180")} />
-                  </button>
-                  {isSuperAdminMenuOpen && (
-                    <div className="origin-top-left absolute left-0 mt-2 w-56 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                      {superAdminNavItems.map(item => {
-                        const Icon = item.icon
-                        const isActive = pathname === item.href
-                        return (
-                           <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                              'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100',
-                              isActive && 'bg-gray-100'
-                            )}
-                            onClick={() => setIsSuperAdminMenuOpen(false)}
-                          >
-                            <span className="flex items-center">
-                              <Icon className="h-4 w-4 mr-2" />
-                              {item.label}
-                            </span>
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.label}
+                  </Link>
+                )
+              })}
             </div>
           </div>
 
-          {/* Right side: Agency Admin dropdown, Dealership Selector, User menu */}
+          {/* Right side: Dealership Selector, User menu */}
           <div className="flex items-center gap-2 lg:gap-4">
-            {user?.role === 'SUPER_ADMIN' && (
-              <div className="hidden lg:block">
-                <UserImpersonation />
-              </div>
-            )}
             <DealershipSelector />
             <div className="relative" ref={userMenuRef}>
               <button
@@ -259,6 +159,7 @@ export function Navigation() {
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsUserMenuOpen(false)}
                   >
+                    <Settings className="h-4 w-4 inline mr-2" />
                     Settings
                   </Link>
                   <button
@@ -317,50 +218,17 @@ export function Navigation() {
               )
             })}
 
-            {/* Agency Admin Links (Mobile) */}
-            {user?.role === 'AGENCY_ADMIN' && user.agencyId && agencyAdminNavItems.length > 0 && (
+            {/* Admin Links (Mobile) */}
+            {adminNavItems.length > 0 && (
               <>
                 <div className="pt-2 pb-1">
                   <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Agency Admin
+                    Administration
                   </h3>
                 </div>
-                {agencyAdminNavItems.map(item => {
+                {adminNavItems.map(item => {
                   const Icon = item.icon
-                  const isActive = pathname === item.href
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
-                        isActive
-                          ? 'bg-blue-50 border-blue-500 text-blue-700'
-                          : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                      )}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <div className="flex items-center">
-                        <Icon className="h-5 w-5 mr-3" />
-                        {item.label}
-                      </div>
-                    </Link>
-                  )
-                })}
-              </>
-            )}
-
-            {/* Super Admin Links (Mobile) */}
-            {user?.role === 'SUPER_ADMIN' && superAdminNavItems.length > 0 && (
-              <>
-                <div className="pt-2 pb-1">
-                  <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Super Admin
-                  </h3>
-                </div>
-                {superAdminNavItems.map(item => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href
+                  const isActive = pathname?.startsWith('/admin') || pathname?.startsWith('/super-admin')
                   return (
                     <Link
                       key={item.href}
@@ -386,8 +254,7 @@ export function Navigation() {
           
           {/* Mobile Dealership Selector */}
           <div className="pt-4 pb-3 border-t border-gray-200">
-            <div className="px-4 space-y-2">
-              {user?.role === 'SUPER_ADMIN' && <UserImpersonation />}
+            <div className="px-4">
               <DealershipSelector />
             </div>
           </div>
@@ -423,6 +290,7 @@ export function Navigation() {
                 className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
+                <Settings className="h-5 w-5 inline mr-2" />
                 Settings
               </Link>
               <button

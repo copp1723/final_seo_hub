@@ -172,7 +172,7 @@ export default function SuperAdminUsersPage() {
     const url = '/api/super-admin/users'
     const method = editingUser ? 'PUT' : 'POST'
 
-    let requestBody: Record<string, any> = { ...formData }
+    const requestBody: Record<string, any> = { ...formData }
     if (editingUser) {
       requestBody.userId = editingUser.id
     }

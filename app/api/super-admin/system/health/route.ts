@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getMailgunClient } from '@/lib/mailgun/client'
 
 interface HealthStatus {
   database: 'healthy' | 'warning' | 'error'
@@ -75,7 +76,6 @@ export async function GET(request: NextRequest) {
       } else {
         // Try to validate Mailgun configuration
         try {
-          const { getMailgunClient } = require('@/lib/mailgun/client')
           const { mg, domain } = getMailgunClient()
           if (mg && domain) {
             health.email = 'healthy'

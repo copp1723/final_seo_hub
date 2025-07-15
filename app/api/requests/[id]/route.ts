@@ -36,7 +36,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
     }
 
-    let updatedData: any = {};
+    const updatedData: any = {};
     let responseMessage = '';
 
     // Handle status updates

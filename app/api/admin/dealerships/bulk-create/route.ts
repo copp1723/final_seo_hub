@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       select: { agencyId: true, role: true }
     })
 
-    let targetAgencyId = user?.agencyId
+    const targetAgencyId = user?.agencyId
     
     // Super admins can create for any agency, but for now use their agency
     if (!targetAgencyId) {

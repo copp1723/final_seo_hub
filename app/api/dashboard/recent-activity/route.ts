@@ -1,0 +1,239 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger'
+import { format, formatDistanceToNow } from 'date-fns'
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth()
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const dealershipId = searchParams.get('dealershipId')
+
+    // Get user's information and verify access
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        agency: {
+          include: {
+            dealerships: true
+          }
+        },
+        dealership: true
+      }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    // Determine which dealership to get activity for
+    let targetDealershipId: string
+    
+    if (user.role === 'SUPER_ADMIN') {
+      // Super admin can view any dealership
+      if (dealershipId) {
+        targetDealershipId = dealershipId
+      } else {
+        // Default to first available dealership
+        const firstDealership = await prisma.dealership.findFirst()
+        if (!firstDealership) {
+          return NextResponse.json({ success: true, data: [] })
+        }
+        targetDealershipId = firstDealership.id
+      }
+    } else if (user.role === 'AGENCY_ADMIN' && user.agencyId) {
+      // Agency admin can view dealerships in their agency
+      if (dealershipId && user.agency?.dealerships.some(d => d.id === dealershipId)) {
+        targetDealershipId = dealershipId
+      } else {
+        // Default to first dealership in agency
+        const firstDealership = user.agency?.dealerships[0]
+        if (!firstDealership) {
+          return NextResponse.json({ success: true, data: [] })
+        }
+        targetDealershipId = firstDealership.id
+      }
+    } else if (user.dealershipId) {
+      // Regular user can only view their own dealership
+      targetDealershipId = user.dealershipId
+    } else {
+      return NextResponse.json(
+        { error: 'No dealership access' },
+        { status: 403 }
+      )
+    }
+
+    // Get users for this dealership
+    const dealershipUsers = await prisma.user.findMany({
+      where: { dealershipId: targetDealershipId },
+      select: { id: true }
+    })
+
+    const userIds = dealershipUsers.map(u => u.id)
+
+    // Fetch recent activities (last 30 days, limit 20)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const [recentRequests, recentCompletions] = await Promise.all([
+      // Recent request status changes
+      prisma.request.findMany({
+        where: {
+          userId: { in: userIds },
+          updatedAt: { gte: thirtyDaysAgo }
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 15,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          type: true,
+          createdAt: true,
+          updatedAt: true,
+          completedAt: true,
+          user: {
+            select: { name: true, email: true }
+          }
+        }
+      }),
+      
+      // Recent task completions (from completedTasks JSON field)
+      prisma.request.findMany({
+        where: {
+          userId: { in: userIds },
+          completedTasks: { not: Prisma.JsonNull },
+          updatedAt: { gte: thirtyDaysAgo }
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          completedTasks: true,
+          updatedAt: true,
+          user: {
+            select: { name: true, email: true }
+          }
+        }
+      })
+    ])
+
+    // Process activities
+    const activities: Array<{
+      id: string
+      type: 'request_created' | 'request_status_changed' | 'request_completed' | 'task_completed' | 'milestone_reached'
+      description: string
+      timestamp: Date
+      metadata?: any
+    }> = []
+
+    // Process request activities
+    recentRequests.forEach(request => {
+      const userName = request.user?.name || request.user?.email || 'User'
+      
+      // Request created
+      activities.push({
+        id: `request-created-${request.id}`,
+        type: 'request_created',
+        description: `New ${request.type.toLowerCase()} request: "${request.title}"`,
+        timestamp: request.createdAt,
+        metadata: { requestId: request.id, userName }
+      })
+
+      // Request completed
+      if (request.status === 'COMPLETED' && request.completedAt) {
+        activities.push({
+          id: `request-completed-${request.id}`,
+          type: 'request_completed',
+          description: `Request completed: "${request.title}"`,
+          timestamp: request.completedAt,
+          metadata: { requestId: request.id, userName }
+        })
+      }
+    })
+
+    // Process task completions from completedTasks JSON
+    recentCompletions.forEach(request => {
+      if (request.completedTasks) {
+        try {
+          const tasks = Array.isArray(request.completedTasks) 
+            ? request.completedTasks 
+            : JSON.parse(request.completedTasks as string)
+          
+          if (Array.isArray(tasks)) {
+            tasks.forEach((task: any) => {
+              if (task.title && task.completedAt) {
+                activities.push({
+                  id: `task-completed-${request.id}-${task.title.replace(/\s+/g, '-')}`,
+                  type: 'task_completed',
+                  description: `${getTaskTypeEmoji(task.type)} ${task.title}`,
+                  timestamp: new Date(task.completedAt),
+                  metadata: { 
+                    requestId: request.id, 
+                    taskType: task.type,
+                    url: task.url,
+                    userName: request.user?.name || request.user?.email || 'User'
+                  }
+                })
+              }
+            })
+          }
+        } catch (error) {
+          logger.warn('Failed to parse completedTasks JSON', { requestId: request.id, error })
+        }
+      }
+    })
+
+    // Sort all activities by timestamp (newest first) and limit to 20
+    const sortedActivities = activities
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 20)
+      .map(activity => ({
+        ...activity,
+        time: formatDistanceToNow(activity.timestamp, { addSuffix: true }),
+        timestamp: activity.timestamp.toISOString()
+      }))
+
+    return NextResponse.json({
+      success: true,
+      data: sortedActivities
+    })
+
+  } catch (error) {
+    logger.error('Error fetching recent activity:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+function getTaskTypeEmoji(type: string): string {
+  switch (type?.toLowerCase()) {
+    case 'page':
+      return '📄 New page created:'
+    case 'blog':
+      return '📝 Blog post published:'
+    case 'gbp_post':
+    case 'gbp-post':
+      return '🏢 GBP post created:'
+    case 'improvement':
+      return '🔧 Website improvement:'
+    default:
+      return '✅ Task completed:'
+  }
+}

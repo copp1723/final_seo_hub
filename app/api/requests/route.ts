@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
@@ -7,14 +7,17 @@ import { validateRequest, createRequestSchema } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
+import { withApiMonitoring } from '@/lib/api-wrapper'
 
-export async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest): Promise<NextResponse> {
   // Apply rate limiting
   const rateLimitResponse = await rateLimits.api(request)
   if (rateLimitResponse) return rateLimitResponse
 
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) {
+    return authResult.response || errorResponse('Unauthorized', 401)
+  }
 
   const user = authResult.user
   const { searchParams } = new URL(request.url)
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
   const sortOrder = (sortOrderParam === 'asc' || sortOrderParam === 'desc') ? sortOrderParam : 'desc'
 
   try {
-    let where: Prisma.RequestWhereInput = {}
+    const where: Prisma.RequestWhereInput = {}
 
     // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
     // Otherwise, fetch requests for the individual user.
@@ -101,7 +104,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest): Promise<NextResponse> {
   logger.info('Focus request creation started', {
     path: '/api/requests',
     method: 'POST'
@@ -122,7 +125,7 @@ export async function POST(request: NextRequest) {
       authenticated: authResult.authenticated,
       hasUser: !!authResult.user
     })
-    return authResult.response
+    return authResult.response || errorResponse('Unauthorized', 401)
   }
 
   logger.info('Focus request auth successful', {
@@ -297,3 +300,6 @@ export async function POST(request: NextRequest) {
     return errorResponse(getSafeErrorMessage(error), 500)
   }
 }
+
+export const GET = withApiMonitoring(handleGET)
+export const POST = withApiMonitoring(handlePOST)

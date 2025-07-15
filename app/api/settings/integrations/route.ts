@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // Get user's dealership for connection queries or handle agency admin access
-    let targetDealershipId = authResult.user.dealershipId
+    const targetDealershipId = authResult.user.dealershipId
     
     // For agency admins without a dealership, show empty integrations state
     // This allows them to see the UI and connect integrations

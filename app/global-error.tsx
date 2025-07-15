@@ -101,11 +101,11 @@ export default function GlobalError({
           {/* Help Text */}
           <div className="text-center text-sm text-gray-500">
             <p>
-              If this problem persists, please contact our{' '}
-              <Link href="/chat" className="text-blue-600 hover:text-blue-500 underline">
-                AI Assistant
+              If this problem persists, please visit your{' '}
+              <Link href="/dashboard" className="text-blue-600 hover:text-blue-500 underline">
+                Dashboard
               </Link>{' '}
-              for support.
+              or contact support.
             </p>
           </div>
         </div>

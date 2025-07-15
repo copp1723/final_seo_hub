@@ -67,11 +67,11 @@ export default function NotFound() {
         {/* Help Text */}
         <div className="text-center text-sm text-gray-500">
           <p>
-            Need help? Contact our{' '}
-            <Link href="/chat" className="text-blue-600 hover:text-blue-500 underline">
-              AI Assistant
+            Need help? Visit your{' '}
+            <Link href="/dashboard" className="text-blue-600 hover:text-blue-500 underline">
+              Dashboard
             </Link>{' '}
-            for support.
+            or contact support.
           </p>
         </div>
       </div>

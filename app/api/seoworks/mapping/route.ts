@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import crypto from 'crypto'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { z } from 'zod'
@@ -17,7 +18,7 @@ function timingSafeCompare(a: string, b: string): boolean {
   if (a.length !== b.length) {
     return false
   }
-  const crypto = require('crypto')
+
   return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
 }
 

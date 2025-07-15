@@ -1,167 +1,320 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm, FormProvider, SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { onboardingSchema, OnboardingData } from '@/lib/validations/onboardingSchema';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import BusinessInformationStep from '@/components/onboarding/business-information-step';
-import PackageSelectionStep from '@/components/onboarding/package-selection-step';
-import TargetInformationStep from '@/components/onboarding/target-information-step';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { CheckCircle, Building2, Target, Rocket } from 'lucide-react'
 
 const steps = [
-  { id: 1, name: 'Business Information' },
-  { id: 2, name: 'Package Selection' },
-  { id: 3, name: 'Target Information' },
-];
+  { id: 1, name: 'Business Info', icon: Building2, description: 'Tell us about your dealership' },
+  { id: 2, name: 'SEO Goals', icon: Target, description: 'What do you want to achieve?' },
+  { id: 3, name: 'Get Started', icon: Rocket, description: 'Complete your setup' },
+]
 
 export default function OnboardingPage() {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const router = useRouter()
+  
+  const [formData, setFormData] = useState({
+    businessName: '',
+    email: '',
+    phone: '',
+    websiteUrl: '',
+    package: '',
+    targetCities: '',
+    targetModels: '',
+    goals: ''
+  })
 
-  const methods = useForm<OnboardingData>({
-    resolver: zodResolver(onboardingSchema),
-    defaultValues: {
-      // Initialize with default values or leave empty
-      businessName: '',
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      contactName: '',
-      contactTitle: '',
-      email: '',
-      phone: '',
-      websiteUrl: '',
-      billingEmail: '',
-      siteAccessNotes: '',
-      package: undefined, // Or a default package if applicable
-      targetVehicleModels: '',
-      targetCities: '',
-      targetDealers: '',
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 0:
+        return !!(formData.businessName && formData.email && formData.websiteUrl)
+      case 1:
+        return !!(formData.package && formData.targetCities && formData.goals)
+      default:
+        return true
     }
-  });
+  }
 
-  const router = useRouter();
-  const { handleSubmit, trigger, formState: { isSubmitting } } = methods;
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, steps.length - 1))
+      setError('')
+    } else {
+      setError('Please fill in all required fields')
+    }
+  }
 
-  const onSubmit: SubmitHandler<OnboardingData> = async (data) => {
-    setSubmissionError(null);
-    // Submitting onboarding data
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 0))
+    setError('')
+  }
+
+  const handleSubmit = async () => {
+    if (!validateStep(1)) {
+      setError('Please complete all required fields')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
     try {
       const response = await fetch('/api/onboarding', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: formData.businessName,
+          clientEmail: formData.email,
+          phone: formData.phone,
+          websiteUrl: formData.websiteUrl,
+          package: formData.package,
+          targetCities: formData.targetCities.split(',').map(s => s.trim()),
+          targetVehicleModels: formData.targetModels.split(',').map(s => s.trim()),
+          goals: formData.goals
+        })
+      })
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit onboarding data.');
+      if (response.ok) {
+        router.push('/dashboard')
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to complete onboarding')
       }
-
-      // TODO: Store completion status in user record (will be handled in a later step)
-      // Onboarding submitted successfully
-      // For now, we assume the API call to /api/onboarding also handles updating user's status.
-      // If direct client-side update to user session/record is needed, that would be an additional step.
-
-      // Redirect to dashboard
-      router.push('/dashboard');
-    } catch (error: any) {
-      // Log submission error
-      setSubmissionError(error.message || 'An unexpected error occurred.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
-  const nextStep = async () => {
-    const isValid = await trigger(); // Trigger validation for current step fields
-    if (isValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="businessName">Dealership Name *</Label>
+              <Input
+                id="businessName"
+                value={formData.businessName}
+                onChange={(e) => updateField('businessName', e.target.value)}
+                placeholder="e.g., Smith Honda"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Contact Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => updateField('email', e.target.value)}
+                placeholder="your@email.com"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => updateField('phone', e.target.value)}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+            <div>
+              <Label htmlFor="websiteUrl">Website URL *</Label>
+              <Input
+                id="websiteUrl"
+                type="url"
+                value={formData.websiteUrl}
+                onChange={(e) => updateField('websiteUrl', e.target.value)}
+                placeholder="https://yourdealership.com"
+                required
+              />
+            </div>
+          </div>
+        )
+      case 1:
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="package">SEO Package *</Label>
+              <Select value={formData.package} onValueChange={(value) => updateField('package', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose your package" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SILVER">Silver - Basic SEO</SelectItem>
+                  <SelectItem value="GOLD">Gold - Enhanced SEO</SelectItem>
+                  <SelectItem value="PLATINUM">Platinum - Premium SEO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="targetCities">Target Cities *</Label>
+              <Input
+                id="targetCities"
+                value={formData.targetCities}
+                onChange={(e) => updateField('targetCities', e.target.value)}
+                placeholder="Austin, San Antonio, Houston"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Separate multiple cities with commas</p>
+            </div>
+            <div>
+              <Label htmlFor="targetModels">Popular Vehicle Models</Label>
+              <Input
+                id="targetModels"
+                value={formData.targetModels}
+                onChange={(e) => updateField('targetModels', e.target.value)}
+                placeholder="Honda Civic, Toyota Camry, Ford F-150"
+              />
+              <p className="text-xs text-gray-500 mt-1">Your most popular models (optional)</p>
+            </div>
+            <div>
+              <Label htmlFor="goals">SEO Goals *</Label>
+              <Textarea
+                id="goals"
+                value={formData.goals}
+                onChange={(e) => updateField('goals', e.target.value)}
+                placeholder="What do you want to achieve with SEO? (e.g., increase website traffic, generate more leads, improve local search rankings)"
+                rows={3}
+                required
+              />
+            </div>
+          </div>
+        )
+      case 2:
+        return (
+          <div className="text-center space-y-6">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold mb-2">You're all set!</h3>
+              <p className="text-gray-600">
+                We'll review your information and start setting up your SEO campaign.
+                You'll receive an email confirmation shortly.
+              </p>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg text-left">
+              <h4 className="font-medium mb-2">What happens next:</h4>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• Our team will review your goals and website</li>
+                <li>• We'll create your custom SEO strategy</li>
+                <li>• You'll get access to your dashboard within 24 hours</li>
+                <li>• We'll start working on your first SEO tasks</li>
+              </ul>
+            </div>
+          </div>
+        )
+      default:
+        return null
     }
-  };
-
-  const prevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  };
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-12 bg-gray-100">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">
-            Welcome! Let's get you set up.
+            Welcome to SEO Hub
           </CardTitle>
-          {/* Progress Indicator */}
-          <div className="mt-4">
-            <ol className="flex items-center w-full">
-              {steps.map((step, index) => (
-                <li
-                  key={step.id}
-                  className={`flex w-full items-center ${
-                    index < steps.length -1 ? "after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-300 after:border-1 after:inline-block" : ""
-                  } ${currentStep > index ? 'text-blue-600 after:border-blue-600' : ''} ${currentStep === index ? 'text-blue-600' : 'text-gray-500'}`}
-                >
-                  <span className={`flex items-center justify-center w-10 h-10 rounded-full lg:h-12 lg:w-12 shrink-0 ${currentStep >= index ? 'bg-blue-100 border border-blue-600' : 'bg-gray-100 border border-gray-300'}`}>
-                    {currentStep > index ? (
-                      <svg className="w-4 h-4 text-blue-600 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <span className={currentStep === index ? "font-bold" : ""}>{step.id}</span>
+          <p className="text-center text-gray-600 mt-2">
+            Let's get your dealership set up for SEO success
+          </p>
+          
+          {/* Progress Steps */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              {steps.map((step, index) => {
+                const Icon = step.icon
+                const isActive = currentStep === index
+                const isCompleted = currentStep > index
+                
+                return (
+                  <div key={step.id} className="flex flex-col items-center flex-1">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                      isCompleted ? 'bg-green-100 border-green-500' :
+                      isActive ? 'bg-blue-100 border-blue-500' :
+                      'bg-gray-100 border-gray-300'
+                    }`}>
+                      {isCompleted ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <Icon className={`w-5 h-5 ${
+                          isActive ? 'text-blue-600' : 'text-gray-400'
+                        }`} />
+                      )}
+                    </div>
+                    <div className="mt-2 text-center">
+                      <p className={`text-sm font-medium ${
+                        isActive ? 'text-blue-600' : 
+                        isCompleted ? 'text-green-600' : 'text-gray-500'
+                      }`}>
+                        {step.name}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {step.description}
+                      </p>
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className={`hidden sm:block absolute top-5 w-full h-0.5 ${
+                        isCompleted ? 'bg-green-500' : 'bg-gray-300'
+                      }`} style={{ left: '50%', width: 'calc(100% - 2.5rem)' }} />
                     )}
-                  </span>
-                </li>
-              ))}
-            </ol>
-             <div className="mt-2 text-center text-sm font-medium text-gray-700">
-                Step {steps[currentStep].id}: {steps[currentStep].name}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </CardHeader>
-        <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="space-y-6">
-              {currentStep === 0 && (
-                <BusinessInformationStep />
-              )}
-              {currentStep === 1 && (
-                <PackageSelectionStep />
-              )}
-              {currentStep === 2 && (
-                <TargetInformationStep />
-              )}
-              {submissionError && (
-                <p className="text-red-500 text-sm text-center mt-4">{submissionError}</p>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between mt-8">
-              <div>
-                {currentStep > 0 && (
-                  <Button type="button" variant="outline" onClick={prevStep} disabled={isSubmitting}>
-                    Previous
-                  </Button>
-                )}
-              </div>
-              <div>
-                {currentStep < steps.length - 1 && (
-                  <Button type="button" onClick={nextStep} className="ml-auto" disabled={isSubmitting}>
-                    Next
-                  </Button>
-                )}
-                {currentStep === steps.length - 1 && (
-                  <Button type="submit" className="ml-auto" disabled={isSubmitting}>
-                    {isSubmitting ? 'Submitting...' : 'Submit'}
-                  </Button>
-                )}
-              </div>
-            </CardFooter>
-          </form>
-        </FormProvider>
+        
+        <CardContent className="space-y-6">
+          {renderStep()}
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+        </CardContent>
+        
+        <div className="flex justify-between p-6 border-t">
+          <Button
+            variant="outline"
+            onClick={prevStep}
+            disabled={currentStep === 0 || loading}
+          >
+            Previous
+          </Button>
+          
+          {currentStep < steps.length - 1 ? (
+            <Button onClick={nextStep} disabled={loading}>
+              Next
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading ? 'Setting up...' : 'Complete Setup'}
+            </Button>
+          )}
+        </div>
       </Card>
     </div>
-  );
+  )
 }

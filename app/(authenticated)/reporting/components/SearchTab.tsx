@@ -122,7 +122,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
   return (
     <>
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">Total Clicks</CardTitle>
@@ -172,19 +172,6 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
               {scData?.top10AveragePosition?.position ? scData.top10AveragePosition.position.toFixed(1) : '-'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Top performing queries</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Overall Avg. Position</CardTitle>
-            <Hash className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-gray-500">
-              {scData?.overview?.position ? scData.overview.position.toFixed(1) : '-'}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">All queries (incl. long-tail)</p>
           </CardContent>
         </Card>
       </div>

@@ -12,26 +12,27 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', disabled, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button'
     const variants = {
-      default: 'bg-blue-600 text-white hover:bg-blue-700',
-      primary: 'bg-blue-600 text-white hover:bg-blue-700',
-      secondary: 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50',
-      ghost: 'text-gray-700 hover:bg-gray-50',
-      outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
-      destructive: 'bg-red-600 text-white hover:bg-red-700'
+      default: 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm shadow-blue-600/25 hover:shadow-md hover:shadow-blue-600/30 hover:from-blue-600 hover:to-blue-700 border border-blue-600/20',
+      primary: 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm shadow-blue-600/25 hover:shadow-md hover:shadow-blue-600/30 hover:from-blue-600 hover:to-blue-700 border border-blue-600/20',
+      secondary: 'bg-gradient-to-b from-white to-gray-50 text-gray-700 shadow-sm border border-gray-200/80 hover:shadow-md hover:from-gray-50 hover:to-gray-100 hover:border-gray-300/80',
+      ghost: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50/80',
+      outline: 'border border-gray-200/80 bg-white/80 text-gray-700 shadow-sm hover:bg-gray-50/80 hover:border-gray-300/80 hover:shadow-md backdrop-blur-sm',
+      destructive: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-sm shadow-red-600/25 hover:shadow-md hover:shadow-red-600/30 hover:from-red-600 hover:to-red-700 border border-red-600/20'
     }
     
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2 text-sm',
-      lg: 'px-6 py-3 text-base'
+      sm: 'px-3 py-2 text-sm h-8',
+      md: 'px-4 py-2.5 text-sm h-10',
+      lg: 'px-6 py-3 text-sm h-12'
     }
     
     return (
       <Comp
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-md font-medium transition-colors',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 ease-in-out',
+          'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:ring-offset-2',
           variants[variant],
           sizes[size],
           className

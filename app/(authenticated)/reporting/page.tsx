@@ -623,7 +623,7 @@ export default function ReportingPage() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-4xl grid-cols-4">
+          <TabsList className="inline-flex w-auto">
             <TabsTrigger value="overview">GA4 Overview</TabsTrigger>
             <TabsTrigger value="traffic">GA4 Traffic Analytics</TabsTrigger>
             <TabsTrigger value="search">GA4 Search Performance</TabsTrigger>

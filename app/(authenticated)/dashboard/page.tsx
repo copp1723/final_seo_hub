@@ -164,8 +164,8 @@ export default function DashboardPage() {
           {/* Header with Dealership Selector */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="mt-2 text-gray-600">Welcome back, {session?.user?.name || session?.user?.email || 'User'}</p>
+              <h1 className="text-2xl font-medium text-gray-900">Dashboard</h1>
+              <p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user?.name || session?.user?.email || 'User'}</p>
             </div>
             <DealershipSelector />
           </div>
@@ -182,34 +182,34 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">SEO Work in Progress</CardTitle>
+                <CardTitle className="text-sm font-normal text-gray-500">SEO Work in Progress</CardTitle>
                 <Clock className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{data.activeRequests}</p>
-                <p className="text-xs text-gray-500 mt-1">Active projects</p>
+                <p className="text-2xl font-semibold text-gray-900">{data.activeRequests}</p>
+                <p className="text-xs text-gray-400 mt-1">Active projects</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Completed This Month</CardTitle>
+                <CardTitle className="text-sm font-normal text-gray-500">Completed This Month</CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{data.tasksCompletedThisMonth}</p>
-                <p className="text-xs text-gray-500 mt-1">Pages, blogs & posts</p>
+                <p className="text-2xl font-semibold text-gray-900">{data.tasksCompletedThisMonth}</p>
+                <p className="text-xs text-gray-400 mt-1">Pages, blogs & posts</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total SEO Work</CardTitle>
+                <CardTitle className="text-sm font-normal text-gray-500">Total SEO Work</CardTitle>
                 <FileText className="h-4 w-4 text-purple-500" />
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{data.totalRequests}</p>
-                <p className="text-xs text-gray-500 mt-1">All time requests</p>
+                <p className="text-2xl font-semibold text-gray-900">{data.totalRequests}</p>
+                <p className="text-xs text-gray-400 mt-1">All time requests</p>
               </CardContent>
             </Card>
           </div>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
               {data.latestRequest && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg font-medium">Current Package Progress</CardTitle>
+                    <CardTitle className="text-base font-medium">Current Package Progress</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
@@ -252,7 +252,7 @@ export default function DashboardPage() {
               {data.packageProgress && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg font-medium">{data.packageProgress.packageType} WORK THIS MONTH</CardTitle>
+                    <CardTitle className="text-base font-medium">{data.packageProgress.packageType} Work This Month</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -322,7 +322,7 @@ export default function DashboardPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-medium">What would you like to do?</CardTitle>
+              <CardTitle className="text-base font-medium">What would you like to do?</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

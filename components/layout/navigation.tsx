@@ -63,20 +63,20 @@ export function Navigation() {
   ] : []
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center gap-2 lg:gap-6 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-lg lg:text-xl font-bold text-gray-900 tracking-tight">
+              <Link href="/dashboard" className="text-lg lg:text-xl font-medium text-gray-900 tracking-tight">
                 {branding.companyName}
               </Link>
             </div>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-1 lg:gap-3">
+            <div className="hidden md:flex items-center gap-2 lg:gap-4">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/')) || (item.href === '/focus-request' && pathname?.startsWith('/focus-request'))
@@ -85,13 +85,13 @@ export function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      'inline-flex items-center px-4 py-2 rounded-lg text-sm font-normal transition-all duration-200 relative',
                       isActive
-                        ? 'text-blue-700 bg-blue-50'
-                        : 'text-gray-600 hover:text-blue-700 hover:bg-blue-50'
+                        ? 'text-blue-700 bg-blue-50/80 shadow-sm border border-blue-200/50'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
                     )}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
+                    <Icon className="h-4 w-4 mr-3" />
                     {item.label}
                   </Link>
                 )
@@ -106,13 +106,13 @@ export function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      'inline-flex items-center px-4 py-2 rounded-lg text-sm font-normal transition-all duration-200',
                       isActive
-                        ? 'text-blue-700 bg-blue-50'
-                        : 'text-gray-600 hover:text-blue-700 hover:bg-blue-50'
+                        ? 'text-blue-700 bg-blue-50/80 shadow-sm border border-blue-200/50'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
                     )}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
+                    <Icon className="h-4 w-4 mr-3" />
                     {item.label}
                   </Link>
                 )
@@ -128,11 +128,11 @@ export function Navigation() {
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <div className="flex items-center space-x-2 px-2 py-1.5 rounded-md hover:bg-gray-50">
-                  <div className="h-7 w-7 rounded-full bg-gray-300 flex items-center justify-center">
+                <div className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ring-2 ring-white shadow-sm">
                     {session?.user?.image ? (
                       <img
-                        className="h-7 w-7 rounded-full"
+                        className="h-8 w-8 rounded-full"
                         src={session.user.image}
                         alt={session.user.name || 'User'}
                       />
@@ -140,10 +140,10 @@ export function Navigation() {
                       <User className="h-4 w-4 text-gray-600" />
                     )}
                   </div>
-                  <span className="hidden lg:block text-sm text-gray-700 max-w-[150px] truncate">
+                  <span className="hidden lg:block text-sm text-gray-600 max-w-[150px] truncate font-normal">
                     {session?.user?.name || 'User'}
                   </span>
-                  <ChevronDown className="h-3 w-3 text-gray-500" />
+                  <ChevronDown className="h-3 w-3 text-gray-400" />
                 </div>
               </button>
 

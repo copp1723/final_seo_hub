@@ -1,3 +1,6 @@
+// Simplified token generation script for Render environment
+// Environment variables are already loaded in Render
+
 const { PrismaClient } = require('@prisma/client')
 const crypto = require('crypto')
 
@@ -5,9 +8,17 @@ const prisma = new PrismaClient()
 
 async function generateInvitationToken() {
   try {
-    const email = 'access@seowerks.ai'
+    const email = process.argv[2]
+
+    if (!email) {
+      console.log('Please provide an email address as a command-line argument.')
+      console.log('Usage: node scripts/generate-invitation-token.js <email>')
+      return
+    }
     
     console.log(`🔍 Generating invitation token for ${email}...`)
+    console.log('Database URL:', process.env.DATABASE_URL ? 'Set ✓' : 'Not set ✗')
+    console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL || 'Not set')
     
     // Find the user
     const user = await prisma.user.findUnique({
@@ -16,6 +27,13 @@ async function generateInvitationToken() {
     
     if (!user) {
       console.log(`❌ User ${email} not found`)
+
+      // List available users for debugging
+      console.log('\n📋 Available users:')
+      const users = await prisma.user.findMany({
+        select: { email: true, role: true }
+      })
+      users.forEach(u => console.log(`  - ${u.email} (${u.role})`))
       return
     }
     
@@ -42,13 +60,17 @@ async function generateInvitationToken() {
     console.log('📧 Email:', email)
     console.log('🔗 Invitation URL:', invitationUrl)
     console.log('⏰ Expires:', invitationTokenExpires.toISOString())
-    console.log('\n✅ The user can now click this URL to sign in directly!')
+    console.log('\n✅ Copy and paste this URL in an incognito browser to test!')
     
   } catch (error) {
-    console.error('❌ Error:', error)
+    console.error('❌ Error:', error.message)
+    if (error.stack) {
+      console.error('Stack:', error.stack)
+    }
   } finally {
     await prisma.$disconnect()
   }
 }
 
+// Run immediately
 generateInvitationToken()

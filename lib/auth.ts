@@ -4,23 +4,10 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './prisma'
 import { UserRole } from '@prisma/client'
 
-// Determine if we should use secure cookies based on NEXTAUTH_URL
+// Simplified cookie configuration
 const isProduction = process.env.NODE_ENV === 'production'
 const nextAuthUrl = process.env.NEXTAUTH_URL || ''
-const isSecureContext = nextAuthUrl.startsWith('https://')
-const useSecureCookies = isProduction && isSecureContext
-const cookiePrefix = useSecureCookies ? '__Secure-' : ''
-
-// Log configuration for debugging
-if (isProduction) {
-  console.log('Auth Configuration:', {
-    isProduction,
-    nextAuthUrl,
-    isSecureContext,
-    useSecureCookies,
-    cookiePrefix
-  })
-}
+const useSecureCookies = nextAuthUrl.startsWith('https://')
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -127,12 +114,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   cookies: {
     sessionToken: {
-      name: `${cookiePrefix}next-auth.session-token`,
+      name: 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: useSecureCookies // Only secure in production
+        secure: useSecureCookies
       }
     }
   }

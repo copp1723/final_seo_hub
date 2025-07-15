@@ -90,16 +90,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           !Object.values(UserRole).includes((user as any).role); // Check if role is a valid UserRole
 
         if (needsUpdate) {
-          // Update user with default values
-          await authPrisma.users.update({
-            where: { id: user.id },
-            data: {
-              role: Object.values(UserRole).includes((user as any).role) ? (user as any).role : UserRole.USER
+          try {
+            // Update user with default values
+            await authPrisma.users.update({
+              where: { id: user.id },
+              data: {
+                role: Object.values(UserRole).includes((user as any).role) ? (user as any).role : UserRole.USER
+              }
+            });
+            // Re-assign role to session after update if it was invalid
+            if (!Object.values(UserRole).includes(userRole!)) {
+              (session.user as any).role = UserRole.USER;
             }
-          });
-          // Re-assign role to session after update if it was invalid
-          if (!Object.values(UserRole).includes(userRole!)) {
-            (session.user as any).role = UserRole.USER;
+          } catch (updateError) {
+            console.error('Session callback database update failed:', updateError);
+            // Continue with session creation even if update fails
+            (session.user as any).role = userRole || UserRole.USER;
           }
         }
       }

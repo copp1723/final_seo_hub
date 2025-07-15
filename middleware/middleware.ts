@@ -2,15 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { corsMiddleware } from '@/middleware/cors'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
+  // Skip middleware for static assets - CRITICAL for preventing MIME type errors
+  if (
+    pathname.startsWith('/_next/static') ||
+    pathname.startsWith('/_next/image') ||
+    pathname.includes('/favicon.ico') ||
+    pathname.includes('.') && (pathname.endsWith('.js') || pathname.endsWith('.css') || pathname.endsWith('.map') || pathname.endsWith('.ico'))
+  ) {
+    return NextResponse.next()
+  }
+
   // Apply CORS headers for API routes
-  if (request.nextUrl.pathname.startsWith('/api/')) {
+  if (pathname.startsWith('/api/')) {
     const corsResponse = corsMiddleware(request)
     if (request.method === 'OPTIONS') {
       return corsResponse
     }
   }
-
-  const { pathname } = request.nextUrl
   
   // Public routes that don't require authentication
   const publicRoutes = ['/auth/signin', '/auth/error', '/api/health', '/api/onboarding', '/api/debug', '/api/seoworks/webhook', '/api/seoworks/webhook-test', '/api/seoworks/mapping', '/api/seoworks/onboard', '/test-onboarding', '/api/invitation']
@@ -53,7 +63,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - files with extensions (js, css, map, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'
   ]
 }

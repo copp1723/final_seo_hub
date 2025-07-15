@@ -2,8 +2,98 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getDealershipPackageProgress } from '@/lib/package-utils'
+import { withApiMonitoring } from '@/lib/api-wrapper'
+import { createCachedFunction, CACHE_TAGS, revalidateCache } from '@/lib/cache'
+import { CACHE_TTL } from '@/lib/constants'
 
-export async function GET(request: NextRequest) {
+// Cached function for fetching dealership stats
+const getCachedDealershipStats = createCachedFunction(
+  async (dealershipId: string) => {
+    // Get all users from this dealership for request statistics
+    const dealershipUsers = await prisma.user.findMany({
+      where: { dealershipId },
+      select: { id: true }
+    })
+
+    const userIds = dealershipUsers.map(u => u.id)
+
+    // Fetch dashboard stats for the dealership
+    const [statusCounts, completedThisMonth, latestRequest] = await Promise.all([
+      prisma.request.groupBy({
+        by: ['status'],
+        where: { 
+          userId: { in: userIds }
+        },
+        _count: true
+      }),
+      prisma.request.count({
+        where: {
+          userId: { in: userIds },
+          status: 'COMPLETED',
+          completedAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          }
+        }
+      }),
+      prisma.request.findFirst({
+        where: {
+          userId: { in: userIds },
+          packageType: { not: null }
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          packageType: true,
+          pagesCompleted: true,
+          blogsCompleted: true,
+          gbpPostsCompleted: true,
+          improvementsCompleted: true
+        }
+      })
+    ])
+
+    // Get package progress for the dealership
+    let packageProgress = null
+    try {
+      packageProgress = await getDealershipPackageProgress(dealershipId)
+    } catch (error) {
+      console.error("API Dashboard: Failed to get dealership package progress", error)
+    }
+
+    // Check GA4 connection
+    let gaConnected = false
+    try {
+      const gaConnection = await prisma.gA4Connection.findUnique({
+        where: { dealershipId },
+        select: { propertyId: true, propertyName: true }
+      })
+      
+      if (gaConnection?.propertyId) {
+        gaConnected = true
+      }
+    } catch (error) {
+      console.error("API Dashboard: Failed to check GA4 connection", error)
+    }
+
+    return {
+      statusCounts,
+      completedThisMonth,
+      latestRequest,
+      packageProgress,
+      gaConnected
+    }
+  },
+  {
+    name: 'getDealershipStats',
+    tags: (dealershipId: string) => [
+      CACHE_TAGS.REQUESTS(dealershipId),
+      CACHE_TAGS.GA4(dealershipId),
+      `dealership-stats-${dealershipId}`
+    ],
+    revalidate: CACHE_TTL.ANALYTICS / 1000, // 5 minutes
+  }
+)
+
+async function handleGET(request: NextRequest) {
   try {
     const session = await auth()
     
@@ -73,70 +163,9 @@ export async function GET(request: NextRequest) {
       targetDealershipId = user.dealershipId
     }
 
-    // Get all users from this dealership for request statistics
-    const dealershipUsers = await prisma.user.findMany({
-      where: { dealershipId: targetDealershipId },
-      select: { id: true }
-    })
-
-    const userIds = dealershipUsers.map(u => u.id)
-
-    // Fetch dashboard stats for the dealership
-    const [statusCounts, completedThisMonth, latestRequest] = await Promise.all([
-      prisma.request.groupBy({
-        by: ['status'],
-        where: { 
-          userId: { in: userIds }
-        },
-        _count: true
-      }),
-      prisma.request.count({
-        where: {
-          userId: { in: userIds },
-          status: 'COMPLETED',
-          completedAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-          }
-        }
-      }),
-      prisma.request.findFirst({
-        where: {
-          userId: { in: userIds },
-          packageType: { not: null }
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          packageType: true,
-          pagesCompleted: true,
-          blogsCompleted: true,
-          gbpPostsCompleted: true,
-          improvementsCompleted: true
-        }
-      })
-    ])
-
-    // Get package progress for the dealership
-    let packageProgress = null
-    try {
-      packageProgress = await getDealershipPackageProgress(targetDealershipId)
-    } catch (error) {
-      console.error("API Dashboard: Failed to get dealership package progress", error)
-    }
-
-    // Check GA4 connection
-    let gaConnected = false
-    try {
-      const gaConnection = await prisma.gA4Connection.findUnique({
-        where: { dealershipId: targetDealershipId },
-        select: { propertyId: true, propertyName: true }
-      })
-      
-      if (gaConnection?.propertyId) {
-        gaConnected = true
-      }
-    } catch (error) {
-      console.error("API Dashboard: Failed to check GA4 connection", error)
-    }
+    // Use cached function to get dealership stats
+    const cachedStats = await getCachedDealershipStats(targetDealershipId)
+    const { statusCounts, completedThisMonth, latestRequest, packageProgress, gaConnected } = cachedStats
 
     // Calculate stats with null safety
     const statusCountsMap = statusCounts.reduce((acc: Record<string, number>, item: any) => {
@@ -176,3 +205,5 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export const GET = withApiMonitoring(handleGET)

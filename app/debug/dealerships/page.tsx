@@ -4,7 +4,8 @@ import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 
 export default function DebugDealershipsPage() {
-  const { data: session } = useSession()
+  const sessionResult = useSession()
+  const session = sessionResult?.data
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

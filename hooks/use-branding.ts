@@ -5,7 +5,9 @@ import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/b
 import { useEffect, useState } from 'react'
 
 export function useBranding(): BrandingConfig {
-  const { data: session, status } = useSession()
+  const sessionResult = useSession()
+  const session = sessionResult?.data
+  const status = sessionResult?.status
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING)
 
   useEffect(() => {

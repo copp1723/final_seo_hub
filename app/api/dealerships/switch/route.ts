@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
 const switchDealershipSchema = z.object({
-  dealershipId: z.string().cuid()
+  dealershipId: z.string().min(1)
 })
 
 export async function POST(request: NextRequest) {
@@ -21,62 +21,45 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { dealershipId } = switchDealershipSchema.parse(body)
 
-    // Get user's agency to validate the mock dealership
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        agency: true
-      }
+    // Get current user
+    const currentUser = await prisma.users.findUnique({
+      where: { id: session.user.id }
     })
 
-    if (!user?.agency) {
+    if (!currentUser?.agencyId) {
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
       )
     }
 
-    // Generate the same mock dealerships to validate the selection
-    const mockDealerships = [
-      {
-        id: `${user.agency.id}-main`,
-        name: `${user.agency.name} Main Location`
-      },
-      {
-        id: `${user.agency.id}-north`,
-        name: `${user.agency.name} North`
-      },
-      {
-        id: `${user.agency.id}-south`, 
-        name: `${user.agency.name} South`
-      },
-      {
-        id: `${user.agency.id}-east`,
-        name: `${user.agency.name} East`
-      },
-      {
-        id: `${user.agency.id}-west`,
-        name: `${user.agency.name} West`
+    // Verify the dealership user exists in the same agency
+    const dealershipUser = await prisma.users.findUnique({
+      where: { 
+        id: dealershipId,
+        agencyId: currentUser.agencyId
       }
-    ]
-
-    // Check if the dealership is valid
-    const selectedDealership = mockDealerships.find(d => d.id === dealershipId)
+    })
     
-    if (!selectedDealership) {
+    if (!dealershipUser || !dealershipUser.id.startsWith('user-dealer-')) {
       return NextResponse.json(
         { error: 'Dealership not found or access denied' },
         { status: 403 }
       )
     }
 
-    // For now, we'll just return success without updating the database
-    // In the future, this would update the user's dealershipId when the table exists
-    console.log(`User ${user.email} switched to dealership: ${selectedDealership.name}`)
+    // Extract dealership name
+    const match = dealershipUser.name?.match(/\((.+)\)$/)
+    const dealershipName = match ? match[1] : dealershipUser.name || 'Unknown Dealership'
+
+    console.log(`User ${currentUser.email} switched to dealership: ${dealershipName}`)
 
     return NextResponse.json({
       success: true,
-      dealership: selectedDealership
+      dealership: {
+        id: dealershipUser.id,
+        name: dealershipName
+      }
     })
 
   } catch (error) {
@@ -107,52 +90,53 @@ export async function GET() {
       )
     }
 
-    // Get user's agency info since dealerships table doesn't exist yet
-    const user = await prisma.user.findUnique({
+    // Get current user
+    const currentUser = await prisma.users.findUnique({
       where: { id: session.user.id },
       include: {
-        agency: true
+        agencies: true
       }
     })
 
-    if (!user?.agency) {
+    if (!currentUser?.agencyId) {
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
       )
     }
 
-    // For now, simulate dealerships using the agency
-    // This is a temporary fix until proper dealerships table is created
-    const mockDealerships = [
-      {
-        id: `${user.agency.id}-main`,
-        name: `${user.agency.name} Main Location`
+    // Get all users in the same agency (these represent dealerships)
+    const dealershipUsers = await prisma.users.findMany({
+      where: {
+        agencyId: currentUser.agencyId,
+        id: { startsWith: 'user-dealer-' } // Only get dealership users
       },
-      {
-        id: `${user.agency.id}-north`,
-        name: `${user.agency.name} North`
-      },
-      {
-        id: `${user.agency.id}-south`, 
-        name: `${user.agency.name} South`
-      },
-      {
-        id: `${user.agency.id}-east`,
-        name: `${user.agency.name} East`
-      },
-      {
-        id: `${user.agency.id}-west`,
-        name: `${user.agency.name} West`
-      }
-    ]
+      orderBy: { name: 'asc' }
+    })
 
-    // Set first dealership as current if none selected
-    const currentDealership = mockDealerships[0]
+    // Extract dealership name from user name (format: "Manager Name (Dealership Name)")
+    const availableDealerships = dealershipUsers.map(user => {
+      const match = user.name?.match(/\((.+)\)$/)
+      const dealershipName = match ? match[1] : user.name || 'Unknown Dealership'
+      
+      return {
+        id: user.id,
+        name: dealershipName
+      }
+    })
+
+    // Determine current dealership
+    const currentDealership = currentUser.id.startsWith('user-dealer-') ? {
+      id: currentUser.id,
+      name: (() => {
+        const match = currentUser.name?.match(/\((.+)\)$/)
+        return match ? match[1] : currentUser.name || 'Unknown Dealership'
+      })()
+    } : (availableDealerships.length > 0 ? availableDealerships[0] : null)
 
     return NextResponse.json({
       currentDealership,
-      availableDealerships: mockDealerships
+      availableDealerships
     })
 
   } catch (error) {

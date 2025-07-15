@@ -204,7 +204,7 @@ async function main() {
   console.log('🚗 Setting up Multi-Brand Auto Group dealerships...')
 
   // First, find the agency (or create one if it doesn't exist)
-  let agency = await prisma.agency.findFirst({
+  let agency = await prisma.agencies.findFirst({
     where: {
       OR: [
         { name: { contains: 'Hatfield' } },
@@ -215,20 +215,13 @@ async function main() {
 
   if (!agency) {
     console.log('📍 Creating Multi-Brand Auto Group agency...')
-    agency = await prisma.agency.create({
+    agency = await prisma.agencies.create({
       data: {
+        id: 'agency-multi-brand-auto-group',
         name: 'Multi-Brand Auto Group',
+        slug: 'multi-brand-auto-group',
         domain: 'autogroup.com',
-        settings: {
-          branding: {
-            primaryColor: '#1f2937',
-            logoUrl: null
-          },
-          features: {
-            multiDealership: true,
-            customReporting: true
-          }
-        }
+        updatedAt: new Date()
       }
     })
     console.log(`✅ Created agency: ${agency.name} (ID: ${agency.id})`)
@@ -237,23 +230,24 @@ async function main() {
   }
 
   // Create agency admin if it doesn't exist
-  let agencyAdmin = await prisma.user.findFirst({
+  let agencyAdmin = await prisma.users.findFirst({
     where: {
       agencyId: agency.id,
-      role: 'AGENCY_ADMIN'
+      role: 'admin'
     }
   })
 
   if (!agencyAdmin) {
     console.log('👤 Creating agency admin user...')
-    agencyAdmin = await prisma.user.create({
+    agencyAdmin = await prisma.users.create({
       data: {
+        id: 'user-admin-auto-group',
         email: 'admin@autogroup.com',
         name: 'Auto Group Admin',
-        role: 'AGENCY_ADMIN',
+        role: 'admin',
         agencyId: agency.id,
-        onboardingCompleted: true,
-        emailVerified: new Date()
+        emailVerified: new Date(),
+        updatedAt: new Date()
       }
     })
     console.log(`✅ Created agency admin: ${agencyAdmin.email}`)
@@ -264,42 +258,29 @@ async function main() {
   
   for (const dealershipData of dealerships) {
     try {
-      // Create dealership
-      const dealership = await prisma.dealership.upsert({
-        where: { id: dealershipData.id },
-        create: {
-          id: dealershipData.id,
-          name: dealershipData.name,
-          website: dealershipData.website,
-          agencyId: agency.id,
-          settings: dealershipData.ga4PropertyId ? 
-            { ga4PropertyId: dealershipData.ga4PropertyId } : 
-            { ga4PropertyId: null, ga4Status: dealershipData.ga4Status }
-        },
-        update: {
-          name: dealershipData.name,
-          website: dealershipData.website,
-          settings: dealershipData.ga4PropertyId ? 
-            { ga4PropertyId: dealershipData.ga4PropertyId } : 
-            { ga4PropertyId: null, ga4Status: dealershipData.ga4Status }
-        }
-      })
+      // Note: This schema doesn't have a dealerships table, so we'll create users directly
+      // and store dealership info in the user record for now
+      const dealership = {
+        id: dealershipData.id,
+        name: dealershipData.name,
+        website: dealershipData.website
+      }
 
       // Create user for dealership
-      const user = await prisma.user.upsert({
+      const user = await prisma.users.upsert({
         where: { email: dealershipData.userEmail },
         create: {
+          id: `user-${dealershipData.id}`,
           email: dealershipData.userEmail,
-          name: dealershipData.userName,
-          role: 'DEALERSHIP_ADMIN',
+          name: `${dealershipData.userName} (${dealershipData.name})`,
+          role: 'user',
           agencyId: agency.id,
-          dealershipId: dealership.id,
-          onboardingCompleted: true,
-          emailVerified: new Date()
+          emailVerified: new Date(),
+          updatedAt: new Date()
         },
         update: {
-          name: dealershipData.userName,
-          dealershipId: dealership.id
+          name: `${dealershipData.userName} (${dealershipData.name})`,
+          updatedAt: new Date()
         }
       })
 

@@ -181,8 +181,7 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
         {messages.map((message) => (
           <div key={message.id}>
             <MessageBubble
-              message={{
-                ...message,
+              message={{ ...message,
                 role: message.sender === 'user' ? 'user' : 'assistant',
                 timestamp: new Date(message.timestamp)
               }}
@@ -193,8 +192,7 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
                   ? messages[messageIndex - 1].content
                   : message.content
                 
-                setEscalateMessage({
-                  ...message,
+                setEscalateMessage({ ...message,
                   originalQuery
                 })
               }}
@@ -213,7 +211,6 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
                     ))}
                   </div>
                 )}
-                
                 {message.metadata.topics && message.metadata.topics.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {message.metadata.topics.map((topic, idx) => (
@@ -227,14 +224,12 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
             )}
           </div>
         ))}
-        
         {isLoading && (
           <div className="flex items-center gap-2 text-gray-500">
             <Bot className="h-4 w-4 animate-pulse" />
             <span className="text-sm">Analyzing your SEO query...</span>
           </div>
         )}
-        
         <div ref={messagesEndRef} />
       </div>
 
@@ -252,8 +247,7 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
               onClick={() => {
                 const lastMessage = messages[messages.length - 1]
                 const lastUserMessage = messages.slice().reverse().find(m => m.sender === 'user')
-                setEscalateMessage({
-                  ...lastMessage,
+                setEscalateMessage({ ...lastMessage,
                   originalQuery: lastUserMessage?.content || lastMessage.content
                 })
               }}
@@ -265,7 +259,6 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
           </div>
         </div>
       )}
-
       {/* Smart Suggestions */}
       {smartSuggestions.length > 0 && !isLoading && (
         <div className="px-4 py-2 border-t bg-gray-50">
@@ -285,7 +278,6 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
           </div>
         </div>
       )}
-
       {/* Input */}
       <div className="border-t p-4">
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">

@@ -31,7 +31,7 @@ interface PaginationInfo {
 }
 
 interface InfiniteScrollRequestsProps {
-  initialRequests: Request[]
+  initialRequests: typeof requests[]
   initialPagination: PaginationInfo
   searchQuery?: string
   statusFilter?: string
@@ -43,7 +43,7 @@ export function InfiniteScrollRequests({
   searchQuery = '',
   statusFilter = ''
 }: InfiniteScrollRequestsProps) {
-  const [requests, setRequests] = useState<Request[]>(initialRequests)
+  const [requests, setRequests] = useState<typeof requests[]>(initialRequests)
   const [pagination, setPagination] = useState<PaginationInfo>(initialPagination)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState(searchQuery)
@@ -153,11 +153,9 @@ export function InfiniteScrollRequests({
           <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
         </div>
       )}
-
       {!loading && requests.length === 0 && (
         <p className="text-center text-gray-500 py-8">No requests found</p>
       )}
-
       {pagination.hasNextPage && (
         <div ref={loadMoreRef} className="h-20" />
       )}

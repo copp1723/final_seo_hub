@@ -32,7 +32,7 @@ export function successResponse<T>(data?: T, message?: string): NextResponse {
 export async function requireAuth() {
   const session = await auth()
   
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return { 
       authenticated: false, 
       response: errorResponse('Unauthorized', 401) 
@@ -41,7 +41,7 @@ export async function requireAuth() {
   
   return { 
     authenticated: true, 
-    user: session.user 
+    user: session.user
   }
 }
 

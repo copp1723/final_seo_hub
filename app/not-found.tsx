@@ -32,8 +32,7 @@ export default function NotFound() {
               Page Not Found
             </CardTitle>
             <CardDescription className="text-lg">
-              Sorry, we couldn't find the page you're looking for. The page may have been moved, deleted, or the URL might be incorrect.
-            </CardDescription>
+              Sorry, we couldn't find the page you're looking for.The page may have been moved, deleted, or the URL might be incorrect</CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-4">
@@ -71,8 +70,7 @@ export default function NotFound() {
             <Link href="/dashboard" className="text-blue-600 hover:text-blue-500 underline">
               Dashboard
             </Link>{' '}
-            or contact support.
-          </p>
+            or contact support</p>
         </div>
       </div>
     </div>

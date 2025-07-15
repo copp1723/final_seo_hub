@@ -32,7 +32,7 @@ const PackageUsageProgress: React.FC<PackageUsageProgressProps> = ({ usageData }
     { name: 'Pages', value: usageData.pages || 0, icon: FileText },
     { name: 'Blog Posts', value: usageData.blogs || 0, icon: Newspaper },
     { name: 'GBP Posts', value: usageData.gbpPosts || 0, icon: BarChart3 },
-    { name: 'Improvements', value: usageData.improvements || 0, icon: Zap },
+    { name: 'Improvements', value: usageData.improvements || 0, icon: Zap }
   ]
 
   const totalUsage = items.reduce((sum, item) => sum + item.value, 0)
@@ -56,7 +56,7 @@ const PackageUsageProgress: React.FC<PackageUsageProgressProps> = ({ usageData }
                     </span>
                     <span className="text-sm font-semibold text-indigo-600">{item.value}</span>
                   </div>
-                  {/* Basic representation of usage amount. Could be a real progress bar if max is known. */}
+                  {/* Basic representation of usage amount.Could be a real progress bar if max is known. */}
                   <div className="h-2 bg-gray-200 rounded-full">
                     <div
                       className="h-2 bg-indigo-600 rounded-full"
@@ -70,10 +70,9 @@ const PackageUsageProgress: React.FC<PackageUsageProgressProps> = ({ usageData }
           </div>
         ) : (
           <div className="flex items-center justify-center h-24 text-gray-500">
-            No package usage recorded this month.
-          </div>
+            No package usage recorded this month</div>
         )}
-      </CardContent>
+          </CardContent>
     </Card>
   )
 }

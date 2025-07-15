@@ -8,26 +8,26 @@ import { format, subDays } from 'date-fns'
 export async function GET(request: NextRequest) {
   const session = await auth()
   
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     // Get user's dealership
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
-      include: { dealership: true }
+      include: { dealerships: true }
     })
 
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       return NextResponse.json({
         error: 'No dealership assigned to user'
       }, { status: 400 })
     }
 
     // Get GA4 connection
-    const ga4Connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: user.dealershipId }
+    const ga4Connection = await prisma.ga4_connections.findUnique({
+      where: { userId: user.dealerships?.id }
     })
 
     if (!ga4Connection || !ga4Connection.propertyId) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    const ga4Service = new GA4Service(user.dealershipId)
+    const ga4Service = new GA4Service(user.dealerships?.id)
     const diagnostics: any = {
       connection: {
         propertyId: ga4Connection.propertyId,
@@ -221,15 +221,15 @@ function generateRecommendations(diagnostics: any): string[] {
   const weekTest = diagnostics.tests.find((t: any) => t.name === 'Last 7 Days Batch Test')
   
   if (!weekTest?.hasData) {
-    recommendations.push('No data found in the last 7 days. This property may not have active tracking.')
+    recommendations.push('No data found in the last 7 days.This property may not have active tracking.')
     recommendations.push('Verify that the GA4 tracking code is installed on your website.')
     recommendations.push('Check if this is the correct property ID for your website.')
   } else if (weekTest.totals?.sessions === 0) {
-    recommendations.push('Property is connected but showing 0 sessions. Check if tracking is working.')
+    recommendations.push('Property is connected but showing 0 sessions.Check if tracking is working.')
   }
   
   if (diagnostics.workingMetrics?.length === 0) {
-    recommendations.push('No standard metrics are returning data. The property may not be configured correctly.')
+    recommendations.push('No standard metrics are returning data.The property may not be configured correctly.')
   }
   
   if (!diagnostics.workingMetrics?.includes('screenPageViews') && diagnostics.workingMetrics?.includes('pageviews')) {

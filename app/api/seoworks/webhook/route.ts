@@ -81,16 +81,16 @@ export async function POST(request: NextRequest) {
     let requestRecord = null
     
     // Strategy 1: Direct lookup by our internal request ID
-    requestRecord = await prisma.request.findFirst({
+    requestRecord = await prisma.requests.findFirst({
       where: { id: data.externalId },
-      include: { user: true }
+      include: { users: true }
     })
     
     // Strategy 2: If not found, try lookup by SEOWorks task ID
     if (!requestRecord) {
-      requestRecord = await prisma.request.findFirst({
+      requestRecord = await prisma.requests.findFirst({
         where: { seoworksTaskId: data.externalId },
-        include: { user: true }
+        include: { users: true }
       })
     }
     
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     // This handles tasks created directly in SEOWorks without a focus request
     if (!requestRecord && (data.clientId || data.clientEmail)) {
       // First, find the user
-      const user = await prisma.user.findFirst({
+      const user = await prisma.users.findFirst({
         where: {
           OR: [
             data.clientId ? { id: data.clientId } : {},
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       
       if (user) {
         // Look for a pending request of the same type for this user
-        requestRecord = await prisma.request.findFirst({
+        requestRecord = await prisma.requests.findFirst({
           where: {
             userId: user.id,
             type: data.taskType.toLowerCase(),
@@ -117,12 +117,12 @@ export async function POST(request: NextRequest) {
             seoworksTaskId: null // Not yet linked to a SEOWorks task
           },
           orderBy: { createdAt: 'asc' }, // Get the oldest unlinked request
-          include: { user: true }
+          include: { users: true }
         })
         
         // If found, link this SEOWorks task to our request
         if (requestRecord) {
-          await prisma.request.update({
+          await prisma.requests.update({
             where: { id: requestRecord.id },
             data: { seoworksTaskId: data.externalId }
           })
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       // Strategy 4: If still no request found, this might be a task created directly in SEOWorks
       // Create a new request to track it if we can identify the user
       if (data.clientId || data.clientEmail) {
-        const user = await prisma.user.findFirst({
+        const user = await prisma.users.findFirst({
           where: {
             OR: [
               data.clientId ? { id: data.clientId } : {},
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
         
         if (user && eventType === 'task.completed') {
           // Create a new request to track this externally created task
-          requestRecord = await prisma.request.create({
+          requestRecord = await prisma.requests.create({
             data: {
               userId: user.id,
               title: data.deliverables?.[0]?.title || `SEOWorks ${data.taskType} Task`,
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
               gbpPostsCompleted: data.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
               improvementsCompleted: ['improvement', 'maintenance'].includes(data.taskType.toLowerCase()) ? 1 : 0
             },
-            include: { user: true }
+            include: { users: true }
           })
           
           logger.info('Created new request for externally created SEOWorks task', {
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
       eventType,
       requestId: requestRecord.id,
       externalId: data.externalId,
-      clientId: data.clientId || requestRecord.userId,
+      clientId: data.clientId || requestRecord.user.id,
       clientEmail: data.clientEmail || requestRecord.user.email,
       taskType: data.taskType,
       status: data.status
@@ -337,13 +337,13 @@ async function handleTaskCompleted(
     }
 
     // Update the request
-    const updatedRequest = await prisma.request.update({
+    const updatedRequest = await prisma.requests.update({
       where: { id: request.id },
       data: updateData
     })
 
     // Increment usage for package tracking
-    if (updatedRequest.userId) {
+    if (updatedRequest.user.id) {
       let taskTypeForUsage: TaskType | null = null
       switch (data.taskType.toLowerCase()) {
         case 'page':
@@ -363,10 +363,10 @@ async function handleTaskCompleted(
 
       if (taskTypeForUsage) {
         try {
-          await incrementUsage(updatedRequest.userId, taskTypeForUsage)
-          logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`)
+          await incrementUsage(updatedRequest.user.id, taskTypeForUsage)
+          logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.user.id}`)
         } catch (usageError) {
-          logger.error(`Failed to increment usage for user ${updatedRequest.userId}`, usageError)
+          logger.error(`Failed to increment usage for user ${updatedRequest.user.id}`, usageError)
           // Continue processing even if usage tracking fails
         }
       }
@@ -377,14 +377,13 @@ async function handleTaskCompleted(
     const isContentTask = ['page', 'blog', 'gbp_post', 'gbp-post'].includes(data.taskType.toLowerCase())
     
     const emailTemplate = isContentTask
-      ? contentAddedTemplate(updatedRequest, request.user, completedTask)
-      : taskCompletedTemplate(updatedRequest, request.user, completedTask)
+      ? contentAddedTemplate(updatedRequest, request.users, completedTask)
+      : taskCompletedTemplate(updatedRequest, request.users, completedTask)
     
     await queueEmailWithPreferences(
-      request.userId,
+      request.user.id,
       'taskCompleted',
-      {
-        ...emailTemplate,
+      { ...emailTemplate,
         to: request.user.email
       }
     )
@@ -393,15 +392,14 @@ async function handleTaskCompleted(
     if (updateData.status === RequestStatus.COMPLETED) {
       const statusTemplate = statusChangedTemplate(
         updatedRequest,
-        request.user,
+        request.users,
         request.status,
         RequestStatus.COMPLETED
       )
       await queueEmailWithPreferences(
-        request.userId,
+        request.user.id,
         'statusChanged',
-        {
-          ...statusTemplate,
+        { ...statusTemplate,
           to: request.user.email
         }
       )
@@ -410,7 +408,7 @@ async function handleTaskCompleted(
     logger.info('Task completed webhook processed', {
       requestId: request.id,
       taskType: data.taskType,
-      userId: request.userId
+      userId: request.user.id
     })
   } catch (error) {
     logger.error('Error handling task completed', error, {
@@ -442,7 +440,7 @@ async function handleTaskCancelled(
   try {
     // Update request status to cancelled if not already completed
     if (request.status !== RequestStatus.COMPLETED) {
-      const updatedRequest = await prisma.request.update({
+      const updatedRequest = await prisma.requests.update({
         where: { id: request.id },
         data: { status: RequestStatus.CANCELLED }
       })
@@ -450,15 +448,14 @@ async function handleTaskCancelled(
       // Send status change email
       const statusTemplate = statusChangedTemplate(
         updatedRequest,
-        request.user,
+        request.users,
         request.status,
         RequestStatus.CANCELLED
       )
       await queueEmailWithPreferences(
-        request.userId,
+        request.user.id,
         'statusChanged',
-        {
-          ...statusTemplate,
+        { ...statusTemplate,
           to: request.user.email
         }
       )

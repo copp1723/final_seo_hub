@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       logger.warn('Search Console performance request unauthorized', {
         hasSession: !!session,
         hasUser: !!session?.user,
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get user's dealership or handle agency admin access
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: {
         dealershipId: true,
@@ -109,10 +109,10 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    const targetDealershipId = user?.dealershipId
+    const targetDealershipId = user?.dealerships.id
     
     // If user is agency admin, they might be accessing on behalf of a dealership
-    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
       // For agency admins, we need a dealershipId parameter or default behavior
       // For now, return an appropriate error since this endpoint needs dealership context
       return NextResponse.json(
@@ -145,8 +145,8 @@ export async function POST(request: NextRequest) {
       dealershipId: targetDealershipId
     })
 
-    searchConsoleConnection = await prisma.searchConsoleConnection.findUnique({
-      where: { dealershipId: targetDealershipId }
+    searchConsoleConnection = await prisma.search_console_connections.findUnique({
+      where: { userId: targetDealershipId }
     })
 
     logger.info('Search Console connection query result', {
@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
     // Clean up old cache entries
     if (cache.size > 100) {
       const sortedEntries = Array.from(cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp)
+       .sort((a, b) => a[1].timestamp - b[1].timestamp)
       
       // Remove oldest 50 entries
       for (let i = 0; i < 50; i++) {

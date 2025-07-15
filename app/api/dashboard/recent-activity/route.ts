@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -20,15 +20,15 @@ export async function GET(request: NextRequest) {
     const dealershipId = searchParams.get('dealershipId')
 
     // Get user's information and verify access
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       include: {
-        agency: {
+        agencies: {
           include: {
             dealerships: true
           }
         },
-        dealership: true
+        dealerships: true
       }
     })
 
@@ -48,27 +48,27 @@ export async function GET(request: NextRequest) {
         targetDealershipId = dealershipId
       } else {
         // Default to first available dealership
-        const firstDealership = await prisma.dealership.findFirst()
+        const firstDealership = await prisma.dealerships.findFirst()
         if (!firstDealership) {
           return NextResponse.json({ success: true, data: [] })
         }
         targetDealershipId = firstDealership.id
       }
-    } else if (user.role === 'AGENCY_ADMIN' && user.agencyId) {
+    } else if (user.role === 'AGENCY_ADMIN' && user.agencies?.id) {
       // Agency admin can view dealerships in their agency
-      if (dealershipId && user.agency?.dealerships.some(d => d.id === dealershipId)) {
+      if (dealershipId && user.agencies?.dealerships.some(d => d.id === dealershipId)) {
         targetDealershipId = dealershipId
       } else {
         // Default to first dealership in agency
-        const firstDealership = user.agency?.dealerships[0]
+        const firstDealership = user.agencies?.dealerships[0]
         if (!firstDealership) {
           return NextResponse.json({ success: true, data: [] })
         }
         targetDealershipId = firstDealership.id
       }
-    } else if (user.dealershipId) {
+    } else if (user.dealerships?.id) {
       // Regular user can only view their own dealership
-      targetDealershipId = user.dealershipId
+      targetDealershipId = user.dealerships?.id
     } else {
       return NextResponse.json(
         { error: 'No dealership access' },
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get users for this dealership
-    const dealershipUsers = await prisma.user.findMany({
+    const dealershipUsers = await prisma.users.findMany({
       where: { dealershipId: targetDealershipId },
       select: { id: true }
     })
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 
     const [recentRequests, recentCompletions] = await Promise.all([
       // Recent request status changes
-      prisma.request.findMany({
+      prisma.requests.findMany({
         where: {
           userId: { in: userIds },
           updatedAt: { gte: thirtyDaysAgo }
@@ -105,14 +105,14 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           updatedAt: true,
           completedAt: true,
-          user: {
+          users: {
             select: { name: true, email: true }
           }
         }
       }),
       
       // Recent task completions (from completedTasks JSON field)
-      prisma.request.findMany({
+      prisma.requests.findMany({
         where: {
           userId: { in: userIds },
           completedTasks: { not: Prisma.JsonNull },
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
           title: true,
           completedTasks: true,
           updatedAt: true,
-          user: {
+          users: {
             select: { name: true, email: true }
           }
         }
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
 
     // Process request activities
     recentRequests.forEach(request => {
-      const userName = request.user?.name || request.user?.email || 'User'
+      const userName = request.users?.name || request.users?.email || 'User'
       
       // Request created
       activities.push({
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
                     requestId: request.id, 
                     taskType: task.type,
                     url: task.url,
-                    userName: request.user?.name || request.user?.email || 'User'
+                    userName: request.users?.name || request.users?.email || 'User'
                   }
                 })
               }
@@ -202,8 +202,7 @@ export async function GET(request: NextRequest) {
     const sortedActivities = activities
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, 20)
-      .map(activity => ({
-        ...activity,
+      .map(activity => ({ ...activity,
         time: formatDistanceToNow(activity.timestamp, { addSuffix: true }),
         timestamp: activity.timestamp.toISOString()
       }))

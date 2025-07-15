@@ -13,7 +13,7 @@ export const batchOperations = {
   ) {
     return prisma.$transaction(
       updates.map(update =>
-        prisma.request.update({
+        prisma.requests.update({
           where: { id: update.id },
           data: {
             status: update.status,
@@ -34,10 +34,10 @@ export const batchOperations = {
       statusChanged: true,
       taskCompleted: true,
       weeklySummary: true,
-      marketingEmails: false,
+      marketingEmails: false
     }))
 
-    return prisma.userPreferences.createMany({
+    return prisma.users.preferences.createMany({
       data,
       skipDuplicates: true
     })
@@ -48,39 +48,22 @@ export const batchOperations = {
 export const optimizedQueries = {
   // Get user with all related data in one query
   async getUserWithRelations(userId: string) {
-    return prisma.user.findUnique({
+    return prisma.users.findUnique({
       where: { id: userId },
       include: {
-        agency: {
+        agencies: {
           select: {
             id: true,
-            name: true,
-            settings: true
+            name: true
           }
         },
-        dealership: {
+        dealerships: {
           select: {
             id: true,
-            name: true,
-            searchConsoleConnection: {
-              select: {
-                id: true,
-                siteUrl: true,
-                siteName: true,
-                updatedAt: true
-              }
-            },
-            ga4Connection: {
-              select: {
-                id: true,
-                propertyId: true,
-                propertyName: true,
-                updatedAt: true
-              }
-            }
+            name: true
           }
         },
-        preferences: true
+        user_preferences: true
       }
     })
   },
@@ -105,7 +88,7 @@ export const optimizedQueries = {
       orderDirection = 'desc'
     } = params
 
-    const where: Prisma.RequestWhereInput = {
+    const where: Prisma.requests.WhereInput = {
       userId,
       ...(status && { status }),
       ...(search && {
@@ -117,7 +100,7 @@ export const optimizedQueries = {
     }
 
     const [requests, total] = await prisma.$transaction([
-      prisma.request.findMany({
+      prisma.requests.findMany({
         where,
         orderBy: { [orderBy]: orderDirection },
         skip: (page - 1) * pageSize,
@@ -142,7 +125,7 @@ export const optimizedQueries = {
           completedTasks: true
         }
       }),
-      prisma.request.count({ where })
+      prisma.requests.count({ where })
     ])
 
     return {
@@ -163,20 +146,21 @@ export const optimizedQueries = {
     currentMonth.setHours(0, 0, 0, 0)
 
     const [
-      statusCounts,
+      pendingCount,
+      inProgressCount,
+      completedCount,
+      cancelledCount,
       monthlyCompleted,
       recentRequests,
       packageProgress
     ] = await prisma.$transaction([
-      // Status counts
-      prisma.request.groupBy({
-        by: ['status'] as const,
-        where: { userId },
-        _count: { _all: true },
-        orderBy: { status: 'asc' }
-      }),
+      // Status counts - split into individual queries to avoid groupBy complexity
+      prisma.requests.count({ where: { userId, status: 'PENDING' } }),
+      prisma.requests.count({ where: { userId, status: 'IN_PROGRESS' } }),
+      prisma.requests.count({ where: { userId, status: 'COMPLETED' } }),
+      prisma.requests.count({ where: { userId, status: 'CANCELLED' } }),
       // Monthly completed
-      prisma.request.count({
+      prisma.requests.count({
         where: {
           userId,
           status: 'COMPLETED',
@@ -184,7 +168,7 @@ export const optimizedQueries = {
         }
       }),
       // Recent requests
-      prisma.request.findMany({
+      prisma.requests.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: 5,
@@ -197,7 +181,7 @@ export const optimizedQueries = {
         }
       }),
       // Package progress
-      prisma.request.aggregate({
+      prisma.requests.aggregate({
         where: {
           userId,
           packageType: { not: null }
@@ -212,14 +196,16 @@ export const optimizedQueries = {
     ])
 
     return {
-      statusCounts: statusCounts.reduce((acc, item) => ({
-        ...acc,
-        [item.status]: (typeof item._count === 'object' ? item._count._all : item._count) || 0
-      }), {}),
+      statusCounts: {
+        PENDING: pendingCount,
+        IN_PROGRESS: inProgressCount,
+        COMPLETED: completedCount,
+        CANCELLED: cancelledCount
+      },
       monthlyCompleted,
       recentRequests,
       totalTasksCompleted: Object.values(packageProgress._sum || {})
-        .reduce((sum: number, val) => sum + (val || 0), 0)
+        .reduce((sum: number, val: unknown) => sum + (typeof val === 'number' ? val : 0), 0)
     }
   }
 }

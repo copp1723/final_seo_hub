@@ -49,7 +49,7 @@ export const createRequestSchema = z.object({
     .url('Must be a valid URL')
     .optional()
     .or(z.literal(''))
-    .transform(val => val === '' ? undefined : val),
+    .transform(val => val === '' ? undefined : val)
 })
 
 // Schema for updating a request

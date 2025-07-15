@@ -9,17 +9,17 @@ export async function POST() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true }
     })
 
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -27,13 +27,13 @@ export async function POST() {
     }
 
     // Get existing GA4 connection
-    const connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: user.dealershipId }
+    const connection = await prisma.ga4_connections.findUnique({
+      where: { userId: user.dealerships?.id }
     })
 
     if (!connection) {
       return NextResponse.json(
-        { error: 'No GA4 connection found. Please connect Google Analytics first.' },
+        { error: 'No GA4 connection found.Please connect Google Analytics first.' },
         { status: 404 }
       )
     }
@@ -55,7 +55,7 @@ export async function POST() {
     
     oauth2Client.setCredentials({
       access_token: decrypt(connection.accessToken),
-      refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined,
+      refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined
     })
 
     // Get GA4 Admin API
@@ -84,8 +84,8 @@ export async function POST() {
       const propertyName = property.displayName
 
       // Update the connection with property info
-      await prisma.gA4Connection.update({
-        where: { dealershipId: user.dealershipId },
+      await prisma.ga4_connections.update({
+        where: { userId: user.dealerships?.id },
         data: {
           propertyId,
           propertyName,
@@ -95,7 +95,7 @@ export async function POST() {
 
       logger.info('GA4 property information updated', {
         userId: session.user.id,
-        dealershipId: user.dealershipId,
+        dealershipId: user.dealerships?.id,
         propertyId,
         propertyName
       })
@@ -122,4 +122,4 @@ export async function POST() {
       { status: 500 }
     )
   }
-} 
+}

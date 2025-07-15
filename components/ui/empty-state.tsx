@@ -14,7 +14,7 @@ export function EmptyState({
   description,
   action,
   icon,
-  className,
+  className
 }: EmptyStateProps) {
   return (
     <div className={cn('text-center py-12', className)}>

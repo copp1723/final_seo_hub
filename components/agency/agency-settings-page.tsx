@@ -69,7 +69,7 @@ export function AgencySettingsPage() {
   const [activeTab, setActiveTab] = useState('profile')
   
   // Dealership management state
-  const [dealerships, setDealerships] = useState<Dealership[]>([])
+  const [dealerships, setDealerships] = useState<typeof dealerships[]>([])
   const [showCreateDealership, setShowCreateDealership] = useState(false)
   const [creatingDealership, setCreatingDealership] = useState(false)
   const [dealershipForm, setDealershipForm] = useState({
@@ -113,9 +113,9 @@ export function AgencySettingsPage() {
         console.log('Agency profile data:', data)
         // Handle the wrapped response structure from successResponse
         if (data.success && data.data) {
-          setAgency(data.data.agency)
+          setAgency(data.data.agencies)
         } else {
-          setAgency(data.agency) // Fallback for direct response
+          setAgency(data.agencies) // Fallback for direct response
         }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -145,9 +145,9 @@ export function AgencySettingsPage() {
         const updatedData = await response.json()
         // Handle the wrapped response structure from successResponse
         if (updatedData.success && updatedData.data) {
-          setAgency(updatedData.data.agency)
+          setAgency(updatedData.data.agencies)
         } else {
-          setAgency(updatedData.agency) // Fallback for direct response
+          setAgency(updatedData.agencies) // Fallback for direct response
         }
         setMessage({ type: 'success', text: `${section} updated successfully` })
         setTimeout(() => setMessage(null), 3000)
@@ -352,7 +352,6 @@ export function AgencySettingsPage() {
           </AlertDescription>
         </Alert>
       )}
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="profile" className="flex items-center gap-2">
@@ -633,7 +632,6 @@ export function AgencySettingsPage() {
                   ))}
                 </div>
               )}
-              
               {agencyUsers.length > 0 && (
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Team Permissions</h4>
@@ -644,7 +642,7 @@ export function AgencySettingsPage() {
                   </ul>
                 </div>
               )}
-            </CardContent>
+          </CardContent>
           </Card>
         </TabsContent>
 
@@ -688,7 +686,7 @@ export function AgencySettingsPage() {
                         <Input
                           id="dealership-website"
                           value={dealershipForm.website}
-                          onChange={(e) => setDealershipForm({ ...dealershipForm, website: e.target.value })}
+                          onChange={(e) => setDealershipForm({ ...dealerships.orm, website: e.target.value })}
                           placeholder="https://example.com"
                         />
                       </div>
@@ -697,7 +695,7 @@ export function AgencySettingsPage() {
                         <Input
                           id="dealership-address"
                           value={dealershipForm.address}
-                          onChange={(e) => setDealershipForm({ ...dealershipForm, address: e.target.value })}
+                          onChange={(e) => setDealershipForm({ ...dealerships.orm, address: e.target.value })}
                           placeholder="123 Main St, City, State"
                         />
                       </div>
@@ -706,7 +704,7 @@ export function AgencySettingsPage() {
                         <Input
                           id="dealership-phone"
                           value={dealershipForm.phone}
-                          onChange={(e) => setDealershipForm({ ...dealershipForm, phone: e.target.value })}
+                          onChange={(e) => setDealershipForm({ ...dealerships.orm, phone: e.target.value })}
                           placeholder="(555) 123-4567"
                         />
                       </div>
@@ -714,7 +712,7 @@ export function AgencySettingsPage() {
                         <Label htmlFor="package-type">Default Package</Label>
                         <Select 
                           value={dealershipForm.activePackageType} 
-                          onValueChange={(value) => setDealershipForm({ ...dealershipForm, activePackageType: value })}
+                          onValueChange={(value) => setDealershipForm({ ...dealerships.orm, activePackageType: value })}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -781,7 +779,6 @@ export function AgencySettingsPage() {
                   ))}
                 </div>
               )}
-              
               {dealerships.length > 0 && (
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Quick Tips</h4>
@@ -792,7 +789,7 @@ export function AgencySettingsPage() {
                   </ul>
                 </div>
               )}
-            </CardContent>
+          </CardContent>
           </Card>
         </TabsContent>
 

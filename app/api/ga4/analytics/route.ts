@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -63,15 +63,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's dealership ID or handle agency admin access
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true, role: true, agencyId: true }
     })
 
-    const targetDealershipId = user?.dealershipId
+    const targetDealershipId = user?.dealerships.id
     
     // If user is agency admin, they might be accessing on behalf of a dealership
-    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
       // For agency admins, we need a dealershipId parameter or default behavior
       // For now, return an appropriate error since this endpoint needs dealership context
       return NextResponse.json(
@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if dealership has GA4 connection
-    const ga4Connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: targetDealershipId }
+    const ga4Connection = await prisma.ga4_connections.findUnique({
+      where: { userId: targetDealershipId }
     })
 
     if (!ga4Connection || !ga4Connection.propertyId) {
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         dealershipId: targetDealershipId
       })
       return NextResponse.json(
-        { error: 'GA4 not connected. Please connect your Google Analytics account in settings.' },
+        { error: 'GA4 not connected.Please connect your Google Analytics account in settings.' },
         { status: 404 }
       )
     }
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         propertyId: ga4Connection.propertyId
       })
       return NextResponse.json(
-        { error: 'Invalid GA4 property configuration. Please reconnect your Google Analytics account.' },
+        { error: 'Invalid GA4 property configuration.Please reconnect your Google Analytics account.' },
         { status: 400 }
       )
     }
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     // Clean up old cache entries
     if (cache.size > 100) {
       const sortedEntries = Array.from(cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp)
+       .sort((a, b) => a[1].timestamp - b[1].timestamp)
       
       // Remove oldest 50 entries
       for (let i = 0; i < 50; i++) {
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const session = await auth()
     logger.error('GA4 analytics API error', error, {
-      userId: session?.user?.id,
+      userId: session?.user.id,
       path: '/api/ga4/analytics',
       method: 'POST',
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
@@ -229,13 +229,13 @@ export async function POST(request: NextRequest) {
       }
       
       if (error.message.includes('permission') || error.message.includes('access')) {
-        errorMessage = 'Insufficient permissions for Google Analytics. Please reconnect your account.'
+        errorMessage = 'Insufficient permissions for Google Analytics.Please reconnect your account.'
       } else if (error.message.includes('property')) {
-        errorMessage = 'Invalid or inaccessible Analytics property. Please check your connection.'
+        errorMessage = 'Invalid or inaccessible Analytics property.Please check your connection.'
       } else if (error.message.includes('quota') || error.message.includes('rate')) {
-        errorMessage = 'Google Analytics API quota exceeded. Please try again later.'
+        errorMessage = 'Google Analytics API quota exceeded.Please try again later.'
       } else if (error.message.includes('not a valid metric') || error.message.includes('not a valid dimension')) {
-        errorMessage = 'Invalid metric or dimension requested. The GA4 API schema has been updated.'
+        errorMessage = 'Invalid metric or dimension requested.The GA4 API schema has been updated.'
       }
     }
 

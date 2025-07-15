@@ -25,7 +25,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/requests', label: 'My Requests', icon: FileText },
   { href: '/focus-request', label: 'New Request', icon: PlusCircle },
-  { href: '/reporting', label: 'Reports', icon: BarChart },
+  { href: '/reporting', label: 'Reports', icon: BarChart }
 ]
 
 export function Navigation() {
@@ -59,7 +59,7 @@ export function Navigation() {
 
   // Admin navigation items - simplified
   const adminNavItems = user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? [
-    { href: '/admin', label: 'Admin', icon: Settings },
+    { href: '/admin', label: 'Admin', icon: Settings }
   ] : []
 
   return (
@@ -96,7 +96,6 @@ export function Navigation() {
                   </Link>
                 )
               })}
-              
               {/* Admin Link */}
               {adminNavItems.map((item) => {
                 const Icon = item.icon
@@ -120,7 +119,7 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Right side: Dealership Selector, User menu */}
+          {/* Right side: dealerships Selector, User menu */}
           <div className="flex items-center gap-2 lg:gap-4">
             <DealershipSelector />
             <div className="relative" ref={userMenuRef}>
@@ -130,18 +129,18 @@ export function Navigation() {
               >
                 <div className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ring-2 ring-white shadow-sm">
-                    {session?.user?.image ? (
+                    {session?.users.image ? (
                       <img
                         className="h-8 w-8 rounded-full"
                         src={session.user.image}
                         alt={session.user.name || 'User'}
                       />
                     ) : (
-                      <User className="h-4 w-4 text-gray-600" />
+                      <users className="h-4 w-4 text-gray-600" />
                     )}
                   </div>
                   <span className="hidden lg:block text-sm text-gray-600 max-w-[150px] truncate font-normal">
-                    {session?.user?.name || 'User'}
+                    {session?.user.name || 'User'}
                   </span>
                   <ChevronDown className="h-3 w-3 text-gray-400" />
                 </div>
@@ -151,8 +150,8 @@ export function Navigation() {
               {isUserMenuOpen && (
                 <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                   <div className="px-4 py-3 border-b border-gray-200">
-                    <p className="text-sm text-gray-700">{session?.user?.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{session?.user?.email}</p>
+                    <p className="text-sm text-gray-700">{session?.user.name}</p>
+                    <p className="text-sm text-gray-500 truncate">{session?.user.email}</p>
                   </div>
                   <Link
                     href="/settings"
@@ -217,7 +216,6 @@ export function Navigation() {
                 </Link>
               )
             })}
-
             {/* Admin Links (Mobile) */}
             {adminNavItems.length > 0 && (
               <>
@@ -264,23 +262,23 @@ export function Navigation() {
             <div className="flex items-center px-4">
               <div className="flex-shrink-0">
                 <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  {session?.user?.image ? (
+                  {session?.users.image ? (
                     <img
                       className="h-10 w-10 rounded-full"
                       src={session.user.image}
                       alt={session.user.name || 'User'}
                     />
                   ) : (
-                    <User className="h-6 w-6 text-gray-600" />
+                    <users className="h-6 w-6 text-gray-600" />
                   )}
                 </div>
               </div>
               <div className="ml-3">
                 <div className="text-base font-medium text-gray-800">
-                  {session?.user?.name || 'User'}
+                  {session?.user.name || 'User'}
                 </div>
                 <div className="text-sm font-medium text-gray-500">
-                  {session?.user?.email}
+                  {session?.user.email}
                 </div>
               </div>
             </div>

@@ -9,18 +9,18 @@ export async function GET() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true, role: true, agencyId: true }
     })
 
     // For agency admins, we'll show all sites they have access to
-    if (!user?.dealershipId && user?.role !== 'AGENCY_ADMIN') {
+    if (!user?.dealerships.id && user?.role !== 'AGENCY_ADMIN') {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -30,22 +30,22 @@ export async function GET() {
     // Get Search Console connection - either from user's dealership or any dealership in their agency
     let connection = null
     
-    if (user?.dealershipId) {
-      connection = await prisma.searchConsoleConnection.findUnique({
-        where: { dealershipId: user.dealershipId }
+    if (user?.dealerships?.id) {
+      connection = await prisma.search_console_connections.findUnique({
+        where: { userId: user.dealerships?.id }
       })
-    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
       // For agency admins, find any Search Console connection in their agency to use the tokens
-      const agencyDealership = await prisma.dealership.findFirst({
-        where: { agencyId: user.agencyId },
-        include: { searchConsoleConnection: true }
+      const agencyDealership = await prisma.dealerships.findFirst({
+        where: { agencyId: user.agencies?.id },
+        include: { search_console_connections: true }
       })
-      connection = agencyDealership?.searchConsoleConnection
+      connection = agencyDealership?.search_console_connections
     }
 
     if (!connection || !connection.accessToken) {
       return NextResponse.json(
-        { error: 'No Search Console connection found. Please connect Search Console first.' },
+        { error: 'No Search Console connection found.Please connect Search Console first.' },
         { status: 404 }
       )
     }
@@ -59,13 +59,13 @@ export async function GET() {
 
     oauth2Client.setCredentials({
       access_token: decrypt(connection.accessToken),
-      refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined,
+      refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined
     })
 
     // Get Search Console API
     const searchConsole = google.searchconsole({
       version: 'v1',
-      auth: oauth2Client,
+      auth: oauth2Client
     })
     
     // List all sites
@@ -98,11 +98,11 @@ export async function GET() {
       currentSiteUrl: string | null
       currentSiteName: string | null
     }> = []
-    if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
-      const agencyDealerships = await prisma.dealership.findMany({
-        where: { agencyId: user.agencyId },
+    if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+      const agencyDealerships = await prisma.dealerships.findMany({
+        where: { agencyId: user.agencies?.id },
         include: {
-          searchConsoleConnection: {
+          search_console_connections: {
             select: {
               siteUrl: true,
               siteName: true
@@ -115,8 +115,8 @@ export async function GET() {
       dealershipMappings = agencyDealerships.map(d => ({
         dealershipId: d.id,
         dealershipName: d.name,
-        currentSiteUrl: d.searchConsoleConnection?.siteUrl || null,
-        currentSiteName: d.searchConsoleConnection?.siteName || null
+        currentSiteUrl: d.search_console_connections?.siteUrl || null,
+        currentSiteName: d.search_console_connections?.siteName || null
       }))
     }
 
@@ -146,4 +146,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-} 
+}

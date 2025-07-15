@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         mailgun: {
           status: mailgunStatus,
           error: mailgunError,
-          ...mailgunDetails
+         ...mailgunDetails
         },
         queue: {
           size: queueSize,

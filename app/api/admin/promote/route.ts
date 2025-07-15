@@ -6,12 +6,12 @@ import { auth } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user?.email) {
+    if (!session?.user.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
     // Update the current user to SUPER_ADMIN
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { email: session.user.email },
       data: { role: 'SUPER_ADMIN' },
       select: { id: true, email: true, role: true }
@@ -25,4 +25,4 @@ export async function POST(request: NextRequest) {
     console.error('Error promoting user:', error)
     return NextResponse.json({ error: 'Failed to promote user' }, { status: 500 })
   }
-} 
+}

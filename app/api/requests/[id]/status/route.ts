@@ -35,9 +35,9 @@ export async function PATCH(
   
   try {
     // Get the current request
-    const existingRequest = await prisma.request.findUnique({
+    const existingRequest = await prisma.requests.findUnique({
       where: { id: requestId },
-      include: { user: true }
+      include: { users: true }
     })
     
     if (!existingRequest) {
@@ -45,7 +45,7 @@ export async function PATCH(
     }
     
     // Check permissions (user can only update their own requests unless admin)
-    if (existingRequest.userId !== authResult.user.id && authResult.user.role === 'USER') {
+    if (existingRequest.users.id !== authResult.user.id && authResult.user.role === 'USER') {
       return errorResponse('Unauthorized', 403)
     }
     
@@ -56,30 +56,29 @@ export async function PATCH(
     }
     
     // Update the request
-    const updatedRequest = await prisma.request.update({
+    const updatedRequest = await prisma.requests.update({
       where: { id: requestId },
       data: {
         status: data.status,
-        completedAt: data.status === RequestStatus.COMPLETED ? new Date() : null,
+        completedAt: data.status === RequestStatus.COMPLETED ? new Date() : null
       },
-      include: { user: true }
+      include: { users: true }
     })
     
     // Send status change email if status actually changed
     if (existingRequest.status !== data.status) {
       const emailTemplate = statusChangedTemplate(
         updatedRequest,
-        updatedRequest.user,
+        updatedRequest.users,
         existingRequest.status,
         data.status
       )
       
       await queueEmailWithPreferences(
-        updatedRequest.userId,
+        updatedRequest.users?.id,
         'statusChanged',
-        {
-          ...emailTemplate,
-          to: updatedRequest.user.email
+        { ...emailTemplate,
+          to: updatedRequest.users?.email
         }
       )
       
@@ -87,7 +86,7 @@ export async function PATCH(
         requestId,
         oldStatus: existingRequest.status,
         newStatus: data.status,
-        userId: updatedRequest.userId
+        userId: updatedRequest.users?.id
       })
     }
     

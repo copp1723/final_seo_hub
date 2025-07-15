@@ -1,5 +1,5 @@
 // @ts-nocheck - To allow for Jest global types if not fully configured
-import { User, PackageType, PrismaClient } from '@prisma/client'
+import { users, PackageType, PrismaClient } from '@prisma/client'
 import {
   ensureUserBillingPeriodAndRollover,
   incrementUsage,
@@ -14,12 +14,12 @@ jest.mock('./prisma', () => ({
   default: {
     user: {
       findUnique: jest.fn(),
-      update: jest.fn(),
+      update: jest.fn()
     },
     monthlyUsage: {
-      create: jest.fn(),
-    },
-  },
+      create: jest.fn()
+    }
+  }
 }))
 
 // Helper to get current month's start and end dates
@@ -44,24 +44,24 @@ describe('Package Utils', () => {
 
   describe('ensureUserBillingPeriodAndRollover', () => {
     it('should do nothing if user has no active package', async () => {
-      const mockUser: Partial<User> = {
+      const mockUser: Partial<typeof users> = {
         id: userId,
         activePackageType: null,
         currentBillingPeriodStart: null,
-        currentBillingPeriodEnd: null,
+        currentBillingPeriodEnd: null
       }
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser)
+      mockPrisma.users.findUnique.mockResolvedValue(mockUser)
 
       const user = await ensureUserBillingPeriodAndRollover(userId)
 
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({ where: { id: userId } })
+      expect(mockPrisma.users.findUnique).toHaveBeenCalledWith({ where: { id: userId } })
       expect(mockPrisma.monthlyUsage.create).not.toHaveBeenCalled()
-      expect(mockPrisma.user.update).not.toHaveBeenCalled()
+      expect(mockPrisma.users.update).not.toHaveBeenCalled()
       expect(user).toEqual(mockUser)
     })
 
     it('should do nothing if billing period is current and no rollover needed', async () => {
-      const mockUser: User = {
+      const mockUser: users = {
         id: userId,
         email: 'test@example.com',
         role: 'USER',
@@ -78,17 +78,17 @@ describe('Package Utils', () => {
         updatedAt: today,
         monthlyUsageHistory: []
       }
-      mockPrisma.user.findUnique.mockResolvedValue(mockUser)
+      mockPrisma.users.findUnique.mockResolvedValue(mockUser)
 
       const user = await ensureUserBillingPeriodAndRollover(userId)
 
       expect(mockPrisma.monthlyUsage.create).not.toHaveBeenCalled()
-      expect(mockPrisma.user.update).not.toHaveBeenCalled()
+      expect(mockPrisma.users.update).not.toHaveBeenCalled()
       expect(user).toEqual(mockUser)
     })
 
     it('should rollover usage if new month has started', async () => {
-      const userBeforeRollover: User = {
+      const userBeforeRollover: users = {
         id: userId,
         email: 'test@example.com',
         role: 'USER',
@@ -105,18 +105,17 @@ describe('Package Utils', () => {
         updatedAt: prevMonthStart,
         monthlyUsageHistory: []
       }
-      mockPrisma.user.findUnique.mockResolvedValue(userBeforeRollover)
+      mockPrisma.users.findUnique.mockResolvedValue(userBeforeRollover)
 
-      const userAfterRollover: User = {
-        ...userBeforeRollover,
+      const userAfterRollover: users = { ...users.eforeRollover,
         currentBillingPeriodStart: currentMonthStart,
         currentBillingPeriodEnd: currentMonthEnd,
         pagesUsedThisPeriod: 0,
         blogsUsedThisPeriod: 0,
         gbpPostsUsedThisPeriod: 0,
-        improvementsUsedThisPeriod: 0,
+        improvementsUsedThisPeriod: 0
       }
-      mockPrisma.user.update.mockResolvedValue(userAfterRollover)
+      mockPrisma.users.update.mockResolvedValue(userAfterRollover)
 
       const user = await ensureUserBillingPeriodAndRollover(userId)
 
@@ -129,10 +128,10 @@ describe('Package Utils', () => {
           pagesUsed: 2,
           blogsUsed: 3,
           gbpPostsUsed: 1,
-          improvementsUsed: 0,
-        },
+          improvementsUsed: 0
+        }
       })
-      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      expect(mockPrisma.users.update).toHaveBeenCalledWith({
         where: { id: userId },
         data: {
           pagesUsedThisPeriod: 0,
@@ -140,15 +139,15 @@ describe('Package Utils', () => {
           gbpPostsUsedThisPeriod: 0,
           improvementsUsedThisPeriod: 0,
           currentBillingPeriodStart: currentMonthStart,
-          currentBillingPeriodEnd: currentMonthEnd,
-        },
+          currentBillingPeriodEnd: currentMonthEnd
+        }
       })
       expect(user).toEqual(userAfterRollover)
     })
   })
 
   describe('incrementUsage', () => {
-    const baseUser: User = {
+    const baseUser: users = {
       id: userId,
       email: 'test@example.com',
       role: 'USER',
@@ -168,55 +167,53 @@ describe('Package Utils', () => {
 
     beforeEach(() => {
       // Default findUnique mock for incrementUsage tests
-      mockPrisma.user.findUnique.mockResolvedValue(baseUser);
+      mockPrisma.users.findUnique.mockResolvedValue(baseUser);
     });
 
     it('should increment page usage correctly', async () => {
       const updatedUser = { ...baseUser, pagesUsedThisPeriod: 1 }
-      mockPrisma.user.update.mockResolvedValue(updatedUser)
+      mockPrisma.users.update.mockResolvedValue(updatedUser)
 
       const user = await incrementUsage(userId, 'pages')
 
-      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      expect(mockPrisma.users.update).toHaveBeenCalledWith({
         where: { id: userId },
-        data: { pagesUsedThisPeriod: 1 },
+        data: { pagesUsedThisPeriod: 1 }
       })
       expect(user.pagesUsedThisPeriod).toBe(1)
     })
 
     it('should throw error if no active package', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ ...baseUser, activePackageType: null })
+      mockPrisma.users.findUnique.mockResolvedValue({ ...baseUser, activePackageType: null })
 
       await expect(incrementUsage(userId, 'pages')).rejects.toThrow('User does not have an active package.')
     })
 
     it('should throw error if usage limit exceeded for pages', async () => {
       const userAtLimit = { ...baseUser, pagesUsedThisPeriod: silverPackageLimits.pages }
-      mockPrisma.user.findUnique.mockResolvedValue(userAtLimit) // Initial find for ensureUserBillingPeriodAndRollover
+      mockPrisma.users.findUnique.mockResolvedValue(userAtLimit) // Initial find for ensureUserBillingPeriodAndRollover
       // If ensureUserBillingPeriodAndRollover updates, it would return the user.
       // Then incrementUsage would use this user state.
-      // For this test, assume rollover doesn't change usage counts relevant to the check.
-
-      await expect(incrementUsage(userId, 'pages')).rejects.toThrow(`Usage limit for pages exceeded for user ${userId}.`)
+      // For this test, assume rollover doesn't change usage counts relevant to the check.await expect(incrementUsage(userId, 'pages')).rejects.toThrow(`Usage limit for pages exceeded for user ${userId}.`)
     })
 
     // Similar tests for 'blogs', 'gbpPosts', 'improvements'
     it('should increment blog usage correctly', async () => {
       const updatedUser = { ...baseUser, blogsUsedThisPeriod: 1 }
-      mockPrisma.user.update.mockResolvedValue(updatedUser)
+      mockPrisma.users.update.mockResolvedValue(updatedUser)
       const user = await incrementUsage(userId, 'blogs')
       expect(user.blogsUsedThisPeriod).toBe(1)
     })
 
     it('should throw error if usage limit exceeded for blogs', async () => {
       const userAtLimit = { ...baseUser, blogsUsedThisPeriod: silverPackageLimits.blogs }
-      mockPrisma.user.findUnique.mockResolvedValue(userAtLimit)
+      mockPrisma.users.findUnique.mockResolvedValue(userAtLimit)
       await expect(incrementUsage(userId, 'blogs')).rejects.toThrow(`Usage limit for blogs exceeded for user ${userId}.`)
     })
   })
 
   describe('getUserPackageProgress', () => {
-    const baseUser: User = {
+    const baseUser: users = {
       id: userId,
       email: 'test@example.com',
       role: 'USER',
@@ -235,7 +232,7 @@ describe('Package Utils', () => {
     }
 
     it('should return correct progress for active package', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(baseUser)
+      mockPrisma.users.findUnique.mockResolvedValue(baseUser)
 
       const progress = await getUserPackageProgress(userId)
 
@@ -247,12 +244,12 @@ describe('Package Utils', () => {
         totalTasks: {
           completed: 1 + 2 + 0 + 1,
           total: silverPackageLimits.pages + silverPackageLimits.blogs + silverPackageLimits.gbpPosts + silverPackageLimits.improvements
-        },
+        }
       })
     })
 
     it('should return null if no active package', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ ...baseUser, activePackageType: null })
+      mockPrisma.users.findUnique.mockResolvedValue({ ...baseUser, activePackageType: null })
 
       const progress = await getUserPackageProgress(userId)
       expect(progress).toBeNull()

@@ -44,11 +44,13 @@ export class CsvDealershipProcessor {
       
       // For now, we'll store this in the audit log since we don't have a dedicated table
       // In a production environment, you'd want a dedicated csv_processing_logs table
-      await prisma.auditLog.create({
+      await prisma.audit_logs.create({
         data: {
-          userId: (await prisma.user.findUnique({ where: { email: senderEmail } }))?.id || 'system',
+          id: randomUUID(),
+          userEmail: senderEmail,
           action: 'CSV_PROCESSING_STARTED',
-          resource: 'Dealership',
+          entityType: 'Dealership',
+          entityId: processingId,
           details: {
             processingId,
             senderEmail,
@@ -75,9 +77,9 @@ export class CsvDealershipProcessor {
     result: Partial<ProcessingResult>
   ): Promise<void> {
     try {
-      const user = await prisma.user.findFirst({
+      const user = await prisma.users.findFirst({
         where: {
-          auditLogs: {
+          audit_logs: {
             some: {
               details: {
                 path: ['processingId'],
@@ -89,11 +91,13 @@ export class CsvDealershipProcessor {
       })
 
       if (user) {
-        await prisma.auditLog.create({
+        await prisma.audit_logs.create({
           data: {
-            userId: user.id,
+            id: randomUUID(),
+            userEmail: user.email,
             action: 'CSV_PROCESSING_COMPLETED',
-            resource: 'Dealership',
+            entityType: 'Dealership',
+            entityId: processingId,
             details: {
               processingId,
               status: result.success ? 'completed' : 'failed',
@@ -175,7 +179,7 @@ export class CsvDealershipProcessor {
             const validatedRow = dealershipCsvRowSchema.parse(cleanedRow)
             
             // Check for duplicate dealership name within agency
-            const existingDealership = await tx.dealership.findFirst({
+            const existingDealership = await tx.dealerships.findFirst({
               where: {
                 agencyId,
                 name: {
@@ -196,7 +200,7 @@ export class CsvDealershipProcessor {
             }
 
             // Create dealership
-            const dealership = await tx.dealership.create({
+            const dealership = await tx.dealerships.create({
               data: {
                 name: validatedRow.name,
                 website: validatedRow.website || null,
@@ -270,8 +274,7 @@ export class CsvDealershipProcessor {
       })
 
       // Update processing log with failure
-      await this.updateProcessingLog(processingId, {
-        ...result,
+      await this.updateProcessingLog(processingId, { ...result,
         success: false
       })
 

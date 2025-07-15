@@ -36,9 +36,9 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
         data: dataValues,
         backgroundColor: backgroundColors,
         borderColor: backgroundColors.map(color => `${color}B3`), // Add some transparency to border
-        borderWidth: 1,
-      },
-    ],
+        borderWidth: 1
+      }
+    ]
   }
 
   const options = {
@@ -46,11 +46,11 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'top' as const
       },
       title: {
         display: false, // Using CardTitle instead
-        text: 'Request Status Distribution',
+        text: 'Request Status Distribution'
       },
       tooltip: {
         callbacks: {
@@ -63,10 +63,10 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
               label += context.parsed
             }
             return label
-          },
-        },
-      },
-    },
+          }
+        }
+      }
+    }
   }
 
   // Check if there's any data to display
@@ -83,8 +83,7 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
             <Doughnut data={data} options={options} />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
-              No request data available.
-            </div>
+              No request data available</div>
           )}
         </div>
       </CardContent>

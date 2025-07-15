@@ -27,20 +27,20 @@ const statusIcons = {
   PENDING: <Clock className="h-4 w-4" />,
   IN_PROGRESS: <AlertCircle className="h-4 w-4" />,
   COMPLETED: <CheckCircle className="h-4 w-4" />,
-  CANCELLED: <XCircle className="h-4 w-4" />,
+  CANCELLED: <XCircle className="h-4 w-4" />
 }
 
 const statusColors = {
   PENDING: 'bg-yellow-100 text-yellow-800',
   IN_PROGRESS: 'bg-blue-100 text-blue-800',
   COMPLETED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-red-100 text-red-800',
+  CANCELLED: 'bg-red-100 text-red-800'
 }
 
 const priorityColors = {
   LOW: 'bg-gray-100 text-gray-800',
   MEDIUM: 'bg-orange-100 text-orange-800',
-  HIGH: 'bg-red-100 text-red-800',
+  HIGH: 'bg-red-100 text-red-800'
 }
 
 export function RequestCard({ request }: RequestCardProps) {
@@ -67,7 +67,6 @@ export function RequestCard({ request }: RequestCardProps) {
         {request.description && (
           <p className="text-gray-600 mb-4 line-clamp-2">{request.description}</p>
         )}
-        
         <div className="flex justify-between items-center text-sm text-gray-500">
           <div className="flex gap-4">
             <span>Type: {request.type.replace('_', ' ')}</span>

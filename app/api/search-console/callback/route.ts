@@ -43,7 +43,7 @@ export async function GET(req: Request) {
     // Get list of verified sites
     const searchConsole = google.searchconsole({
       version: 'v1',
-      auth: oauth2Client,
+      auth: oauth2Client
     })
     
     const sitesResponse = await searchConsole.sites.list()
@@ -92,12 +92,12 @@ export async function GET(req: Request) {
     })
 
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true }
     })
 
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       logger.error('User not assigned to dealership', { userId: session.user.id })
       return NextResponse.redirect(new URL('/settings?error=user_not_assigned_to_dealership', process.env.NEXTAUTH_URL!))
     }
@@ -106,23 +106,23 @@ export async function GET(req: Request) {
     const encryptedAccessToken = encrypt(tokens.access_token!)
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
 
-    await prisma.searchConsoleConnection.upsert({
-      where: { dealershipId: user.dealershipId },
+    await prisma.search_console_connections.upsert({
+      where: { userId: user.dealerships?.id },
       update: {
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         siteUrl: primarySite,
-        siteName: siteName,
+        siteName: siteName
       },
       create: {
-        dealershipId: user.dealershipId,
+        dealershipId: user.dealerships?.id,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         siteUrl: primarySite,
-        siteName: siteName,
-      },
+        siteName: siteName
+      }
     })
 
     logger.info('Search Console connected successfully', {

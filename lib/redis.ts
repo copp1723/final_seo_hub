@@ -35,7 +35,7 @@ class RedisManager {
         lazyConnect: true,
         keepAlive: 30000,
         connectTimeout: 10000,
-        commandTimeout: 5000,
+        commandTimeout: 5000
       })
 
       this.client.on('connect', () => {

@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 async function createDealerships() {
   // First, we need to find an agency to assign these dealerships to
   // You'll need to replace this with the actual agency ID
-  const agency = await prisma.agency.findFirst({
+  const agency = await prisma.agencies.findFirst({
     where: {
       name: {
         contains: 'Jay Hatfield', // Adjust this to match your agency name
@@ -138,7 +138,7 @@ async function createDealerships() {
   for (const dealershipData of dealerships) {
     try {
       // Check if dealership already exists
-      const existing = await prisma.dealership.findFirst({
+      const existing = await prisma.dealerships.findFirst({
         where: {
           name: dealershipData.name,
           agencyId: agency.id
@@ -151,7 +151,7 @@ async function createDealerships() {
       }
 
       // Create the dealership
-      const dealership = await prisma.dealership.create({
+      const dealership = await prisma.dealerships.create({
         data: {
           name: dealershipData.name,
           website: dealershipData.website,
@@ -164,7 +164,7 @@ async function createDealerships() {
 
       // Create GA4 connection record (not connected yet, just the record)
       if (dealershipData.ga4PropertyId) {
-        await prisma.gA4Connection.create({
+        await prisma.ga4_connections.create({
           data: {
             dealershipId: dealership.id,
             propertyId: dealershipData.ga4PropertyId,
@@ -177,7 +177,7 @@ async function createDealerships() {
 
       // Create Search Console connection record (not connected yet, just the record)
       if (dealershipData.searchConsoleUrl) {
-        await prisma.searchConsoleConnection.create({
+        await prisma.search_console_connections.create({
           data: {
             dealershipId: dealership.id,
             siteUrl: dealershipData.searchConsoleUrl,
@@ -201,12 +201,12 @@ async function createDealerships() {
   console.log(`   ⚠️  Skipped: ${dealerships.length - created - errors} (already exist)`)
   
   console.log(`\n🔗 Next steps:`)
-  console.log(`   1. Go to each dealership's settings page`)
-  console.log(`   2. Click "Connect GA4" and authorize with your Google account`)
-  console.log(`   3. The correct property will be pre-selected based on the property ID`)
-  console.log(`   4. Do the same for Search Console`)
+  console.log(`   1.Go to each dealership's settings page`)
+  console.log(`   2.Click "Connect GA4" and authorize with your Google account`)
+  console.log(`   3.The correct property will be pre-selected based on the property ID`)
+  console.log(`   4.Do the same for Search Console`)
 }
 
 createDealerships()
   .catch(console.error)
-  .finally(() => prisma.$disconnect())
+ .finally(() => prisma.$disconnect())

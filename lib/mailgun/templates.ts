@@ -1,4 +1,4 @@
-import { Request, User } from '@prisma/client'
+import { requests, users } from '@prisma/client'
 import { format } from 'date-fns'
 import { getUnsubscribeUrl } from './client'
 import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/branding/config'
@@ -92,7 +92,7 @@ function baseTemplate(content: string, unsubscribeUrl?: string, branding?: Brand
     .status-pending { background-color: #fbbf24; color: #78350f; }
     .status-in-progress { background-color: #60a5fa; color: #1e3a8a; }
     .status-completed { background-color: #34d399; color: #064e3b; }
-    .status-cancelled { background-color: #f87171; color: #7f1d1d; }
+   .status-cancelled { background-color: #f87171; color: #7f1d1d; }
   </style>
 </head>
 <body>
@@ -106,7 +106,7 @@ function baseTemplate(content: string, unsubscribeUrl?: string, branding?: Brand
     <div class="footer">
       <p>This email was sent by ${config.companyName} - Your AI-Powered SEO Request Management Platform</p>
       ${unsubscribeUrl ? `<p><a href="${unsubscribeUrl}">Unsubscribe from these notifications</a></p>` : ''}
-      <p>&copy; ${new Date().getFullYear()} ${config.companyName}. All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} ${config.companyName}. All rights reserved</p>
     </div>
   </div>
 </body>
@@ -115,13 +115,13 @@ function baseTemplate(content: string, unsubscribeUrl?: string, branding?: Brand
 }
 
 // Welcome email template
-export function welcomeEmailTemplate(user: User, branding?: BrandingConfig): { subject: string; html: string } {
+export function welcomeEmailTemplate(user: typeof users, branding?: BrandingConfig): { subject: string; html: string } {
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'welcome')
   
   const content = `
     <h2>Welcome to ${config.companyName}, ${user.name || 'there'}!</h2>
-    <p>We're excited to have you on board. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently.</p>
+    <p>We're excited to have you on board. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently</p>
     
     <h3>Getting Started</h3>
     <p>Here's what you can do with ${config.companyName}:</p>
@@ -145,25 +145,25 @@ export function welcomeEmailTemplate(user: User, branding?: BrandingConfig): { s
 }
 
 // User invitation email template
-export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string } {
+export function userInvitationTemplate(user: typeof users, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string } {
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   
   // If a magic link URL is provided, use it for all users
   // Otherwise, fall back to the default behavior
-  const isDealershipUser = user.role === 'USER' && user.agencyId
+  const isDealershipUser = user.role === 'USER' && user.agencies.id
   const onboardingUrl = `${appUrl}/onboarding/seoworks?token=${user.id}&invited=true`
   const finalLoginUrl = loginUrl || (isDealershipUser ? onboardingUrl : `${appUrl}/auth/signin`)
   
   const content = `
     <h2>You've been invited to ${config.companyName}!</h2>
     <p>Hi ${user.name || 'there'},</p>
-    <p>You've been invited to join ${config.companyName} by <strong>${invitedBy}</strong>. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently.</p>
+    <p>You've been invited to join ${config.companyName} by <strong>${invitedBy}</strong>. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently</p>
     
     <h3>Getting Started</h3>
     ${isDealershipUser ? `
-      <p>As a dealership user, you'll need to complete your onboarding to get started with SEO services. Click the button below to begin:</p>
+      <p>As a dealership user, you'll need to complete your onboarding to get started with SEO services.Click the button below to begin:</p>
       
       <div style="text-align: center; margin: 32px 0;">
         <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${config.primaryColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
@@ -171,7 +171,7 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
         </a>
       </div>
       
-      <p style="font-size: 14px; color: #6b7280;">This will set up your SEO package and connect you with our SEO Works platform.</p>
+      <p style="font-size: 14px; color: #6b7280;">This will set up your SEO package and connect you with our SEO Works platform</p>
     ` : `
       <p>To access your account, simply click the button below and sign in with your email address:</p>
       
@@ -186,7 +186,7 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
     <ul>
       <li><strong>Email:</strong> ${user.email}</li>
       <li><strong>Role:</strong> ${user.role.replace('_', ' ')}</li>
-      ${user.agencyId ? '<li><strong>Agency:</strong> Assigned to your organization</li>' : ''}
+      ${user.agencies.id ? '<li><strong>Agency:</strong> Assigned to your organization</li>' : ''}
     </ul>
     
     <h3>What you can do with ${config.companyName}:</h3>
@@ -200,8 +200,7 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
     <p>If you have any questions or need help getting started, our support team is here to assist you!</p>
     
     <p style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
-      <strong>Note:</strong> If you didn't expect this invitation, you can safely ignore this email.
-    </p>
+      <strong>Note:</strong> If you didn't expect this invitation, you can safely ignore this email</p>
   `
 
   return {
@@ -211,14 +210,14 @@ export function userInvitationTemplate(user: User, invitedBy: string, loginUrl?:
 }
 
 // Request created confirmation template
-export function requestCreatedTemplate(request: Request, user: User, branding?: BrandingConfig): { subject: string; html: string } {
+export function requestCreatedTemplate(request: typeof requests, user: typeof users, branding?: BrandingConfig): { subject: string; html: string } {
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'requestCreated')
   
   const content = `
     <h2>Request Created Successfully</h2>
     <p>Hi ${user.name || 'there'},</p>
-    <p>Your SEO request has been created and is now in our system.</p>
+    <p>Your SEO request has been created and is now in our system</p>
     
     <div class="task-item">
       <div class="task-title">${request.title}</div>
@@ -247,8 +246,8 @@ export function requestCreatedTemplate(request: Request, user: User, branding?: 
 
 // Status changed notification template
 export function statusChangedTemplate(
-  request: Request,
-  user: User,
+  request: typeof requests,
+  user: typeof users,
   oldStatus: string,
   newStatus: string,
   branding?: BrandingConfig
@@ -299,8 +298,8 @@ export function statusChangedTemplate(
 
 // Task completed notification template
 export function taskCompletedTemplate(
-  request: Request,
-  user: User,
+  request: typeof requests,
+  user: typeof users,
   taskDetails: { title: string; type: string; url?: string },
   branding?: BrandingConfig
 ): { subject: string; html: string } {
@@ -349,7 +348,7 @@ export function taskCompletedTemplate(
 
 // Weekly summary template
 export function weeklySummaryTemplate(
-  user: User,
+  user: typeof users,
   summary: {
     totalRequests: number
     completedRequests: number

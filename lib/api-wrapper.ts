@@ -13,7 +13,7 @@ export function withApiMonitoring(
     try {
       // Get user ID for logging context
       const session = await auth()
-      userId = session?.user?.id
+      userId = session?.user.id
       
       response = await handler(req)
     } catch (error) {

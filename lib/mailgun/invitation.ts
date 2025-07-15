@@ -1,11 +1,11 @@
-import { User } from '@prisma/client'
+import type { users } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sendEmail } from './client'
 import { userInvitationTemplate } from './templates'
 import { logger } from '@/lib/logger'
 
 export interface InvitationEmailOptions {
-  user: User
+  user: users
   invitedBy: string
   loginUrl?: string
   skipPreferences?: boolean // For new users who don't have preferences yet
@@ -45,9 +45,9 @@ export async function sendInvitationEmail(options: InvitationEmailOptions): Prom
     }
 
     // For existing users, check preferences (though this is unlikely for invitations)
-    const userWithPreferences = await prisma.user.findUnique({
+    const userWithPreferences = await prisma.users.findUnique({
       where: { id: user.id },
-      include: { preferences: true }
+      include: { user_preferences: true }
     })
 
     if (!userWithPreferences) {
@@ -56,7 +56,7 @@ export async function sendInvitationEmail(options: InvitationEmailOptions): Prom
     }
 
     // Check if user has email notifications enabled (default to true for invitations)
-    const preferences = userWithPreferences.preferences
+    const preferences = userWithPreferences.users.preferences
     const emailNotificationsEnabled = preferences?.emailNotifications ?? true
 
     if (!emailNotificationsEnabled) {
@@ -102,7 +102,7 @@ export async function sendInvitationEmail(options: InvitationEmailOptions): Prom
 // Helper function to create default user preferences for new users
 export async function createDefaultUserPreferences(userId: string): Promise<void> {
   try {
-    await prisma.userPreferences.create({
+    await prisma.users.preferences.create({
       data: {
         userId,
         emailNotifications: true,

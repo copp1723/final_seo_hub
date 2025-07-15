@@ -24,5 +24,5 @@ export const TERMINOLOGY = {
   // Actions
   CREATE_REQUEST: 'Create Request',
   VIEW_REQUESTS: 'View Requests',
-  SEND_TO_SEO_TEAM: 'Send to SEO Team',
+  SEND_TO_SEO_TEAM: 'Send to SEO Team'
 } as const

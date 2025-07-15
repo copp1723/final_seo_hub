@@ -9,18 +9,18 @@ export async function GET() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true, role: true, agencyId: true }
     })
 
     // For agency admins, we'll show all properties they have access to
-    if (!user?.dealershipId && user?.role !== 'AGENCY_ADMIN') {
+    if (!user?.dealerships.id && user?.role !== 'AGENCY_ADMIN') {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -30,22 +30,22 @@ export async function GET() {
     // Get GA4 connection - either from user's dealership or any dealership in their agency
     let connection = null
     
-    if (user?.dealershipId) {
-      connection = await prisma.gA4Connection.findUnique({
-        where: { dealershipId: user.dealershipId }
+    if (user?.dealerships?.id) {
+      connection = await prisma.ga4_connections.findUnique({
+        where: { userId: user.dealerships?.id }
       })
-    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
       // For agency admins, find any GA4 connection in their agency to use the tokens
-      const agencyDealership = await prisma.dealership.findFirst({
-        where: { agencyId: user.agencyId },
-        include: { ga4Connection: true }
+      const agencyDealership = await prisma.dealerships.findFirst({
+        where: { agencyId: user.agencies?.id },
+        include: { ga4_connections: true }
       })
-      connection = agencyDealership?.ga4Connection
+      connection = agencyDealership?.ga4_connections
     }
 
     if (!connection || !connection.accessToken) {
       return NextResponse.json(
-        { error: 'No GA4 connection found. Please connect Google Analytics first.' },
+        { error: 'No GA4 connection found.Please connect Google Analytics first.' },
         { status: 404 }
       )
     }
@@ -59,7 +59,7 @@ export async function GET() {
 
     oauth2Client.setCredentials({
       access_token: decrypt(connection.accessToken),
-      refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined,
+      refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined
     })
 
     // Get GA4 Admin API
@@ -109,11 +109,11 @@ export async function GET() {
       currentPropertyId: string | null
       currentPropertyName: string | null
     }> = []
-    if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
-      const agencyDealerships = await prisma.dealership.findMany({
-        where: { agencyId: user.agencyId },
+    if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+      const agencyDealerships = await prisma.dealerships.findMany({
+        where: { agencyId: user.agencies?.id },
         include: {
-          ga4Connection: {
+          ga4_connections: {
             select: {
               propertyId: true,
               propertyName: true
@@ -126,8 +126,8 @@ export async function GET() {
       dealershipMappings = agencyDealerships.map(d => ({
         dealershipId: d.id,
         dealershipName: d.name,
-        currentPropertyId: d.ga4Connection?.propertyId || null,
-        currentPropertyName: d.ga4Connection?.propertyName || null
+        currentPropertyId: d.ga4_connections?.propertyId || null,
+        currentPropertyName: d.ga4_connections?.propertyName || null
       }))
     }
 
@@ -155,4 +155,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-} 
+}

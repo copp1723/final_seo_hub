@@ -56,11 +56,11 @@ export function IntegrationPropertyManager() {
         setGa4Properties(ga4Data.properties || [])
         
         // Initialize mappings from GA4 data
-        if (ga4Data.dealershipMappings) {
-          setDealershipMappings(ga4Data.dealershipMappings)
+        if (ga4Data.dealerships.appings) {
+          setDealershipMappings(ga4Data.dealerships.appings)
           const initialMappings: Record<string, { ga4?: string; searchConsole?: string }> = {}
-          ga4Data.dealershipMappings.forEach((mapping: DealershipMapping) => {
-            initialMappings[mapping.dealershipId] = {
+          ga4Data.dealerships.appings.forEach((mapping: DealershipMapping) => {
+            initialMappings[mapping.dealerships?.id] = {
               ga4: mapping.currentPropertyId
             }
           })
@@ -75,14 +75,14 @@ export function IntegrationPropertyManager() {
         setSearchConsoleSites(scData.sites || [])
         
         // Update mappings with Search Console data
-        if (scData.dealershipMappings) {
+        if (scData.dealerships.appings) {
           setSelectedMappings(prev => {
             const updated = { ...prev }
-            scData.dealershipMappings.forEach((mapping: DealershipMapping) => {
-              if (!updated[mapping.dealershipId]) {
-                updated[mapping.dealershipId] = {}
+            scData.dealerships.appings.forEach((mapping: DealershipMapping) => {
+              if (!updated[mapping.dealerships?.id]) {
+                updated[mapping.dealerships?.id] = {}
               }
-              updated[mapping.dealershipId].searchConsole = mapping.currentSiteUrl
+              updated[mapping.dealerships?.id].searchConsole = mapping.currentSiteUrl
             })
             return updated
           })
@@ -148,7 +148,7 @@ export function IntegrationPropertyManager() {
       toast('Integration settings saved successfully', 'success')
       
       // Update the current mappings to reflect the saved state
-      const dealership = dealershipMappings.find(d => d.dealershipId === dealershipId)
+      const dealership = dealershipMappings.find(d => d.dealerships.id === dealershipId)
       if (dealership) {
         dealership.currentPropertyId = mapping.ga4
         dealership.currentPropertyName = ga4Properties.find(p => p.propertyId === mapping.ga4)?.propertyName
@@ -168,7 +168,7 @@ export function IntegrationPropertyManager() {
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin" />
-        </CardContent>
+          </CardContent>
       </Card>
     )
   }
@@ -186,9 +186,7 @@ export function IntegrationPropertyManager() {
           <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              You have access to {ga4Properties.length} GA4 properties and {searchConsoleSites.length} Search Console sites.
-              Assign the correct properties to each dealership below.
-            </AlertDescription>
+              You have access to {ga4Properties.length} GA4 properties and {searchConsoleSites.length} Search Console sites.Assign the correct properties to each dealership below</AlertDescription>
           </Alert>
 
           <div className="flex justify-end mb-4">
@@ -223,11 +221,11 @@ export function IntegrationPropertyManager() {
                   </thead>
                   <tbody>
                     {dealershipMappings.map((dealership) => (
-                      <tr key={dealership.dealershipId} className="border-b">
+                      <tr key={dealership.dealerships?.id} className="border-b">
                         <td className="p-4">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{dealership.dealershipName}</span>
+                            <span className="font-medium">{dealership.dealerships.ame}</span>
                           </div>
                         </td>
                         <td className="p-4">
@@ -242,8 +240,8 @@ export function IntegrationPropertyManager() {
                         </td>
                         <td className="p-4">
                           <Select
-                            value={selectedMappings[dealership.dealershipId]?.ga4 || ''}
-                            onValueChange={(value) => handlePropertyChange(dealership.dealershipId, 'ga4', value)}
+                            value={selectedMappings[dealership.dealerships?.id]?.ga4 || ''}
+                            onValueChange={(value) => handlePropertyChange(dealership.dealerships?.id, 'ga4', value)}
                           >
                             <SelectTrigger className="w-[300px]">
                               <SelectValue placeholder="Select a GA4 property" />
@@ -265,11 +263,11 @@ export function IntegrationPropertyManager() {
                         <td className="p-4">
                           <Button
                             size="sm"
-                            onClick={() => saveDealershipMapping(dealership.dealershipId)}
-                            disabled={saving === dealership.dealershipId || 
-                              selectedMappings[dealership.dealershipId]?.ga4 === dealership.currentPropertyId}
+                            onClick={() => saveDealershipMapping(dealership.dealerships?.id)}
+                            disabled={saving === dealership.dealerships.id || 
+                              selectedMappings[dealership.dealerships?.id]?.ga4 === dealership.currentPropertyId}
                           >
-                            {saving === dealership.dealershipId ? (
+                            {saving === dealership.dealerships.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <CheckCircle className="h-4 w-4" />
@@ -297,11 +295,11 @@ export function IntegrationPropertyManager() {
                   </thead>
                   <tbody>
                     {dealershipMappings.map((dealership) => (
-                      <tr key={dealership.dealershipId} className="border-b">
+                      <tr key={dealership.dealerships?.id} className="border-b">
                         <td className="p-4">
                           <div className="flex items-center gap-2">
                             <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{dealership.dealershipName}</span>
+                            <span className="font-medium">{dealership.dealerships.ame}</span>
                           </div>
                         </td>
                         <td className="p-4">
@@ -316,8 +314,8 @@ export function IntegrationPropertyManager() {
                         </td>
                         <td className="p-4">
                           <Select
-                            value={selectedMappings[dealership.dealershipId]?.searchConsole || ''}
-                            onValueChange={(value) => handlePropertyChange(dealership.dealershipId, 'searchConsole', value)}
+                            value={selectedMappings[dealership.dealerships?.id]?.searchConsole || ''}
+                            onValueChange={(value) => handlePropertyChange(dealership.dealerships?.id, 'searchConsole', value)}
                           >
                             <SelectTrigger className="w-[300px]">
                               <SelectValue placeholder="Select a Search Console site" />
@@ -339,11 +337,11 @@ export function IntegrationPropertyManager() {
                         <td className="p-4">
                           <Button
                             size="sm"
-                            onClick={() => saveDealershipMapping(dealership.dealershipId)}
-                            disabled={saving === dealership.dealershipId || 
-                              selectedMappings[dealership.dealershipId]?.searchConsole === dealership.currentSiteUrl}
+                            onClick={() => saveDealershipMapping(dealership.dealerships?.id)}
+                            disabled={saving === dealership.dealerships.id || 
+                              selectedMappings[dealership.dealerships?.id]?.searchConsole === dealership.currentSiteUrl}
                           >
-                            {saving === dealership.dealershipId ? (
+                            {saving === dealership.dealerships.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <CheckCircle className="h-4 w-4" />

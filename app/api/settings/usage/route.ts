@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
   
   try {
     // Get current month's start and end dates
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
     
     // Fetch all requests for current month
-    const monthlyRequests = await prisma.request.findMany({
+    const monthlyRequests = await prisma.requests.findMany({
       where: {
         userId: authResult.user.id,
         createdAt: {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         pagesCompleted: true,
         blogsCompleted: true,
         gbpPostsCompleted: true,
-        improvementsCompleted: true,
+        improvementsCompleted: true
       }
     })
     
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Get user's active package (most recent request with package type)
-    const latestPackageRequest = await prisma.request.findFirst({
+    const latestPackageRequest = await prisma.requests.findFirst({
       where: {
         userId: authResult.user.id,
         packageType: { not: null }

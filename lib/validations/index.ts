@@ -11,7 +11,7 @@ type ValidationError = { success: false; error: NextResponse }
 type ValidationResult<T> = ValidationSuccess<T> | ValidationError
 
 export async function validateRequest<T>(
-  request: Request,
+  request: typeof requests,
   schema: z.ZodSchema<T>
 ): Promise<ValidationResult<T>> {
   try {
@@ -53,7 +53,7 @@ export function sanitizeForLog(str: string, maxLength = 200): string {
   // Remove potential API keys, tokens, passwords
   const sanitized = str
     .replace(/\b(api[_-]?key|token|password|secret|auth|bearer)\s*[:=]\s*['"]?[\w-]+['"]?/gi, '[REDACTED]')
-    .replace(/\b(sk-|pk-|api-|key-|token-|bearer\s+)[\w-]+/gi, '[REDACTED]')
+   .replace(/\b(sk-|pk-|api-|key-|token-|bearer\s+)[\w-]+/gi, '[REDACTED]')
     
   // Truncate if too long
   return sanitized.length > maxLength 

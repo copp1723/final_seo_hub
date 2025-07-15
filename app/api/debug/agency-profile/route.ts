@@ -7,16 +7,16 @@ export async function GET() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get current user details
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       include: {
-        agency: true,
-        dealership: true
+        agencies: true,
+        dealerships: true
       }
     })
 
@@ -27,7 +27,7 @@ export async function GET() {
     // If this is the SEOWERKS agency admin, let's check their setup
     if (user.email === 'access@seowerks.ai') {
       // Find the SEOWERKS agency
-      const seowerksAgency = await prisma.agency.findFirst({
+      const seowerksAgency = await prisma.agencies.findFirst({
         where: {
           OR: [
             { name: { contains: 'SEOWERKS', mode: 'insensitive' } },
@@ -40,9 +40,9 @@ export async function GET() {
         }
       })
 
-      if (seowerksAgency && !user.agencyId) {
+      if (seowerksAgency && !user.agencies?.id) {
         // Fix: Assign the user to the SEOWERKS agency
-        await prisma.user.update({
+        await prisma.users.update({
           where: { id: user.id },
           data: { agencyId: seowerksAgency.id }
         })
@@ -62,7 +62,7 @@ export async function GET() {
             email: user.email,
             role: user.role,
             agencyId: seowerksAgency.id,
-            dealershipId: user.dealershipId
+            dealershipId: user.dealerships?.id
           },
           agency: {
             id: seowerksAgency.id,
@@ -79,10 +79,10 @@ export async function GET() {
           id: user.id,
           email: user.email,
           role: user.role,
-          agencyId: user.agencyId,
-          dealershipId: user.dealershipId,
-          hasAgency: !!user.agency,
-          agencyName: user.agency?.name
+          agencyId: user.agencies?.id,
+          dealershipId: user.dealerships?.id,
+          hasAgency: !!user.agencies,
+          agencyName: user.agencies?.name
         },
         agency: seowerksAgency ? {
           id: seowerksAgency.id,
@@ -90,7 +90,7 @@ export async function GET() {
           dealershipsCount: seowerksAgency.dealerships.length,
           usersCount: seowerksAgency.users.length
         } : null,
-        needsFix: !user.agencyId && !!seowerksAgency
+        needsFix: !user.agencies.id && !!seowerksAgency
       })
     }
 
@@ -101,12 +101,12 @@ export async function GET() {
         id: user.id,
         email: user.email,
         role: user.role,
-        agencyId: user.agencyId,
-        dealershipId: user.dealershipId,
-        hasAgency: !!user.agency,
-        agencyName: user.agency?.name,
-        hasDealership: !!user.dealership,
-        dealershipName: user.dealership?.name
+        agencyId: user.agencies?.id,
+        dealershipId: user.dealerships?.id,
+        hasAgency: !!user.agencies,
+        agencyName: user.agencies?.name,
+        hasDealership: !!user.dealerships,
+        dealershipName: user.dealerships?.name
       }
     })
 
@@ -117,4 +117,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-} 
+}

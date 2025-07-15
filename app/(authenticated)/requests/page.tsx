@@ -18,7 +18,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select'
 
 interface Request {
@@ -46,7 +46,7 @@ export default function RequestsPage() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const [requests, setRequests] = useState<Request[]>([])
+  const [requests, setRequests] = useState<typeof requests[]>([])
   const [loading, setLoading] = useState(true)
 
   // State for filters and sorting, initialized from URL or defaults
@@ -79,7 +79,7 @@ export default function RequestsPage() {
         status: statusFilter,
         type: typeFilter,
         sortBy: sortBy,
-        sortOrder: sortOrder,
+        sortOrder: sortOrder
       })
       const response = await fetch(`/api/requests?${query}`)
       const data = await response.json()
@@ -113,7 +113,7 @@ export default function RequestsPage() {
       status: statusFilter,
       type: typeFilter,
       sortBy: sortBy,
-      sortOrder: sortOrder,
+      sortOrder: sortOrder
     })
     // Use replace to avoid adding to browser history for every filter change
     router.replace(`${pathname}?${query}`, { scroll: false })
@@ -247,7 +247,6 @@ export default function RequestsPage() {
            <LoadingSpinner size="lg" />
          </div>
       )}
-
       {!loading && displayRequests.length === 0 ? (
         <Card>
           <CardContent className="py-12">
@@ -259,8 +258,7 @@ export default function RequestsPage() {
                 <Button variant="primary">
                   Complete Onboarding
                 </Button>
-              }
-            />
+              }/>
           </CardContent>
         </Card>
       ) : (
@@ -380,7 +378,6 @@ export default function RequestsPage() {
                       </div>
                     </div>
                   )}
-
                   {/* Completed Tasks */}
                   {request.completedTasks && request.completedTasks.length > 0 && (
                     <div className="mt-6">
@@ -410,14 +407,13 @@ export default function RequestsPage() {
                       </div>
                     </div>
                   )}
-
                   {/* Active Tasks Count */}
                   {progress && (
                     <div className="mt-4 pt-4 border-t text-sm text-gray-600">
                       Active tasks: {progress.totalTasks.total - progress.totalTasks.completed}
                     </div>
                   )}
-                </CardContent>
+          </CardContent>
               </Card>
             )
           })}

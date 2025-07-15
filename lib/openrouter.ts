@@ -3,7 +3,7 @@ import OpenAI from 'openai'
 // OpenRouter client configuration
 export const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY
 })
 
 export interface ChatMessage {
@@ -59,9 +59,7 @@ export async function generateChatResponse(
     }
 
     // System prompt for SEO assistant
-    const systemPrompt = `You are an expert SEO assistant for automotive dealerships. You help dealership clients understand their SEO packages, strategies, and performance metrics.
-
-Key information about our SEO services:
+    const systemPrompt = `You are an expert SEO assistant for automotive dealerships.You help dealership clients understand their SEO packages, strategies, and performance metrics.Key information about our SEO services:
 - We offer Silver, Gold, and Platinum packages with different content volumes
 - All packages include pages, blogs, Google Business Profile posts, and SEO improvements
 - We focus on automotive dealership SEO with local targeting
@@ -70,9 +68,7 @@ Key information about our SEO services:
 
 ${knowledgeBaseAnswer ? `Knowledge Base Answer: ${knowledgeBaseAnswer}` : ''}
 
-Provide helpful, accurate responses about SEO services. If you don't have specific information, acknowledge this and suggest they can escalate to the SEO team for detailed assistance.
-
-Keep responses conversational but professional, and focus on practical SEO advice for automotive dealerships.`
+Provide helpful, accurate responses about SEO services.If you don't have specific information, acknowledge this and suggest they can escalate to the SEO team for detailed assistance.Keep responses conversational but professional, and focus on practical SEO advice for automotive dealerships.`
 
     // Build message history
     const messages: ChatMessage[] = [
@@ -86,15 +82,15 @@ Keep responses conversational but professional, and focus on practical SEO advic
       model: "anthropic/claude-3.5-sonnet", // You can change this to other models
       messages: messages,
       max_tokens: 500,
-      temperature: 0.7,
+      temperature: 0.7
     })
 
     const assistantResponse = completion.choices[0]?.message?.content || 
-      "I apologize, but I'm having trouble generating a response right now. Please try again or escalate to our SEO team."
+      "I apologize, but I'm having trouble generating a response right now.Please try again or escalate to our SEO team."
 
     // Update conversation
     const updatedMessages: ChatMessage[] = [
-      ...conversation.messages,
+     ...conversation.messages,
       { role: 'user' as const, content: userMessage },
       { role: 'assistant' as const, content: assistantResponse }
     ]

@@ -47,7 +47,7 @@ export async function getCompletedTasks(options: TaskSearchOptions): Promise<Tas
   } = options
 
   try {
-    const tasks = await prisma.task.findMany({
+    const tasks = await prisma.tasks.findMany({
       where: {
         userId,
         status: TaskStatus.COMPLETED,
@@ -58,35 +58,28 @@ export async function getCompletedTasks(options: TaskSearchOptions): Promise<Tas
         },
         ...(taskTypes && taskTypes.length > 0 && { type: { in: taskTypes } })
       },
-      include: {
-        request: {
-          select: {
-            title: true,
-            description: true
-          }
-        }
-      },
+      // Tasks don't have request relationships in current schema
       orderBy: {
         completedAt: 'desc'
       },
       take: limit
     })
 
-    return tasks.map(task => ({
+    return tasks.map((task: any) => ({
       id: task.id,
       title: task.title,
       description: task.description,
       type: task.type,
-      completedUrl: task.completedUrl,
-      completedTitle: task.completedTitle,
-      completedNotes: task.completedNotes,
+      completedUrl: undefined, // Field doesn't exist in schema
+      completedTitle: undefined, // Field doesn't exist in schema
+      completedNotes: undefined, // Field doesn't exist in schema
       completedAt: task.completedAt,
       targetUrl: task.targetUrl,
-      targetCity: task.targetCity,
-      targetModel: task.targetModel,
+      targetCity: undefined, // Field doesn't exist in schema
+      targetModel: undefined, // Field doesn't exist in schema
       keywords: includeKeywords ? task.keywords : undefined,
-      requestTitle: task.request.title,
-      requestDescription: task.request.description
+      requestTitle: undefined, // No request relationship in current schema
+      requestDescription: undefined // No request relationship in current schema
     }))
   } catch (error) {
     console.error('Error retrieving completed tasks:', error)
@@ -115,8 +108,8 @@ export function searchTasksByQuery(tasks: TaskReference[], query: string): TaskR
       task.completedNotes,
       task.targetCity,
       task.targetModel,
-      task.requestTitle,
-      task.requestDescription
+      task.requests.itle,
+      task.requests.escription
     ].filter(Boolean).join(' ').toLowerCase()
 
     // Extract keywords if available
@@ -284,15 +277,15 @@ export async function getTaskStatistics(userId: string): Promise<{
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     
     const [totalCompleted, tasksByType, recentTasks] = await Promise.all([
-      prisma.task.count({
+      prisma.tasks.count({
         where: { userId, status: TaskStatus.COMPLETED }
       }),
-      prisma.task.groupBy({
+      prisma.tasks.groupBy({
         by: ['type'],
         where: { userId, status: TaskStatus.COMPLETED },
         _count: { type: true }
       }),
-      prisma.task.count({
+      prisma.tasks.count({
         where: { 
           userId, 
           status: TaskStatus.COMPLETED,
@@ -301,7 +294,7 @@ export async function getTaskStatistics(userId: string): Promise<{
       })
     ])
 
-    const byType = tasksByType.reduce((acc, item) => {
+    const byType = tasksByType.reduce((acc: any, item: any) => {
       acc[item.type] = item._count.type
       return acc
     }, {} as Record<string, number>)

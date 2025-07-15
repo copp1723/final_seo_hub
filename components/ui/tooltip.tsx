@@ -44,7 +44,7 @@ export const TooltipContent: React.FC<TooltipContentProps> = ({ children, side =
         fontSize: 13,
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         pointerEvents: 'none',
-        ...getPositionStyle(side),
+        ...getPositionStyle(side)
       }}
       role="tooltip"
     >
@@ -78,7 +78,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 
             fontSize: 13,
             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             pointerEvents: 'none',
-            ...getPositionStyle(position),
+            ...getPositionStyle(position)
           }}
           role="tooltip"
         >

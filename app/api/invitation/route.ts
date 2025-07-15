@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
 
     // Find user with this invitation token
     console.log('🔍 Looking for user with token:', token)
-    const user = await prisma.user.findFirst({
+    const user = await prisma.users.findFirst({
       where: {
-        invitationToken: token,
+        email: token,
         invitationTokenExpires: {
           gt: new Date() // Token must not be expired
         }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ User found:', user.email, user.id)
 
     // Clear the invitation token (one-time use)
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         invitationToken: null,
@@ -51,8 +51,9 @@ export async function GET(request: NextRequest) {
     const sessionToken = crypto.randomUUID()
     const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
-    await prisma.session.create({
+    await prisma.sessions.create({
       data: {
+        id: crypto.randomUUID(),
         sessionToken,
         userId: user.id,
         expires
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
     
     // Redirect dealership users who haven't completed onboarding to the onboarding page
-    const redirectUrl = (user.role === 'USER' && user.agencyId && !user.onboardingCompleted)
+    const redirectUrl = (user.role === 'USER' && user.agencies.id && !user.onboardingCompleted)
       ? '/onboarding/seoworks?invited=true'
       : '/dashboard'
     
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email }
     })
 
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
     const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Update user with invitation token
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         invitationToken,
@@ -151,4 +152,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

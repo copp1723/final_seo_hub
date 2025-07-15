@@ -41,7 +41,7 @@ export function MetricsCard({
         {subtitle && (
           <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
         )}
-      </CardContent>
+          </CardContent>
     </Card>
   )
 }

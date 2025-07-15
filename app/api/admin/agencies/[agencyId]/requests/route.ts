@@ -11,9 +11,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ age
   const { agencyId } = await context.params
   const user = authResult.user
 
-  // Security check: User must be SUPER_ADMIN or AGENCY_ADMIN for the specified agency
-  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
-    return errorResponse('Access denied. You do not have permission to view these requests.', 403)
+  // Security check: users must be SUPER_ADMIN or AGENCY_ADMIN for the specified agency
+  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencies.id !== agencyId)) {
+    return errorResponse('Access denied.You do not have permission to view these requests.', 403)
   }
 
   const { searchParams } = new URL(request.url)
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ age
   const skip = (page - 1) * limit
 
   try {
-    const where: Prisma.RequestWhereInput = {
+    const where: Prisma.requestsWhereInput = {
       agencyId: agencyId, // Filter by the agencyId from the URL path
     }
 
@@ -53,34 +53,34 @@ export async function GET(request: NextRequest, context: { params: Promise<{ age
         { description: { contains: searchQuery, mode: 'insensitive' } },
         { targetCities: { array_contains: [searchQuery] } },
         { targetModels: { array_contains: [searchQuery] } },
-        { user: { name: { contains: searchQuery, mode: 'insensitive' } } }, // Search by user name
-        { user: { email: { contains: searchQuery, mode: 'insensitive' } } }, // Search by user email
+        { users: { name: { contains: searchQuery, mode: 'insensitive' } } }, // Search by user name
+        { users: { email: { contains: searchQuery, mode: 'insensitive' } } }, // Search by user email
       ]
     }
 
-    const orderBy: Prisma.RequestOrderByWithRelationInput = {}
+    const orderBy: Prisma.requestsOrderByWithRelationInput = {}
     if (sortBy === 'createdAt' || sortBy === 'priority' || sortBy === 'status' || sortBy === 'updatedAt') {
       orderBy[sortBy] = sortOrder
     } else if (sortBy === 'user') { // Allow sorting by user name
-        orderBy.user = { name: sortOrder }
+        orderBy.users = { name: sortOrder }
     }
     else {
       orderBy.createdAt = 'desc' // Default sort
     }
 
-    const requests = await prisma.request.findMany({
+    const requests = await prisma.requests.findMany({
       where,
       orderBy,
       skip,
       take: limit,
       include: {
-        user: { // Include user details for display
+        users: { // Include user details for display
           select: { id: true, name: true, email: true }
         }
       }
     })
 
-    const totalRequests = await prisma.request.count({ where })
+    const totalRequests = await prisma.requests.count({ where })
 
     logger.info(`Agency requests fetched successfully for agency ${agencyId}`, {
       userId: user.id,

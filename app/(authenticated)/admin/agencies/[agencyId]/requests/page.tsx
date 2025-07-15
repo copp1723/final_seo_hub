@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { UserRole, Request as RequestType } from '@prisma/client' // Assuming Request type is exported
+import { UserRole } from '@prisma/client'
+import type { requests } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -14,7 +15,7 @@ import { ArrowUpDown, Eye } from 'lucide-react'
 import { formatDate, cn } from '@/lib/utils' // Assuming you have a utils file
 import { LoadingSpinner } from '@/components/ui/loading' // Assuming a loading spinner component
 
-interface AgencyRequest extends RequestType {
+interface AgencyRequest extends requests {
   user: {
     id: string
     name: string | null
@@ -39,7 +40,7 @@ export default function AgencyRequestsPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
-  const agencyId = params.agencyId as string
+  const agencyId = params.agencies.id as string
 
   const [requests, setRequests] = useState<AgencyRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -73,8 +74,8 @@ export default function AgencyRequestsPage() {
 
   const fetchRequests = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
-    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
-      setError(`Access Denied. You don&apos;t have permission to view these ${DEALERSHIP_TERMINOLOGY} requests.`)
+    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId)) {
+      setError(`Access Denied.You don&apos;t have permission to view these ${DEALERSHIP_TERMINOLOGY} requests.`)
       setIsLoading(false)
       return
     }
@@ -88,7 +89,7 @@ export default function AgencyRequestsPage() {
       status: statusFilter,
       type: typeFilter,
       sortBy: sortBy,
-      sortOrder: sortOrder,
+      sortOrder: sortOrder
     }).toString()
 
     try {
@@ -146,11 +147,11 @@ export default function AgencyRequestsPage() {
   )
 
   if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
-  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
+  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId))) {
      return (
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
-        <p>You do not have permission to view this page. Please contact your administrator.</p>
+        <p>You do not have permission to view this page.Please contact your administrator</p>
         <Button onClick={() => router.push('/dashboard')} className="mt-4">Go to Dashboard</Button>
       </div>
     )
@@ -194,11 +195,9 @@ export default function AgencyRequestsPage() {
 
       {isLoading && <div className="flex justify-center items-center py-10"><LoadingSpinner /></div>}
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-
       {!isLoading && !error && requests.length === 0 && (
-        <p className="text-center text-gray-500 py-10">No {DEALERSHIP_TERMINOLOGY} requests found matching your criteria.</p>
+        <p className="text-center text-gray-500 py-10">No {DEALERSHIP_TERMINOLOGY} requests found matching your criteria</p>
       )}
-
       {!isLoading && !error && requests.length > 0 && (
         <>
           <div className="overflow-x-auto bg-white shadow-md rounded-lg">
@@ -219,7 +218,7 @@ export default function AgencyRequestsPage() {
                 {requests.map((req) => (
                   <TableRow key={req.id}>
                     <TableCell className="font-medium">{req.title}</TableCell>
-                    <TableCell>{req.user?.name || req.user?.email || 'N/A'}</TableCell>
+                    <TableCell>{req.user.name || req.user.email || 'N/A'}</TableCell>
                     <TableCell>{req.type}</TableCell>
                     <TableCell>
                       <span className={cn(

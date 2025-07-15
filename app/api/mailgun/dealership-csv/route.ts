@@ -26,13 +26,11 @@ async function sendErrorEmail(to: string, subject: string, message: string): Pro
           </div>
           
           <p style="font-size: 14px; color: #6c757d;">
-            Please check your CSV file format and try again. If you continue to have issues, contact support.
-          </p>
+            Please check your CSV file format and try again.If you continue to have issues, contact support</p>
           
           <hr style="margin: 30px 0;">
           <p style="font-size: 12px; color: #6c757d;">
-            This is an automated message from the SEO Hub system.
-          </p>
+            This is an automated message from the SEO Hub system</p>
         </div>
       `,
       tags: ['csv-error', 'dealership-onboarding']
@@ -83,8 +81,7 @@ async function sendSuccessEmail(to: string, result: any, agencyName: string): Pr
 
         <hr style="margin: 30px 0;">
         <p style="font-size: 12px; color: #6c757d;">
-          This is an automated message from the SEO Hub system.
-        </p>
+          This is an automated message from the SEO Hub system</p>
       </div>
     `
 
@@ -134,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // Validate sender authorization
     const senderValidation = await CsvSecurityService.validateSender(sender)
-    if (!senderValidation.isValid || !senderValidation.user || !senderValidation.agency) {
+    if (!senderValidation.isValid || !senderValidation.users || !senderValidation.agencies) {
       logger.warn('Unauthorized sender attempted CSV upload', { sender, error: senderValidation.error })
       await sendErrorEmail(sender, 'Unauthorized sender', senderValidation.error || 'You are not authorized to create dealerships via email.')
       return errorResponse('Unauthorized sender', 403)
@@ -156,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!csvFile) {
-      await sendErrorEmail(sender, 'No CSV file found', 'Please attach a valid CSV file with the .csv extension.')
+      await sendErrorEmail(sender, 'No CSV file found', 'Please attach a valid CSV file with the.csv extension.')
       return errorResponse('No CSV file found', 400)
     }
 
@@ -180,12 +177,12 @@ export async function POST(request: NextRequest) {
     // Create processing log
     const processingId = await CsvDealershipProcessor.createProcessingLog(
       sender,
-      senderValidation.agency.id,
+      senderValidation.agencies?.id,
       csvFile.name,
       fileBuffer.length
     )
 
-    logger.info('Created processing log', { processingId, sender, agencyId: senderValidation.agency.id })
+    logger.info('Created processing log', { processingId, sender, agencyId: senderValidation.agencies?.id })
 
     // Process CSV asynchronously to avoid timeout
     setImmediate(async () => {
@@ -194,11 +191,11 @@ export async function POST(request: NextRequest) {
         
         const result = await CsvDealershipProcessor.processCsv(
           fileBuffer,
-          senderValidation.agency!.id,
+          senderValidation.agencies?.id,
           processingId
         )
 
-        await sendSuccessEmail(sender, result, senderValidation.agency!.name)
+        await sendSuccessEmail(sender, result, senderValidation.agencies?.name)
         
         logger.info('CSV processing completed successfully', { 
           processingId, 
@@ -209,16 +206,16 @@ export async function POST(request: NextRequest) {
         logger.error('Async CSV processing failed', error, { 
           processingId,
           sender, 
-          agencyId: senderValidation.agency!.id 
+          agencyId: senderValidation.agencies?.id 
         })
-        await sendErrorEmail(sender, 'Processing failed', 'An error occurred while processing your CSV file. Please check the format and try again.')
+        await sendErrorEmail(sender, 'Processing failed', 'An error occurred while processing your CSV file.Please check the format and try again.')
       }
     })
 
     return successResponse({
       message: 'CSV file received and queued for processing',
       processingId,
-      agency: senderValidation.agency.name
+      agency: senderValidation.agencies?.name
     })
 
   } catch (error) {

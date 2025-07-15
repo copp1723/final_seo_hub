@@ -45,10 +45,9 @@ export const RecentActivityTimeline: React.FC<RecentActivityTimelineProps> = ({ 
           </div>
         ) : (
           <div className="flex items-center justify-center h-24 text-gray-500">
-            No recent activity to display.
-          </div>
+            No recent activity to display</div>
         )}
-      </CardContent>
+          </CardContent>
     </Card>
   )
 }

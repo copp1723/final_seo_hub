@@ -5,7 +5,7 @@ import { getOrCreateCSRFToken } from '@/lib/csrf'
 export async function GET(request: NextRequest) {
   const session = await auth()
   
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }

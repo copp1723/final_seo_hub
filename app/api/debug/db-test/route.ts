@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     // Test basic database connectivity
-    const userCount = await prisma.user.count()
+    const userCount = await prisma.users.count()
     
     // Test if we can create a simple query
     const testQuery = await prisma.$queryRaw`SELECT 1 as test`
@@ -27,4 +27,4 @@ export async function GET() {
       databaseUrl: process.env.DATABASE_URL ? 'SET' : 'MISSING'
     }, { status: 500 })
   }
-} 
+}

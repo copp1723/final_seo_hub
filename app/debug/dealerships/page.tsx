@@ -26,25 +26,25 @@ export default function DebugDealershipsPage() {
       }
     }
 
-    if (session?.user?.id) {
+    if (session?.user.id) {
       fetchData()
     } else {
       setLoading(false)
     }
-  }, [session?.user?.id])
+  }, [session?.user.id])
 
   if (!session) {
     return <div className="p-8">Not authenticated</div>
   }
-
+  
   if (loading) {
     return <div className="p-8">Loading...</div>
   }
-
+  
   if (error) {
     return <div className="p-8 text-red-600">Error: {error}</div>
   }
-
+  
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Debug: Dealerships API</h1>
@@ -75,7 +75,6 @@ export default function DebugDealershipsPage() {
           </ul>
         </div>
       )}
-
       {data?.currentDealership && (
         <div>
           <h2 className="text-lg font-semibold mb-2">Current Dealership:</h2>

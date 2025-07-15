@@ -88,7 +88,7 @@ export default function SuperAdminDashboard() {
         return <Badge className="bg-red-100 text-red-800"><AlertCircle className="h-3 w-3 mr-1" />Error</Badge>
       default:
         return <Badge variant="secondary">Unknown</Badge>
-    }
+  }
   }
 
   const getActivityIcon = (type: string) => {
@@ -239,7 +239,7 @@ export default function SuperAdminDashboard() {
               <p>No recent activity</p>
             </div>
           )}
-        </CardContent>
+          </CardContent>
       </Card>
     </div>
   )

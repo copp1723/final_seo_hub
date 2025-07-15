@@ -97,7 +97,7 @@ export default function OverviewTab({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Avg. CTR</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Avg.CTR</CardTitle>
             <Percent className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
@@ -161,7 +161,7 @@ export default function OverviewTab({
               />
             </div>
           )}
-        </CardContent>
+          </CardContent>
       </Card>
 
       {/* Year-over-Year Performance Chart */}
@@ -209,10 +209,8 @@ export default function OverviewTab({
                   }
                 ]
               }}
-              options={{
-                ...chartOptions,
-                plugins: {
-                  ...chartOptions.plugins,
+              options={{ ...chartOptions,
+                plugins: { ...chartOptions.plugins,
                   tooltip: {
                     mode: 'index' as const,
                     intersect: false,
@@ -232,14 +230,13 @@ export default function OverviewTab({
                     }
                   }
                 },
-                scales: {
-                  ...chartOptions.scales,
+                scales: { ...chartOptions.scales,
                   y1: {
                     type: 'linear' as const,
                     display: true,
                     position: 'right' as const,
                     grid: {
-                      drawOnChartArea: false,
+                      drawOnChartArea: false
                     },
                     title: {
                       display: true,
@@ -252,9 +249,7 @@ export default function OverviewTab({
           </div>
           <div className="mt-4 text-sm text-gray-600">
             <p>
-              <strong>Note:</strong> This chart compares the same month across different years using Search Console data for accuracy.
-              Impressions are scaled down (÷100) for better visualization alongside other metrics.
-            </p>
+              <strong>Note:</strong> This chart compares the same month across different years using Search Console data for accuracy.Impressions are scaled down (÷100) for better visualization alongside other metrics</p>
           </div>
         </CardContent>
       </Card>

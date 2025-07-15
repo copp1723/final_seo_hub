@@ -93,7 +93,7 @@ export default function TrafficTab({ gaData, gaError, gaMetrics, chartOptions }:
             Connect Google Analytics
           </button>
         )}
-      </Card>
+        </Card>
     )
   }
 
@@ -162,11 +162,9 @@ export default function TrafficTab({ gaData, gaError, gaMetrics, chartOptions }:
             <div className="h-64">
               <Bar 
                 data={topPagesChartData} 
-                options={{
-                  ...chartOptions,
+                options={{ ...chartOptions,
                   indexAxis: 'y' as const,
-                  plugins: {
-                    ...chartOptions.plugins,
+                  plugins: { ...chartOptions.plugins,
                     legend: { display: false }
                   }
                 }} 

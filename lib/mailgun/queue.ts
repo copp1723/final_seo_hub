@@ -128,7 +128,7 @@ export async function queueEmailWithPreferences(
 ): Promise<boolean> {
   try {
     // Get user with preferences
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       include: { preferences: true }
     })
@@ -153,8 +153,7 @@ export async function queueEmailWithPreferences(
     }
 
     // Add to queue
-    await emailQueue.add({
-      ...emailOptions,
+    await emailQueue.add({ ...emailOptions,
       to: user.email
     })
 

@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger'
 
 export default function DevError({
   error,
-  reset,
+  reset
 }: {
   error: Error & { digest?: string }
   reset: () => void
@@ -15,7 +15,7 @@ export default function DevError({
     console.error('Development Error:', error)
     logger.error('React Error Boundary caught an error', error, {
       digest: error.digest,
-      stack: error.stack,
+      stack: error.stack
     })
   }, [error])
 
@@ -44,7 +44,6 @@ export default function DevError({
                 <p className="mt-1 text-sm text-yellow-700 font-mono">{error.digest}</p>
               </div>
             )}
-            
             {error.stack && (
               <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                 <h3 className="font-medium text-gray-800">Stack Trace:</h3>
@@ -71,8 +70,7 @@ export default function DevError({
           </div>
           
           <div className="mt-4 text-xs text-gray-500 text-center">
-            This detailed error page is only shown in development mode.
-          </div>
+            This detailed error page is only shown in development mode</div>
         </div>
       </div>
     </div>

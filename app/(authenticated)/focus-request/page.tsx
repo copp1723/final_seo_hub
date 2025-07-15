@@ -29,13 +29,13 @@ export default function FocusRequestPage() {
     targetCities: '',
     targetModels: '',
     keywords: '',
-    targetUrl: '',
+    targetUrl: ''
   })
 
   // Fetch current month's request count
   useEffect(() => {
     const fetchRequestCount = async () => {
-      if (!session?.user?.id) return
+      if (!session?.user.id) return
       
       const now = new Date()
       const month = now.getMonth() + 1 // 1-based month
@@ -55,7 +55,7 @@ export default function FocusRequestPage() {
     }
 
     fetchRequestCount()
-  }, [session?.user?.id])
+  }, [session?.user.id])
 
   const isAtLimit = requestCount >= 2
   const remainingRequests = Math.max(0, 2 - requestCount)
@@ -74,7 +74,7 @@ export default function FocusRequestPage() {
         ...formData,
         targetCities: formData.targetCities ? formData.targetCities.split(',').map(s => s.trim()) : [],
         targetModels: formData.targetModels ? formData.targetModels.split(',').map(s => s.trim()) : [],
-        keywords: formData.keywords ? formData.keywords.split(',').map(s => s.trim()) : [],
+        keywords: formData.keywords ? formData.keywords.split(',').map(s => s.trim()) : []
       }
 
       console.log('Focus Request - Sending request data:', requestPayload)
@@ -83,7 +83,7 @@ export default function FocusRequestPage() {
       const requestResponse = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify(requestPayload)
       })
 
       console.log('Focus Request - Response status:', requestResponse.status)
@@ -97,8 +97,8 @@ export default function FocusRequestPage() {
       const requestData = await requestResponse.json()
       console.log('Focus Request - Full API response:', requestData)
       
-      // The correct path is requestData.data.request.id based on successResponse structure
-      const requestId = requestData.data?.request?.id
+      // The correct path is requestData.data.requests.id based on successResponse structure
+      const requestId = requestData.data?.requests.id
       console.log('Focus Request - Extracted requestId:', requestId)
       
       if (!requestId) {
@@ -122,7 +122,7 @@ export default function FocusRequestPage() {
         targetCities: '',
         targetModels: '',
         keywords: '',
-        targetUrl: '',
+        targetUrl: ''
       })
 
       // Redirect after a short delay
@@ -187,13 +187,11 @@ export default function FocusRequestPage() {
                 {error}
               </div>
             )}
-
             {success && (
               <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
                 {success}
               </div>
             )}
-
             <div>
               <label className="block text-sm font-medium mb-1">Title *</label>
               <input
@@ -288,7 +286,7 @@ export default function FocusRequestPage() {
                 placeholder="e.g., Austin, TX, San Antonio, TX, Oklahoma City, OK"
                 disabled={isAtLimit}
               />
-              <p className="text-xs text-gray-500 mt-1">Include state codes (City, State). Include cities in neighboring states if relevant.</p>
+              <p className="text-xs text-gray-500 mt-1">Include state codes (City, State). Include cities in neighboring states if relevant</p>
             </div>
 
             <div>
@@ -341,11 +339,9 @@ export default function FocusRequestPage() {
               {isAtLimit ? (
                 <div className="w-full p-4 bg-gray-100 border border-gray-300 rounded-md text-center">
                   <p className="text-gray-600 font-medium">
-                    You've reached the maximum of 2 Focus Requests for this month.
-                  </p>
+                    You've reached the maximum of 2 Focus Requests for this month</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    Your limit will reset on the 1st of next month.
-                  </p>
+                    Your limit will reset on the 1st of next month</p>
                 </div>
               ) : (
                 <Button type="submit" disabled={loading} className="flex items-center gap-2">

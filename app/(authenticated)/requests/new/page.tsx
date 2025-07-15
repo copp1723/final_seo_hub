@@ -26,7 +26,7 @@ export default function NewRequestPage() {
     targetCities: '',
     targetModels: '',
     keywords: '',
-    targetUrl: '',
+    targetUrl: ''
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,12 +40,11 @@ export default function NewRequestPage() {
       const response = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
+        body: JSON.stringify({ ...formData,
           targetCities: formData.targetCities ? formData.targetCities.split(',').map(s => s.trim()) : [],
           targetModels: formData.targetModels ? formData.targetModels.split(',').map(s => s.trim()) : [],
-          keywords: formData.keywords ? formData.keywords.split(',').map(s => s.trim()) : [],
-        }),
+          keywords: formData.keywords ? formData.keywords.split(',').map(s => s.trim()) : []
+        })
       })
 
       if (!response.ok) {
@@ -81,7 +80,6 @@ export default function NewRequestPage() {
                 {error}
               </div>
             )}
-
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
               <input
@@ -160,7 +158,7 @@ export default function NewRequestPage() {
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
                 placeholder="e.g., Austin, TX, San Antonio, TX, Oklahoma City, OK"
               />
-              <p className="text-xs text-gray-500 mt-1">Include state codes (City, State). Include cities in neighboring states if relevant.</p>
+              <p className="text-xs text-gray-500 mt-1">Include state codes (City, State). Include cities in neighboring states if relevant</p>
             </div>
 
             <div>

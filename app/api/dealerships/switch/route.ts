@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       where: { id: session.user.id }
     })
 
-    if (!currentUser?.agencyId) {
+    if (!currentUser?.agencies?.id) {
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const dealershipUser = await prisma.users.findUnique({
       where: { 
         id: dealershipId,
-        agencyId: currentUser.agencyId
+        agencyId: currentUser.agencies?.id
       }
     })
     
@@ -83,7 +83,7 @@ export async function GET() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -98,7 +98,7 @@ export async function GET() {
       }
     })
 
-    if (!currentUser?.agencyId) {
+    if (!currentUser?.agencies?.id) {
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
@@ -108,7 +108,7 @@ export async function GET() {
     // Get all users in the same agency (these represent dealerships)
     const dealershipUsers = await prisma.users.findMany({
       where: {
-        agencyId: currentUser.agencyId,
+        agencyId: currentUser.agencies?.id,
         id: { startsWith: 'user-dealer-' } // Only get dealership users
       },
       orderBy: { name: 'asc' }

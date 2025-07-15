@@ -5,24 +5,24 @@ import { logger } from '@/lib/logger'
 
 export async function GET() {
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
 
   try {
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: authResult.user.id },
       select: { dealershipId: true }
     })
 
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       return NextResponse.json({
         connected: false,
         debug: 'User not assigned to dealership'
       })
     }
 
-    const connection = await prisma.searchConsoleConnection.findUnique({
-      where: { dealershipId: user.dealershipId }
+    const connection = await prisma.search_console_connections.findUnique({
+      where: { userId: user.dealerships?.id }
     })
 
     if (!connection) {

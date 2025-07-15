@@ -23,12 +23,12 @@ export class SearchConsoleService {
 
     oauth2Client.setCredentials({
       access_token: accessToken,
-      refresh_token: refreshToken,
+      refresh_token: refreshToken
     })
 
     this.searchConsole = google.searchconsole({
       version: 'v1',
-      auth: oauth2Client,
+      auth: oauth2Client
     })
   }
 
@@ -46,8 +46,8 @@ export class SearchConsoleService {
         dimensions: options.dimensions || ['query', 'page'],
         searchType: options.searchType || 'web',
         rowLimit: options.rowLimit || 1000,
-        dimensionFilterGroups: options.filters,
-      },
+        dimensionFilterGroups: options.filters
+      }
     })
 
     return response.data
@@ -62,7 +62,7 @@ export class SearchConsoleService {
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],
       dimensions: ['query'],
-      rowLimit: 100,
+      rowLimit: 100
     })
   }
 
@@ -75,7 +75,7 @@ export class SearchConsoleService {
       startDate: startDate.toISOString().split('T')[0],
       endDate: endDate.toISOString().split('T')[0],
       dimensions: ['page'],
-      rowLimit: 100,
+      rowLimit: 100
     })
   }
 
@@ -92,17 +92,17 @@ export class SearchConsoleService {
         filters: [{
           dimension: 'query',
           operator: 'equals',
-          expression: query,
-        }],
-      }],
+          expression: query
+        }]
+      }]
     })
   }
 }
 
 // Helper to get service instance for a dealership
 export async function getSearchConsoleService(dealershipId: string) {
-  const token = await prisma.searchConsoleConnection.findUnique({
-    where: { dealershipId },
+  const token = await prisma.search_console_connections.findUnique({
+    where: { dealershipId }
   })
 
   if (!token) {

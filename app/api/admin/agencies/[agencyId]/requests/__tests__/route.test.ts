@@ -1,8 +1,6 @@
 // NOTE: This is a conceptual test structure.
 // Running these tests requires a Jest/testing setup configured for Next.js API routes,
-// with mocks for Prisma, NextAuth, etc.
-
-import { GET } from '../route' // Adjust import path as needed
+// with mocks for Prisma, NextAuth, etc.import { GET } from './route' // Adjust import path as needed
 import { prisma } from '@/lib/prisma' // Mock this
 import { auth } from '@/lib/auth' // Mock this for session
 import { UserRole, RequestStatus } from '@prisma/client'
@@ -12,14 +10,14 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     request: {
       findMany: jest.fn(),
-      count: jest.fn(),
+      count: jest.fn()
     },
     // Add other models as needed
-  },
+  }
 }))
 
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
+  auth: jest.fn()
 }))
 
 // Helper to create a mock NextRequest
@@ -45,14 +43,14 @@ const params = { agencyId: 'test-agency-id' }
 describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(prisma.request.findMany as jest.Mock).mockResolvedValue([])
-    ;(prisma.request.count as jest.Mock).mockResolvedValue(0)
+    ;(prisma.requests.findMany as jest.Mock).mockResolvedValue([])
+    ;(prisma.requests.count as jest.Mock).mockResolvedValue(0)
   })
 
   describe('GET /requests', () => {
     it('should return requests for SUPER_ADMIN for the specified agency', async () => {
-      (prisma.request.findMany as jest.Mock).mockResolvedValue([{ id: 'req1', title: 'Test Request' }])
-      ;(prisma.request.count as jest.Mock).mockResolvedValue(1)
+      (prisma.requests.findMany as jest.Mock).mockResolvedValue([{ id: 'req1', title: 'Test Request' }])
+      ;(prisma.requests.count as jest.Mock).mockResolvedValue(1)
 
       const req = mockRequest('GET', new URLSearchParams(), mockSuperAdmin)
       const response = await GET(req, { params })
@@ -62,8 +60,8 @@ describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
       expect(json.requests).toBeDefined()
       expect(json.requests.length).toBe(1)
       expect(json.pagination).toBeDefined()
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { agencyId: 'test-agency-id' },
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { agencyId: 'test-agency-id' }
       }))
     })
 
@@ -71,8 +69,8 @@ describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
       const req = mockRequest('GET', new URLSearchParams(), mockAgencyAdmin)
       const response = await GET(req, { params })
       expect(response.status).toBe(200)
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { agencyId: 'test-agency-id' },
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { agencyId: 'test-agency-id' }
       }))
     })
 
@@ -92,9 +90,9 @@ describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
       const searchParams = new URLSearchParams({ page: '2', limit: '5' })
       const req = mockRequest('GET', searchParams, mockAgencyAdmin)
       await GET(req, { params })
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
         skip: 5, // (2 - 1) * 5
-        take: 5,
+        take: 5
       }))
     })
 
@@ -102,8 +100,8 @@ describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
       const searchParams = new URLSearchParams({ status: RequestStatus.PENDING })
       const req = mockRequest('GET', searchParams, mockAgencyAdmin)
       await GET(req, { params })
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: expect.objectContaining({ agencyId: params.agencyId, status: RequestStatus.PENDING }),
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({ agencyId: params.agencies?.id, status: RequestStatus.PENDING })
       }))
     })
 
@@ -111,8 +109,8 @@ describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
       const searchParams = new URLSearchParams({ type: 'blog' })
       const req = mockRequest('GET', searchParams, mockAgencyAdmin)
       await GET(req, { params })
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: expect.objectContaining({ agencyId: params.agencyId, type: 'blog' }),
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: expect.objectContaining({ agencyId: params.agencies?.id, type: 'blog' })
       }))
     })
 
@@ -121,27 +119,27 @@ describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
       const searchParams = new URLSearchParams({ search: searchQuery })
       const req = mockRequest('GET', searchParams, mockAgencyAdmin)
       await GET(req, { params })
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
         where: expect.objectContaining({
-          agencyId: params.agencyId,
+          agencyId: params.agencies?.id,
           OR: [
             { title: { contains: searchQuery, mode: 'insensitive' } },
             { description: { contains: searchQuery, mode: 'insensitive' } },
             { targetCities: { array_contains: [searchQuery] } },
             { targetModels: { array_contains: [searchQuery] } },
             { user: { name: { contains: searchQuery, mode: 'insensitive' } } },
-            { user: { email: { contains: searchQuery, mode: 'insensitive' } } },
-          ],
-        }),
+            { user: { email: { contains: searchQuery, mode: 'insensitive' } } }
+          ]
+        })
       }))
     })
 
-    it('should apply sorting (e.g. by createdAt desc)', async () => {
+    it('should apply sorting (e.g by createdAt desc)', async () => {
       const searchParams = new URLSearchParams({ sortBy: 'createdAt', sortOrder: 'desc' })
       const req = mockRequest('GET', searchParams, mockAgencyAdmin)
       await GET(req, { params })
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        orderBy: { createdAt: 'desc' },
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        orderBy: { createdAt: 'desc' }
       }))
     })
 
@@ -149,8 +147,8 @@ describe('API Route: /api/admin/agencies/[agencyId]/requests', () => {
       const searchParams = new URLSearchParams({ sortBy: 'user', sortOrder: 'asc' })
       const req = mockRequest('GET', searchParams, mockAgencyAdmin)
       await GET(req, { params })
-      expect(prisma.request.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        orderBy: { user: { name: 'asc' } },
+      expect(prisma.requests.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        orderBy: { user: { name: 'asc' } }
       }))
     })
   })

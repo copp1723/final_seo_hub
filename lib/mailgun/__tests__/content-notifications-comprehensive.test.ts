@@ -1,9 +1,9 @@
-import { contentAddedTemplate } from '../content-notifications'
-import { Request, User, PackageType } from '@prisma/client'
-import { DEFAULT_BRANDING } from '../../branding/config'
+import { contentAddedTemplate } from './content-notifications'
+import { requests, users, PackageType } from '@prisma/client'
+import { DEFAULT_BRANDING } from '././branding/config'
 
 describe('contentAddedTemplate - Comprehensive Testing', () => {
-  const mockUser: User = {
+  const mockUser: users = {
     id: 'user_123',
     email: 'john@dealership.com',
     name: 'John Doe',
@@ -25,7 +25,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
     updatedAt: new Date()
   }
 
-  const mockRequest: Request = {
+  const mockRequest: requests = {
     id: 'req_123',
     userId: 'user_123',
     agencyId: 'agency_123',
@@ -127,7 +127,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
       const urlFormats = [
         'https://dealership.com/page',
         'http://dealership.com/page',
-        'https://subdomain.dealership.com/long/path/to/page?param=value#section',
+        'https://subdomain.dealerships.com/long/path/to/page?param=value#section',
         'https://dealership.com/page-with-dashes_and_underscores',
         'https://posts.gle/abc123def456'
       ]
@@ -172,7 +172,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
     const nameVariations = [
       { name: 'John Doe', expected: 'Hi John Doe,' },
       { name: 'John', expected: 'Hi John,' },
-      { name: 'Dr. John Doe Jr.', expected: 'Hi Dr. John Doe Jr.,' },
+      { name: 'Dr.John Doe Jr.', expected: 'Hi Dr.John Doe Jr,' },
       { name: 'José María García-López', expected: 'Hi José María García-López,' },
       { name: '李小明', expected: 'Hi 李小明,' },
       { name: null, expected: 'Hi there,' },
@@ -197,8 +197,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
 
   describe('Package Progress Display', () => {
     it('should show all progress types when present', () => {
-      const requestWithProgress = {
-        ...mockRequest,
+      const requestWithProgress = { ...mockRequest,
         packageType: PackageType.PLATINUM,
         pagesCompleted: 3,
         blogsCompleted: 5,
@@ -221,8 +220,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
     })
 
     it('should only show progress for completed items', () => {
-      const requestWithSomeProgress = {
-        ...mockRequest,
+      const requestWithSomeProgress = { ...mockRequest,
         packageType: PackageType.SILVER,
         pagesCompleted: 1,
         blogsCompleted: 0,
@@ -245,8 +243,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
     })
 
     it('should handle zero values correctly', () => {
-      const requestWithZeros = {
-        ...mockRequest,
+      const requestWithZeros = { ...mockRequest,
         packageType: PackageType.GOLD,
         pagesCompleted: 0,
         blogsCompleted: 0,

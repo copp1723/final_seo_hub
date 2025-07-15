@@ -12,7 +12,7 @@ interface Task {
 }
 
 interface UpcomingTasksProps {
-  tasks: Task[]
+  tasks: typeof tasks[]
 }
 
 const getTaskVariant = (daysRemaining: number, status: string) => {
@@ -59,10 +59,9 @@ export const UpcomingTasks: React.FC<UpcomingTasksProps> = ({ tasks }) => {
           </div>
         ) : (
           <div className="flex items-center justify-center h-24 text-gray-500">
-            No upcoming deadlines in the next 7 days.
-          </div>
+            No upcoming deadlines in the next 7 days</div>
         )}
-      </CardContent>
+          </CardContent>
     </Card>
   )
 }

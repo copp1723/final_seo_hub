@@ -9,10 +9,10 @@ import crypto from 'crypto'
 const mockLogger = {
   info: jest.fn(),
   warn: jest.fn(),
-  error: jest.fn(),
+  error: jest.fn()
 }
 
-jest.mock('../logger', () => ({
+jest.mock('./logger', () => ({
   logger: mockLogger
 }))
 
@@ -26,16 +26,16 @@ const mockRedisClient = {
   expire: jest.fn(),
   ttl: jest.fn(),
   exists: jest.fn(),
-  ping: jest.fn(),
+  ping: jest.fn()
 }
 
 const mockRedisManager = {
   getClient: jest.fn(),
   isAvailable: jest.fn(),
-  disconnect: jest.fn(),
+  disconnect: jest.fn()
 }
 
-jest.mock('../redis', () => ({
+jest.mock('./redis', () => ({
   redisManager: mockRedisManager
 }))
 
@@ -63,7 +63,7 @@ describe('CSRF Redis Integration', () => {
 
     test('should store CSRF token in Redis', async () => {
       // Import the functions after mocks are set up
-      const { generateCSRFToken } = await import('../csrf')
+      const { generateCSRFToken } = await import('./csrf')
       
       const token = await generateCSRFToken(sessionId)
       
@@ -77,7 +77,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should retrieve existing CSRF token from Redis', async () => {
-      const { getOrCreateCSRFToken } = await import('../csrf')
+      const { getOrCreateCSRFToken } = await import('./csrf')
       
       const tokenData = {
         token: testToken,
@@ -92,7 +92,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should validate CSRF token from Redis', async () => {
-      const { validateCSRFToken } = await import('../csrf')
+      const { validateCSRFToken } = await import('./csrf')
       
       const tokenData = {
         token: testToken,
@@ -112,7 +112,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should delete expired token from Redis', async () => {
-      const { validateCSRFToken } = await import('../csrf')
+      const { validateCSRFToken } = await import('./csrf')
       
       const tokenData = {
         token: testToken,
@@ -132,7 +132,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should generate new token when Redis token is expired', async () => {
-      const { getOrCreateCSRFToken } = await import('../csrf')
+      const { getOrCreateCSRFToken } = await import('./csrf')
       
       const tokenData = {
         token: testToken,
@@ -155,7 +155,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should fallback to in-memory storage when Redis is unavailable', async () => {
-      const { generateCSRFToken } = await import('../csrf')
+      const { generateCSRFToken } = await import('./csrf')
       
       const token = await generateCSRFToken(sessionId)
       
@@ -166,7 +166,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should validate CSRF token from in-memory storage', async () => {
-      const { generateCSRFToken, validateCSRFToken } = await import('../csrf')
+      const { generateCSRFToken, validateCSRFToken } = await import('./csrf')
       
       // Generate token first
       const token = await generateCSRFToken(sessionId)
@@ -182,7 +182,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should reject invalid token in fallback mode', async () => {
-      const { validateCSRFToken } = await import('../csrf')
+      const { validateCSRFToken } = await import('./csrf')
       
       const request = new NextRequest('http://localhost:3000/api/test', {
         method: 'POST',
@@ -195,7 +195,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should create and retrieve token consistently in fallback mode', async () => {
-      const { getOrCreateCSRFToken } = await import('../csrf')
+      const { getOrCreateCSRFToken } = await import('./csrf')
       
       const token1 = await getOrCreateCSRFToken(sessionId)
       const token2 = await getOrCreateCSRFToken(sessionId)
@@ -212,7 +212,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should fallback to in-memory when Redis setex fails', async () => {
-      const { generateCSRFToken } = await import('../csrf')
+      const { generateCSRFToken } = await import('./csrf')
       
       mockRedisClient.setex.mockRejectedValue(new Error('Redis connection lost'))
 
@@ -227,7 +227,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should fallback to in-memory when Redis get fails', async () => {
-      const { validateCSRFToken } = await import('../csrf')
+      const { validateCSRFToken } = await import('./csrf')
       
       mockRedisClient.get.mockRejectedValue(new Error('Redis connection lost'))
 
@@ -247,7 +247,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should fallback to in-memory when Redis del fails', async () => {
-      const { validateCSRFToken } = await import('../csrf')
+      const { validateCSRFToken } = await import('./csrf')
       
       mockRedisClient.get.mockResolvedValue(JSON.stringify({
         token: testToken,
@@ -277,7 +277,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should generate cryptographically secure tokens', async () => {
-      const { generateCSRFToken } = await import('../csrf')
+      const { generateCSRFToken } = await import('./csrf')
       
       const tokens = await Promise.all([
         generateCSRFToken('session1'),
@@ -295,7 +295,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should use timing-safe comparison for validation', async () => {
-      const { generateCSRFToken, validateCSRFToken } = await import('../csrf')
+      const { generateCSRFToken, validateCSRFToken } = await import('./csrf')
       
       const token = await generateCSRFToken(sessionId)
       
@@ -318,7 +318,7 @@ describe('CSRF Redis Integration', () => {
     })
 
     test('should reject requests without CSRF header', async () => {
-      const { validateCSRFToken } = await import('../csrf')
+      const { validateCSRFToken } = await import('./csrf')
       
       const request = new NextRequest('http://localhost:3000/api/test', {
         method: 'POST'

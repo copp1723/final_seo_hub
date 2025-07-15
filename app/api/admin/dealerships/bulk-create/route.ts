@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   const session = await auth()
   
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -23,12 +24,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's agency ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { agencyId: true, role: true }
     })
 
-    const targetAgencyId = user?.agencyId
+    const targetAgencyId = user?.agencies.id
     
     // Super admins can create for any agency, but for now use their agency
     if (!targetAgencyId) {
@@ -36,11 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the dealership
-    const created = await prisma.dealership.create({
+    const created = await prisma.dealerships.create({
       data: {
+        id: crypto.randomUUID(),
         name: dealership.name,
         website: dealership.website,
-        agencyId: targetAgencyId
+        agencyId: targetAgencyId,
+        updatedAt: new Date()
       }
     })
 
@@ -53,24 +56,30 @@ export async function POST(request: NextRequest) {
 
     // Create GA4 connection if property ID provided
     if (dealership.ga4PropertyId) {
-      await prisma.gA4Connection.create({
+      await prisma.ga4_connections.create({
         data: {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
           dealershipId: created.id,
+          accessToken: '', // Placeholder - will be set when user connects
           propertyId: dealership.ga4PropertyId,
-          propertyName: dealership.name + " - GA4"
-          // accessToken, refreshToken, and expiresAt will be set when user connects
+          propertyName: dealership.name + " - GA4",
+          updatedAt: new Date()
         }
       })
     }
 
     // Create Search Console connection if URL provided
     if (dealership.searchConsoleUrl) {
-      await prisma.searchConsoleConnection.create({
+      await prisma.search_console_connections.create({
         data: {
+          id: crypto.randomUUID(),
+          userId: session.user.id,
           dealershipId: created.id,
+          accessToken: '', // Placeholder - will be set when user connects
           siteUrl: dealership.searchConsoleUrl,
-          siteName: dealership.name + " - Search Console"
-          // accessToken, refreshToken, and expiresAt will be set when user connects
+          siteName: dealership.name + " - Search Console",
+          updatedAt: new Date()
         }
       })
     }
@@ -84,7 +93,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     logger.error('Bulk dealership creation error', error, {
-      userId: session?.user?.id
+      userId: session?.user.id
     })
     
     return NextResponse.json(

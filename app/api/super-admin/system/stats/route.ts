@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -24,12 +24,12 @@ export async function GET(request: NextRequest) {
       recentCompletedRequests
     ] = await Promise.all([
       // Total counts
-      prisma.user.count(),
-      prisma.agency.count(),
-      prisma.request.count(),
+      prisma.users.count(),
+      prisma.agencies.count(),
+      prisma.requests.count(),
       
       // Active users (logged in within last 30 days)
-      prisma.user.count({
+      prisma.users.count({
         where: {
           updatedAt: {
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -38,25 +38,25 @@ export async function GET(request: NextRequest) {
       }),
       
       // Request statistics
-      prisma.request.count({
+      prisma.requests.count({
         where: { status: 'PENDING' }
       }),
-      prisma.request.count({
+      prisma.requests.count({
         where: { status: 'COMPLETED' }
       }),
       
       // Recent activity data
-      prisma.user.findMany({
+      prisma.users.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: { id: true, name: true, email: true, createdAt: true }
       }),
-      prisma.agency.findMany({
+      prisma.agencies.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: { id: true, name: true, createdAt: true }
       }),
-      prisma.request.findMany({
+      prisma.requests.findMany({
         take: 5,
         where: { status: 'COMPLETED' },
         orderBy: { completedAt: 'desc' },
@@ -77,13 +77,13 @@ export async function GET(request: NextRequest) {
         description: `New user registered: ${user.name || user.email}`,
         timestamp: user.createdAt.toISOString()
       })),
-      ...recentAgencies.map(agency => ({
+     ...recentAgencies.map(agency => ({
         id: `agency-${agency.id}`,
         type: 'agency_created' as const,
         description: `New agency created: ${agency.name}`,
         timestamp: agency.createdAt.toISOString()
       })),
-      ...recentCompletedRequests.map(request => ({
+     ...recentCompletedRequests.map(request => ({
         id: `request-${request.id}`,
         type: 'request_completed' as const,
         description: `Request completed: ${request.title} by ${request.user.name || request.user.email}`,

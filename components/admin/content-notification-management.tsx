@@ -34,8 +34,8 @@ interface Agency {
 }
 
 export function ContentNotificationAdminPanel() {
-  const [users, setUsers] = useState<User[]>([])
-  const [agencies, setAgencies] = useState<Agency[]>([])
+  const [users, setUsers] = useState<typeof users[]>([])
+  const [agencies, setAgencies] = useState<typeof agencies[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedAgency, setSelectedAgency] = useState<string>('all')
@@ -83,10 +83,8 @@ export function ContentNotificationAdminPanel() {
         // Update local state
         setUsers(users.map(user => 
           user.id === userId 
-            ? {
-                ...user,
-                preferences: {
-                  ...user.preferences!,
+            ? { ...user,
+                preferences: { ...user.preferences!,
                   [preference]: enabled
                 }
               }
@@ -133,7 +131,7 @@ export function ContentNotificationAdminPanel() {
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesAgency = selectedAgency === 'all' || user.agencyId === selectedAgency
+    const matchesAgency = selectedAgency === 'all' || user.agencies.id === selectedAgency
     
     const matchesFilter = filterEnabled === 'all' || 
       (filterEnabled === 'enabled' && user.preferences?.emailNotifications && user.preferences?.taskCompleted) ||
@@ -164,7 +162,6 @@ export function ContentNotificationAdminPanel() {
           </AlertDescription>
         </Alert>
       )}
-
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
@@ -238,7 +235,7 @@ export function ContentNotificationAdminPanel() {
                   <SelectItem value="all">All Agencies</SelectItem>
                   {agencies.map((agency) => (
                     <SelectItem key={agency.id} value={agency.id}>
-                      {agency.name} ({agency.userCount} users)
+                      {agency.name} ({agency.users.ount} users)
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -290,7 +287,7 @@ export function ContentNotificationAdminPanel() {
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => {
-                  const agency = agencies.find(a => a.id === user.agencyId)
+                  const agency = agencies.find(a => a.id === user.agencies?.id)
                   return (
                     <TableRow key={user.id}>
                       <TableCell>
@@ -357,7 +354,7 @@ export function ContentNotificationAdminPanel() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
+          </CardContent>
       </Card>
     </div>
   )

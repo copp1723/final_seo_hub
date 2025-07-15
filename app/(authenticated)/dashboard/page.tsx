@@ -113,10 +113,10 @@ export default function DashboardPage() {
 
   // Initial data fetch
   useEffect(() => {
-    if (session?.user?.id) {
+    if (session?.user.id) {
       fetchDashboardData()
     }
-  }, [session?.user?.id])
+  }, [session?.user.id])
 
   if (loading && !dashboardData) {
     return (
@@ -165,7 +165,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-medium text-gray-900">Dashboard</h1>
-              <p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user?.name || session?.user?.email || 'User'}</p>
+              <p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user.name || session?.user.email || 'User'}</p>
             </div>
             <DealershipSelector />
           </div>
@@ -177,7 +177,6 @@ export default function DashboardPage() {
               <span className="text-gray-600">Updating dashboard...</span>
             </div>
           )}
-          
           {/* Top Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
@@ -247,7 +246,6 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               )}
-
               {/* Package Progress */}
               {data.packageProgress && (
                 <Card>

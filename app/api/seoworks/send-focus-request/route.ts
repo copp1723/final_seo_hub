@@ -26,7 +26,7 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
   // Transform our request data to Jeff's expected format
   const seoworksPayload = {
     timestamp: new Date().toISOString(),
-    requestId: data.requestId,
+    requestId: data.requests.id,
     requestType: 'focus',
     title: data.title,
     description: data.description,
@@ -65,7 +65,7 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
     }
 
     logger.info('Successfully sent focus request to SEOWorks', {
-      requestId: data.requestId,
+      requestId: data.requests.id,
       title: data.title,
       type: data.type,
       seoworksResponse: responseData
@@ -79,7 +79,7 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
   } catch (error) {
     logger.error('Failed to send focus request to SEOWorks', {
       error: error instanceof Error ? error.message : String(error),
-      requestId: data.requestId,
+      requestId: data.requests.id,
       title: data.title,
       payload: seoworksPayload
     })
@@ -124,11 +124,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the request from database
-    const requestData = await prisma.request.findUnique({
+    const requestData = await prisma.requests.findUnique({
       where: { id: requestId },
       include: { 
-        user: true,
-        agency: true
+        users: true,
+        agencies: true
       }
     })
 
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       keywords: Array.isArray(requestData.keywords) ? requestData.keywords as string[] : [],
       targetUrl: requestData.targetUrl || undefined,
       clientEmail: requestData.user.email,
-      businessName: requestData.agency?.name || requestData.user.name || undefined
+      businessName: requestData.agencies.name || requestData.user.name || undefined
     }
 
     // Send to SEOWorks
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
                           null
 
     // Update request to mark it as sent to SEOWorks and store their task ID
-    await prisma.request.update({
+    await prisma.requests.update({
       where: { id: requestData.id },
       data: {
         description: `${requestData.description}\n\n[Sent to SEOWorks at ${new Date().toISOString()}]`,

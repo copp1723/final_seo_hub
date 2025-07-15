@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 const updateAgencySchema = z.object({
   name: z.string().min(1, 'Agency name is required').max(100, 'Agency name must be less than 100 characters'),
-  domain: z.string().optional().nullable(),
+  domain: z.string().optional().nullable()
 })
 
 export async function PUT(
@@ -15,12 +15,12 @@ export async function PUT(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -32,7 +32,7 @@ export async function PUT(
     const { id: agencyId } = await params
 
     // Check if agency exists
-    const existingAgency = await prisma.agency.findUnique({
+    const existingAgency = await prisma.agencies.findUnique({
       where: { id: agencyId }
     })
 
@@ -44,7 +44,7 @@ export async function PUT(
     const validatedData = updateAgencySchema.parse(body)
 
     // Check if agency name already exists (excluding current agency)
-    const nameConflict = await prisma.agency.findFirst({
+    const nameConflict = await prisma.agencies.findFirst({
       where: { 
         name: { equals: validatedData.name, mode: 'insensitive' },
         id: { not: agencyId }
@@ -60,7 +60,7 @@ export async function PUT(
 
     // Check if domain already exists (if provided, excluding current agency)
     if (validatedData.domain) {
-      const domainConflict = await prisma.agency.findFirst({
+      const domainConflict = await prisma.agencies.findFirst({
         where: { 
           domain: { equals: validatedData.domain, mode: 'insensitive' },
           id: { not: agencyId }
@@ -75,11 +75,11 @@ export async function PUT(
       }
     }
 
-    const updatedAgency = await prisma.agency.update({
+    const updatedAgency = await prisma.agencies.update({
       where: { id: agencyId },
       data: {
         name: validatedData.name,
-        domain: validatedData.domain || null,
+        domain: validatedData.domain || null
       },
       include: {
         users: {
@@ -88,13 +88,13 @@ export async function PUT(
             name: true,
             email: true,
             role: true,
-            createdAt: true,
+            createdAt: true
           }
         },
         _count: {
           select: {
             users: true,
-            requests: true,
+            requests: true
           }
         }
       }
@@ -125,12 +125,12 @@ export async function DELETE(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -142,13 +142,13 @@ export async function DELETE(
     const { id: agencyId } = await params
 
     // Check if agency exists and get user count
-    const existingAgency = await prisma.agency.findUnique({
+    const existingAgency = await prisma.agencies.findUnique({
       where: { id: agencyId },
       include: {
         _count: {
           select: {
             users: true,
-            requests: true,
+            requests: true
           }
         }
       }
@@ -172,12 +172,12 @@ export async function DELETE(
     // Use transaction to ensure data consistency
     await prisma.$transaction(async (tx) => {
       // Delete related requests first
-      await tx.request.deleteMany({
+      await tx.requests.deleteMany({
         where: { agencyId: agencyId }
       })
 
       // Delete the agency
-      await tx.agency.delete({
+      await tx.agencies.delete({
         where: { id: agencyId }
       })
     })
@@ -207,12 +207,12 @@ export async function GET(
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -223,7 +223,7 @@ export async function GET(
 
     const { id: agencyId } = await params
 
-    const agency = await prisma.agency.findUnique({
+    const agency = await prisma.agencies.findUnique({
       where: { id: agencyId },
       include: {
         users: {
@@ -232,7 +232,7 @@ export async function GET(
             name: true,
             email: true,
             role: true,
-            createdAt: true,
+            createdAt: true
           },
           orderBy: { createdAt: 'desc' }
         },
@@ -245,7 +245,7 @@ export async function GET(
             user: {
               select: {
                 name: true,
-                email: true,
+                email: true
               }
             }
           },
@@ -255,7 +255,7 @@ export async function GET(
         _count: {
           select: {
             users: true,
-            requests: true,
+            requests: true
           }
         }
       }

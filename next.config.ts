@@ -8,31 +8,30 @@ const nextConfig: NextConfig = {
   
   // Ignore ESLint errors during build
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: true
   },
   
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384]
   },
   
   // Bundle optimization
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns'],
+    optimizePackageImports: ['lucide-react', 'date-fns']
   },
   
   // Webpack optimizations
   webpack: (config, { isServer }) => {
     // Fix googleapis issue
     if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
+      config.resolve.fallback = { ...config.resolve.fallback,
         fs: false,
         net: false,
         tls: false,
-        child_process: false,
+        child_process: false
       }
     }
     
@@ -48,7 +47,7 @@ const nextConfig: NextConfig = {
             name: 'vendor',
             chunks: 'all',
             test: /[\\/]node_modules[\\/](?!googleapis)/,
-            priority: 20,
+            priority: 20
           },
           // Common chunk
           common: {
@@ -57,16 +56,16 @@ const nextConfig: NextConfig = {
             chunks: 'all',
             priority: 10,
             reuseExistingChunk: true,
-            enforce: true,
+            enforce: true
           },
           // Chart.js chunk
           charts: {
             name: 'charts',
             test: /[\\/]node_modules[\\/](chart\.js|react-chartjs-2)[\\/]/,
             chunks: 'all',
-            priority: 30,
-          },
-        },
+            priority: 30
+          }
+        }
       }
     }
     
@@ -80,9 +79,9 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
       },
       {
         // Headers specifically for CSS files
@@ -90,13 +89,13 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Content-Type',
-            value: 'text/css',
+            value: 'text/css'
           },
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
       },
       {
         // Apply security headers to all routes
@@ -146,10 +145,10 @@ const nextConfig: NextConfig = {
               "worker-src 'self' blob:"
             ].join('; ')
           }
-        ],
-      },
+        ]
+      }
     ]
-  },
+  }
 }
 
 export default nextConfig

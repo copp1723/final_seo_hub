@@ -28,15 +28,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ age
   const { agencyId } = await context.params
   const user = authResult.user
 
-  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
-    return errorResponse('Access denied. You do not have permission to view these users.', 403)
+  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencies?.id !== agencyId)) {
+    return errorResponse('Access denied.You do not have permission to view these users.', 403)
   }
 
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: { agencyId },
       select: { id: true, email: true, name: true, role: true, createdAt: true, updatedAt: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     })
     return successResponse({ users })
   } catch (error) {
@@ -52,8 +52,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
   const { agencyId } = await context.params
   const user = authResult.user
 
-  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
-    return errorResponse('Access denied. You do not have permission to create users for this agency.', 403)
+  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencies?.id !== agencyId)) {
+    return errorResponse('Access denied.You do not have permission to create users for this agency.', 403)
   }
 
   try {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
     }
 
 
-    const existingUser = await prisma.user.findUnique({ where: { email } })
+    const existingUser = await prisma.users.findUnique({ where: { email } })
     if (existingUser) {
       return errorResponse('User with this email already exists.', 409)
     }
@@ -86,19 +86,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
     
     // Generate invitation token for magic link authentication
     const invitationToken = crypto.randomBytes(32).toString('hex')
-    const invitationTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
     
-    const newUser = await prisma.user.create({
+    const newUser = await prisma.users.create({
       data: {
+        id: crypto.randomUUID(),
         email,
         name,
         role: role || UserRole.USER, // Default to USER if not provided
         agencyId,
-        invitationToken,
-        invitationTokenExpires,
+        updatedAt: new Date(),
         // onboardingCompleted will default to false as per schema
       },
-      select: { id: true, email: true, name: true, role: true, agencyId: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, agencyId: true, createdAt: true }
     })
 
     // Create default user preferences for the new user
@@ -148,10 +147,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
 }
 
 // Note: A separate PUT endpoint for /api/admin/agencies/[agencyId]/users/[userId] would be more RESTful for updates.
-// However, the request asks for a PUT on /api/admin/agencies/[agencyId]/users/route.ts.
+// However, the request asks for a PUT on /api/admin/agencies/[agencyId]/users/route.ts
 // This implies updating a user based on userId in the request body or a query param.
 // For simplicity and adhering to the plan step, we'll assume userId is part of the body for PUT.
-
 export async function PUT(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth()
   if (!authResult.authenticated || !authResult.user) return authResult.response
@@ -159,14 +157,14 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ age
   const { agencyId } = await context.params // Agency ID from URL
   const userMakingRequest = authResult.user
 
-  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencyId !== agencyId)) {
-    return errorResponse('Access denied. You do not have permission to update users for this agency.', 403)
+  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencies?.id !== agencyId)) {
+    return errorResponse('Access denied.You do not have permission to update users for this agency.', 403)
   }
 
   try {
     const body = await request.json()
     // The user ID to update should be in the body
-    const { userId, ...updateData } = body
+    const { userId,...updateData } = body
 
     if (!userId) {
         return errorResponse('User ID is required in the request body for updates.', 400)
@@ -179,7 +177,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ age
 
     const { name, role } = validation.data
 
-    const userToUpdate = await prisma.user.findUnique({ where: { id: userId } })
+    const userToUpdate = await prisma.users.findUnique({ where: { id: userId } })
     if (!userToUpdate || userToUpdate.agencyId !== agencyId) {
       return errorResponse('User not found in this agency.', 404)
     }
@@ -202,13 +200,13 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ age
       }
     }
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: userId },
       data: {
         name: name ?? undefined, // Only update if provided
         role: role ?? undefined, // Only update if provided
       },
-      select: { id: true, email: true, name: true, role: true, agencyId: true, updatedAt: true },
+      select: { id: true, email: true, name: true, role: true, agencyId: true, updatedAt: true }
     })
 
     return successResponse({ user: updatedUser }, 'User updated successfully')
@@ -226,12 +224,12 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const { agencyId } = await context.params
   const userMakingRequest = authResult.user
 
-  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencyId !== agencyId)) {
-    return errorResponse('Access denied. You do not have permission to delete users from this agency.', 403)
+  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencies?.id !== agencyId)) {
+    return errorResponse('Access denied.You do not have permission to delete users from this agency.', 403)
   }
 
   // User ID to delete should be passed as a query parameter or in the body.
-  // For DELETE, query param is more common. e.g., /users?userId=xxx
+  // For DELETE, query param is more common.e.g., /users?userId=xxx
   const { searchParams } = new URL(request.url)
   const userIdToDelete = searchParams.get('userId')
 
@@ -240,7 +238,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   }
 
   try {
-    const userToDelete = await prisma.user.findUnique({ where: { id: userIdToDelete } })
+    const userToDelete = await prisma.users.findUnique({ where: { id: userIdToDelete } })
 
     if (!userToDelete || userToDelete.agencyId !== agencyId) {
       return errorResponse('User not found in this agency.', 404)
@@ -255,13 +253,12 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
             return errorResponse('AGENCY_ADMIN cannot delete SUPER_ADMIN users.', 403)
         }
     }
-     if (userToDelete.role === UserRole.SUPER_ADMIN) {
+    if (userToDelete.role === UserRole.SUPER_ADMIN) {
         return errorResponse('SUPER_ADMIN users cannot be deleted through this endpoint.', 403)
     }
 
-
-    await prisma.user.delete({
-      where: { id: userIdToDelete },
+    await prisma.users.delete({
+      where: { id: userIdToDelete }
     })
 
     return successResponse({}, 'User deleted successfully')

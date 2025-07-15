@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Check if user already exists - prevent duplicates from invited users
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email: dealerData.clientEmail }
     })
 
@@ -119,14 +119,14 @@ export async function POST(request: NextRequest) {
         existingUserId: existingUser.id,
         businessName: dealerData.businessName
       })
-      return errorResponse('A user with this email already exists. If you were invited by an agency, please use the invitation link provided.', 409)
+      return errorResponse('A user with this email already exists.If you were invited by an agency, please use the invitation link provided.', 409)
     }
 
     // Send to SEOWorks
     const seoworksResult = await sendToSEOWorks(dealerData)
 
     // Create new user for standalone onboarding
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         email: dealerData.clientEmail,
         name: dealerData.contactName,
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Create initial request
-    const setupRequest = await prisma.request.create({
+    const setupRequest = await prisma.requests.create({
       data: {
         userId: user.id,
         // Note: agencyId and dealershipId are null for standalone users

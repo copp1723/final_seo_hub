@@ -30,14 +30,14 @@ function validateEncryptionKey(key: string | undefined): void {
   
   for (const pattern of weakPatterns) {
     if (pattern.test(key)) {
-      throw new Error('ENCRYPTION_KEY appears to be weak. Please use a cryptographically secure random key.')
+      throw new Error('ENCRYPTION_KEY appears to be weak.Please use a cryptographically secure random key.')
     }
   }
   
   // Check entropy (basic check for character variety)
   const uniqueChars = new Set(key.split('')).size
   if (uniqueChars < 10) {
-    throw new Error('ENCRYPTION_KEY has low entropy. Please use a more random key.')
+    throw new Error('ENCRYPTION_KEY has low entropy.Please use a more random key.')
   }
 }
 
@@ -89,6 +89,6 @@ export function generateAllKeys(): Record<string, string> {
     ENCRYPTION_KEY: generateSecureKey(64),
     GA4_TOKEN_ENCRYPTION_KEY: generateSecureKey(64),
     NEXTAUTH_SECRET: crypto.randomBytes(32).toString('base64'),
-    SEOWORKS_WEBHOOK_SECRET: generateSecureKey(64),
+    SEOWORKS_WEBHOOK_SECRET: generateSecureKey(64)
   }
 }

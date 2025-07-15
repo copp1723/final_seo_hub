@@ -1,14 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ErrorBoundary from '../error-boundary'; // Adjust path as needed
+import ErrorBoundary from './error-boundary'; // Adjust path as needed
 import { logger } from '@/lib/logger'; // Adjust path as needed
 
 // Mock the logger
 jest.mock('@/lib/logger', () => ({
   logger: {
-    error: jest.fn(),
-  },
+    error: jest.fn()
+  }
 }));
 
 // A component that throws an error
@@ -68,8 +68,8 @@ describe('ErrorBoundary', () => {
       expect.objectContaining({
         errorInfo: expect.objectContaining({
           componentStack: expect.any(String),
-          errorBoundary: true,
-        }),
+          errorBoundary: true
+        })
       })
     );
   });
@@ -113,5 +113,5 @@ describe('ErrorBoundary', () => {
 
   // Note: Testing window.location.reload() and href navigation is more complex in JSDOM
   // and typically involves mocking window.location or using tools like Cypress for E2E tests.
-  // For this unit test, we'll focus on the component's state and direct interactions.
+  // For this unit test, we'll focus on the component's state and direct interactions
 });

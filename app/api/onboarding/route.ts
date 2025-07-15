@@ -44,10 +44,9 @@ export async function POST(request: NextRequest) {
     formData.timestamp = new Date().toISOString()
     
     // Add client identification for SEOWorks mapping
-    const onboardingPayloadWithClient = {
-      ...formData,
+    const onboardingPayloadWithClient = { ...formData,
       clientId: userId, // Unique identifier for mapping
-      clientEmail: session.user.email,
+      clientEmail: session.user.email
     }
     
     // Send to SEOWorks webhook if configured
@@ -77,12 +76,12 @@ export async function POST(request: NextRequest) {
     // Update user and dealership records with onboarding data and initial billing setup
     try {
       // Get user's dealership
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: userId },
-        include: { dealership: true }
+        include: { dealerships: true }
       })
 
-      if (!user?.dealershipId) {
+      if (!user?.dealerships?.id) {
         logger.error('User has no dealership assigned', { userId })
         return NextResponse.json({ error: 'No dealership assigned to user' }, { status: 400 })
       }
@@ -90,14 +89,14 @@ export async function POST(request: NextRequest) {
       const now = new Date()
       
       // Update user onboarding status
-      await prisma.user.update({
+      await prisma.users.update({
         where: { id: userId },
         data: { onboardingCompleted: true }
       })
 
       // Update dealership package and billing info
-      await prisma.dealership.update({
-        where: { id: user.dealershipId },
+      await prisma.dealerships.update({
+        where: { id: user.dealerships?.id },
         data: {
           activePackageType: formData.package as PackageType,
           currentBillingPeriodStart: startOfDay(now),
@@ -105,11 +104,11 @@ export async function POST(request: NextRequest) {
           pagesUsedThisPeriod: 0,
           blogsUsedThisPeriod: 0,
           gbpPostsUsedThisPeriod: 0,
-          improvementsUsedThisPeriod: 0,
+          improvementsUsedThisPeriod: 0
         }
       })
 
-      logger.info(`User ${userId} onboarding completed and dealership ${user.dealershipId} package ${formData.package} activated.`);
+      logger.info(`User ${userId} onboarding completed and dealership ${user.dealerships?.id} package ${formData.package} activated.`)
 
     } catch (dbError) {
       logger.error('Failed to update user onboarding status and package info:', dbError);
@@ -123,7 +122,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    logger.error('Onboarding error', error, { userId: session?.user?.id })
+    logger.error('Onboarding error', error, { userId: session?.user.id })
     return NextResponse.json({ 
       error: 'Failed to process onboarding data' 
     }, { status: 500 })
@@ -142,7 +141,7 @@ export async function GET(request: NextRequest) {
     
     // For now, we'll create mock data since we don't have an onboarding table yet
     // In a real implementation, you'd fetch from a dedicated onboarding table
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -167,7 +166,7 @@ export async function GET(request: NextRequest) {
     const onboardingRecords = user.onboardingCompleted ? [{
       id: user.id,
       businessName: user.name || 'Unknown Business',
-      package: user.dealership?.activePackageType || 'SILVER',
+      package: user.dealerships.activePackageType || 'SILVER',
       status: 'submitted',
       submittedAt: user.updatedAt.toISOString(),
       createdAt: user.createdAt.toISOString(),

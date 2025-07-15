@@ -42,7 +42,7 @@ export function createRateLimit(config: RateLimitConfig) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: config.message || 'Rate limit exceeded',
+          error: config.message || 'Rate limit exceeded'
         },
         {
           status: 429,
@@ -50,8 +50,8 @@ export function createRateLimit(config: RateLimitConfig) {
             'X-RateLimit-Limit': config.maxRequests.toString(),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': entry.resetTime.toString(),
-            'Retry-After': resetIn.toString(),
-          },
+            'Retry-After': resetIn.toString()
+          }
         }
       )
     }
@@ -90,20 +90,20 @@ export const rateLimits = {
   ai: createRateLimit({
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 10, // 10 requests per minute
-    message: 'Too many AI requests. Please wait before trying again.',
+    message: 'Too many AI requests.Please wait before trying again.'
   }),
 
   // API endpoints - moderate
   api: createRateLimit({
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 30, // 30 requests per minute
-    message: 'Too many API requests. Please slow down.',
+    message: 'Too many API requests.Please slow down.'
   }),
 
   // Webhook endpoints - lenient
   webhook: createRateLimit({
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 100, // 100 requests per minute
-    message: 'Too many webhook requests. Please slow down.',
-  }),
+    message: 'Too many webhook requests.Please slow down.'
+  })
 }

@@ -37,7 +37,7 @@ export async function GET(req: Request) {
           startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000)
             .toISOString().split('T')[0],
           endDate: new Date().toISOString().split('T')[0],
-          dimensions: ['date'],
+          dimensions: ['date']
         })
         break
       default:

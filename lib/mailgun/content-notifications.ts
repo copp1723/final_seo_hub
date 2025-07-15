@@ -1,4 +1,4 @@
-import { Request, User } from '@prisma/client'
+import { requests, users } from '@prisma/client'
 import { format } from 'date-fns'
 import { getUnsubscribeUrl } from './client'
 import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/branding/config'
@@ -17,8 +17,8 @@ function escapeHtml(text: string): string {
 
 // Content-specific email template for showing completed work
 export function contentAddedTemplate(
-  request: Request,
-  user: User,
+  request: typeof requests,
+  user: typeof users,
   taskDetails: { title: string; type: string; url?: string },
   branding?: BrandingConfig
 ): { subject: string; html: string } {
@@ -142,7 +142,7 @@ export function contentAddedTemplate(
       border-radius: 6px;
       margin: 20px 0;
     }
-    .highlight-box h3 {
+   .highlight-box h3 {
       margin-top: 0;
       color: #0066cc;
     }
@@ -156,7 +156,7 @@ export function contentAddedTemplate(
     <div class="content">
       <p>Hi ${userName},</p>
       
-      <p><strong>Great news!</strong> Fresh content has been ${actionVerb} your website by our SEO team. This helps improve your search visibility and keeps your site engaging for visitors.</p>
+      <p><strong>Great news!</strong> Fresh content has been ${actionVerb} your website by our SEO team.This helps improve your search visibility and keeps your site engaging for visitors</p>
       
       <div class="content-preview">
         <div class="content-type">${contentTypeIcon} ${contentTypeDisplay}</div>
@@ -194,13 +194,13 @@ export function contentAddedTemplate(
       </p>
       
       <p style="margin-top: 32px; color: #6c757d; font-size: 14px;">
-        <em>Your SEO team is continuously working to improve your online presence. We'll notify you each time new content is added.</em>
+        <em>Your SEO team is continuously working to improve your online presence.We'll notify you each time new content is added</em>
       </p>
     </div>
     <div class="footer">
       <p>This email was sent by ${config.companyName} - Your SEO Partner</p>
       ${unsubscribeUrl ? `<p><a href="${unsubscribeUrl}">Manage notification preferences</a></p>` : ''}
-      <p>&copy; ${new Date().getFullYear()} ${config.companyName}. All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} ${config.companyName}. All rights reserved</p>
     </div>
   </div>
 </body>

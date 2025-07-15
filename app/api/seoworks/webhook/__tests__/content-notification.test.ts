@@ -1,4 +1,4 @@
-import { POST } from '../route'
+import { POST } from './route'
 import { prisma } from '@/lib/prisma'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
@@ -9,31 +9,31 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     request: {
       findFirst: jest.fn(),
-      update: jest.fn(),
+      update: jest.fn()
     },
     user: {
-      findFirst: jest.fn(),
-    },
-  },
+      findFirst: jest.fn()
+    }
+  }
 }))
 
 jest.mock('@/lib/mailgun/queue', () => ({
-  queueEmailWithPreferences: jest.fn(),
+  queueEmailWithPreferences: jest.fn()
 }))
 
 jest.mock('@/lib/mailgun/content-notifications', () => ({
-  contentAddedTemplate: jest.fn(),
+  contentAddedTemplate: jest.fn()
 }))
 
 jest.mock('@/lib/package-utils', () => ({
   incrementUsage: jest.fn(),
-  TaskType: 'pages' as const,
+  TaskType: 'pages' as const
 }))
 
 describe('SEOWorks Webhook - Content Notifications', () => {
   const mockEnv = {
     SEOWORKS_WEBHOOK_SECRET: 'test-secret-key',
-    NEXT_PUBLIC_APP_URL: 'https://seohub.example.com',
+    NEXT_PUBLIC_APP_URL: 'https://seohub.example.com'
   }
 
   beforeEach(() => {
@@ -45,9 +45,9 @@ describe('SEOWorks Webhook - Content Notifications', () => {
     return new NextRequest('http://localhost/api/seoworks/webhook', {
       method: 'POST',
       headers: {
-        'x-api-key': mockEnv.SEOWORKS_WEBHOOK_SECRET,
+        'x-api-key': mockEnv.SEOWORKS_WEBHOOK_SECRET
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     })
   }
 
@@ -56,7 +56,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       id: 'user_123',
       email: 'john@dealership.com',
       name: 'John Doe',
-      role: 'USER',
+      role: 'USER'
     }
 
     const mockRequest = {
@@ -71,7 +71,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       blogsCompleted: 2,
       gbpPostsCompleted: 4,
       improvementsCompleted: 0,
-      completedTasks: [],
+      completedTasks: []
     }
 
     const payload = {
@@ -86,28 +86,27 @@ describe('SEOWorks Webhook - Content Notifications', () => {
           {
             type: 'page',
             title: '2024 Toyota Camry Deals in Chicago',
-            url: 'https://dealership.com/2024-toyota-camry-chicago',
-          },
-        ],
-      },
+            url: 'https://dealership.com/2024-toyota-camry-chicago'
+          }
+        ]
+      }
     }
 
-    ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-    ;(prisma.request.update as jest.Mock).mockResolvedValue({
-      ...mockRequest,
+    ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+    ;(prisma.requests.update as jest.Mock).mockResolvedValue({ ...mockRequest,
       pagesCompleted: 2,
       completedTasks: [
         {
           title: '2024 Toyota Camry Deals in Chicago',
           type: 'page',
           url: 'https://dealership.com/2024-toyota-camry-chicago',
-          completedAt: new Date().toISOString(),
-        },
-      ],
+          completedAt: new Date().toISOString()
+        }
+      ]
     })
     ;(contentAddedTemplate as jest.Mock).mockReturnValue({
       subject: '✨ New Page Added: "2024 Toyota Camry Deals in Chicago"',
-      html: '<html>Content notification email</html>',
+      html: '<html>Content notification email</html>'
     })
 
     const request = createMockRequest(payload)
@@ -122,7 +121,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
         title: '2024 Toyota Camry Deals in Chicago',
         type: 'page',
         url: 'https://dealership.com/2024-toyota-camry-chicago',
-        completedAt: expect.any(String),
+        completedAt: expect.any(String)
       }
     )
     expect(queueEmailWithPreferences).toHaveBeenCalledWith(
@@ -131,7 +130,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       expect.objectContaining({
         subject: '✨ New Page Added: "2024 Toyota Camry Deals in Chicago"',
         html: '<html>Content notification email</html>',
-        to: 'john@dealership.com',
+        to: 'john@dealership.com'
       })
     )
   })
@@ -141,7 +140,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       id: 'user_123',
       email: 'sarah@dealership.com',
       name: 'Sarah Smith',
-      role: 'USER',
+      role: 'USER'
     }
 
     const mockRequest = {
@@ -152,7 +151,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       type: 'blog',
       status: 'IN_PROGRESS',
       blogsCompleted: 3,
-      completedTasks: [],
+      completedTasks: []
     }
 
     const payload = {
@@ -167,20 +166,19 @@ describe('SEOWorks Webhook - Content Notifications', () => {
           {
             type: 'blog',
             title: 'Winter Car Maintenance Tips for 2024',
-            url: 'https://dealership.com/blog/winter-maintenance-tips',
-          },
-        ],
-      },
+            url: 'https://dealership.com/blog/winter-maintenance-tips'
+          }
+        ]
+      }
     }
 
-    ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-    ;(prisma.request.update as jest.Mock).mockResolvedValue({
-      ...mockRequest,
-      blogsCompleted: 4,
+    ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+    ;(prisma.requests.update as jest.Mock).mockResolvedValue({ ...mockRequest,
+      blogsCompleted: 4
     })
     ;(contentAddedTemplate as jest.Mock).mockReturnValue({
       subject: '✨ Blog Post Added: "Winter Car Maintenance Tips for 2024"',
-      html: '<html>Blog notification email</html>',
+      html: '<html>Blog notification email</html>'
     })
 
     const request = createMockRequest(payload)
@@ -192,7 +190,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       'user_123',
       'taskCompleted',
       expect.objectContaining({
-        subject: '✨ Blog Post Added: "Winter Car Maintenance Tips for 2024"',
+        subject: '✨ Blog Post Added: "Winter Car Maintenance Tips for 2024"'
       })
     )
   })
@@ -202,7 +200,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       id: 'user_789',
       email: 'mike@dealership.com',
       name: 'Mike Johnson',
-      role: 'USER',
+      role: 'USER'
     }
 
     const mockRequest = {
@@ -213,7 +211,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       type: 'gbp_post',
       status: 'IN_PROGRESS',
       gbpPostsCompleted: 5,
-      completedTasks: [],
+      completedTasks: []
     }
 
     const payload = {
@@ -228,20 +226,19 @@ describe('SEOWorks Webhook - Content Notifications', () => {
           {
             type: 'gbp-post',
             title: 'Black Friday Special - 0% APR on All Models',
-            url: 'https://posts.gle/abc123',
-          },
-        ],
-      },
+            url: 'https://posts.gle/abc123'
+          }
+        ]
+      }
     }
 
-    ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-    ;(prisma.request.update as jest.Mock).mockResolvedValue({
-      ...mockRequest,
-      gbpPostsCompleted: 6,
+    ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+    ;(prisma.requests.update as jest.Mock).mockResolvedValue({ ...mockRequest,
+      gbpPostsCompleted: 6
     })
     ;(contentAddedTemplate as jest.Mock).mockReturnValue({
       subject: '✨ Google Business Profile Post Added: "Black Friday Special - 0% APR on All Models"',
-      html: '<html>GBP notification email</html>',
+      html: '<html>GBP notification email</html>'
     })
 
     const request = createMockRequest(payload)
@@ -253,7 +250,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       'user_789',
       'taskCompleted',
       expect.objectContaining({
-        subject: '✨ Google Business Profile Post Added: "Black Friday Special - 0% APR on All Models"',
+        subject: '✨ Google Business Profile Post Added: "Black Friday Special - 0% APR on All Models"'
       })
     )
   })
@@ -263,7 +260,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       id: 'user_999',
       email: 'admin@dealership.com',
       name: 'Admin User',
-      role: 'USER',
+      role: 'USER'
     }
 
     const mockRequest = {
@@ -274,7 +271,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       type: 'maintenance',
       status: 'IN_PROGRESS',
       improvementsCompleted: 2,
-      completedTasks: [],
+      completedTasks: []
     }
 
     const payload = {
@@ -289,16 +286,15 @@ describe('SEOWorks Webhook - Content Notifications', () => {
           {
             type: 'maintenance',
             title: 'SSL Certificate Update',
-            url: 'https://dealership.com',
-          },
-        ],
-      },
+            url: 'https://dealership.com'
+          }
+        ]
+      }
     }
 
-    ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-    ;(prisma.request.update as jest.Mock).mockResolvedValue({
-      ...mockRequest,
-      improvementsCompleted: 3,
+    ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+    ;(prisma.requests.update as jest.Mock).mockResolvedValue({ ...mockRequest,
+      improvementsCompleted: 3
     })
 
     const request = createMockRequest(payload)
@@ -316,7 +312,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       id: 'user_123',
       email: 'john@dealership.com',
       name: 'John Doe',
-      role: 'USER',
+      role: 'USER'
     }
 
     const mockRequest = {
@@ -326,7 +322,7 @@ describe('SEOWorks Webhook - Content Notifications', () => {
       title: 'SEO Content',
       type: 'page',
       status: 'IN_PROGRESS',
-      completedTasks: [],
+      completedTasks: []
     }
 
     const payload = {
@@ -338,28 +334,28 @@ describe('SEOWorks Webhook - Content Notifications', () => {
         taskType: 'page',
         status: 'completed',
         // No deliverables
-      },
+      }
     }
 
-    ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-    ;(prisma.request.update as jest.Mock).mockResolvedValue(mockRequest)
+    ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+    ;(prisma.requests.update as jest.Mock).mockResolvedValue(mockRequest)
 
     const request = createMockRequest(payload)
     const response = await POST(request)
 
     expect(response.status).toBe(200)
     // Should still create a completed task entry even without deliverables
-    expect(prisma.request.update).toHaveBeenCalledWith(
+    expect(prisma.requests.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           completedTasks: expect.arrayContaining([
             expect.objectContaining({
               title: 'page', // Falls back to task type
               type: 'page',
-              url: undefined,
-            }),
-          ]),
-        }),
+              url: undefined
+            })
+          ])
+        })
       })
     )
   })

@@ -10,15 +10,15 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
   
   try {
     // Get user's dealership for connection queries or handle agency admin access
-    const targetDealershipId = authResult.user.dealershipId
+    const targetDealershipId = authResult.user.dealership.id
     
     // For agency admins without a dealership, show empty integrations state
     // This allows them to see the UI and connect integrations
-    if (!targetDealershipId && authResult.user.role === 'AGENCY_ADMIN' && authResult.user.agencyId) {
+    if (!targetDealershipId && authResult.user.role === 'AGENCY_ADMIN' && authResult.user.agency.id) {
       // Return empty integrations state for agency admins
       const integrations = {
         ga4: {
@@ -26,14 +26,14 @@ export async function GET(request: NextRequest) {
           propertyId: null,
           propertyName: null,
           connectedAt: null,
-          lastUpdated: null,
+          lastUpdated: null
         },
         searchConsole: {
           connected: false,
           siteUrl: null,
           siteName: null,
           connectedAt: null,
-          lastUpdated: null,
+          lastUpdated: null
         }
       }
       
@@ -48,14 +48,14 @@ export async function GET(request: NextRequest) {
           propertyId: null,
           propertyName: null,
           connectedAt: null,
-          lastUpdated: null,
+          lastUpdated: null
         },
         searchConsole: {
           connected: false,
           siteUrl: null,
           siteName: null,
           connectedAt: null,
-          lastUpdated: null,
+          lastUpdated: null
         }
       }
       
@@ -68,22 +68,22 @@ export async function GET(request: NextRequest) {
 
     // Fetch all integration statuses in parallel
     const [ga4Connection, searchConsoleConnection] = await Promise.all([
-      prisma.gA4Connection.findUnique({
-        where: { dealershipId: targetDealershipId },
+      prisma.ga4_connections.findUnique({
+        where: { userId: targetDealershipId },
         select: {
           propertyId: true,
           propertyName: true,
           createdAt: true,
-          updatedAt: true,
+          updatedAt: true
         }
       }),
-      prisma.searchConsoleConnection.findUnique({
-        where: { dealershipId: targetDealershipId },
+      prisma.search_console_connections.findUnique({
+        where: { userId: targetDealershipId },
         select: {
           siteUrl: true,
           siteName: true,
           createdAt: true,
-          updatedAt: true,
+          updatedAt: true
         }
       })
     ])
@@ -94,14 +94,14 @@ export async function GET(request: NextRequest) {
         propertyId: ga4Connection?.propertyId || null,
         propertyName: ga4Connection?.propertyName || null,
         connectedAt: ga4Connection?.createdAt || null,
-        lastUpdated: ga4Connection?.updatedAt || null,
+        lastUpdated: ga4Connection?.updatedAt || null
       },
       searchConsole: {
         connected: !!searchConsoleConnection,
         siteUrl: searchConsoleConnection?.siteUrl || null,
         siteName: searchConsoleConnection?.siteName || null,
         connectedAt: searchConsoleConnection?.createdAt || null,
-        lastUpdated: searchConsoleConnection?.updatedAt || null,
+        lastUpdated: searchConsoleConnection?.updatedAt || null
       }
     }
     

@@ -6,7 +6,7 @@ import { useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/loading'
 
 export default function SuperAdminLayout({
-  children,
+  children
 }: {
   children: React.ReactNode
 }) {

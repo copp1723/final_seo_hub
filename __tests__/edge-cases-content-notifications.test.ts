@@ -1,8 +1,8 @@
-import { contentAddedTemplate } from '../lib/mailgun/content-notifications'
-import { Request, User } from '@prisma/client'
+import { contentAddedTemplate } from './lib/mailgun/content-notifications'
+import { requests, users } from '@prisma/client'
 
 describe('Content Notifications Edge Cases', () => {
-  const baseUser: User = {
+  const baseUser: users = {
     id: 'user_123',
     email: 'test@dealership.com',
     name: 'Test User',
@@ -24,7 +24,7 @@ describe('Content Notifications Edge Cases', () => {
     updatedAt: new Date()
   }
 
-  const baseRequest: Request = {
+  const baseRequest: requests = {
     id: 'req_123',
     userId: 'user_123',
     agencyId: 'agency_123',
@@ -93,14 +93,12 @@ describe('Content Notifications Edge Cases', () => {
     })
 
     it('should handle null/undefined fields gracefully', () => {
-      const userWithNulls = {
-        ...baseUser,
+      const userWithNulls = { ...baseUser,
         name: null,
         agencyId: null
       }
 
-      const requestWithNulls = {
-        ...baseRequest,
+      const requestWithNulls = { ...baseRequest,
         packageType: null,
         pagesCompleted: 0,
         blogsCompleted: 0,
@@ -165,8 +163,7 @@ describe('Content Notifications Edge Cases', () => {
 
   describe('Progress Display Logic', () => {
     it('should only show non-zero progress items', () => {
-      const request = {
-        ...baseRequest,
+      const request = { ...baseRequest,
         packageType: 'GOLD',
         pagesCompleted: 0,
         blogsCompleted: 3,
@@ -189,8 +186,7 @@ describe('Content Notifications Edge Cases', () => {
     })
 
     it('should show all progress items when all have values', () => {
-      const request = {
-        ...baseRequest,
+      const request = { ...baseRequest,
         packageType: 'PLATINUM',
         pagesCompleted: 4,
         blogsCompleted: 8,

@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
     const { requestId, seoworksTaskId, taskType, metadata } = validation.data
 
     // Check if request exists
-    const requestRecord = await prisma.request.findUnique({
+    const requestRecord = await prisma.requests.findUnique({
       where: { id: requestId },
-      include: { user: true }
+      include: { users: true }
     })
 
     if (!requestRecord) {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if mapping already exists
-    const existingMapping = await prisma.sEOWorksTaskMapping.findUnique({
+    const existingMapping = await prisma.seoworks_task_mappings.findUnique({
       where: { seoworksTaskId }
     })
 
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the mapping
-    const mapping = await prisma.sEOWorksTaskMapping.create({
+    const mapping = await prisma.seoworks_task_mappings.create({
       data: {
         requestId,
         seoworksTaskId,
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Optionally update the request with the SEOWorks task ID
-    await prisma.request.update({
+    await prisma.requests.update({
       where: { id: requestId },
       data: { seoworksTaskId }
     })
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       request: {
         id: requestRecord.id,
         title: requestRecord.title,
-        clientId: requestRecord.userId,
+        clientId: requestRecord.user.id,
         clientEmail: requestRecord.user.email
       }
     })
@@ -142,20 +142,18 @@ export async function GET(request: NextRequest) {
     let mapping = null
 
     if (seoworksTaskId) {
-      mapping = await prisma.sEOWorksTaskMapping.findUnique({
+      mapping = await prisma.seoworks_task_mappings.findUnique({
         where: { seoworksTaskId },
-        include: {
-          request: {
-            include: { user: true }
+        include: { request: {
+            include: { users: true }
           }
         }
       })
     } else if (requestId) {
-      mapping = await prisma.sEOWorksTaskMapping.findFirst({
+      mapping = await prisma.seoworks_task_mappings.findFirst({
         where: { requestId },
-        include: {
-          request: {
-            include: { user: true }
+        include: { request: {
+            include: { users: true }
           }
         }
       })
@@ -169,7 +167,7 @@ export async function GET(request: NextRequest) {
       success: true,
       mapping: {
         id: mapping.id,
-        requestId: mapping.requestId,
+        requestId: mapping.request.id,
         seoworksTaskId: mapping.seoworksTaskId,
         taskType: mapping.taskType,
         status: mapping.status,
@@ -181,7 +179,7 @@ export async function GET(request: NextRequest) {
         id: mapping.request.id,
         title: mapping.request.title,
         status: mapping.request.status,
-        clientId: mapping.request.userId,
+        clientId: mapping.request.user.id,
         clientEmail: mapping.request.user.email
       }
     })

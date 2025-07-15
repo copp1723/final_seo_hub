@@ -15,7 +15,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   if (rateLimitResponse) return rateLimitResponse
 
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) {
+  if (!authResult.authenticated) {
     return authResult.response || errorResponse('Unauthorized', 401)
   }
 
@@ -33,8 +33,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
     // Otherwise, fetch requests for the individual user.
-    if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
-      where.agencyId = user.agencyId
+    if (user.role === UserRole.AGENCY_ADMIN && user.agencies?.id) {
+      where.agencyId = user.agencies?.id
     } else if (user.role === UserRole.SUPER_ADMIN) {
       // SUPER_ADMIN can see all requests if no specific agencyId is provided via a different route
       // For this route, we assume they want to see their own requests or all if not filtered by agency
@@ -47,10 +47,10 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       // The most straightforward interpretation for /api/requests is "my requests" or "my agency's requests".
       // For "all requests in the system", a dedicated /api/admin/requests endpoint would be more appropriate.
       // Thus, if a SUPER_ADMIN is not specifically an AGENCY_ADMIN for an agency, they see their own.
-      // If they *are* also an AGENCY_ADMIN (e.g. agencyId is set on their user), the AGENCY_ADMIN rule above applies.
+      // If they *are* also an AGENCY_ADMIN (e.g agencyId is set on their user), the AGENCY_ADMIN rule above applies.
       // If they are a SUPER_ADMIN and no agencyId, they see their own requests.
       // This behavior can be changed if SUPER_ADMINs should see *all* requests through this endpoint.
-      where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views.
+      where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views
     }
     else {
       where.userId = user.id
@@ -69,7 +69,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
         { title: { contains: searchQuery, mode: 'insensitive' } },
         { description: { contains: searchQuery, mode: 'insensitive' } },
         { targetCities: { array_contains: [searchQuery] } },
-        { targetModels: { array_contains: [searchQuery] } },
+        { targetModels: { array_contains: [searchQuery] } }
       ]
     }
 
@@ -80,9 +80,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       orderBy.createdAt = 'desc' // Default sort
     }
 
-    const requests = await prisma.request.findMany({
+    const requests = await prisma.requests.findMany({
       where,
-      orderBy,
+      orderBy
     })
 
     logger.info('Requests fetched successfully', {
@@ -120,7 +120,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) {
+  if (!authResult.authenticated) {
     logger.warn('Focus request unauthorized', {
       authenticated: authResult.authenticated,
       hasUser: !!authResult.user
@@ -131,7 +131,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   logger.info('Focus request auth successful', {
     userId: authResult.user.id,
     userRole: authResult.user.role,
-    agencyId: authResult.user.agencyId
+    agencyId: authResult.user.agency.id
   })
 
   // Log the raw request body for debugging
@@ -201,14 +201,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         keywords: data.keywords,
         targetCities: data.targetCities,
         targetModels: data.targetModels,
-        agencyId: authResult.user.agencyId
+        agencyId: authResult.user.agency.id
       }
     })
 
-    const newRequest = await prisma.request.create({
+    const newRequest = await prisma.requests.create({
       data: {
         userId: authResult.user.id,
-        agencyId: authResult.user.agencyId || null, // Handle null agencyId
+        agencyId: authResult.user.agency.id || null, // Handle null agencyId
         title: data.title,
         description: data.description,
         type: data.type,
@@ -218,11 +218,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         keywords: data.keywords || [],
         targetUrl: data.targetUrl || null,
         targetCities: data.targetCities || [],
-        targetModels: data.targetModels || [],
+        targetModels: data.targetModels || []
       },
       include: {
-        user: true,
-        agency: true
+        users: true,
+        agencies: true
       }
     })
 
@@ -249,30 +249,28 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     }
     
     // Send request created email notification
-    const emailTemplate = requestCreatedTemplate(newRequest, newRequest.user)
+    const emailTemplate = requestCreatedTemplate(newRequest, newRequest.users)
     await queueEmailWithPreferences(
-      newRequest.userId,
+      newRequest.user.id,
       'requestCreated',
-      {
-        ...emailTemplate,
+      { ...emailTemplate,
         to: newRequest.user.email
-      }
+      },
     )
     
     // Check if this is the user's first request and send welcome email
-    const requestCount = await prisma.request.count({
-      where: { userId: authResult.user.id }
+    const requestCount = await prisma.requests.count({
+      where: { userId: authResult.user.id },
     })
     
     if (requestCount === 1) {
-      const welcomeTemplate = welcomeEmailTemplate(newRequest.user)
+      const welcomeTemplate = welcomeEmailTemplate(newRequest.users)
       await queueEmailWithPreferences(
-        newRequest.userId,
+        newRequest.user.id,
         'requestCreated', // Use requestCreated preference for welcome email
-        {
-          ...welcomeTemplate,
+        { ...welcomeTemplate,
           to: newRequest.user.email
-        }
+      },
       )
     }
     

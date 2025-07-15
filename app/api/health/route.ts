@@ -15,7 +15,7 @@ export async function GET() {
       uptime: process.uptime(),
       responseTime: Date.now() - startTime,
       database: 'connected',
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || 'development'
     }
     
     logger.info('Health check completed successfully', {
@@ -37,7 +37,7 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         responseTime: Date.now() - startTime,
         database: 'disconnected',
-        error: getSafeErrorMessage(error),
+        error: getSafeErrorMessage(error)
       },
       { status: 503 }
     )

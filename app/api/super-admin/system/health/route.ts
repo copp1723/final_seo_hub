@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       
       // Check database performance with a simple query
       const start = Date.now()
-      await prisma.user.count()
+      await prisma.users.count()
       const dbResponseTime = Date.now() - start
       
       if (dbResponseTime > 1000) {
@@ -139,12 +139,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       case 'cleanup_sessions':
         // Clean up expired sessions
         try {
-          const result = await prisma.session.deleteMany({
+          const result = await prisma.sessions.deleteMany({
             where: {
               expires: {
                 lt: new Date()
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
           const ninetyDaysAgo = new Date()
           ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
           
-          const result = await prisma.auditLog.deleteMany({
+          const result = await prisma.audit_logs.deleteMany({
             where: {
               createdAt: {
                 lt: ninetyDaysAgo

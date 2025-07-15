@@ -12,16 +12,14 @@ export default function TermsOfService() {
           <h2 className="text-2xl font-semibold mb-4">Acceptance of Terms</h2>
           <p className="mb-4">
             By accessing and using SEO Hub, you accept and agree to be bound by the terms 
-            and provision of this agreement.
-          </p>
+            and provision of this agreement</p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Description of Service</h2>
           <p className="mb-4">
             SEO Hub is a web-based platform that provides SEO management tools, analytics, 
-            and reporting services to help businesses improve their search engine optimization.
-          </p>
+            and reporting services to help businesses improve their search engine optimization</p>
         </section>
 
         <section className="mb-8">
@@ -48,17 +46,15 @@ export default function TermsOfService() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Data and Privacy</h2>
           <p className="mb-4">
-            Your privacy is important to us. Please review our Privacy Policy to understand 
-            how we collect, use, and protect your information.
-          </p>
+            Your privacy is important to us.Please review our Privacy Policy to understand 
+            how we collect, use, and protect your information</p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Limitation of Liability</h2>
           <p className="mb-4">
-            SEO Hub is provided "as is" without any warranties. We shall not be liable for 
-            any damages arising from the use of our service.
-          </p>
+            SEO Hub is provided "as is" without any warranties.We shall not be liable for 
+            any damages arising from the use of our service</p>
         </section>
 
         <section className="mb-8">

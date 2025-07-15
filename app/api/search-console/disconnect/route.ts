@@ -11,12 +11,12 @@ export async function POST(req: Request) {
 
   try {
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true }
     })
 
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -24,8 +24,8 @@ export async function POST(req: Request) {
     }
 
     // Delete the Search Console token for the dealership
-    await prisma.searchConsoleConnection.delete({
-      where: { dealershipId: user.dealershipId },
+    await prisma.search_console_connections.delete({
+      where: { userId: user.dealerships?.id }
     })
     
     return NextResponse.json({ success: true })

@@ -4,7 +4,7 @@ import { Navigation } from '@/components/layout/navigation'
 import { Toaster } from '@/components/ui/toaster'
 
 export default async function AuthenticatedLayout({
-  children,
+  children
 }: {
   children: React.ReactNode
 }) {

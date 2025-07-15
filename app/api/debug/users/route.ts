@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: {
         OR: [
           { email: { contains: 'seowerks' } },
@@ -23,7 +23,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     })
 
-    const agencies = await prisma.agency.findMany({
+    const agencies = await prisma.agencies.findMany({
       select: {
         id: true,
         name: true,
@@ -36,9 +36,9 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     })
 
-    const accounts = await prisma.account.findMany({
+    const accounts = await prisma.accounts.findMany({
       include: {
-        user: {
+        users: {
           select: {
             email: true,
             role: true

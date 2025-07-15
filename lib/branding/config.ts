@@ -1,4 +1,4 @@
-import { Agency } from '@prisma/client'
+import { agencies } from '@prisma/client'
 
 export interface BrandingConfig {
   companyName: string
@@ -40,7 +40,7 @@ export const AGENCY_BRANDINGS: Record<string, BrandingConfig> = {
   'default': DEFAULT_BRANDING
 }
 
-export function getBrandingForAgency(agency?: Agency | null): BrandingConfig {
+export function getBrandingForAgency(agency?: agencies | null): BrandingConfig {
   if (!agency) {
     return DEFAULT_BRANDING
   }
@@ -68,7 +68,7 @@ export function getBrandingFromDomain(domain: string): BrandingConfig {
   return DEFAULT_BRANDING
 }
 
-export function getBrandingFromRequest(request: Request): BrandingConfig {
+export function getBrandingFromRequest(request: typeof requests): BrandingConfig {
   const url = new URL(request.url)
   return getBrandingFromDomain(url.hostname)
 }

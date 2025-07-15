@@ -1,6 +1,6 @@
-import { CsvDealershipProcessor } from '../lib/services/csv-dealership-processor'
-import { CsvSecurityService } from '../lib/services/csv-security'
-import { prisma } from '../lib/prisma'
+import { CsvDealershipProcessor } from './lib/services/csv-dealership-processor'
+import { CsvSecurityService } from './lib/services/csv-security'
+import { prisma } from './lib/prisma'
 
 // Test CSV content
 const testCsvContent = `name,website,ga4PropertyId,searchConsoleUrl
@@ -26,7 +26,7 @@ async function testCsvProcessing() {
 
     // Test 3: Find a test agency
     console.log('\n3️⃣ Finding test agency...')
-    const testAgency = await prisma.agency.findFirst({
+    const testAgency = await prisma.agencies.findFirst({
       include: { users: true }
     })
 

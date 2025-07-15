@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: authResult.user.id },
       select: {
         apiKey: true,
-        apiKeyCreatedAt: true,
+        apiKeyCreatedAt: true
       }
     })
     
@@ -65,15 +65,15 @@ export async function POST(request: NextRequest) {
   try {
     const newApiKey = generateApiKey()
     
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: authResult.user.id },
       data: {
         apiKey: newApiKey,
-        apiKeyCreatedAt: new Date(),
+        apiKeyCreatedAt: new Date()
       },
       select: {
         apiKey: true,
-        apiKeyCreatedAt: true,
+        apiKeyCreatedAt: true
       }
     })
     
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     return successResponse({ 
       apiKey: updatedUser.apiKey,
       apiKeyCreatedAt: updatedUser.apiKeyCreatedAt,
-      message: 'API key generated successfully. Please save it securely as it will not be shown again.'
+      message: 'API key generated successfully.Please save it securely as it will not be shown again.'
     })
   } catch (error) {
     logger.error('Error regenerating API key:', error, { userId: authResult.user.id })
@@ -100,11 +100,11 @@ export async function DELETE(request: NextRequest) {
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: authResult.user.id },
       data: {
         apiKey: null,
-        apiKeyCreatedAt: null,
+        apiKeyCreatedAt: null
       }
     })
     

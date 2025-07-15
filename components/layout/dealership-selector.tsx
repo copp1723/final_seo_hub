@@ -12,8 +12,8 @@ interface Dealership {
 }
 
 interface DealershipData {
-  currentDealership: Dealership | null
-  availableDealerships: Dealership[]
+  currentDealership: dealerships | null
+  availableDealerships: typeof dealerships[]
 }
 
 export function DealershipSelector() {
@@ -29,7 +29,7 @@ export function DealershipSelector() {
   // Fetch dealerships on component mount
   useEffect(() => {
     const fetchDealerships = async () => {
-      if (!session?.user?.id) return
+      if (!session?.user.id) return
 
       setIsLoading(true)
       setError(null)
@@ -58,7 +58,7 @@ export function DealershipSelector() {
     }
 
     fetchDealerships()
-  }, [session?.user?.id])
+  }, [session?.user.id])
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -86,9 +86,9 @@ export function DealershipSelector() {
       const response = await fetch('/api/dealerships/switch', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ dealershipId }),
+        body: JSON.stringify({ dealershipId })
       })
 
       if (!response.ok) {
@@ -100,12 +100,12 @@ export function DealershipSelector() {
 
       // Update the session to reflect the new dealership
       await update({
-        dealershipId: result.dealership.id
+        dealershipId: result.dealerships?.id
       })
 
       // Update local state
       setDealershipData(prev => prev ? {
-        ...prev,
+       ...prev,
         currentDealership: result.dealership
       } : null)
 
@@ -171,7 +171,6 @@ export function DealershipSelector() {
         ) : (
           <Building2 className="h-4 w-4 text-blue-500" />
         )}
-        
         <div className="flex flex-col items-start min-w-0">
           <span className="text-xs font-normal text-gray-400 uppercase tracking-wide">
             SELECT DEALERSHIP
@@ -185,7 +184,7 @@ export function DealershipSelector() {
           className={cn(
             "h-3 w-3 text-gray-400 transition-transform duration-200",
             isOpen && "rotate-180"
-          )} 
+          )}
         />
       </button>
 

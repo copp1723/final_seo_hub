@@ -106,20 +106,20 @@ export async function POST(request: NextRequest) {
     logger.info('Received dealer onboarding completion from invited user', {
       businessName: dealerData.businessName,
       package: dealerData.package,
-      userId: dealerData.userId
+      userId: dealerData.user.id
     })
 
     // For invited users, we should have a userId
-    if (!dealerData.userId) {
+    if (!dealerData.user.id) {
       return errorResponse('User ID is required for invited user onboarding', 400)
     }
 
     // Find the existing user created by agency admin
-    const existingUser = await prisma.user.findUnique({
-      where: { id: dealerData.userId },
+    const existingUser = await prisma.users.findUnique({
+      where: { id: dealerData.user.id },
       include: {
-        agency: true,
-        dealership: true
+        agencies: true,
+        dealerships: true
       }
     })
 
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('User has already completed onboarding', 400)
     }
 
-    if (!existingUser.dealershipId) {
+    if (!existingUser.dealerships?.id) {
       return errorResponse('User has no dealership assigned', 400)
     }
 
@@ -139,16 +139,16 @@ export async function POST(request: NextRequest) {
     const seoworksResult = await sendToSEOWorks(dealerData)
 
     // Update the user's onboarding status
-    const updatedUser = await prisma.user.update({
-      where: { id: dealerData.userId },
+    const updatedUser = await prisma.users.update({
+      where: { id: dealerData.user.id },
       data: {
         onboardingCompleted: true
       }
     })
 
     // Update dealership package info
-    await prisma.dealership.update({
-      where: { id: existingUser.dealershipId },
+    await prisma.dealerships.update({
+      where: { id: existingUser.dealerships?.id },
       data: {
         activePackageType: dealerData.package as PackageType,
         currentBillingPeriodStart: new Date(),
@@ -161,13 +161,13 @@ export async function POST(request: NextRequest) {
     })
 
     // Create initial request
-    const setupRequest = await prisma.request.create({
+    const setupRequest = await prisma.requests.create({
       data: {
         userId: existingUser.id,
-        dealershipId: existingUser.dealershipId,
-        agencyId: existingUser.agencyId,
+        dealershipId: existingUser.dealerships?.id,
+        agencyId: existingUser.agencies?.id,
         title: `SEO Package Setup - ${dealerData.businessName}`,
-        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}\nManaged by Agency: ${existingUser.agency?.name || 'N/A'}`,
+        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}\nManaged by Agency: ${existingUser.agencies.name || 'N/A'}`,
         type: 'setup',
         packageType: dealerData.package as PackageType,
         targetUrl: dealerData.websiteUrl,
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       requestId: setupRequest.id,
       seoworksClientId: seoworksResult.clientId,
       businessName: dealerData.businessName,
-      agencyId: existingUser.agencyId
+      agencyId: existingUser.agencies?.id
     })
 
     return successResponse({

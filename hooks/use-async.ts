@@ -13,7 +13,7 @@ export function useAsync<T>(
   const [state, setState] = useState<UseAsyncState<T>>({
     loading: false,
     error: null,
-    value: null,
+    value: null
   })
 
   const mountedRef = useRef(true)

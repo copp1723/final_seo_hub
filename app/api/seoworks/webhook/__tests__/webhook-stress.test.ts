@@ -1,40 +1,40 @@
-import { POST } from '../route'
-import { prisma } from '../../../../../lib/prisma'
-import { queueEmailWithPreferences } from '../../../../../lib/mailgun/queue'
-import { contentAddedTemplate } from '../../../../../lib/mailgun/content-notifications'
+import { POST } from './route'
+import { prisma } from './././././lib/prisma'
+import { queueEmailWithPreferences } from './././././lib/mailgun/queue'
+import { contentAddedTemplate } from './././././lib/mailgun/content-notifications'
 import { NextRequest } from 'next/server'
 
 // Mock dependencies
-jest.mock('../../../../../lib/prisma', () => ({
+jest.mock('./././././lib/prisma', () => ({
   prisma: {
     request: {
       findFirst: jest.fn(),
       update: jest.fn(),
-      create: jest.fn(),
+      create: jest.fn()
     },
     user: {
-      findFirst: jest.fn(),
-    },
-  },
+      findFirst: jest.fn()
+    }
+  }
 }))
 
-jest.mock('../../../../../lib/mailgun/queue', () => ({
-  queueEmailWithPreferences: jest.fn(),
+jest.mock('./././././lib/mailgun/queue', () => ({
+  queueEmailWithPreferences: jest.fn()
 }))
 
-jest.mock('../../../../../lib/mailgun/content-notifications', () => ({
-  contentAddedTemplate: jest.fn(),
+jest.mock('./././././lib/mailgun/content-notifications', () => ({
+  contentAddedTemplate: jest.fn()
 }))
 
-jest.mock('../../../../../lib/package-utils', () => ({
+jest.mock('./././././lib/package-utils', () => ({
   incrementUsage: jest.fn(),
-  TaskType: 'pages' as const,
+  TaskType: 'pages' as const
 }))
 
 describe('SEOWorks Webhook - Stress Testing', () => {
   const mockEnv = {
     SEOWORKS_WEBHOOK_SECRET: 'test-secret-key',
-    NEXT_PUBLIC_APP_URL: 'https://seohub.example.com',
+    NEXT_PUBLIC_APP_URL: 'https://seohub.example.com'
   }
 
   beforeEach(() => {
@@ -53,9 +53,9 @@ describe('SEOWorks Webhook - Stress Testing', () => {
       method: 'POST',
       headers: {
         'x-api-key': mockEnv.SEOWORKS_WEBHOOK_SECRET,
-        'content-type': 'application/json',
+        'content-type': 'application/json'
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     })
   }
 
@@ -65,7 +65,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         id: 'user_123',
         email: 'test@dealership.com',
         name: 'Test User',
-        role: 'USER',
+        role: 'USER'
       }
 
       const mockRequest = {
@@ -75,14 +75,14 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         title: 'SEO Content',
         type: 'page',
         status: 'IN_PROGRESS',
-        completedTasks: [],
+        completedTasks: []
       }
 
-      ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-      ;(prisma.request.update as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.update as jest.Mock).mockResolvedValue(mockRequest)
       ;(contentAddedTemplate as jest.Mock).mockReturnValue({
         subject: 'Content Added',
-        html: '<html>Test</html>',
+        html: '<html>Test</html>'
       })
 
       // Create 10 concurrent requests
@@ -98,10 +98,10 @@ describe('SEOWorks Webhook - Stress Testing', () => {
             {
               type: 'page',
               title: `Test Page ${i}`,
-              url: `https://example.com/page-${i}`,
-            },
-          ],
-        },
+              url: `https://example.com/page-${i}`
+            }
+          ]
+        }
       }))
 
       const requests = payloads.map(payload => 
@@ -124,7 +124,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         id: 'user_456',
         email: 'sequential@dealership.com',
         name: 'Sequential User',
-        role: 'USER',
+        role: 'USER'
       }
 
       const mockRequest = {
@@ -134,14 +134,14 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         title: 'Sequential Content',
         type: 'blog',
         status: 'IN_PROGRESS',
-        completedTasks: [],
+        completedTasks: []
       }
 
-      ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-      ;(prisma.request.update as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.update as jest.Mock).mockResolvedValue(mockRequest)
       ;(contentAddedTemplate as jest.Mock).mockReturnValue({
         subject: 'Blog Added',
-        html: '<html>Blog Test</html>',
+        html: '<html>Blog Test</html>'
       })
 
       // Send 5 rapid sequential requests
@@ -158,10 +158,10 @@ describe('SEOWorks Webhook - Stress Testing', () => {
               {
                 type: 'blog',
                 title: `Sequential Blog ${i}`,
-                url: `https://example.com/blog-${i}`,
-              },
-            ],
-          },
+                url: `https://example.com/blog-${i}`
+              }
+            ]
+          }
         }
 
         const response = await POST(createMockRequest(payload))
@@ -179,7 +179,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         id: 'user_large',
         email: 'large@dealership.com',
         name: 'Large Payload User',
-        role: 'USER',
+        role: 'USER'
       }
 
       const mockRequest = {
@@ -189,11 +189,11 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         title: 'Large Content',
         type: 'page',
         status: 'IN_PROGRESS',
-        completedTasks: [],
+        completedTasks: []
       }
 
-      ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-      ;(prisma.request.update as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.update as jest.Mock).mockResolvedValue(mockRequest)
 
       // Create large payload with very long content
       const longTitle = 'A'.repeat(1000)
@@ -212,10 +212,10 @@ describe('SEOWorks Webhook - Stress Testing', () => {
               type: 'page',
               title: longTitle,
               description: longDescription,
-              url: 'https://example.com/large-page',
-            },
-          ],
-        },
+              url: 'https://example.com/large-page'
+            }
+          ]
+        }
       }
 
       const response = await POST(createMockRequest(payload))
@@ -227,7 +227,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         id: 'user_unicode',
         email: 'unicode@dealership.com',
         name: '测试用户 👨‍💼',
-        role: 'USER',
+        role: 'USER'
       }
 
       const mockRequest = {
@@ -237,14 +237,14 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         title: 'Unicode Content',
         type: 'page',
         status: 'IN_PROGRESS',
-        completedTasks: [],
+        completedTasks: []
       }
 
-      ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-      ;(prisma.request.update as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.update as jest.Mock).mockResolvedValue(mockRequest)
       ;(contentAddedTemplate as jest.Mock).mockReturnValue({
         subject: 'Unicode Content Added',
-        html: '<html>Unicode Test</html>',
+        html: '<html>Unicode Test</html>'
       })
 
       const payload = {
@@ -259,10 +259,10 @@ describe('SEOWorks Webhook - Stress Testing', () => {
             {
               type: 'page',
               title: '🚗 2024年最新車款 - 特別優惠！🎉 汽车销售 العربية ελληνικά',
-              url: 'https://example.com/unicode-page',
-            },
-          ],
-        },
+              url: 'https://example.com/unicode-page'
+            }
+          ]
+        }
       }
 
       const response = await POST(createMockRequest(payload))
@@ -273,7 +273,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         mockUser,
         expect.objectContaining({
           title: '🚗 2024年最新車款 - 特別優惠！🎉 汽车销售 العربية ελληνικά',
-          type: 'page',
+          type: 'page'
         })
       )
     })
@@ -283,7 +283,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         id: 'user_malformed',
         email: 'malformed@dealership.com',
         name: 'Malformed User',
-        role: 'USER',
+        role: 'USER'
       }
 
       const mockRequest = {
@@ -293,11 +293,11 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         title: 'Malformed Content',
         type: 'page',
         status: 'IN_PROGRESS',
-        completedTasks: [],
+        completedTasks: []
       }
 
-      ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-      ;(prisma.request.update as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.update as jest.Mock).mockResolvedValue(mockRequest)
 
       // Valid JSON but with unexpected structure
       const payload = {
@@ -315,7 +315,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
               value: 'test'
             }
           }
-        },
+        }
       }
 
       const response = await POST(createMockRequest(payload))
@@ -325,7 +325,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
 
   describe('Error Recovery', () => {
     it('should handle database connection failures gracefully', async () => {
-      ;(prisma.request.findFirst as jest.Mock).mockRejectedValue(new Error('Database connection failed'))
+      ;(prisma.requests.findFirst as jest.Mock).mockRejectedValue(new Error('Database connection failed'))
 
       const payload = {
         eventType: 'task.completed',
@@ -334,8 +334,8 @@ describe('SEOWorks Webhook - Stress Testing', () => {
           externalId: 'db_fail_task',
           clientId: 'user_123',
           taskType: 'page',
-          status: 'completed',
-        },
+          status: 'completed'
+        }
       }
 
       const response = await POST(createMockRequest(payload))
@@ -350,7 +350,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         id: 'user_email_fail',
         email: 'emailfail@dealership.com',
         name: 'Email Fail User',
-        role: 'USER',
+        role: 'USER'
       }
 
       const mockRequest = {
@@ -360,14 +360,14 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         title: 'Email Fail Content',
         type: 'page',
         status: 'IN_PROGRESS',
-        completedTasks: [],
+        completedTasks: []
       }
 
-      ;(prisma.request.findFirst as jest.Mock).mockResolvedValue(mockRequest)
-      ;(prisma.request.update as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.findFirst as jest.Mock).mockResolvedValue(mockRequest)
+      ;(prisma.requests.update as jest.Mock).mockResolvedValue(mockRequest)
       ;(contentAddedTemplate as jest.Mock).mockReturnValue({
         subject: 'Content Added',
-        html: '<html>Test</html>',
+        html: '<html>Test</html>'
       })
       ;(queueEmailWithPreferences as jest.Mock).mockRejectedValue(new Error('Email queue failed'))
 
@@ -383,10 +383,10 @@ describe('SEOWorks Webhook - Stress Testing', () => {
             {
               type: 'page',
               title: 'Test Page',
-              url: 'https://example.com/test',
-            },
-          ],
-        },
+              url: 'https://example.com/test'
+            }
+          ]
+        }
       }
 
       const response = await POST(createMockRequest(payload))
@@ -406,7 +406,7 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         body: JSON.stringify({
           eventType: 'task.completed',
           data: { externalId: 'test' }
-        }),
+        })
       })
 
       const response = await POST(request)
@@ -418,12 +418,12 @@ describe('SEOWorks Webhook - Stress Testing', () => {
         method: 'POST',
         headers: {
           'x-api-key': 'wrong-key',
-          'content-type': 'application/json',
+          'content-type': 'application/json'
         },
         body: JSON.stringify({
           eventType: 'task.completed',
           data: { externalId: 'test' }
-        }),
+        })
       })
 
       const response = await POST(request)
@@ -446,12 +446,12 @@ describe('SEOWorks Webhook - Stress Testing', () => {
             method: 'POST',
             headers: {
               'x-api-key': key,
-              'content-type': 'application/json',
+              'content-type': 'application/json'
             },
             body: JSON.stringify({
               eventType: 'task.completed',
               data: { externalId: 'test' }
-            }),
+            })
           })
 
           const response = await POST(request)

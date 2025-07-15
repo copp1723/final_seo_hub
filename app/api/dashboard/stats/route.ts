@@ -10,7 +10,7 @@ import { CACHE_TTL } from '@/lib/constants'
 const getCachedDealershipStats = createCachedFunction(
   async (dealershipId: string) => {
     // Get all users from this dealership for request statistics
-    const dealershipUsers = await prisma.user.findMany({
+    const dealershipUsers = await prisma.users.findMany({
       where: { dealershipId },
       select: { id: true }
     })
@@ -19,14 +19,14 @@ const getCachedDealershipStats = createCachedFunction(
 
     // Fetch dashboard stats for the dealership
     const [statusCounts, completedThisMonth, latestRequest] = await Promise.all([
-      prisma.request.groupBy({
+      prisma.requests.groupBy({
         by: ['status'],
         where: { 
           userId: { in: userIds }
         },
         _count: true
       }),
-      prisma.request.count({
+      prisma.requests.count({
         where: {
           userId: { in: userIds },
           status: 'COMPLETED',
@@ -35,7 +35,7 @@ const getCachedDealershipStats = createCachedFunction(
           }
         }
       }),
-      prisma.request.findFirst({
+      prisma.requests.findFirst({
         where: {
           userId: { in: userIds },
           packageType: { not: null }
@@ -62,7 +62,7 @@ const getCachedDealershipStats = createCachedFunction(
     // Check GA4 connection
     let gaConnected = false
     try {
-      const gaConnection = await prisma.gA4Connection.findUnique({
+      const gaConnection = await prisma.ga4_connections.findFirst({
         where: { dealershipId },
         select: { propertyId: true, propertyName: true }
       })
@@ -97,7 +97,7 @@ async function handleGET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -108,15 +108,15 @@ async function handleGET(request: NextRequest) {
     const dealershipId = searchParams.get('dealershipId')
 
     // Get user's information and verify access
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       include: {
-        agency: {
+        agencies: {
           include: {
             dealerships: true
           }
         },
-        dealership: true
+        dealerships: true
       }
     })
 
@@ -132,9 +132,9 @@ async function handleGET(request: NextRequest) {
 
     if (dealershipId) {
       // Verify user has access to the requested dealership
-      if (user.agency) {
+      if (user.agencies) {
         // Agency user - check if dealership belongs to their agency
-        const hasAccess = user.agency.dealerships.some(d => d.id === dealershipId)
+        const hasAccess = user.agencies.dealerships.some(d => d.id === dealershipId)
         if (!hasAccess) {
           return NextResponse.json(
             { error: 'Access denied to this dealership' },
@@ -144,7 +144,7 @@ async function handleGET(request: NextRequest) {
         targetDealershipId = dealershipId
       } else {
         // Non-agency user - can only access their own dealership
-        if (user.dealershipId !== dealershipId) {
+        if (user.dealerships.id !== dealershipId) {
           return NextResponse.json(
             { error: 'Access denied to this dealership' },
             { status: 403 }
@@ -154,13 +154,13 @@ async function handleGET(request: NextRequest) {
       }
     } else {
       // No specific dealership requested - use user's assigned dealership
-      if (!user.dealershipId) {
+      if (!user.dealerships?.id) {
         return NextResponse.json(
           { error: 'User is not assigned to a dealership' },
           { status: 400 }
         )
       }
-      targetDealershipId = user.dealershipId
+      targetDealershipId = user.dealerships?.id
     }
 
     // Use cached function to get dealership stats

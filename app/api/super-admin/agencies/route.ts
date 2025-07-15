@@ -5,19 +5,19 @@ import { z } from 'zod'
 
 const createAgencySchema = z.object({
   name: z.string().min(1, 'Agency name is required').max(100, 'Agency name must be less than 100 characters'),
-  domain: z.string().optional().nullable(),
+  domain: z.string().optional().nullable()
 })
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -39,13 +39,13 @@ export async function GET(request: NextRequest) {
     const whereClause = search ? {
       OR: [
         { name: { contains: search, mode: 'insensitive' as const } },
-        { domain: { contains: search, mode: 'insensitive' as const } },
+        { domain: { contains: search, mode: 'insensitive' as const } }
       ]
     } : {}
 
     // Get agencies with user counts and request counts
     const [agencies, totalCount] = await Promise.all([
-      prisma.agency.findMany({
+      prisma.agencies.findMany({
         where: whereClause,
         include: {
           users: {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
               name: true,
               email: true,
               role: true,
-              createdAt: true,
+              createdAt: true
             },
             orderBy: { createdAt: 'desc' },
             take: 5, // Only get recent users for preview
@@ -62,15 +62,15 @@ export async function GET(request: NextRequest) {
           _count: {
             select: {
               users: true,
-              requests: true,
+              requests: true
             }
           }
         },
         orderBy: { [sortBy]: sortOrder },
         skip,
-        take: limit,
+        take: limit
       }),
-      prisma.agency.count({ where: whereClause })
+      prisma.agencies.count({ where: whereClause })
     ])
 
     const totalPages = Math.ceil(totalCount / limit)
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         totalCount,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1,
+        hasPrev: page > 1
       }
     })
 
@@ -100,12 +100,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     const validatedData = createAgencySchema.parse(body)
 
     // Check if agency name already exists
-    const existingAgency = await prisma.agency.findFirst({
+    const existingAgency = await prisma.agencies.findFirst({
       where: { name: { equals: validatedData.name, mode: 'insensitive' } }
     })
 
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // Check if domain already exists (if provided)
     if (validatedData.domain) {
-      const existingDomain = await prisma.agency.findFirst({
+      const existingDomain = await prisma.agencies.findFirst({
         where: { domain: { equals: validatedData.domain, mode: 'insensitive' } }
       })
 
@@ -143,10 +143,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const agency = await prisma.agency.create({
+    const agency = await prisma.agencies.create({
       data: {
+        id: crypto.randomUUID(),
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        updatedAt: new Date(),
         name: validatedData.name,
-        domain: validatedData.domain || null,
+        domain: validatedData.domain || null
       },
       include: {
         users: {
@@ -155,13 +158,13 @@ export async function POST(request: NextRequest) {
             name: true,
             email: true,
             role: true,
-            createdAt: true,
+            createdAt: true
           }
         },
         _count: {
           select: {
             users: true,
-            requests: true,
+            requests: true
           }
         }
       }

@@ -5,17 +5,17 @@ const prisma = new PrismaClient()
 async function createTestRequestsForJeff() {
   try {
     // Find a test user or create one
-    let testUser = await prisma.user.findFirst({
+    let testUser = await prisma.users.findFirst({
       where: { email: 'manager@jayhatfieldchevrolet.com' }
     })
 
     if (!testUser) {
-      testUser = await prisma.user.create({
+      testUser = await prisma.users.create({
         data: {
           email: 'manager@jayhatfieldchevrolet.com',
           name: 'Jay Hatfield Test User',
           role: 'USER',
-          onboardingCompleted: true,
+          onboardingCompleted: true
         }
       })
       console.log('Created test user:', testUser.id)
@@ -34,7 +34,7 @@ async function createTestRequestsForJeff() {
 
     // Create page requests
     for (const taskId of taskIds.pages) {
-      const request = await prisma.request.create({
+      const request = await prisma.requests.create({
         data: {
           id: taskId, // Use Jeff's task ID as our request ID
           userId: testUser.id,
@@ -46,7 +46,7 @@ async function createTestRequestsForJeff() {
           packageType: PackageType.GOLD,
           targetCities: ['Pittsburg', 'Joplin', 'Parsons'],
           targetModels: ['Chevrolet Silverado', 'Chevrolet Equinox'],
-          keywords: ['chevrolet dealer', 'new cars pittsburg'],
+          keywords: ['chevrolet dealer', 'new cars pittsburg']
         }
       })
       requests.push(request)
@@ -55,7 +55,7 @@ async function createTestRequestsForJeff() {
 
     // Create blog requests
     for (const taskId of taskIds.blogs) {
-      const request = await prisma.request.create({
+      const request = await prisma.requests.create({
         data: {
           id: taskId,
           userId: testUser.id,
@@ -66,7 +66,7 @@ async function createTestRequestsForJeff() {
           priority: RequestPriority.MEDIUM,
           packageType: PackageType.GOLD,
           targetCities: ['Pittsburg', 'Joplin'],
-          keywords: ['car maintenance', 'automotive tips'],
+          keywords: ['car maintenance', 'automotive tips']
         }
       })
       requests.push(request)
@@ -75,7 +75,7 @@ async function createTestRequestsForJeff() {
 
     // Create GBP post requests
     for (const taskId of taskIds.gbpPosts) {
-      const request = await prisma.request.create({
+      const request = await prisma.requests.create({
         data: {
           id: taskId,
           userId: testUser.id,
@@ -85,7 +85,7 @@ async function createTestRequestsForJeff() {
           status: RequestStatus.IN_PROGRESS,
           priority: RequestPriority.MEDIUM,
           packageType: PackageType.GOLD,
-          targetCities: ['Pittsburg'],
+          targetCities: ['Pittsburg']
         }
       })
       requests.push(request)

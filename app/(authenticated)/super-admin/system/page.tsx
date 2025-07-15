@@ -60,7 +60,7 @@ interface SystemHealth {
 }
 
 export default function SuperAdminSystemPage() {
-  const [settings, setSettings] = useState<SystemSettings | null>(null)
+  const [settings, setSettings] = useState<system_settings | null>(null)
   const [health, setHealth] = useState<SystemHealth | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -118,7 +118,7 @@ export default function SuperAdminSystemPage() {
       const response = await fetch('/api/super-admin/system/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(settings)
       })
       
       if (!response.ok) {
@@ -205,7 +205,7 @@ export default function SuperAdminSystemPage() {
             { id: 'general', label: 'General', icon: Settings },
             { id: 'email', label: 'Email', icon: Mail },
             { id: 'security', label: 'Security', icon: Shield },
-            { id: 'health', label: 'System Health', icon: Zap },
+            { id: 'health', label: 'System Health', icon: Zap }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -354,7 +354,6 @@ export default function SuperAdminSystemPage() {
           </Card>
         </div>
       )}
-
       {/* Email Settings */}
       {activeTab === 'email' && settings && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -408,7 +407,6 @@ export default function SuperAdminSystemPage() {
           </Card>
         </div>
       )}
-
       {/* Security Settings */}
       {activeTab === 'security' && settings && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -435,7 +433,6 @@ export default function SuperAdminSystemPage() {
           </Card>
         </div>
       )}
-
       {/* System Health */}
       {activeTab === 'health' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -461,7 +458,7 @@ export default function SuperAdminSystemPage() {
                     { key: 'database', label: 'Database', icon: Database },
                     { key: 'email', label: 'Email Service', icon: Mail },
                     { key: 'storage', label: 'File Storage', icon: Database },
-                    { key: 'api', label: 'API Services', icon: Globe },
+                    { key: 'api', label: 'API Services', icon: Globe }
                   ].map((component) => (
                     <div key={component.key} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center">
@@ -486,7 +483,7 @@ export default function SuperAdminSystemPage() {
                   </Button>
                 </div>
               )}
-            </CardContent>
+          </CardContent>
           </Card>
         </div>
       )}

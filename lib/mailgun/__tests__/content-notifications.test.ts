@@ -1,8 +1,8 @@
-import { contentAddedTemplate } from '../content-notifications'
-import { Request, User } from '@prisma/client'
+import { contentAddedTemplate } from './content-notifications'
+import { requests, users } from '@prisma/client'
 
 describe('contentAddedTemplate', () => {
-  const mockUser: User = {
+  const mockUser: users = {
     id: 'user_123',
     email: 'john@dealership.com',
     name: 'John Doe',
@@ -24,7 +24,7 @@ describe('contentAddedTemplate', () => {
     updatedAt: new Date()
   }
 
-  const mockRequest: Request = {
+  const mockRequest: requests = {
     id: 'req_123',
     userId: 'user_123',
     agencyId: 'agency_123',

@@ -6,46 +6,41 @@ async function main() {
   console.log('🌱 Starting database seed...')
 
   // Create or update super admin user (Josh)
-  const superAdmin = await prisma.user.upsert({
+  const superAdmin = await prisma.users.upsert({
     where: { email: 'josh.copp@onekeel.ai' },
     update: {
       role: 'SUPER_ADMIN',
       name: 'Josh Copp',
-      onboardingCompleted: true,
+      updatedAt: new Date()
     },
     create: {
+      id: 'user-super-admin-001',
       email: 'josh.copp@onekeel.ai',
       name: 'Josh Copp',
       role: 'SUPER_ADMIN',
-      onboardingCompleted: true,
-    },
+      updatedAt: new Date()
+    }
   })
   console.log('✅ Super admin user created:', superAdmin.email)
 
   // Create sample agency for testing
-  const sampleAgency = await prisma.agency.upsert({
+  const sampleAgency = await prisma.agencies.upsert({
     where: { id: 'agency-sample-001' },
-    update: {},
+    update: {
+      updatedAt: new Date()
+    },
     create: {
       id: 'agency-sample-001',
       name: 'Sample Auto Agency',
+      slug: 'sample-auto-agency',
       domain: 'sample-auto.com',
-      settings: {
-        branding: {
-          primaryColor: '#1f2937',
-          logoUrl: null
-        },
-        features: {
-          multiDealership: true,
-          customReporting: true
-        }
-      }
-    },
+      updatedAt: new Date()
+    }
   })
   console.log('✅ Sample agency created:', sampleAgency.name)
 
   // Create sample dealerships under the agency
-  const dealership1 = await prisma.dealership.upsert({
+  const dealership1 = await prisma.dealerships.upsert({
     where: { id: 'dealer-sample-001' },
     update: {},
     create: {
@@ -65,10 +60,10 @@ async function main() {
           primaryKeywords: ['Ford dealer Austin', 'new Ford Austin', 'used cars Austin']
         }
       }
-    },
+    }
   })
 
-  const dealership2 = await prisma.dealership.upsert({
+  const dealership2 = await prisma.dealerships.upsert({
     where: { id: 'dealer-sample-002' },
     update: {},
     create: {
@@ -88,55 +83,64 @@ async function main() {
           primaryKeywords: ['Toyota dealer Austin', 'new Toyota Austin', 'Prius Austin']
         }
       }
-    },
+    }
   })
   console.log('✅ Sample dealerships created:', dealership1.name, dealership2.name)
 
   // Create agency admin user
-  const agencyAdmin = await prisma.user.upsert({
+  const agencyAdmin = await prisma.users.upsert({
     where: { email: 'admin@sample-auto.com' },
-    update: {},
+    update: {
+      updatedAt: new Date()
+    },
     create: {
+      id: 'user-agency-admin-001',
       email: 'admin@sample-auto.com',
       name: 'Agency Admin',
       role: 'AGENCY_ADMIN',
       agencyId: sampleAgency.id,
-      onboardingCompleted: true,
-    },
+      updatedAt: new Date()
+    }
   })
   console.log('✅ Agency admin created:', agencyAdmin.email)
 
   // Create dealership admin users
-  const dealershipAdmin1 = await prisma.user.upsert({
+  const dealershipAdmin1 = await prisma.users.upsert({
     where: { email: 'manager@downtownford.com' },
-    update: {},
+    update: {
+      updatedAt: new Date()
+    },
     create: {
+      id: 'user-dealership-admin-001',
       email: 'manager@downtownford.com',
       name: 'Ford Manager',
       role: 'DEALERSHIP_ADMIN',
       agencyId: sampleAgency.id,
       dealershipId: dealership1.id,
-      onboardingCompleted: true,
-    },
+      updatedAt: new Date()
+    }
   })
 
-  const dealershipAdmin2 = await prisma.user.upsert({
+  const dealershipAdmin2 = await prisma.users.upsert({
     where: { email: 'manager@westsidetoyota.com' },
-    update: {},
+    update: {
+      updatedAt: new Date()
+    },
     create: {
+      id: 'user-dealership-admin-002',
       email: 'manager@westsidetoyota.com',
       name: 'Toyota Manager',
       role: 'DEALERSHIP_ADMIN',
       agencyId: sampleAgency.id,
       dealershipId: dealership2.id,
-      onboardingCompleted: true,
-    },
+      updatedAt: new Date()
+    }
   })
   console.log('✅ Dealership admins created:', dealershipAdmin1.email, dealershipAdmin2.email)
 
   // Create user preferences for all users
   for (const user of [superAdmin, agencyAdmin, dealershipAdmin1, dealershipAdmin2]) {
-    await prisma.userPreferences.upsert({
+    await prisma.users.preferences.upsert({
       where: { userId: user.id },
       update: {},
       create: {
@@ -148,14 +152,14 @@ async function main() {
         weeklySummary: true,
         marketingEmails: false,
         timezone: 'America/Chicago',
-        language: 'en',
-      },
+        language: 'en'
+      }
     })
   }
   console.log('✅ User preferences created for all users')
 
   // Create initial system settings
-  await prisma.systemSettings.upsert({
+  await prisma.system_settings.upsert({
     where: { id: 'default' },
     update: {},
     create: {
@@ -171,11 +175,11 @@ async function main() {
       smtpPort: 587,
       smtpUser: '',
       smtpFromEmail: '',
-      maintenanceMessage: 'The system is currently under maintenance. Please try again later.',
+      maintenanceMessage: 'The system is currently under maintenance.Please try again later.',
       welcomeMessage: 'Welcome to our SEO management platform! Get started by exploring your dashboard.',
       rateLimitPerMinute: 60,
-      sessionTimeoutMinutes: 480,
-    },
+      sessionTimeoutMinutes: 480
+    }
   })
   console.log('✅ System settings initialized')
 
@@ -194,6 +198,6 @@ main()
     console.error('❌ Seed failed:', e)
     process.exit(1)
   })
-  .finally(async () => {
+ .finally(async () => {
     await prisma.$disconnect()
   })

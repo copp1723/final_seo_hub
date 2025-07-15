@@ -61,13 +61,9 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
             <div className="mt-4 text-center">
               <h3 className="text-lg font-medium text-gray-900">
-                Oops! Something went wrong.
-              </h3>
+                Oops! Something went wrong</h3>
               <p className="mt-2 text-sm text-gray-500">
-                We're sorry for the trouble. An unexpected error occurred.
-                You can try reloading the page, or go back to the homepage.
-                If the problem persists, please contact support.
-              </p>
+                We're sorry for the trouble.An unexpected error occurred.You can try reloading the page, or go back to the homepage.If the problem persists, please contact support</p>
               <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                 <button
                   onClick={() => window.location.reload()}

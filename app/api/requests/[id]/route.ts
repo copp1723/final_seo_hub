@@ -5,7 +5,7 @@ import { Request as PrismaRequest } from '@prisma/client';
 // Assume db is an instance of your database client (e.g., Prisma, Sequelize)
 // and Request is your database model/schema for requests.
 // import db from '@/lib/db'; // Example import for database client
-// import { Request } from '@prisma/client'; // Example import for Prisma model
+// import { requests } from '@prisma/client'; // Example import for Prisma model
 
 interface CompletedTask {
   id: string; // Unique ID for the completed task entry
@@ -30,7 +30,7 @@ export async function PUT(
     const { status, taskDetails } = body;
 
     // Fetch the existing request
-    const existingRequest = await prisma.request.findUnique({ where: { id } });
+    const existingRequest = await prisma.requests.findUnique({ where: { id } });
 
     if (!existingRequest) {
       return NextResponse.json({ error: 'Request not found' }, { status: 404 });
@@ -60,7 +60,7 @@ export async function PUT(
         title,
         url,
         notes,
-        completedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString()
       };
 
       // Ensure completedTasks is an array
@@ -74,7 +74,7 @@ export async function PUT(
       // Optionally, if completing the last task changes the request status to DONE
       // if (updatedData.completedTaskCount === existingRequest.totalTasks) {
       //   updatedData.status = 'DONE';
-      //   responseMessage += ' All tasks completed. Request marked as DONE.';
+      //   responseMessage += ' All tasks completed.Request marked as DONE.';
       // } else {
       //   responseMessage += ' Task marked as complete.';
       // }
@@ -85,7 +85,7 @@ export async function PUT(
     }
 
     if (Object.keys(updatedData).length === 0) {
-      return NextResponse.json({ message: 'No update performed. Provide status or taskDetails.' }, { status: 200 });
+      return NextResponse.json({ message: 'No update performed.Provide status or taskDetails.' }, { status: 200 });
     }
 
     // Add completion date tracking for the request itself when moved to COMPLETED
@@ -95,9 +95,9 @@ export async function PUT(
 
 
     // Update the request in the database
-    const updatedRequest = await prisma.request.update({
+    const updatedRequest = await prisma.requests.update({
       where: { id },
-      data: updatedData,
+      data: updatedData
     });
 
     return NextResponse.json({ message: responseMessage || 'Request updated successfully', request: updatedRequest }, { status: 200 });
@@ -121,7 +121,7 @@ export async function GET(
   if (!id) {
     return NextResponse.json({ error: 'Request ID is required' }, { status: 400 });
   }
-  const req = await prisma.request.findUnique({ where: { id } });
+  const req = await prisma.requests.findUnique({ where: { id } });
   if (!req) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 });
   }

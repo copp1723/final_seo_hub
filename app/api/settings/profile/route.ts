@@ -11,10 +11,10 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
   
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: authResult.user.id },
       select: {
         id: true,
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         image: true,
         role: true,
         agencyId: true,
-        createdAt: true,
+        createdAt: true
       }
     })
     
@@ -44,7 +44,7 @@ export async function PATCH(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
   
   // Validate request body
   const validation = await validateRequest(request, updateProfileSchema)
@@ -55,7 +55,7 @@ export async function PATCH(request: NextRequest) {
   try {
     // Check if email is being changed and if it's already taken
     if (data.email !== authResult.user.email) {
-      const existingUser = await prisma.user.findUnique({
+      const existingUser = await prisma.users.findUnique({
         where: { email: data.email }
       })
       
@@ -64,18 +64,18 @@ export async function PATCH(request: NextRequest) {
       }
     }
     
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: authResult.user.id },
       data: {
         name: data.name,
-        email: data.email,
+        email: data.email
       },
       select: {
         id: true,
         email: true,
         name: true,
         image: true,
-        role: true,
+        role: true
       }
     })
     

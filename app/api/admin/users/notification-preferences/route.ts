@@ -14,14 +14,14 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
         agencyId: true,
-        preferences: {
+        user_preferences: {
           select: {
             emailNotifications: true,
             taskCompleted: true,
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       },
       // Agency admins can only see users in their agency
       where: authResult.user.role === 'AGENCY_ADMIN' 
-        ? { agencyId: authResult.user.agencyId }
+        ? { agencyId: authResult.user.agency.id }
         : undefined,
       orderBy: { email: 'asc' }
     })

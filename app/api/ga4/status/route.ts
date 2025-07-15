@@ -7,25 +7,25 @@ export async function GET() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true }
     })
 
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       return NextResponse.json({
         connected: false,
         message: 'User not assigned to dealership'
       })
     }
 
-    const connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: user.dealershipId },
+    const connection = await prisma.ga4_connections.findUnique({
+      where: { userId: user.dealerships?.id },
       select: {
         id: true,
         propertyId: true,
@@ -39,7 +39,7 @@ export async function GET() {
     if (!connection) {
       logger.info('GA4 connection not found', {
         userId: session.user.id,
-        dealershipId: user.dealershipId,
+        dealershipId: user.dealerships?.id,
         path: '/api/ga4/status',
         method: 'GET'
       })
@@ -71,7 +71,7 @@ export async function GET() {
   } catch (error) {
     const session = await auth()
     logger.error('GA4 status check error', error, {
-      userId: session?.user?.id,
+      userId: session?.user.id,
       path: '/api/ga4/status',
       method: 'GET'
     })

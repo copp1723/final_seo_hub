@@ -41,18 +41,18 @@ export async function GET(request: NextRequest) {
     const { encrypt } = await import('@/lib/encryption')
 
     // Get user's dealership ID
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: state },
       select: { dealershipId: true }
     })
 
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=User not assigned to dealership`)
     }
 
     // Check if dealership already has a property selected
-    const existingConnection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: user.dealershipId }
+    const existingConnection = await prisma.ga4_connections.findUnique({
+      where: { userId: user.dealerships?.id }
     })
     
     // Try to fetch property info from Google Analytics
@@ -87,21 +87,21 @@ export async function GET(request: NextRequest) {
     } else {
       logger.info('Preserving existing property selection', {
         userId: state,
-        dealershipId: user.dealershipId,
+        dealershipId: user.dealerships?.id,
         propertyId,
         propertyName
       })
     }
 
-    await prisma.gA4Connection.upsert({
-      where: { dealershipId: user.dealershipId },
+    await prisma.ga4_connections.upsert({
+      where: { userId: user.dealerships?.id },
       create: {
-        dealershipId: user.dealershipId,
+        dealershipId: user.dealerships?.id,
         accessToken: encrypt(tokens.access_token),
         refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         propertyId,
-        propertyName,
+        propertyName
       },
       update: {
         accessToken: encrypt(tokens.access_token),
@@ -109,8 +109,8 @@ export async function GET(request: NextRequest) {
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         propertyId,
         propertyName,
-        updatedAt: new Date(),
-      },
+        updatedAt: new Date()
+      }
     })
 
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=success`)

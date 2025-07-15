@@ -30,8 +30,7 @@ export function useCSRF() {
   const getHeaders = (additionalHeaders?: HeadersInit): HeadersInit => {
     const token = csrfToken || window.__CSRF_TOKEN__
     
-    return {
-      ...additionalHeaders,
+    return { ...additionalHeaders,
       ...(token ? { 'x-csrf-token': token } : {})
     }
   }
@@ -42,10 +41,8 @@ export function useCSRF() {
   ): Promise<Response> => {
     const token = csrfToken || window.__CSRF_TOKEN__
     
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...options?.headers,
+    const response = await fetch(url, { ...options,
+      headers: { ...options?.headers,
         ...(token ? { 'x-csrf-token': token } : {})
       },
       credentials: 'include'
@@ -59,10 +56,8 @@ export function useCSRF() {
         // Retry the request with new token
         const newToken = window.__CSRF_TOKEN__
         if (newToken) {
-          return fetch(url, {
-            ...options,
-            headers: {
-              ...options?.headers,
+          return fetch(url, { ...options,
+            headers: { ...options?.headers,
               'x-csrf-token': newToken
             },
             credentials: 'include'

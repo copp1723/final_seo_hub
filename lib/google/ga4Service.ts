@@ -18,15 +18,15 @@ export class GA4Service {
   private dealershipId: string;
 
   constructor(dealershipId: string) {
-    this.dealershipId = dealershipId;
+    this.dealerships.id = dealershipId;
   }
 
   private async initialize() {
     // Refresh token if needed
-    await refreshGA4TokenIfNeeded(this.dealershipId);
+    await refreshGA4TokenIfNeeded(this.dealerships?.id);
 
-    const connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: this.dealershipId },
+    const connection = await prisma.ga4_connections.findUnique({
+      where: { userId: this.dealerships?.id }
     });
 
     if (!connection) {
@@ -50,12 +50,12 @@ export class GA4Service {
 
     oauth2Client.setCredentials({
       access_token: accessToken,
-      refresh_token: refreshToken,
+      refresh_token: refreshToken
     });
 
     this.analyticsData = google.analyticsdata({
       version: 'v1beta',
-      auth: oauth2Client,
+      auth: oauth2Client
     });
   }
 
@@ -73,8 +73,8 @@ export class GA4Service {
         metrics: metrics.map(metric => ({ name: metric })),
         dimensions: dimensions?.map(dimension => ({ name: dimension })),
         limit: limit || 10000,
-        orderBys: orderBys || [{ metric: { metricName: metrics[0] }, desc: true }],
-      },
+        orderBys: orderBys || [{ metric: { metricName: metrics[0] }, desc: true }]
+      }
     });
 
     return response.data;
@@ -92,7 +92,7 @@ export class GA4Service {
 
     const response = await this.analyticsData!.properties.batchRunReports({
       property: `properties/${propertyId}`,
-      requestBody: { requests },
+      requestBody: { requests }
     });
 
     return response.data.reports;
@@ -104,7 +104,7 @@ export class GA4Service {
     }
 
     const response = await this.analyticsData!.properties.getMetadata({
-      name: `properties/${propertyId}/metadata`,
+      name: `properties/${propertyId}/metadata`
     });
 
     return response.data;

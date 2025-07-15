@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   // Validate month and year
   if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
-    return errorResponse('Invalid month. Must be between 1 and 12', 400)
+    return errorResponse('Invalid month.Must be between 1 and 12', 400)
   }
   
   if (isNaN(yearNum) || yearNum < 2000 || yearNum > 3000) {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const endDate = new Date(yearNum, monthNum, 0, 23, 59, 59, 999) // Last day of the month
 
     // Build where clause
-    const where: Prisma.RequestWhereInput = {
+    const where: Prisma.requestsWhereInput = {
       userId: userId,
       createdAt: {
         gte: startDate,
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Count requests matching the criteria
-    const count = await prisma.request.count({
+    const count = await prisma.requests.count({
       where
     })
 

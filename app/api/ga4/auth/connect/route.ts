@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) {
+  if (!authResult.authenticated) {
     return NextResponse.redirect('/auth/signin')
   }
 

@@ -33,7 +33,7 @@ export function createApiHandler<T = any>(
       let user = null
       if (options.auth !== false) {
         const authResult = await requireAuth()
-        if (!authResult.authenticated || !authResult.user) {
+        if (!authResult.authenticated) {
           return authResult.response
         }
         user = authResult.user
@@ -80,8 +80,7 @@ export const createGetHandler = (
 export const createPostHandler = <T = any>(
   handler: (req: NextRequest, context: any) => Promise<NextResponse>,
   options: ApiMiddlewareOptions & { validateBody?: z.ZodSchema<T> } = {}
-) => createApiHandler<T>(handler, { 
-  ...options, 
+) => createApiHandler<T>(handler, { ...options, 
   auth: options.auth !== false,
   rateLimit: options.rateLimit || 'api'
 })
@@ -90,8 +89,7 @@ export const createPostHandler = <T = any>(
 export const createPutHandler = <T = any>(
   handler: (req: NextRequest, context: any) => Promise<NextResponse>,
   options: ApiMiddlewareOptions & { validateBody?: z.ZodSchema<T> } = {}
-) => createApiHandler<T>(handler, { 
-  ...options, 
+) => createApiHandler<T>(handler, { ...options, 
   auth: options.auth !== false,
   rateLimit: options.rateLimit || 'api'
 })
@@ -100,8 +98,7 @@ export const createPutHandler = <T = any>(
 export const createDeleteHandler = (
   handler: (req: NextRequest, context: any) => Promise<NextResponse>,
   options: ApiMiddlewareOptions = {}
-) => createApiHandler(handler, { 
-  ...options, 
+) => createApiHandler(handler, { ...options, 
   auth: options.auth !== false,
   rateLimit: options.rateLimit || 'api'
 })

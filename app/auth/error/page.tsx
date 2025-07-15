@@ -14,7 +14,7 @@ const ERROR_MESSAGES: Record<string, { title: string; message: string; showConta
   },
   AccessDenied: {
     title: 'Access Denied',
-    message: 'You need an invitation to access this application. Please contact an administrator if you believe you should have access.',
+    message: 'You need an invitation to access this application.Please contact an administrator if you believe you should have access.',
     showContact: true
   },
   Verification: {
@@ -26,7 +26,7 @@ const ERROR_MESSAGES: Record<string, { title: string; message: string; showConta
     title: 'Authentication Error',
     message: 'An error occurred during authentication.',
     showContact: true
-  },
+  }
 }
 
 function ErrorContent() {
@@ -43,8 +43,7 @@ function ErrorContent() {
 
           {errorInfo.showContact && (
             <p className="mt-4 text-xs text-gray-500">
-              Need help? Contact your administrator or support team.
-            </p>
+              Need help? Contact your administrator or support team</p>
           )}
         </div>
 

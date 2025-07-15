@@ -27,7 +27,7 @@ export default function AdminPage() {
   if (status === 'loading' || loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
-
+  
   if (!session || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'AGENCY_ADMIN')) {
     return null
   }
@@ -124,10 +124,9 @@ export default function AdminPage() {
             </Link>
           </>
         )}
-        
         {isAgencyAdmin && (
           <>
-            <Link href={`/admin/agencies/${session.user.agencyId}/requests`}>
+            <Link href={`/admin/agencies/${session.user.agency.id}/requests`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -141,7 +140,7 @@ export default function AdminPage() {
               </Card>
             </Link>
             
-            <Link href={`/admin/agencies/${session.user.agencyId}/users`}>
+            <Link href={`/admin/agencies/${session.user.agency.id}/users`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -191,7 +190,6 @@ export default function AdminPage() {
                 </ul>
               </div>
             )}
-            
             {isAgencyAdmin && (
               <div>
                 <h4 className="font-medium mb-2">As an Agency Admin, you can:</h4>
@@ -203,11 +201,9 @@ export default function AdminPage() {
                 </ul>
               </div>
             )}
-            
             <div className="pt-4 border-t">
               <p className="text-sm text-gray-600">
-                Need help? Contact support or check the documentation for detailed guides.
-              </p>
+                Need help? Contact support or check the documentation for detailed guides</p>
             </div>
           </div>
         </CardContent>

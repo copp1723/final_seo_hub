@@ -38,7 +38,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           elements.push(
             <div key={elements.length} className="bg-blue-50 border border-blue-200 rounded p-3 my-2">
               <p className="text-xs font-medium text-blue-900 mb-1">Technical Implementation Details</p>
-              <p className="text-xs text-blue-700">Schema markup configuration available - ask for specific implementation guidance.</p>
+              <p className="text-xs text-blue-700">Schema markup configuration available - ask for specific implementation guidance</p>
             </div>
           )
         } else {
@@ -136,7 +136,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
   
   const parseInlineMarkdown = (text: string): React.ReactNode => {
     // Remove excessive asterisks and clean up formatting
-    text = text.replace(/\*{3,}/g, '**') // Convert *** to **
+    text = text.replace(/\*{3}/g, '**') // Convert *** to **
     
     const parts: React.ReactNode[] = []
     let currentIndex = 0

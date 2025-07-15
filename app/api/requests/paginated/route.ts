@@ -9,7 +9,7 @@ const querySchema = z.object({
   page: z.string().optional().transform(val => parseInt(val || '1')),
   pageSize: z.string().optional().transform(val => parseInt(val || String(DEFAULTS.PAGINATION.PAGE_SIZE))),
   status: z.string().optional(),
-  search: z.string().optional(),
+  search: z.string().optional()
 })
 
 export const GET = createGetHandler(
@@ -19,7 +19,7 @@ export const GET = createGetHandler(
       page: searchParams.get('page') || undefined,
       pageSize: searchParams.get('pageSize') || undefined,
       status: searchParams.get('status') || undefined,
-      search: searchParams.get('search') || undefined,
+      search: searchParams.get('search') || undefined
     })
 
     // Ensure page size is within limits
@@ -36,13 +36,13 @@ export const GET = createGetHandler(
     if (query.search) {
       where.OR = [
         { title: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } }
       ]
     }
 
     // Parallel queries for data and count
     const [requests, totalCount] = await Promise.all([
-      prisma.request.findMany({
+      prisma.requests.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip,
@@ -60,10 +60,10 @@ export const GET = createGetHandler(
           pagesCompleted: true,
           blogsCompleted: true,
           gbpPostsCompleted: true,
-          improvementsCompleted: true,
+          improvementsCompleted: true
         }
       }),
-      prisma.request.count({ where })
+      prisma.requests.count({ where })
     ])
 
     const totalPages = Math.ceil(totalCount / pageSize)
@@ -76,7 +76,7 @@ export const GET = createGetHandler(
         totalCount,
         totalPages,
         hasNextPage: query.page < totalPages,
-        hasPreviousPage: query.page > 1,
+        hasPreviousPage: query.page > 1
       }
     })
   },

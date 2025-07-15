@@ -14,12 +14,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const currentUser = await prisma.user.findUnique({
+    const currentUser = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true, email: true, name: true }
     })
@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
     const { targetUserId } = validation.data
 
     // Get the target user
-    const targetUser = await prisma.user.findUnique({
+    const targetUser = await prisma.users.findUnique({
       where: { id: targetUserId },
       include: {
-        agency: true,
-        dealership: true
+        agencies: true,
+        dealerships: true
       }
     })
 
@@ -81,13 +81,14 @@ export async function POST(request: NextRequest) {
     const expires = new Date(Date.now() + 4 * 60 * 60 * 1000) // 4 hours
 
     // First, clean up any existing sessions for the current user
-    await prisma.session.deleteMany({
+    await prisma.sessions.deleteMany({
       where: { userId: session.user.id }
     })
 
     // Create new session for the target user
-    await prisma.session.create({
+    await prisma.sessions.create({
       data: {
+        id: crypto.randomUUID(),
         sessionToken,
         userId: targetUser.id,
         expires
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Log the impersonation for audit purposes
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         userId: session.user.id,
         action: 'IMPERSONATE_USER',
@@ -129,8 +130,8 @@ export async function POST(request: NextRequest) {
         name: targetUser.name,
         email: targetUser.email,
         role: targetUser.role,
-        agency: targetUser.agency?.name,
-        dealership: targetUser.dealership?.name
+        agency: targetUser.agencies?.name,
+        dealership: targetUser.dealerships?.name
       }
     })
 
@@ -156,7 +157,7 @@ export async function DELETE(request: NextRequest) {
     const originalUser = JSON.parse(originalUserCookie.value)
     
     // Get the original super admin user from database
-    const superAdmin = await prisma.user.findUnique({
+    const superAdmin = await prisma.users.findUnique({
       where: { email: originalUser.email }
     })
 
@@ -166,7 +167,7 @@ export async function DELETE(request: NextRequest) {
 
     // Get current session to log who was being impersonated
     const session = await auth()
-    const impersonatedUserId = session?.user?.id
+    const impersonatedUserId = session?.user.id
 
     // Create a new session for the original user
     const sessionToken = crypto.randomUUID()
@@ -174,14 +175,15 @@ export async function DELETE(request: NextRequest) {
 
     // Clean up existing sessions
     if (impersonatedUserId) {
-      await prisma.session.deleteMany({
+      await prisma.sessions.deleteMany({
         where: { userId: impersonatedUserId }
       })
     }
 
     // Create new session for the original super admin
-    await prisma.session.create({
+    await prisma.sessions.create({
       data: {
+        id: crypto.randomUUID(),
         sessionToken,
         userId: superAdmin.id,
         expires
@@ -206,7 +208,7 @@ export async function DELETE(request: NextRequest) {
 
     // Log the end of impersonation
     if (impersonatedUserId) {
-      await prisma.auditLog.create({
+      await prisma.audit_logs.create({
         data: {
           userId: superAdmin.id,
           action: 'STOP_IMPERSONATION',
@@ -277,4 +279,4 @@ export async function GET(request: NextRequest) {
     console.error('Error checking impersonation status:', error)
     return NextResponse.json({ impersonating: false })
   }
-} 
+}

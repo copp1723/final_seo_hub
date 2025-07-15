@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -23,21 +23,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's info
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true, role: true, agencyId: true }
     })
 
     // Determine target dealership
-    let targetDealershipId = dealershipId || user?.dealershipId
+    let targetDealershipId = dealershipId || user?.dealerships.id
     
     // If agency admin is setting property for a specific dealership
-    if (dealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
+    if (dealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
       // Verify the dealership belongs to the agency
-      const dealership = await prisma.dealership.findFirst({
+      const dealership = await prisma.dealerships.findFirst({
         where: {
           id: dealershipId,
-          agencyId: user.agencyId
+          agencyId: user.agencies?.id
         }
       })
       
@@ -58,19 +58,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the GA4 connection with the specified property
-    const connection = await prisma.gA4Connection.findUnique({
-      where: { dealershipId: targetDealershipId }
+    const connection = await prisma.ga4_connections.findUnique({
+      where: { userId: targetDealershipId }
     })
 
     if (!connection) {
       return NextResponse.json(
-        { error: 'No GA4 connection found. Please connect Google Analytics first.' },
+        { error: 'No GA4 connection found.Please connect Google Analytics first.' },
         { status: 404 }
       )
     }
 
-    await prisma.gA4Connection.update({
-      where: { dealershipId: targetDealershipId },
+    await prisma.ga4_connections.update({
+      where: { userId: targetDealershipId },
       data: {
         propertyId,
         propertyName: propertyName || `Property ${propertyId}`,

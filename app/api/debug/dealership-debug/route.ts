@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -14,10 +14,10 @@ export async function GET() {
     }
 
     // Get comprehensive user data
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       include: {
-        agency: {
+        agencies: {
           include: {
             dealerships: true
           }
@@ -39,30 +39,30 @@ export async function GET() {
         email: user.email,
         name: user.name,
         role: user.role,
-        agencyId: user.agencyId,
-        dealershipId: user.dealershipId,
-        agency: user.agency ? {
-          id: user.agency.id,
-          name: user.agency.name,
-          dealerships: user.agency.dealerships.map(d => ({
+        agencyId: user.agencies?.id,
+        dealershipId: user.dealerships?.id,
+        agency: user.agencies ? {
+          id: user.agencies?.id,
+          name: user.agencies?.name,
+          dealerships: user.agencies.dealerships.map(d => ({
             id: d.id,
             name: d.name
           }))
         } : null,
-        currentDealership: user.dealership ? {
-          id: user.dealership.id,
-          name: user.dealership.name
+        currentDealership: user.dealerships ? {
+          id: user.dealerships?.id,
+          name: user.dealerships?.name
         } : null,
         sessionData: {
-          agencyId: session.user.agencyId,
-          dealershipId: session.user.dealershipId,
+          agencyId: session.user.agency.id,
+          dealershipId: session.user.dealership.id,
           role: session.user.role
         }
       },
       visibility: {
-        hasAgencyId: !!user.agencyId,
-        hasAvailableDealerships: (user.agency?.dealerships?.length || 0) > 0,
-        shouldShowSelector: !!user.agencyId && (user.agency?.dealerships?.length || 0) > 0
+        hasAgencyId: !!user.agencies?.id,
+        hasAvailableDealerships: (user.agencies?.dealerships?.length || 0) > 0,
+        shouldShowSelector: !!user.agencies?.id && (user.agencies?.dealerships?.length || 0) > 0
       }
     })
 

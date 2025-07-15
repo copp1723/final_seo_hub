@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { User, UserRole } from '@prisma/client'
+import { UserRole } from '@prisma/client'
+import type { users } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -14,7 +15,7 @@ import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
 
-type AgencyUser = Pick<User, 'id' | 'name' | 'email' | 'role' | 'createdAt' | 'updatedAt'>
+type AgencyUser = Pick<typeof users, 'id' | 'name' | 'email' | 'role' | 'createdAt' | 'updatedAt'>
 
 const USER_ROLES_EDITABLE_BY_AGENCY_ADMIN = [UserRole.USER, UserRole.AGENCY_ADMIN]
 const USER_ROLES_EDITABLE_BY_SUPER_ADMIN = Object.values(UserRole)
@@ -24,7 +25,7 @@ export default function AgencyUsersPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session, status } = useSession()
-  const agencyId = params.agencyId as string
+  const agencyId = params.agencies.id as string
 
   const [users, setUsers] = useState<AgencyUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -44,8 +45,8 @@ export default function AgencyUsersPage() {
 
   const fetchUsers = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
-    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
-      setError("Access Denied. You don&apos;t have permission to manage these users.")
+    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId)) {
+      setError("Access Denied.You don&apos;t have permission to manage these users.")
       setIsLoading(false)
       return
     }
@@ -78,7 +79,7 @@ export default function AgencyUsersPage() {
   }
 
   const handleRoleChange = (value: string) => {
-    setFormData(prev => ({ ...prev, role: value as UserRole }))
+    setFormData(prev => ({...prev, role: value as UserRole }))
   }
 
   const openModalForCreate = () => {
@@ -102,7 +103,7 @@ export default function AgencyUsersPage() {
       : `/api/admin/agencies/${agencyId}/users`
     const method = editingUser ? 'PUT' : 'POST'
 
-    let requestBody: Record<string, any> = { ...formData };
+    let requestBody: Record<string, any> = {...formData };
     if (editingUser) {
         // For PUT, send userId and only fields that are being updated (name, role)
         // Email is not updatable via this form once user is created
@@ -119,7 +120,7 @@ export default function AgencyUsersPage() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody)
       })
       const responseData = await response.json()
       if (!response.ok) {
@@ -171,14 +172,14 @@ export default function AgencyUsersPage() {
          return;
     }
      if (userToDelete.role === UserRole.SUPER_ADMIN && userToDelete.id !== session.user.id && session.user.role === UserRole.SUPER_ADMIN) {
-        // A SUPER_ADMIN trying to delete another SUPER_ADMIN. This might be allowed or disallowed by policy.
-        // The API has the final say. For now, let's allow the attempt.
+        // A SUPER_ADMIN trying to delete another SUPER_ADMIN.This might be allowed or disallowed by policy.
+        // The API has the final say.For now, let's allow the attempt
     }
 
 
     try {
       const response = await fetch(`/api/admin/agencies/${agencyId}/users?userId=${userToDelete.id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       })
       const responseData = await response.json()
       if (!response.ok) {
@@ -211,11 +212,11 @@ export default function AgencyUsersPage() {
 
 
   if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
-  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
+  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId))) {
      return (
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
-        <p>You do not have permission to view this page. Please contact your administrator.</p>
+        <p>You do not have permission to view this page.Please contact your administrator</p>
         <Button onClick={() => router.push('/dashboard')} className="mt-4">Go to Dashboard</Button>
       </div>
     )
@@ -230,11 +231,9 @@ export default function AgencyUsersPage() {
 
       {isLoading && <div className="flex justify-center items-center py-10"><LoadingSpinner /></div>}
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-
       {!isLoading && !error && users.length === 0 && (
-        <p className="text-center text-gray-500 py-10">No users found for this agency.</p>
+        <p className="text-center text-gray-500 py-10">No users found for this agency</p>
       )}
-
       {!isLoading && !error && users.length > 0 && (
         <div className="overflow-x-auto bg-white shadow-md rounded-lg">
           <Table>
@@ -264,7 +263,7 @@ export default function AgencyUsersPage() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        onClick={() => openDeleteConfirm(user)} 
+                        onClick={() => openDeleteConfirm(user)}
                         disabled={user.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN}
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
@@ -277,7 +276,6 @@ export default function AgencyUsersPage() {
           </Table>
         </div>
       )}
-
       {/* Add/Edit User Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
@@ -316,8 +314,7 @@ export default function AgencyUsersPage() {
             <DialogHeader>
                 <DialogTitle>Confirm Deletion</DialogTitle>
                 <DialogDescription>
-                    Are you sure you want to delete the user: <strong>{userToDelete?.name} ({userToDelete?.email})</strong>? This action cannot be undone.
-                </DialogDescription>
+                    Are you sure you want to delete the user: <strong>{userToDelete?.name} ({userToDelete?.email})</strong>? This action cannot be undone</DialogDescription>
             </DialogHeader>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>

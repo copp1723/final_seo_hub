@@ -6,7 +6,7 @@ export const SEO_PACKAGES = {
     breakdown: {
       pages: 3,
       blogs: 4,
-      gbpPosts: 8,
+      gbpPosts: 8
     }
   },
   GOLD: {
@@ -15,7 +15,7 @@ export const SEO_PACKAGES = {
     breakdown: {
       pages: 6,
       blogs: 8,
-      gbpPosts: 16,
+      gbpPosts: 16
     }
   },
   PLATINUM: {
@@ -24,7 +24,7 @@ export const SEO_PACKAGES = {
     breakdown: {
       pages: 9,
       blogs: 12,
-      gbpPosts: 20,
+      gbpPosts: 20
     }
   }
 } as const
@@ -57,7 +57,7 @@ export function calculatePackageProgress(
     breakdown: {
       pages: { total: pkg.breakdown.pages, completed: 0 },
       blogs: { total: pkg.breakdown.blogs, completed: 0 },
-      gbpPosts: { total: pkg.breakdown.gbpPosts, completed: 0 },
+      gbpPosts: { total: pkg.breakdown.gbpPosts, completed: 0 }
     }
   }
   

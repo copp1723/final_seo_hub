@@ -9,7 +9,7 @@ import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/b
 
 export default function GlobalError({
   error,
-  reset,
+  reset
 }: {
   error: Error & { digest?: string }
   reset: () => void
@@ -61,8 +61,7 @@ export default function GlobalError({
                 Something went wrong
               </CardTitle>
               <CardDescription className="text-lg">
-                We encountered an unexpected error. Our team has been notified and is working to fix this issue.
-              </CardDescription>
+                We encountered an unexpected error.Our team has been notified and is working to fix this issue</CardDescription>
             </CardHeader>
             
             <CardContent className="space-y-4">
@@ -81,7 +80,6 @@ export default function GlobalError({
                   )}
                 </div>
               )}
-              
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button onClick={reset} className="flex-1">
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -105,8 +103,7 @@ export default function GlobalError({
               <Link href="/dashboard" className="text-blue-600 hover:text-blue-500 underline">
                 Dashboard
               </Link>{' '}
-              or contact support.
-            </p>
+              or contact support</p>
           </div>
         </div>
       </body>

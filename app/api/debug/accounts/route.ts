@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all accounts with user information
-    const accounts = await prisma.account.findMany({
+    const accounts = await prisma.accounts.findMany({
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     })
 
     // Get all sessions with user information
-    const sessions = await prisma.session.findMany({
+    const sessions = await prisma.sessions.findMany({
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
@@ -60,13 +60,13 @@ export async function GET(request: NextRequest) {
           type: account.type,
           provider: account.provider,
           providerAccountId: account.providerAccountId,
-          userId: account.userId,
+          userId: account.user.id,
           user: account.user
         })),
         sessions: sessions.map(session => ({
           id: session.id,
           sessionToken: session.sessionToken.substring(0, 20) + '...', // Truncate for security
-          userId: session.userId,
+          userId: session.user.id,
           user: session.user,
           expires: session.expires
         })),

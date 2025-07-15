@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Agency, User } from '@prisma/client'
+import type { agencies, users } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,8 +25,8 @@ import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
 
-type AgencyWithDetails = Agency & {
-  users: User[]
+type AgencyWithDetails = agencies & {
+  users: typeof users[]
   _count: {
     users: number
     requests: number
@@ -106,7 +106,7 @@ export default function SuperAdminAgenciesPage() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData)
       })
       const responseData = await response.json()
       if (!response.ok) {
@@ -131,7 +131,7 @@ export default function SuperAdminAgenciesPage() {
 
     try {
       const response = await fetch(`/api/super-admin/agencies/${agencyToDelete.id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       })
       const responseData = await response.json()
       if (!response.ok) {
@@ -218,13 +218,12 @@ export default function SuperAdminAgenciesPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"
           />
-        </CardContent>
+          </CardContent>
       </Card>
 
       {/* Loading and Error States */}
       {isLoading && <div className="flex justify-center items-center py-10"><LoadingSpinner /></div>}
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-
       {/* Agencies Grid */}
       {!isLoading && !error && filteredAgencies.length === 0 && (
         <Card>
@@ -240,7 +239,6 @@ export default function SuperAdminAgenciesPage() {
           </CardContent>
         </Card>
       )}
-
       {!isLoading && !error && filteredAgencies.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAgencies.map((agency) => (
@@ -290,7 +288,7 @@ export default function SuperAdminAgenciesPage() {
                   <div>
                     <h4 className="text-sm font-medium mb-2">Recent Users:</h4>
                     <div className="space-y-1">
-                      {agency.users.slice(0, 3).map((user) => (
+                      {agency.users.slice(0, 3).map((user: any) => (
                         <div key={user.id} className="flex items-center justify-between text-sm">
                           <span className="truncate">{user.name || user.email}</span>
                           <Badge variant={user.role === 'AGENCY_ADMIN' ? 'default' : 'secondary'} className="text-xs">
@@ -304,7 +302,6 @@ export default function SuperAdminAgenciesPage() {
                     </div>
                   </div>
                 )}
-                
                 <div className="pt-2 border-t space-y-2">
                   <p className="text-xs text-gray-500">
                     Created: {formatDate(agency.createdAt)}
@@ -329,7 +326,6 @@ export default function SuperAdminAgenciesPage() {
           ))}
         </div>
       )}
-
       {/* Add/Edit Agency Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
@@ -376,8 +372,7 @@ export default function SuperAdminAgenciesPage() {
               {agencyToDelete && agencyToDelete._count.users > 0 && (
                 <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
                   <p className="text-red-800 text-sm">
-                    ⚠️ This agency has {agencyToDelete._count.users} users. Please reassign or remove users before deleting.
-                  </p>
+                    ⚠️ This agency has {agencyToDelete._count.users} users. Please reassign or remove users before deleting.</p>
                 </div>
               )}
             </DialogDescription>

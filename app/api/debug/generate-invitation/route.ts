@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication - only SUPER_ADMIN can generate invitation tokens
     const session = await auth()
-    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.users || session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find the user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email }
     })
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Update user with invitation token
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         invitationToken,

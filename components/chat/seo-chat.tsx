@@ -13,7 +13,7 @@ import {
   FileText,
   Globe,
   Search,
-  TrendingUp,
+  TrendingUp
 } from 'lucide-react'
 
 interface Message {
@@ -27,23 +27,23 @@ const suggestionCards = [
   {
     icon: FileText,
     title: 'What does my SEO package include?',
-    prompt: SEO_KNOWLEDGE_BASE.faqs[0].question,
+    prompt: SEO_KNOWLEDGE_BASE.faqs[0].question
   },
   {
     icon: Globe,
     title: 'How long until I see results?',
-    prompt: SEO_KNOWLEDGE_BASE.faqs[5].question,
+    prompt: SEO_KNOWLEDGE_BASE.faqs[5].question
   },
   {
     icon: Search,
     title: 'What are the KPIs for SEO?',
-    prompt: SEO_KNOWLEDGE_BASE.faqs[2].question,
+    prompt: SEO_KNOWLEDGE_BASE.faqs[2].question
   },
   {
     icon: TrendingUp,
     title: 'Why is my traffic down?',
-    prompt: SEO_KNOWLEDGE_BASE.faqs[3].question,
-  },
+    prompt: SEO_KNOWLEDGE_BASE.faqs[3].question
+  }
 ]
 
 export function SEOChat() {
@@ -62,7 +62,7 @@ export function SEOChat() {
       id: Date.now().toString(),
       role: 'user',
       content: messageText,
-      timestamp: new Date(),
+      timestamp: new Date()
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -76,7 +76,7 @@ export function SEOChat() {
         body: JSON.stringify({
           message: messageText,
           conversationId: conversationId
-        }),
+        })
       })
 
       const result = await response.json()
@@ -91,7 +91,7 @@ export function SEOChat() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: data.content || data.message || 'Sorry, I encountered an error processing your request.',
-        timestamp: new Date(),
+        timestamp: new Date()
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -107,7 +107,7 @@ export function SEOChat() {
     if (previousMessage) {
       setEscalationContext({
         question: previousMessage.content,
-        answer: message.content,
+        answer: message.content
       })
       setShowEscalation(true)
     }
@@ -156,7 +156,6 @@ export function SEOChat() {
           )}
         </div>
       )}
-
       <div className="flex gap-2 mt-6">
         <Textarea
           value={input}

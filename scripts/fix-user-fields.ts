@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma'
+import { prisma } from './lib/prisma'
 import { UserRole } from '@prisma/client'
 
 async function fixUserFields() {
@@ -6,7 +6,7 @@ async function fixUserFields() {
   
   try {
     // Find all users and check for missing fields
-    const users = await prisma.user.findMany()
+    const users = await prisma.users.findMany()
     
     console.log(`Checking ${users.length} users for missing fields`)
     
@@ -24,7 +24,7 @@ async function fixUserFields() {
       }
       
       if (Object.keys(updateData).length > 0) {
-        await prisma.user.update({
+        await prisma.users.update({
           where: { id: user.id },
           data: updateData
         })

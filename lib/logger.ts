@@ -28,14 +28,12 @@ export class Logger {
     const errorDetails = this.getErrorDetails(error)
     
     if (this.isDevelopment) {
-      console.error(sanitizedMessage, {
-        ...errorDetails,
+      console.error(sanitizedMessage, { ...errorDetails,
         context
       })
     } else {
       // In production, send to monitoring service
-      this.sendToMonitoring('error', sanitizedMessage, {
-        ...errorDetails,
+      this.sendToMonitoring('error', sanitizedMessage, { ...errorDetails,
         context
       })
     }
@@ -139,7 +137,7 @@ export const logger = Logger.getInstance()
 export function getSafeErrorMessage(error: unknown): string {
   // Never expose internal error details to users
   if (process.env.NODE_ENV === 'production') {
-    return 'An error occurred. Please try again later.'
+    return 'An error occurred.Please try again later.'
   }
   
   // In development, provide more context

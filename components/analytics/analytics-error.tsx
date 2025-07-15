@@ -51,6 +51,6 @@ export function AnalyticsError({ error, onRetry }: AnalyticsErrorProps) {
           </ul>
         </div>
       )}
-    </Card>
+        </Card>
   )
 }

@@ -76,21 +76,21 @@ export async function POST(req: NextRequest) {
     const targetDealers = payload.targetDealers
       .split(';')
       .map(dealer => dealer.trim())
-      .filter(dealer => dealer.length > 0)
+     .filter(dealer => dealer.length > 0)
 
     // Check if user already exists
-    let user = await prisma.user.findUnique({
+    let user = await prisma.users.findUnique({
       where: { email: payload.clientEmail }
     })
 
     if (user) {
-      logger.info('SEOWorks onboarding: User already exists, updating', {
+      logger.info('SEOWorks onboarding: users already exists, updating', {
         userId: user.id,
         email: payload.clientEmail
       })
       
       // Update existing user
-      user = await prisma.user.update({
+      user = await prisma.users.update({
         where: { id: user.id },
         data: {
           name: payload.contactName,
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       })
     } else {
       // Create new user
-      user = await prisma.user.create({
+      user = await prisma.users.create({
         data: {
           email: payload.clientEmail,
           name: payload.contactName,
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     // Note: This route creates users without dealership context
     // Package type information will need to be set through dealership management
     // Create initial request with onboarding data
-    const setupRequest = await prisma.request.create({
+    const setupRequest = await prisma.requests.create({
       data: {
         userId: user.id,
         // Note: agencyId and dealershipId are null for legacy onboarding

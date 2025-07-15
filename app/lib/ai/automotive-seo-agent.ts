@@ -10,7 +10,7 @@ export const AUTOMOTIVE_KNOWLEDGE = {
   inventoryManagement: {
     newVehicles: {
       considerations: [
-        "MSRP vs. dealer pricing strategies",
+        "MSRP vs.dealer pricing strategies",
         "Factory incentives and rebates",
         "Model year transitions",
         "Allocation and availability",
@@ -106,11 +106,11 @@ export const AUTOMOTIVE_KNOWLEDGE = {
 }
 
 // Enhanced system prompt combining SEO and automotive expertise
-export const AUTOMOTIVE_SEO_EXPERT_PROMPT = `You are an elite automotive SEO consultant with deep expertise in both search engine optimization and automotive retail. Your knowledge spans:
+export const AUTOMOTIVE_SEO_EXPERT_PROMPT = `You are an elite automotive SEO consultant with deep expertise in both search engine optimization and automotive retail.Your knowledge spans:
 
 ## Core Expertise Areas:
 
-### 1. Automotive SEO Strategy
+### 1.Automotive SEO Strategy
 - Local SEO for multi-location dealerships
 - Inventory-based dynamic content optimization
 - Mobile-first automotive search behavior
@@ -118,13 +118,11 @@ export const AUTOMOTIVE_SEO_EXPERT_PROMPT = `You are an elite automotive SEO con
 - Google Business Profile optimization for automotive
 - Schema markup for vehicle listings and dealership info
 
-### 2. Automotive Industry Knowledge
+### 2.Automotive Industry Knowledge
 ${JSON.stringify(AUTOMOTIVE_KNOWLEDGE, null, 2)}
-
-### 3. SEO Package Expertise
+### 3.SEO Package Expertise
 ${JSON.stringify(SEO_KNOWLEDGE_BASE.packages, null, 2)}
-
-### 4. Content Strategy
+### 4.Content Strategy
 - Model and trim-specific landing pages
 - Local market comparison content
 - Service department SEO
@@ -132,7 +130,7 @@ ${JSON.stringify(SEO_KNOWLEDGE_BASE.packages, null, 2)}
 - Finance and lease calculator pages
 - Customer testimonial integration
 
-### 5. Technical Implementation
+### 5.Technical Implementation
 - Inventory feed optimization
 - Dynamic URL structures for VDPs/SRPs
 - Site speed for image-heavy automotive sites
@@ -140,7 +138,7 @@ ${JSON.stringify(SEO_KNOWLEDGE_BASE.packages, null, 2)}
 - AMP implementation for inventory pages
 - Core Web Vitals specific to automotive
 
-### 6. Analytics & Reporting
+### 6.Analytics & Reporting
 - VDP/SRP performance tracking
 - Multi-touch attribution modeling
 - Call tracking integration
@@ -150,7 +148,7 @@ ${JSON.stringify(SEO_KNOWLEDGE_BASE.packages, null, 2)}
 
 ## Response Guidelines:
 
-1. **Be Concise**: Keep responses focused and to-the-point. Aim for clarity over length
+1. **Be Concise**: Keep responses focused and to-the-point.Aim for clarity over length
 2. **Be Specific**: Always provide actionable, automotive-specific advice
 3. **Use Data**: Reference performance metrics and industry benchmarks
 4. **Local Focus**: Emphasize local SEO strategies for dealerships
@@ -316,7 +314,7 @@ export const generateAnalyticsInsights = (metrics: any) => {
 
   if (metrics.localVisibility) {
     if (metrics.localVisibility.packRanking > 3) {
-      insights.push(`Currently ranking #${metrics.localVisibility.packRanking} in local pack. Focus on GBP optimization, reviews, and local citations to break into top 3.`)
+      insights.push(`Currently ranking #${metrics.localVisibility.packRanking} in local pack.Focus on GBP optimization, reviews, and local citations to break into top 3.`)
     }
   }
 

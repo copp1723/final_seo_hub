@@ -24,7 +24,7 @@ export const features = {
   // UI/UX
   chatV2: process.env.NEXT_PUBLIC_FEATURE_CHAT_V2 === 'true',
   advancedAnalytics: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS === 'true',
-  performanceTrends: process.env.NEXT_PUBLIC_FEATURE_PERFORMANCE_TRENDS === 'true' || process.env.NODE_ENV === 'development',
+  performanceTrends: process.env.NEXT_PUBLIC_FEATURE_PERFORMANCE_TRENDS === 'true' || process.env.NODE_ENV === 'development'
 } as const;
 
 // User-specific feature flags (can override global flags)

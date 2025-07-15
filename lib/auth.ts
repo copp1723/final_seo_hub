@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { prisma } from '@/lib/prisma'
+import { prisma } from './prisma'
 import { UserRole } from '@prisma/client'
 
 // Determine if we should use secure cookies based on NEXTAUTH_URL
@@ -43,7 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           response_type: "code"
         }
       }
-    }),
+    })
   ],
   callbacks: {
     signIn: async ({ user, account, profile }) => {
@@ -60,16 +60,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // Check if user exists in our database (has been invited)
-        const existingUser = await prisma.user.findUnique({
+        const existingUser = await prisma.users.findUnique({
           where: { email: user.email }
         })
 
         if (!existingUser) {
-          console.log('SignIn denied: User not invited', { email: user.email })
+          console.log('SignIn denied: users not invited', { email: user.email })
           return false
         }
 
-        console.log('SignIn allowed: User found in database', {
+        console.log('SignIn allowed: users found in database', {
           email: user.email,
           userId: existingUser.id,
           role: existingUser.role
@@ -84,37 +84,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // With database strategy, the user object is already populated from DB
       // Just map the fields to the session
       if (session.user && user) {
-        session.user.id = user.id
+        session.user.id = user.id;
         // Ensure role is correctly typed and defaults to USER if not set
         const userRole = (user as any).role as UserRole | undefined;
-        session.user.role = userRole || UserRole.USER;
-        session.user.agencyId = (user as any).agencyId
-        session.user.dealershipId = (user as any).dealershipId
-        session.user.onboardingCompleted = (user as any).onboardingCompleted !== undefined ? (user as any).onboardingCompleted : false
+        (session.user as any).role = userRole || UserRole.USER;
+        (session.user as any).agencyId = (user as any).agencyId;
+        (session.user as any).dealershipId = (user as any).dealershipId;
         
         // Ensure user has required fields set in database
         // Check if any of the crucial fields are null, undefined, or not the correct type
         const needsUpdate =
           (user as any).role === null || (user as any).role === undefined ||
-          !Object.values(UserRole).includes((user as any).role) || // Check if role is a valid UserRole
-          (user as any).onboardingCompleted === null || (user as any).onboardingCompleted === undefined;
+          !Object.values(UserRole).includes((user as any).role); // Check if role is a valid UserRole
 
         if (needsUpdate) {
           // Update user with default values
-          await prisma.user.update({
+          await prisma.users.update({
             where: { id: user.id },
             data: {
-              role: Object.values(UserRole).includes((user as any).role) ? (user as any).role : UserRole.USER,
-              onboardingCompleted: (user as any).onboardingCompleted ?? false,
+              role: Object.values(UserRole).includes((user as any).role) ? (user as any).role : UserRole.USER
             }
-          })
+          });
           // Re-assign role to session after update if it was invalid
           if (!Object.values(UserRole).includes(userRole!)) {
-            session.user.role = UserRole.USER;
+            (session.user as any).role = UserRole.USER;
           }
         }
       }
-      return session
+      return session;
     },
     redirect: async ({ url, baseUrl }) => {
       // Allows relative callback URLs
@@ -126,7 +123,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   pages: {
     signIn: '/auth/signin',
-    error: '/auth/error',
+    error: '/auth/error'
   },
   cookies: {
     sessionToken: {

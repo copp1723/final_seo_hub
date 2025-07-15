@@ -4,7 +4,7 @@ import {
   generateTaskContext, 
   detectTaskRelatedIntents,
   TaskReference 
-} from '../task-context'
+} from './task-context'
 import { TaskType } from '@prisma/client'
 
 // Mock task data for testing
@@ -127,8 +127,7 @@ describe('Task Context Module', () => {
     })
 
     it('should truncate long notes', () => {
-      const longNotesTask: TaskReference = {
-        ...mockTasks[0],
+      const longNotesTask: TaskReference = { ...mockTasks[0],
         completedNotes: 'A'.repeat(300) // Very long notes
       }
       const context = generateTaskContext([longNotesTask])
@@ -170,12 +169,10 @@ describe('Task Context Module', () => {
 
   describe('Task scoring and relevance', () => {
     it('should score recent tasks higher', () => {
-      const recentTask: TaskReference = {
-        ...mockTasks[0],
+      const recentTask: TaskReference = { ...mockTasks[0],
         completedAt: new Date() // Today
       }
-      const oldTask: TaskReference = {
-        ...mockTasks[1],
+      const oldTask: TaskReference = { ...mockTasks[1],
         completedAt: new Date('2023-01-01') // Old
       }
       
@@ -185,12 +182,10 @@ describe('Task Context Module', () => {
     })
 
     it('should boost tasks with URLs', () => {
-      const taskWithUrl: TaskReference = {
-        ...mockTasks[0],
+      const taskWithUrl: TaskReference = { ...mockTasks[0],
         completedUrl: 'https://example.com/test'
       }
-      const taskWithoutUrl: TaskReference = {
-        ...mockTasks[1],
+      const taskWithoutUrl: TaskReference = { ...mockTasks[1],
         completedUrl: null
       }
       

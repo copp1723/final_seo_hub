@@ -1,13 +1,13 @@
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { User, Agency } from '@prisma/client'
+import type { users, agencies } from '@prisma/client'
 import { CSV_VALIDATION_RULES } from '@/lib/validations/dealership-csv'
 
 export interface SenderValidationResult {
   isValid: boolean
-  user?: User & { agency: Agency | null }
-  agency?: Agency
+  user?: users & { agencies: agencies | null }
+  agency?: agencies
   error?: string
 }
 
@@ -52,9 +52,9 @@ export class CsvSecurityService {
    */
   static async validateSender(email: string): Promise<SenderValidationResult> {
     try {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { email },
-        include: { agency: true }
+        include: { agencies: true }
       })
 
       if (!user) {
@@ -64,7 +64,7 @@ export class CsvSecurityService {
         }
       }
 
-      if (!user.agency) {
+      if (!user.agencies) {
         return { 
           isValid: false, 
           error: 'User is not associated with an agency' 
@@ -76,14 +76,14 @@ export class CsvSecurityService {
       if (!allowedRoles.includes(user.role)) {
         return { 
           isValid: false, 
-          error: `Insufficient permissions. Required: ${allowedRoles.join(' or ')}` 
+          error: `Insufficient permissions.Required: ${allowedRoles.join(' or ')}` 
         }
       }
 
       return {
         isValid: true,
         user,
-        agency: user.agency
+        agency: user.agencies
       }
     } catch (error) {
       logger.error('Error validating sender', error, { email })

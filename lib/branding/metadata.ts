@@ -8,21 +8,21 @@ export function generateMetadata(branding?: BrandingConfig): Metadata {
     title: config.companyName,
     description: `AI-Powered SEO Request Management Platform by ${config.companyName}`,
     icons: {
-      icon: config.favicon || '/favicon.ico',
+      icon: config.favicon || '/favicon.ico'
     },
     openGraph: {
       title: config.companyName,
       description: `AI-Powered SEO Request Management Platform by ${config.companyName}`,
-      siteName: config.companyName,
+      siteName: config.companyName
     },
     twitter: {
       title: config.companyName,
-      description: `AI-Powered SEO Request Management Platform by ${config.companyName}`,
+      description: `AI-Powered SEO Request Management Platform by ${config.companyName}`
     }
   }
 }
 
-export function generateDynamicMetadata(request?: Request): Metadata {
+export function generateDynamicMetadata(request?: typeof requests): Metadata {
   if (request) {
     const branding = getBrandingFromDomain(new URL(request.url).hostname)
     return generateMetadata(branding)

@@ -34,8 +34,8 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
           title: `Chat Escalation: ${context.question.substring(0, 60)}${context.question.length > 60 ? '...' : ''}`,
           description: `**Original User Query:**\n${context.originalQuery || context.question}\n\n**Specific Question:**\n${context.question}\n\n**AI Assistant Response:**\n${context.answer}\n\n**Additional Context:**\n${additionalNotes || 'No additional notes provided.'}\n\n---\n*This request was escalated from the AI chat assistant for expert review.*`,
           type: 'improvement', // Use existing valid type
-          priority: 'MEDIUM',
-        }),
+          priority: 'MEDIUM'
+        })
       })
 
       if (response.ok) {
@@ -44,23 +44,23 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
         // Show success toast
         toast({
           title: "Request Sent Successfully",
-          description: "Your question has been sent to the SEO team. You can track the response in your Requests page.",
-          variant: "success",
+          description: "Your question has been sent to the SEO team.You can track the response in your Requests page.",
+          variant: "success"
         })
       } else {
         const errorData = await response.json()
         toast({
           title: "Failed to Send Request",
-          description: errorData.error || 'Unknown error occurred. Please try again.',
-          variant: "destructive",
+          description: errorData.error || 'Unknown error occurred.Please try again.',
+          variant: "destructive"
         })
       }
     } catch (error) {
       console.error('Escalation error:', error)
       toast({
         title: "Network Error",
-        description: "Failed to send request. Please check your connection and try again.",
-        variant: "destructive",
+        description: "Failed to send request.Please check your connection and try again.",
+        variant: "destructive"
       })
     } finally {
       setSubmitting(false)
@@ -90,7 +90,6 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
               <p className="text-sm text-gray-600 bg-blue-50 p-2 rounded">{context.originalQuery}</p>
             </div>
           )}
-          
           <div>
             <p className="text-sm font-medium mb-1">Your Question:</p>
             <p className="text-sm text-gray-600">{context.question}</p>

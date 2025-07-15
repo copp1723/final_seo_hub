@@ -129,8 +129,7 @@ export class PerformanceCache<T = any> {
    */
   getStats(): CacheStats & { size: number; hitRate: number } {
     const total = this.stats.hits + this.stats.misses;
-    return {
-      ...this.stats,
+    return { ...this.stats,
       size: this.memoryCache.size,
       hitRate: total > 0 ? this.stats.hits / total : 0
     };
@@ -274,7 +273,7 @@ export class ChatResponseCache extends PerformanceCache<{ query: string; respons
     const set2 = new Set(str2.split(' '));
     
     const intersection = new Set([...set1].filter(x => set2.has(x)));
-    const union = new Set([...set1, ...set2]);
+    const union = new Set([...set1,...set2]);
     
     return intersection.size / union.size;
   }

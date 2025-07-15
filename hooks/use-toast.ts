@@ -15,19 +15,19 @@ export const toast = (message: string, type: 'success' | 'error' | 'info' = 'inf
     case 'success':
       sonnerToast.success(title || message, {
         description,
-        duration: duration || 4000,
+        duration: duration || 4000
       })
       break
     case 'error':
       sonnerToast.error(title || message, {
         description,
-        duration: duration || 5000,
+        duration: duration || 5000
       })
       break
     default:
       sonnerToast(title || message, {
         description,
-        duration: duration || 4000,
+        duration: duration || 4000
       })
   }
 }

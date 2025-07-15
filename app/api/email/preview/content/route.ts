@@ -30,8 +30,7 @@ export async function POST(request: NextRequest) {
     
     const emailContent = contentAddedTemplate(mockRequest, mockUser, taskDetails)
     
-    return successResponse({
-      ...emailContent,
+    return successResponse({ ...emailContent,
       previewUrl: `data:text/html;charset=utf-8,${encodeURIComponent(emailContent.html)}`,
       taskDetails
     })
@@ -102,8 +101,8 @@ export async function GET(request: NextRequest) {
     
     return new Response(emailContent.html, {
       headers: {
-        'Content-Type': 'text/html',
-      },
+        'Content-Type': 'text/html'
+      }
     })
   } catch (error) {
     return errorResponse('Failed to generate preview', 500)

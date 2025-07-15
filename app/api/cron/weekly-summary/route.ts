@@ -25,15 +25,15 @@ export async function GET(request: NextRequest) {
     let errors = 0
     
     // Get all users with weekly summary enabled
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where: {
-        preferences: {
+        user_preferences: {
           emailNotifications: true,
           weeklySummary: true
         }
       },
       include: {
-        preferences: true
+        user_preferences: true
       }
     })
     
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     for (const user of users) {
       try {
         // Get user's requests from the past week
-        const requests = await prisma.request.findMany({
+        const requests = await prisma.requests.findMany({
           where: {
             userId: user.id,
             updatedAt: {
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         }
         
         // Get upcoming tasks (pending requests with high priority)
-        const upcomingRequests = await prisma.request.findMany({
+        const upcomingRequests = await prisma.requests.findMany({
           where: {
             userId: user.id,
             status: 'PENDING',

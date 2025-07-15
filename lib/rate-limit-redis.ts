@@ -37,7 +37,7 @@ export function createRedisRateLimit(config: RateLimitConfig) {
         return NextResponse.json<ApiResponse>(
           {
             success: false,
-            error: config.message || 'Rate limit exceeded',
+            error: config.message || 'Rate limit exceeded'
           },
           {
             status: 429,
@@ -45,8 +45,8 @@ export function createRedisRateLimit(config: RateLimitConfig) {
               'X-RateLimit-Limit': config.maxRequests.toString(),
               'X-RateLimit-Remaining': '0',
               'X-RateLimit-Reset': resetTime.toString(),
-              'Retry-After': ttl.toString(),
-            },
+              'Retry-After': ttl.toString()
+            }
           }
         )
       }
@@ -81,27 +81,27 @@ export const enhancedRateLimits = {
   ai: createRedisRateLimit({
     windowMs: RATE_LIMITS.AI.WINDOW,
     maxRequests: RATE_LIMITS.AI.MAX_REQUESTS,
-    message: 'Too many AI requests. Please wait before trying again.',
+    message: 'Too many AI requests.Please wait before trying again.'
   }),
 
   // API endpoints - moderate
   api: createRedisRateLimit({
     windowMs: TIME_CONSTANTS.ONE_MINUTE,
     maxRequests: 30, // 30 requests per minute
-    message: 'Too many API requests. Please slow down.',
+    message: 'Too many API requests.Please slow down.'
   }),
 
   // Webhook endpoints - lenient
   webhook: createRedisRateLimit({
     windowMs: RATE_LIMITS.WEBHOOK.WINDOW,
     maxRequests: RATE_LIMITS.WEBHOOK.MAX_REQUESTS,
-    message: 'Too many webhook requests. Please slow down.',
+    message: 'Too many webhook requests.Please slow down.'
   }),
 
   // Authentication endpoints - strict
   auth: createRedisRateLimit({
     windowMs: RATE_LIMITS.AUTH.WINDOW,
     maxRequests: RATE_LIMITS.AUTH.MAX_REQUESTS,
-    message: 'Too many authentication attempts. Please try again later.',
-  }),
+    message: 'Too many authentication attempts.Please try again later.'
+  })
 }

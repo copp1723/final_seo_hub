@@ -13,7 +13,7 @@ import { CheckCircle, Building2, Target, Rocket } from 'lucide-react'
 const steps = [
   { id: 1, name: 'Business Info', icon: Building2, description: 'Tell us about your dealership' },
   { id: 2, name: 'SEO Goals', icon: Target, description: 'What do you want to achieve?' },
-  { id: 3, name: 'Get Started', icon: Rocket, description: 'Complete your setup' },
+  { id: 3, name: 'Get Started', icon: Rocket, description: 'Complete your setup' }
 ]
 
 export default function OnboardingPage() {
@@ -208,9 +208,7 @@ export default function OnboardingPage() {
             <div>
               <h3 className="text-xl font-semibold mb-2">You're all set!</h3>
               <p className="text-gray-600">
-                We'll review your information and start setting up your SEO campaign.
-                You'll receive an email confirmation shortly.
-              </p>
+                We'll review your information and start setting up your SEO campaign.You'll receive an email confirmation shortly</p>
             </div>
             <div className="bg-blue-50 p-4 rounded-lg text-left">
               <h4 className="font-medium mb-2">What happens next:</h4>
@@ -287,13 +285,12 @@ export default function OnboardingPage() {
         
         <CardContent className="space-y-6">
           {renderStep()}
-          
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
             </div>
           )}
-        </CardContent>
+          </CardContent>
         
         <div className="flex justify-between p-6 border-t">
           <Button

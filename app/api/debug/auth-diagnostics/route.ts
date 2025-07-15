@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       NEXTAUTH_URL: process.env.NEXTAUTH_URL,
       NEXTAUTH_URL_INTERNAL: process.env.NEXTAUTH_URL_INTERNAL,
       hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
-      hasGoogleCredentials: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      hasGoogleCredentials: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
     },
     request: {
       url: request.url,
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'user-agent': headersList.get('user-agent'),
         'x-forwarded-for': headersList.get('x-forwarded-for'),
-        'x-real-ip': headersList.get('x-real-ip'),
+        'x-real-ip': headersList.get('x-real-ip')
       }
     },
     cookies: {

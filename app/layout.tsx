@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = generateBrandingMetadata()
 
 export default function RootLayout({
-  children,
+  children
 }: {
   children: React.ReactNode
 }) {

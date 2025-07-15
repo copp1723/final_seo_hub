@@ -24,7 +24,7 @@ export function MessageBubble({ message, onEscalate }: MessageBubbleProps) {
           isUser ? 'bg-blue-600' : 'bg-gray-200'
         }`}>
           {isUser ? (
-            <User className="h-4 w-4 text-white" />
+            <users className="h-4 w-4 text-white" />
           ) : (
             <Bot className="h-4 w-4 text-gray-600" />
           )}

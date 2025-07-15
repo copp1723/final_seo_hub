@@ -35,16 +35,13 @@ export default function PrivacyPolicy() {
           <h2 className="text-2xl font-semibold mb-4">Data Security</h2>
           <p className="mb-4">
             We implement appropriate security measures to protect your personal information against 
-            unauthorized access, alteration, disclosure, or destruction.
-          </p>
+            unauthorized access, alteration, disclosure, or destruction</p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Third-Party Services</h2>
           <p className="mb-4">
-            We integrate with Google services (Analytics, Search Console) to provide SEO insights. 
-            Your data with these services is governed by their respective privacy policies.
-          </p>
+            We integrate with Google services (Analytics, Search Console) to provide SEO insights.Your data with these services is governed by their respective privacy policies</p>
         </section>
 
         <section className="mb-8">

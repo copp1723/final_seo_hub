@@ -14,7 +14,7 @@ export const CACHE_TAGS = {
   ANALYTICS: (userId: string) => `analytics-${userId}`,
   SEARCH_CONSOLE: (userId: string) => `search-console-${userId}`,
   GA4: (userId: string) => `ga4-${userId}`,
-  PREFERENCES: (userId: string) => `preferences-${userId}`,
+  PREFERENCES: (userId: string) => `preferences-${userId}`
 } as const
 
 // Revalidate specific cache tags
@@ -52,7 +52,7 @@ export const cachedQueries = {
   getUserPreferences: createCachedFunction(
     async (userId: string) => {
       const { prisma } = await import('./prisma')
-      return prisma.userPreferences.findUnique({
+      return prisma.users.preferences.findUnique({
         where: { userId }
       })
     },
@@ -67,16 +67,16 @@ export const cachedQueries = {
   getUserRequests: createCachedFunction(
     async (userId: string, limit?: number) => {
       const { prisma } = await import('./prisma')
-      return prisma.request.findMany({
+      return prisma.requests.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: limit,
         include: {
-          user: {
+          users: {
             select: {
               id: true,
               name: true,
-              email: true,
+              email: true
             }
           }
         }
@@ -85,7 +85,7 @@ export const cachedQueries = {
     {
       name: 'getUserRequests',
       tags: (userId: string) => [CACHE_TAGS.REQUESTS(userId)],
-      revalidate: CACHE_TTL.ANALYTICS / 1000,
+      revalidate: CACHE_TTL.ANALYTICS / 1000
     }
   ),
 
@@ -95,12 +95,12 @@ export const cachedQueries = {
       const { prisma } = await import('./prisma')
       
       const [statusCounts, completedThisMonth, latestRequest] = await Promise.all([
-        prisma.request.groupBy({
+        prisma.requests.groupBy({
           by: ['status'],
           where: { userId },
           _count: true
         }),
-        prisma.request.count({
+        prisma.requests.count({
           where: {
             userId,
             status: 'COMPLETED',
@@ -109,7 +109,7 @@ export const cachedQueries = {
             }
           }
         }),
-        prisma.request.findFirst({
+        prisma.requests.findFirst({
           where: {
             userId,
             packageType: { not: null }
@@ -134,49 +134,49 @@ export const cachedQueries = {
     {
       name: 'getDashboardStats',
       tags: (userId: string) => [CACHE_TAGS.USER(userId), CACHE_TAGS.REQUESTS(userId)],
-      revalidate: CACHE_TTL.ANALYTICS / 1000,
+      revalidate: CACHE_TTL.ANALYTICS / 1000
     }
   ),
 
   // Search Console connection status with 5-minute cache
   getSearchConsoleStatus: createCachedFunction(
-    async (dealershipId: string) => {
+    async (userId: string) => {
       const { prisma } = await import('./prisma')
-      return prisma.searchConsoleConnection.findUnique({
-        where: { dealershipId },
+      return prisma.search_console_connections.findUnique({
+        where: { userId },
         select: {
           id: true,
           siteUrl: true,
-          siteName: true,
+          siteName: true
         }
       })
     },
     {
       name: 'getSearchConsoleStatus',
-      tags: (dealershipId: string) => [CACHE_TAGS.SEARCH_CONSOLE(dealershipId)],
-      revalidate: CACHE_TTL.ANALYTICS / 1000,
+      tags: (userId: string) => [CACHE_TAGS.SEARCH_CONSOLE(userId)],
+      revalidate: CACHE_TTL.ANALYTICS / 1000
     }
   ),
 
   // GA4 connection status with 5-minute cache
   getGA4Status: createCachedFunction(
-    async (dealershipId: string) => {
+    async (userId: string) => {
       const { prisma } = await import('./prisma')
-      return prisma.gA4Connection.findUnique({
-        where: { dealershipId },
+      return prisma.ga4_connections.findUnique({
+        where: { userId },
         select: {
           id: true,
           propertyId: true,
-          propertyName: true,
+          propertyName: true
         }
       })
     },
     {
       name: 'getGA4Status',
-      tags: (dealershipId: string) => [CACHE_TAGS.GA4(dealershipId)],
-      revalidate: CACHE_TTL.ANALYTICS / 1000,
+      tags: (userId: string) => [CACHE_TAGS.GA4(userId)],
+      revalidate: CACHE_TTL.ANALYTICS / 1000
     }
-  ),
+  )
 }
 
 // Memory cache for rate limiting and temporary data
@@ -213,7 +213,8 @@ class MemoryCache {
   // Clean up expired entries periodically
   cleanup() {
     const now = Date.now()
-    for (const [key, item] of this.cache.entries()) {
+    const entries = Array.from(this.cache.entries())
+    for (const [key, item] of entries) {
       if (now > item.expiry) {
         this.cache.delete(key)
       }

@@ -1,10 +1,10 @@
-import { contentAddedTemplate } from '../lib/mailgun/content-notifications.js'
-import { Request, User } from '@prisma/client'
+import { contentAddedTemplate } from './lib/mailgun/content-notifications.js'
+import { requests, users } from '@prisma/client'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 
 // Create sample data
-const sampleUser: User = {
+const sampleUser: users = {
   id: 'user_demo',
   email: 'john@exampledealership.com',
   name: 'John Smith',
@@ -22,7 +22,7 @@ const sampleUser: User = {
   updatedAt: new Date()
 }
 
-const sampleRequest: Request = {
+const sampleRequest: requests = {
   id: 'req_demo',
   userId: 'user_demo',
   agencyId: 'agency_123',
@@ -97,7 +97,7 @@ const scenarios = [
 // Generate HTML files for each scenario
 scenarios.forEach(scenario => {
   const result = contentAddedTemplate(sampleRequest, sampleUser, scenario.taskDetails)
-  const outputPath = join(__dirname, '..', 'email-previews', `${scenario.name}.html`)
+  const outputPath = join(__dirname, '.', 'email-previews', `${scenario.name}.html`)
   
   // Wrap in a full HTML document for better preview
   const fullHtml = `
@@ -113,7 +113,7 @@ scenarios.forEach(scenario => {
       background: #f5f5f5; 
       font-family: Arial, sans-serif;
     }
-    .subject-line {
+   .subject-line {
       background: #333;
       color: white;
       padding: 15px;
@@ -134,4 +134,4 @@ scenarios.forEach(scenario => {
   console.log(`✓ Generated preview: ${scenario.name}.html`)
 })
 
-console.log('\nAll email previews generated in ./email-previews/')
+console.log('\nAll email previews generated in./email-previews/')

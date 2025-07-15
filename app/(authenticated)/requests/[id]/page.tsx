@@ -72,7 +72,7 @@ const RequestDetailPage: React.FC = () => {
   }
 
   if (!requestDetails) {
-    return <div className="p-10 text-center">Request not found.</div>;
+    return <div className="p-10 text-center">Request not found</div>;
   }
 
   const formatDate = (dateString?: string) => {
@@ -107,7 +107,7 @@ const RequestDetailPage: React.FC = () => {
                 style={{ width: `${(requestDetails.completedTaskCount / requestDetails.totalTasks) * 100}%` }}
               ></div>
             </div>
-            <p className="text-sm text-gray-600">{requestDetails.completedTaskCount} of {requestDetails.totalTasks} tasks completed.</p>
+            <p className="text-sm text-gray-600">{requestDetails.completedTaskCount} of {requestDetails.totalTasks} tasks completed</p>
           </div>
         )}
       </div>
@@ -134,7 +134,7 @@ const RequestDetailPage: React.FC = () => {
             ))}
           </ul>
         ) : (
-          <p>No tasks have been marked as complete for this request yet.</p>
+          <p>No tasks have been marked as complete for this request yet</p>
         )}
       </div>
     </div>

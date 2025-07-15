@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger'
 
 export async function refreshGA4TokenIfNeeded(dealershipId: string): Promise<boolean> {
   try {
-    const connection = await prisma.gA4Connection.findUnique({
+    const connection = await prisma.ga4_connections.findUnique({
       where: { dealershipId }
     })
 
@@ -46,7 +46,7 @@ export async function refreshGA4TokenIfNeeded(dealershipId: string): Promise<boo
     }
 
     // Update the connection with new token
-    await prisma.gA4Connection.update({
+    await prisma.ga4_connections.update({
       where: { id: connection.id },
       data: {
         accessToken: encrypt(credentials.access_token),

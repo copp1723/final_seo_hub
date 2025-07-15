@@ -14,11 +14,11 @@ export const onboardingSchema = z.object({
   billingEmail: z.string().email({ message: 'Invalid billing email address' }),
   siteAccessNotes: z.string().optional(),
   package: z.enum(['SILVER', 'GOLD', 'PLATINUM'], {
-    errorMap: () => ({ message: 'Please select a package' }),
+    errorMap: () => ({ message: 'Please select a package' })
   }),
   targetVehicleModels: z.string().min(1, { message: 'Target vehicle models are required' }),
   targetCities: z.string().min(1, { message: 'Target cities are required' }),
-  targetDealers: z.string().min(1, { message: 'Target dealers are required' }),
+  targetDealers: z.string().min(1, { message: 'Target dealers are required' })
 });
 
 export type OnboardingData = z.infer<typeof onboardingSchema>;

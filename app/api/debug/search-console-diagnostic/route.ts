@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -38,21 +38,21 @@ export async function GET() {
       diagnostic.databaseChecks.connection = 'success'
 
       // Get user's dealership
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: session.user.id },
-        include: { dealership: true }
+        include: { dealerships: true }
       })
 
-      if (!user?.dealershipId) {
+      if (!user?.dealerships?.id) {
         diagnostic.databaseChecks.noDealership = true
         return NextResponse.json(diagnostic, { status: 200 })
       }
 
-      diagnostic.databaseChecks.dealershipId = user.dealershipId
+      diagnostic.databaseChecks.dealerships.id = user.dealerships.id
       
       // Check if searchConsoleConnection record exists
-      const connection = await prisma.searchConsoleConnection.findUnique({
-        where: { dealershipId: user.dealershipId }
+      const connection = await prisma.search_console_connections.findUnique({
+        where: { userId: user.dealerships?.id }
       })
       
       diagnostic.databaseChecks.recordExists = !!connection
@@ -105,12 +105,12 @@ export async function GET() {
 
           oauth2Client.setCredentials({
             access_token: accessToken,
-            refresh_token: refreshToken,
+            refresh_token: refreshToken
           })
 
           const searchConsole = google.searchconsole({
             version: 'v1',
-            auth: oauth2Client,
+            auth: oauth2Client
           })
 
           // Test API call - list sites

@@ -6,7 +6,7 @@ export async function POST() {
   try {
     const session = await auth()
     
-    if (!session?.user?.id || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user.id || session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized - Super Admin access required' },
         { status: 401 }
@@ -14,9 +14,9 @@ export async function POST() {
     }
 
     // Get the current user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
-      include: { agency: true }
+      include: { agencies: true }
     })
 
     if (!user) {
@@ -30,22 +30,25 @@ export async function POST() {
 
     // Create an agency if the user doesn't have one
     if (!agency) {
-      agency = await prisma.agency.create({
+      agency = await prisma.agencies.create({
         data: {
+        id: crypto.randomUUID(),
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        updatedAt: new Date(),
           name: 'Jay Hatfield Automotive Group',
           domain: 'jayhatfield.com'
         }
       })
 
       // Associate the user with the agency
-      await prisma.user.update({
+      await prisma.users.update({
         where: { id: user.id },
         data: { agencyId: agency.id }
       })
     }
 
     // Check if dealerships already exist
-    const existingDealerships = await prisma.dealership.findMany({
+    const existingDealerships = await prisma.dealerships.findMany({
       where: { agencyId: agency.id }
     })
 
@@ -58,7 +61,7 @@ export async function POST() {
     }
 
     // Create test dealerships
-    const dealership1 = await prisma.dealership.create({
+    const dealership1 = await prisma.dealerships.create({
       data: {
         name: 'Jay Hatfield Chevrolet',
         address: '123 Auto Row, Wichita, KS',
@@ -69,7 +72,7 @@ export async function POST() {
       }
     })
 
-    const dealership2 = await prisma.dealership.create({
+    const dealership2 = await prisma.dealerships.create({
       data: {
         name: 'Jay Hatfield Motorsports of Wichita',
         address: '456 Speed Way, Wichita, KS',
@@ -81,7 +84,7 @@ export async function POST() {
     })
 
     // Set the user's active dealership to the first one
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: { dealershipId: dealership1.id }
     })

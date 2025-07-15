@@ -24,7 +24,7 @@ const updateUserSchema = z.object({
 // Get all users with pagination and filtering (SUPER_ADMIN only)
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
     
     if (agency !== 'all') {
       if (agency === 'none') {
-        where.agencyId = null
+        where.agencies.id = null
       } else {
-        where.agencyId = agency
+        where.agencies.id = agency
       }
     }
 
@@ -71,10 +71,10 @@ export async function GET(request: NextRequest) {
     }
 
     const [users, total] = await Promise.all([
-      prisma.user.findMany({
+      prisma.users.findMany({
         where,
         include: {
-          agency: true,
+          agencies: true,
           _count: {
             select: { requests: true }
           }
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * limit,
         take: limit
       }),
-      prisma.user.count({ where })
+      prisma.users.count({ where })
     ])
 
     const totalPages = Math.ceil(total / limit)
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 // Create new user (SUPER_ADMIN only)
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     const { name, email, role, agencyId } = validation.data
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email }
     })
 
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Validate agency if provided
     if (agencyId) {
-      const agency = await prisma.agency.findUnique({
+      const agency = await prisma.agencies.findUnique({
         where: { id: agencyId }
       })
       if (!agency) {
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     const invitationToken = crypto.randomBytes(32).toString('hex')
     const invitationTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         name,
         email,
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         onboardingCompleted: true // Super admin created users are considered onboarded
       },
       include: {
-        agency: true,
+        agencies: true,
         _count: {
           select: { requests: true }
         }
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         email: user.email,
         role: user.role,
-        agencyId: user.agencyId,
+        agencyId: user.agencies?.id,
         invitedBy
       })
     } else {
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         email: user.email,
         role: user.role,
-        agencyId: user.agencyId,
+        agencyId: user.agencies?.id,
         invitedBy
       })
     }
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
 // Update user (SUPER_ADMIN only)
 export async function PUT(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -234,7 +234,7 @@ export async function PUT(request: NextRequest) {
     const { userId, name, role, agencyId } = validation.data
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { id: userId }
     })
 
@@ -244,7 +244,7 @@ export async function PUT(request: NextRequest) {
 
     // Validate agency if provided
     if (agencyId) {
-      const agency = await prisma.agency.findUnique({
+      const agency = await prisma.agencies.findUnique({
         where: { id: agencyId }
       })
       if (!agency) {
@@ -252,7 +252,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const user = await prisma.user.update({
+    const user = await prisma.users.update({
       where: { id: userId },
       data: {
         name,
@@ -260,7 +260,7 @@ export async function PUT(request: NextRequest) {
         agencyId: agencyId || null
       },
       include: {
-        agency: true,
+        agencies: true,
         _count: {
           select: { requests: true }
         }
@@ -280,7 +280,7 @@ export async function PUT(request: NextRequest) {
 // Delete user (SUPER_ADMIN only)
 export async function DELETE(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -295,7 +295,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { id: userId }
     })
 
@@ -310,7 +310,7 @@ export async function DELETE(request: NextRequest) {
 
     // Additional safety check for SUPER_ADMIN deletion
     if (existingUser.role === 'SUPER_ADMIN') {
-      const superAdminCount = await prisma.user.count({
+      const superAdminCount = await prisma.users.count({
         where: { role: 'SUPER_ADMIN' }
       })
       
@@ -324,7 +324,7 @@ export async function DELETE(request: NextRequest) {
     // Delete user and all related data
     await prisma.$transaction(async (tx) => {
       // Get user's dealership for integration cleanup
-      const userToDelete = await tx.user.findUnique({
+      const userToDelete = await tx.users.findUnique({
         where: { id: userId },
         select: { dealershipId: true }
       })
@@ -334,15 +334,15 @@ export async function DELETE(request: NextRequest) {
         where: { userId }
       })
       
-      await tx.request.deleteMany({
+      await tx.requests.deleteMany({
         where: { userId }
       })
       
       // Delete dealership integrations if this is the only user in the dealership
-      if (userToDelete?.dealershipId) {
-        const otherUsersInDealership = await tx.user.count({
+      if (userToDelete?.dealerships?.id) {
+        const otherUsersInDealership = await tx.users.count({
           where: {
-            dealershipId: userToDelete.dealershipId,
+            userId: userToDelete.dealerships?.id,
             id: { not: userId }
           }
         })
@@ -350,26 +350,26 @@ export async function DELETE(request: NextRequest) {
         // If this is the last user in the dealership, clean up dealership integrations
         if (otherUsersInDealership === 0) {
           await tx.gA4Connection.deleteMany({
-            where: { dealershipId: userToDelete.dealershipId }
+            where: { userId: userToDelete.dealerships?.id }
           })
           
-          await tx.searchConsoleConnection.deleteMany({
-            where: { dealershipId: userToDelete.dealershipId }
+          await tx.search_console_connections.deleteMany({
+            where: { userId: userToDelete.dealerships?.id }
           })
 
           await tx.monthlyUsage.deleteMany({
-            where: { dealershipId: userToDelete.dealershipId }
+            where: { userId: userToDelete.dealerships?.id }
           })
         }
       }
       
       // Delete user preferences
-      await tx.userPreferences.deleteMany({
+      await tx.users.references.deleteMany({
         where: { userId }
       })
       
       // Finally delete the user
-      await tx.user.delete({
+      await tx.users.delete({
         where: { id: userId }
       })
     })

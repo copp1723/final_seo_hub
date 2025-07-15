@@ -22,7 +22,7 @@ export function DashboardSkeleton() {
               <CardContent>
                 <Skeleton className="h-8 w-16 mb-1" />
                 <Skeleton className="h-3 w-32" />
-              </CardContent>
+          </CardContent>
             </Card>
           ))}
         </div>

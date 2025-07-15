@@ -47,7 +47,7 @@ export function LazyImage({
   return (
     <div ref={imgRef} className={cn('relative', className)}>
       <Image
-        {...props}
+        { ...props}
         src={imageSrc}
         alt={alt}
         className={cn(

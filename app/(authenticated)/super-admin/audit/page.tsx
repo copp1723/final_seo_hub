@@ -52,7 +52,7 @@ interface AuditStats {
 }
 
 export default function SuperAdminAuditPage() {
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [auditLogs, setAuditLogs] = useState<typeof audit_logs[]>([])
   const [stats, setStats] = useState<AuditStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +86,7 @@ export default function SuperAdminAuditPage() {
         ...(actionFilter && { action: actionFilter }),
         ...(userFilter && { userId: userFilter }),
         ...(dateFilter && { date: dateFilter }),
-        ...(resourceFilter && { resource: resourceFilter }),
+        ...(resourceFilter && { resource: resourceFilter })
       })
 
       const response = await fetch(`/api/super-admin/audit?${params}`)
@@ -131,7 +131,7 @@ export default function SuperAdminAuditPage() {
         ...(actionFilter && { action: actionFilter }),
         ...(userFilter && { userId: userFilter }),
         ...(dateFilter && { date: dateFilter }),
-        ...(resourceFilter && { resource: resourceFilter }),
+       ...(resourceFilter && { resource: resourceFilter }),
         format: 'csv'
       })
 
@@ -159,7 +159,7 @@ export default function SuperAdminAuditPage() {
 
   const getActionIcon = (action: string) => {
     if (action.includes('LOGIN') || action.includes('LOGOUT')) {
-      return <User className="h-4 w-4" />
+      return <users className="h-4 w-4" />
     } else if (action.includes('CREATE')) {
       return <CheckCircle className="h-4 w-4 text-green-500" />
     } else if (action.includes('DELETE')) {
@@ -273,7 +273,6 @@ export default function SuperAdminAuditPage() {
           </Card>
         </div>
       )}
-
       {/* Filters */}
       <Card>
         <CardHeader>
@@ -345,7 +344,6 @@ export default function SuperAdminAuditPage() {
       {/* Loading and Error States */}
       {isLoading && <div className="flex justify-center items-center py-10"><LoadingSpinner /></div>}
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-
       {/* Audit Logs Table */}
       {!isLoading && !error && (
         <Card>

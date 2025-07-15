@@ -1,4 +1,4 @@
-import { PackageType, Dealership } from '@prisma/client'
+import { PackageType, dealerships } from '@prisma/client'
 import { SEO_KNOWLEDGE_BASE } from './seo-knowledge'
 import { prisma } from './prisma'
 import { getMonth, getYear, startOfMonth, endOfMonth, isAfter } from 'date-fns'
@@ -69,11 +69,11 @@ export function getPackageTotalTasks(packageType: PackageType): number {
 }
 
 /**
- * Ensures the dealership's billing period is current. If a new period has started,
+ * Ensures the dealership's billing period is current.If a new period has started,
  * it archives the previous period's usage and resets counters for the new period.
  */
-export async function ensureDealershipBillingPeriodAndRollover(dealershipId: string): Promise<Dealership> {
-  let dealership = await prisma.dealership.findUnique({ where: { id: dealershipId } })
+export async function ensureDealershipBillingPeriodAndRollover(dealershipId: string): Promise<typeof dealerships> {
+  let dealership = await prisma.dealerships.findUnique({ where: { id: dealershipId } })
   if (!dealership) throw new Error(`Dealership with ID ${dealershipId} not found.`)
 
   const now = new Date()
@@ -87,7 +87,7 @@ export async function ensureDealershipBillingPeriodAndRollover(dealershipId: str
   // Check if the current date is past the current billing period's end.
   if (isAfter(now, dealership.currentBillingPeriodEnd)) {
     // Archive previous month's usage
-    await prisma.monthlyUsage.create({
+    await prisma.monthly_usage.create({
       data: {
         dealershipId: dealership.id,
         month: getMonth(dealership.currentBillingPeriodStart) + 1, // date-fns getMonth is 0-indexed
@@ -96,12 +96,12 @@ export async function ensureDealershipBillingPeriodAndRollover(dealershipId: str
         pagesUsed: dealership.pagesUsedThisPeriod,
         blogsUsed: dealership.blogsUsedThisPeriod,
         gbpPostsUsed: dealership.gbpPostsUsedThisPeriod,
-        improvementsUsed: dealership.improvementsUsedThisPeriod,
-      },
+        improvementsUsed: dealership.improvementsUsedThisPeriod
+      }
     })
 
     // Reset counters and update billing period for the new month
-    dealership = await prisma.dealership.update({
+    dealership = await prisma.dealerships.update({
       where: { id: dealershipId },
       data: {
         pagesUsedThisPeriod: 0,
@@ -109,26 +109,27 @@ export async function ensureDealershipBillingPeriodAndRollover(dealershipId: str
         gbpPostsUsedThisPeriod: 0,
         improvementsUsedThisPeriod: 0,
         currentBillingPeriodStart: startOfMonth(now),
-        currentBillingPeriodEnd: endOfMonth(now),
-      },
+        currentBillingPeriodEnd: endOfMonth(now)
+      }
     })
   }
+  
   return dealership
 }
 
 /**
  * Legacy function for user-level operations - now looks up user's dealership
  */
-export async function ensureUserBillingPeriodAndRollover(userId: string): Promise<Dealership | null> {
-  const user = await prisma.user.findUnique({
+export async function ensureUserBillingPeriodAndRollover(userId: string): Promise<dealerships | null> {
+  const user = await prisma.users.findUnique({
     where: { id: userId }
   })
   
-  if (!user?.dealershipId) {
+  if (!user?.dealerships?.id) {
     return null // User not assigned to a dealership
   }
   
-  return ensureDealershipBillingPeriodAndRollover(user.dealershipId)
+  return ensureDealershipBillingPeriodAndRollover(user.dealerships?.id)
 }
 
 export type TaskType = 'pages' | 'blogs' | 'gbpPosts' | 'improvements'
@@ -137,7 +138,7 @@ export type TaskType = 'pages' | 'blogs' | 'gbpPosts' | 'improvements'
  * Increments usage for a specific task type for a dealership.
  * Throws an error if the dealership has no active package or if the quota is exceeded.
  */
-export async function incrementDealershipUsage(dealershipId: string, taskType: TaskType): Promise<Dealership> {
+export async function incrementDealershipUsage(dealershipId: string, taskType: TaskType): Promise<typeof dealerships> {
   let dealership = await ensureDealershipBillingPeriodAndRollover(dealershipId)
 
   if (!dealership.activePackageType) {
@@ -147,7 +148,7 @@ export async function incrementDealershipUsage(dealershipId: string, taskType: T
   const limits = getPackageLimits(dealership.activePackageType)
   let currentUsage: number
   let limit: number
-  let updateData: Partial<Dealership> = {}
+  let updateData: Partial<typeof dealerships> = {}
 
   switch (taskType) {
     case 'pages':
@@ -181,9 +182,9 @@ export async function incrementDealershipUsage(dealershipId: string, taskType: T
   // Create proper update data excluding read-only fields
   const {id, agencyId, createdAt, updatedAt, ...allowedUpdateData} = updateData as any
   
-  dealership = await prisma.dealership.update({
+  dealership = await prisma.dealerships.update({
     where: { id: dealershipId },
-    data: allowedUpdateData,
+    data: allowedUpdateData
   })
   return dealership
 }
@@ -191,16 +192,16 @@ export async function incrementDealershipUsage(dealershipId: string, taskType: T
 /**
  * Legacy function for user-level operations - now works with user's dealership
  */
-export async function incrementUsage(userId: string, taskType: TaskType): Promise<Dealership | null> {
-  const user = await prisma.user.findUnique({
+export async function incrementUsage(userId: string, taskType: TaskType): Promise<dealerships | null> {
+  const user = await prisma.users.findUnique({
     where: { id: userId }
   })
   
-  if (!user?.dealershipId) {
+  if (!user?.dealerships?.id) {
     throw new Error('User is not assigned to a dealership.')
   }
   
-  return incrementDealershipUsage(user.dealershipId, taskType)
+  return incrementDealershipUsage(user.dealerships?.id, taskType)
 }
 
 /**
@@ -256,7 +257,7 @@ export async function getDealershipPackageProgress(dealershipId: string): Promis
         limit: limits.improvements,
         percentage: limits.improvements > 0 ? Math.round((improvementsUsed / limits.improvements) * 100) : 0
       },
-      totalTasks: { completed: totalCompleted, total: totalTasks },
+      totalTasks: { completed: totalCompleted, total: totalTasks }
     }
   } catch (error) {
     console.error(`Error getting package progress for dealership ${dealershipId}:`, error)
@@ -269,16 +270,16 @@ export async function getDealershipPackageProgress(dealershipId: string): Promis
  */
 export async function getUserPackageProgress(userId: string): Promise<PackageProgress | null> {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId }
     })
     
-    if (!user?.dealershipId) {
+    if (!user?.dealerships?.id) {
       console.log(`User ${userId} is not assigned to a dealership`)
       return null
     }
     
-    return getDealershipPackageProgress(user.dealershipId)
+    return getDealershipPackageProgress(user.dealerships?.id)
   } catch (error) {
     console.error(`Error getting package progress for user ${userId}:`, error)
     return null

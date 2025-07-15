@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const { userId, emailType } = tokenData
     
     // Get user preferences
-    const preferences = await prisma.userPreferences.findUnique({
+    const preferences = await prisma.users.preferences.findUnique({
       where: { userId }
     })
     
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         updateData.emailNotifications = false
         break
       case 'requestCreated':
-        updateData.requestCreated = false
+        updateData.requests.reated = false
         break
       case 'statusChanged':
         updateData.statusChanged = false
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Update preferences
-    await prisma.userPreferences.update({
+    await prisma.users.preferences.update({
       where: { userId },
       data: updateData
     })
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       min-height: 100vh;
       margin: 0;
     }
-    .container {
+   .container {
       background-color: white;
       padding: 48px;
       border-radius: 8px;
@@ -132,8 +132,8 @@ export async function GET(request: NextRequest) {
     return new Response(html, {
       status: 200,
       headers: {
-        'Content-Type': 'text/html',
-      },
+        'Content-Type': 'text/html'
+      }
     })
   } catch (error) {
     logger.error('Error processing unsubscribe', error)

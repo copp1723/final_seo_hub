@@ -237,7 +237,7 @@ export default function ReportingPage() {
         // Auto-sync Search Console site based on GA4 property name
         if (property?.propertyName) {
           // Extract domain from property name (e.g., "AcuraColumbus.com - GA4" -> "acuracolumbus.com")
-          const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}/i)
+          const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2}/i)
           
           if (domainMatch) {
             const domain = domainMatch[0].toLowerCase()
@@ -387,7 +387,7 @@ export default function ReportingPage() {
       const property = ga4Properties.find(p => p.propertyId === currentGA4Property)
       if (property?.propertyName) {
         // Extract domain from property name
-        const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}/i)
+        const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2}/i)
         
         if (domainMatch) {
           const domain = domainMatch[0].toLowerCase()
@@ -434,11 +434,11 @@ export default function ReportingPage() {
     plugins: {
       legend: {
         display: true,
-        position: 'top' as const,
+        position: 'top' as const
       },
       tooltip: {
         mode: 'index' as const,
-        intersect: false,
+        intersect: false
       }
     },
     scales: {
@@ -560,7 +560,7 @@ export default function ReportingPage() {
               {savingGA4 && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Updating property...
+                  Updating property..
                 </div>
               )}
             </div>
@@ -609,7 +609,7 @@ export default function ReportingPage() {
               {savingSC && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Updating site...
+                  Updating site..
                 </div>
               )}
               {isSearchConsoleAutoSynced && (

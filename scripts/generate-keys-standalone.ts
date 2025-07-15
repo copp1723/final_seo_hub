@@ -16,7 +16,7 @@ console.log('🔐 Generating secure encryption keys...\n')
 const keys = {
   ENCRYPTION_KEY: generateSecureKey(32),
   CSRF_SECRET: generateSecureKey(32),
-  SEOWORKS_WEBHOOK_SECRET: generateSecureKey(32),
+  SEOWORKS_WEBHOOK_SECRET: generateSecureKey(32)
 }
 
 console.log('Add these to your .env.local file:\n')

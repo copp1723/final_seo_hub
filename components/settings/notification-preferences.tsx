@@ -81,8 +81,7 @@ export function NotificationPreferencesComponent({ preferences, onUpdate, saving
             <Info className="h-4 w-4" />
             <AlertDescription>
               These notifications show you exactly what SEO work is being done on your behalf, 
-              including new pages, blog posts, and Google Business Profile posts.
-            </AlertDescription>
+              including new pages, blog posts, and Google Business Profile posts</AlertDescription>
           </Alert>
           
           <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -131,7 +130,7 @@ export function NotificationPreferencesComponent({ preferences, onUpdate, saving
             </div>
             <Switch
               id="request-created"
-              checked={preferences.requestCreated && preferences.emailNotifications}
+              checked={preferences.requests.reated && preferences.emailNotifications}
               onCheckedChange={(checked) => updatePreference('requestCreated', checked)}
               disabled={!preferences.emailNotifications}
             />
@@ -235,8 +234,7 @@ export function NotificationPreferencesComponent({ preferences, onUpdate, saving
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Email notifications are disabled. Enable the master toggle above to receive notifications.
-          </AlertDescription>
+            Email notifications are disabled.Enable the master toggle above to receive notifications</AlertDescription>
         </Alert>
       )}
     </div>

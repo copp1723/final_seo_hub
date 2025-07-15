@@ -35,7 +35,7 @@ export default function GA4CallbackPage() {
               Your Google Analytics 4 account has been successfully connected to {branding.companyName}.
             </p>
             <p className="text-sm text-gray-500">
-              Redirecting you back to settings...
+              Redirecting you back to settings..
             </p>
           </>
         ) : status === 'error' ? (
@@ -50,7 +50,7 @@ export default function GA4CallbackPage() {
               {error ? `Error: ${decodeURIComponent(error)}` : 'Unable to connect Google Analytics.'}
             </p>
             <p className="text-sm text-gray-500">
-              Redirecting you back to settings to try again...
+              Redirecting you back to settings to try again..
             </p>
           </>
         ) : (
@@ -63,7 +63,7 @@ export default function GA4CallbackPage() {
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Processing...</h1>
             <p className="text-gray-600 mb-4">
-              Processing your Google Analytics connection...
+              Processing your Google Analytics connection..
             </p>
           </>
         )}

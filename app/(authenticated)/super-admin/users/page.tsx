@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { User, UserRole, Agency } from '@prisma/client'
+import { UserRole } from '@prisma/client'
+import type { users, agencies } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -26,8 +27,8 @@ import {
 import { formatDate, cn } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
 
-type UserWithAgency = User & {
-  agency: Agency | null
+type UserWithAgency = users & {
+  agency: agencies | null
   _count: {
     requests: number
   }
@@ -45,7 +46,7 @@ interface PaginatedUsersResponse {
 
 export default function SuperAdminUsersPage() {
   const [users, setUsers] = useState<UserWithAgency[]>([])
-  const [agencies, setAgencies] = useState<Agency[]>([])
+  const [agencies, setAgencies] = useState<typeof agencies[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -84,7 +85,7 @@ export default function SuperAdminUsersPage() {
       role: roleFilter,
       agency: agencyFilter,
       sortBy: sortBy,
-      sortOrder: sortOrder,
+      sortOrder: sortOrder
     }).toString()
 
     try {
@@ -161,7 +162,7 @@ export default function SuperAdminUsersPage() {
       name: user.name || '', 
       email: user.email || '', 
       role: user.role,
-      agencyId: user.agencyId || ''
+      agencyId: user.agencies?.id || ''
     })
     setIsModalOpen(true)
   }
@@ -181,7 +182,7 @@ export default function SuperAdminUsersPage() {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody)
       })
       const responseData = await response.json()
       if (!response.ok) {
@@ -206,7 +207,7 @@ export default function SuperAdminUsersPage() {
 
     try {
       const response = await fetch(`/api/super-admin/users?userId=${userToDelete.id}`, {
-        method: 'DELETE',
+        method: 'DELETE'
       })
       const responseData = await response.json()
       if (!response.ok) {
@@ -373,7 +374,6 @@ export default function SuperAdminUsersPage() {
       {/* Users Table */}
       {isLoading && <div className="flex justify-center items-center py-10"><LoadingSpinner /></div>}
       {error && <p className="text-red-500 bg-red-100 p-3 rounded-md">{error}</p>}
-
       {!isLoading && !error && users.length === 0 && (
         <Card>
           <CardContent className="text-center py-12">
@@ -383,7 +383,6 @@ export default function SuperAdminUsersPage() {
           </CardContent>
         </Card>
       )}
-
       {!isLoading && !error && users.length > 0 && (
         <Card>
           <CardContent className="p-0">
@@ -407,7 +406,7 @@ export default function SuperAdminUsersPage() {
                       <TableCell className="font-medium">{user.name || 'N/A'}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
-                      <TableCell>{user.agency?.name || 'No Agency'}</TableCell>
+                      <TableCell>{user.agencies?.name || 'No Agency'}</TableCell>
                       <TableCell>{user._count.requests}</TableCell>
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
                       <TableCell>{formatDate(user.updatedAt)}</TableCell>
@@ -434,7 +433,6 @@ export default function SuperAdminUsersPage() {
           </CardContent>
         </Card>
       )}
-
       {/* Pagination */}
       {!isLoading && !error && users.length > 0 && (
         <div className="flex items-center justify-between">
@@ -460,7 +458,6 @@ export default function SuperAdminUsersPage() {
           </div>
         </div>
       )}
-
       {/* Add/Edit User Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>

@@ -33,7 +33,7 @@ export function UserImpersonation() {
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<typeof users[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isImpersonating, setIsImpersonating] = useState(false)
   const [impersonationStatus, setImpersonationStatus] = useState<any>(null)
@@ -74,7 +74,7 @@ export function UserImpersonation() {
       if (response.ok) {
         const data = await response.json()
         // Filter out super admins from the list
-        setUsers(data.users.filter((user: User) => user.role !== 'SUPER_ADMIN'))
+        setUsers(data.users.filter((user: typeof users) => user.role !== 'SUPER_ADMIN'))
       }
     } catch (error) {
       console.error('Error searching users:', error)
@@ -88,7 +88,7 @@ export function UserImpersonation() {
     }
   }
 
-  const handleImpersonate = async (user: User) => {
+  const handleImpersonate = async (user: typeof users) => {
     setIsImpersonating(true)
     try {
       const response = await fetch('/api/super-admin/impersonate', {
@@ -163,7 +163,7 @@ export function UserImpersonation() {
   }
 
   // Only show for super admins
-  if (session?.user?.role !== 'SUPER_ADMIN') {
+  if (session?.user.role !== 'SUPER_ADMIN') {
     return null
   }
 
@@ -187,7 +187,7 @@ export function UserImpersonation() {
           {isImpersonating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Stopping...
+              Stopping..
             </>
           ) : (
             'Stop Impersonation'
@@ -209,8 +209,7 @@ export function UserImpersonation() {
         <DialogHeader>
           <DialogTitle>Impersonate User</DialogTitle>
           <DialogDescription>
-            Search for and impersonate another user to test the system from their perspective.
-            You can only impersonate non-super admin users.
+            Search for and impersonate another user to test the system from their perspective. You can only impersonate non-super admin users.
           </DialogDescription>
         </DialogHeader>
         
@@ -234,7 +233,6 @@ export function UserImpersonation() {
               <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
             </div>
           )}
-
           {!isLoading && users.length > 0 && (
             <div className="h-[300px] overflow-y-auto border rounded-lg p-2">
               <div className="space-y-2">
@@ -252,16 +250,16 @@ export function UserImpersonation() {
                       </div>
                       <div className="text-sm text-gray-500">{user.email}</div>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        {user.agency && (
+                        {user.agencies && (
                           <div className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
-                            {user.agency.name}
+                            {user.agencies?.name}
                           </div>
                         )}
-                        {user.dealership && (
+                        {user.dealerships && (
                           <div className="flex items-center gap-1">
                             <Store className="h-3 w-3" />
-                            {user.dealership.name}
+                            {user.dealerships?.name}
                           </div>
                         )}
                       </div>
@@ -282,13 +280,11 @@ export function UserImpersonation() {
               </div>
             </div>
           )}
-
           {!isLoading && searchTerm.length > 2 && users.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No users found matching "{searchTerm}"
             </div>
           )}
-
           {searchTerm.length <= 2 && (
             <div className="text-center py-8 text-gray-500">
               Type at least 3 characters to search

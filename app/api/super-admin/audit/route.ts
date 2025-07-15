@@ -6,12 +6,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         { action: { contains: search, mode: 'insensitive' } },
         { resource: { contains: search, mode: 'insensitive' } },
         { user: { email: { contains: search, mode: 'insensitive' } } },
-        { user: { name: { contains: search, mode: 'insensitive' } } },
+        { user: { name: { contains: search, mode: 'insensitive' } } }
       ]
     }
 
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (userId) {
-      whereClause.userId = userId
+      whereClause.user.id = userId
     }
 
     if (resource) {
@@ -70,23 +70,23 @@ export async function GET(request: NextRequest) {
 
     // Get audit logs with user information
     const [logs, totalCount] = await Promise.all([
-      prisma.auditLog.findMany({
+      prisma.audit_logs.findMany({
         where: whereClause,
         include: {
-          user: {
+          users: {
             select: {
               id: true,
               name: true,
               email: true,
-              role: true,
+              role: true
             }
           }
         },
         orderBy: { [sortBy]: sortOrder },
         skip,
-        take: limit,
+        take: limit
       }),
-      prisma.auditLog.count({ where: whereClause })
+      prisma.audit_logs.count({ where: whereClause })
     ])
 
     const totalPages = Math.ceil(totalCount / limit)
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         totalCount,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1,
+        hasPrev: page > 1
       }
     })
 
@@ -117,12 +117,12 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     const ipAddress = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || null
     const userAgent = request.headers.get('user-agent') || null
 
-    const auditLog = await prisma.auditLog.create({
+    const auditLog = await prisma.audit_logs.create({
       data: {
         userId: session.user.id,
         action,
@@ -147,15 +147,15 @@ export async function POST(request: NextRequest) {
         resourceId,
         details: details || {},
         ipAddress,
-        userAgent,
+        userAgent
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             name: true,
             email: true,
-            role: true,
+            role: true
           }
         }
       }

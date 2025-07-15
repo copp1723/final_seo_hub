@@ -43,7 +43,7 @@ const defaultSettings = {
   smtpPort: 587,
   smtpUser: '',
   smtpFromEmail: '',
-  maintenanceMessage: 'The system is currently under maintenance. Please try again later.',
+  maintenanceMessage: 'The system is currently under maintenance.Please try again later.',
   welcomeMessage: 'Welcome to our SEO management platform! Get started by exploring your dashboard.',
   rateLimitPerMinute: 60,
   sessionTimeoutMinutes: 480, // 8 hours
@@ -53,12 +53,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -68,11 +68,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Try to get settings from database, create if they don't exist
-    let systemSettings = await prisma.systemSettings.findFirst()
+    let systemSettings = await prisma.system_settings.findFirst()
     
     if (!systemSettings) {
       // Create default settings
-      systemSettings = await prisma.systemSettings.create({
+      systemSettings = await prisma.system_settings.create({
         data: defaultSettings
       })
     }
@@ -92,12 +92,12 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { role: true }
     })
@@ -110,16 +110,16 @@ export async function PUT(request: NextRequest) {
     const validatedData = systemSettingsSchema.parse(body)
 
     // Check if settings exist, create or update accordingly
-    const existingSettings = await prisma.systemSettings.findFirst()
+    const existingSettings = await prisma.system_settings.findFirst()
     
     let updatedSettings
     if (existingSettings) {
-      updatedSettings = await prisma.systemSettings.update({
+      updatedSettings = await prisma.system_settings.update({
         where: { id: existingSettings.id },
         data: validatedData
       })
     } else {
-      updatedSettings = await prisma.systemSettings.create({
+      updatedSettings = await prisma.system_settings.create({
         data: validatedData
       })
     }
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest) {
     // Log the settings change for audit purposes
     if (validatedData.auditLogging) {
       try {
-        await prisma.auditLog.create({
+        await prisma.audit_logs.create({
           data: {
             userId: session.user.id,
             action: 'SYSTEM_SETTINGS_UPDATE',
@@ -135,7 +135,7 @@ export async function PUT(request: NextRequest) {
             resourceId: updatedSettings.id,
             details: {
               changes: validatedData,
-              timestamp: new Date().toISOString(),
+              timestamp: new Date().toISOString()
             }
           }
         })

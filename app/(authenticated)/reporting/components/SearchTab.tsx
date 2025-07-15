@@ -68,7 +68,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
             Connect Search Console
           </button>
         )}
-      </Card>
+        </Card>
     )
   }
 
@@ -151,7 +151,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Avg. CTR</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Avg.CTR</CardTitle>
             <Percent className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -164,7 +164,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Avg. Top 10 Position</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Avg.Top 10 Position</CardTitle>
             <Hash className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>

@@ -87,8 +87,8 @@ Dealership Two,https://dealership2.com,987654321,https://dealership2.com`
     }
   }
 
-  if (session?.user?.role !== 'AGENCY_ADMIN' && session?.user?.role !== 'SUPER_ADMIN') {
-    return <div>Access denied. Agency admin required.</div>
+  if (session?.user.role !== 'AGENCY_ADMIN' && session?.user.role !== 'SUPER_ADMIN') {
+    return <div>Access denied. Agency admin required</div>
   }
 
   return (

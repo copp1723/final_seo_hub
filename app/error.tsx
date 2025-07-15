@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger'
 
 export default function Error({
   error,
-  reset,
+  reset
 }: {
   error: Error & { digest?: string }
   reset: () => void
@@ -16,7 +16,7 @@ export default function Error({
     logger.error('Application error occurred', error, {
       digest: error.digest,
       stack: error.stack,
-      message: error.message,
+      message: error.message
     })
   }, [error])
 
@@ -48,7 +48,6 @@ export default function Error({
                   <p className="text-xs text-yellow-700 mt-1 font-mono">{error.digest}</p>
                 </div>
               )}
-              
               {error.stack && (
                 <details className="bg-gray-50 border border-gray-200 rounded p-3">
                   <summary className="text-sm font-medium text-gray-800 cursor-pointer">Stack Trace</summary>
@@ -59,13 +58,10 @@ export default function Error({
               )}
             </div>
           )}
-          
           {!isDevelopment && (
             <p className="mt-2 text-sm text-gray-500">
-              An unexpected error has occurred. Our team has been notified.
-            </p>
+              An unexpected error has occurred.Our team has been notified</p>
           )}
-          
           <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
             <button
               onClick={() => reset()}

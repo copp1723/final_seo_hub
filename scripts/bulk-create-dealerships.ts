@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma'
+import { prisma } from './lib/prisma'
 
 interface DealershipData {
   name: string
@@ -15,7 +15,7 @@ const dealerships: DealershipData[] = [
     ga4PropertyId: "123456789", // Replace with actual GA4 property ID
     searchConsoleUrl: "https://example1.com"
   },
-  // Add your other 23 dealerships here...
+  // Add your other 23 dealerships here..
 ]
 
 async function createDealerships(agencyId: string) {
@@ -23,7 +23,7 @@ async function createDealerships(agencyId: string) {
   
   for (const dealership of dealerships) {
     try {
-      const created = await prisma.dealership.create({
+      const created = await prisma.dealerships.create({
         data: {
           name: dealership.name,
           website: dealership.website,
@@ -35,7 +35,7 @@ async function createDealerships(agencyId: string) {
       
       // If GA4 property ID is provided, create the connection record
       if (dealership.ga4PropertyId) {
-        await prisma.gA4Connection.create({
+        await prisma.ga4_connections.create({
           data: {
             dealershipId: created.id,
             propertyId: dealership.ga4PropertyId,
@@ -48,7 +48,7 @@ async function createDealerships(agencyId: string) {
       
       // If Search Console URL is provided, create the connection record
       if (dealership.searchConsoleUrl) {
-        await prisma.searchConsoleConnection.create({
+        await prisma.search_console_connections.create({
           data: {
             dealershipId: created.id,
             siteUrl: dealership.searchConsoleUrl,
@@ -76,4 +76,4 @@ if (!agencyId) {
 
 createDealerships(agencyId)
   .catch(console.error)
-  .finally(() => prisma.$disconnect())
+ .finally(() => prisma.$disconnect())

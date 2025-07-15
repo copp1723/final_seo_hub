@@ -80,16 +80,16 @@ export default function SettingsPage() {
 
       switch (error) {
         case 'search_console_denied':
-          errorMessage = 'Search Console access was denied. Please try again and grant permissions.'
+          errorMessage = 'Search Console access was denied.Please try again and grant permissions.'
           break
         case 'no_search_console_sites':
-          errorMessage = 'No Search Console properties found. Please verify a website in Google Search Console first.'
+          errorMessage = 'No Search Console properties found.Please verify a website in Google Search Console first.'
           break
         case 'insufficient_search_console_permissions':
-          errorMessage = 'Insufficient permissions for Search Console. You need "Full User" or "Owner" access to the property.'
+          errorMessage = 'Insufficient permissions for Search Console.You need "Full User" or "Owner" access to the property.'
           break
         case 'search_console_invalid_grant':
-          errorMessage = 'Search Console authorization expired. Please reconnect.'
+          errorMessage = 'Search Console authorization expired.Please reconnect.'
           break
         default:
           errorMessage = `Error: ${error.replace(/_/g, ' ')}`
@@ -136,7 +136,7 @@ export default function SettingsPage() {
             if (profileRes.ok) {
               const data = await profileRes.json()
               // Fix: Extract user from the correct API response structure
-              const user = data.data?.user || data.user
+              const user = data.data?.users || data.user
               setProfile(user)
             } else {
               setMessage({ type: 'error', text: 'Failed to load profile data' })
@@ -219,7 +219,7 @@ export default function SettingsPage() {
       if (res.ok) {
         setMessage({ type: 'success', text: 'Profile updated successfully' })
         // Update session if email changed
-        if (profile.email !== session?.user?.email) {
+        if (profile.email !== session?.user.email) {
           await update()
         }
       } else {
@@ -325,7 +325,6 @@ export default function SettingsPage() {
           {message.text}
         </div>
       )}
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-4 w-full">
           <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -388,7 +387,7 @@ export default function SettingsPage() {
                   </div>
                 </>
               )}
-            </CardContent>
+          </CardContent>
           </Card>
         </TabsContent>
 
@@ -419,7 +418,7 @@ export default function SettingsPage() {
                   </div>
                 </>
               )}
-            </CardContent>
+          </CardContent>
           </Card>
         </TabsContent>
 
@@ -436,7 +435,7 @@ export default function SettingsPage() {
                   <div className="h-20 bg-gray-200 rounded"></div>
                 </div>
               ) : (
-                session?.user?.role === 'SUPER_ADMIN' || session?.user?.role === 'AGENCY_ADMIN' ? (
+                session?.user.role === 'SUPER_ADMIN' || session?.user.role === 'AGENCY_ADMIN' ? (
                   integrations && (
                     <>
                       <div className="p-4 border rounded-lg">
@@ -555,11 +554,10 @@ export default function SettingsPage() {
                   )
                 ) : (
                   <div className="p-4 text-gray-500 text-center">
-                    You do not have permission to manage integrations. Please contact your agency admin or super admin.
-                  </div>
+                    You do not have permission to manage integrations.Please contact your agency admin or super admin</div>
                 )
               )}
-            </CardContent>
+          </CardContent>
           </Card>
         </TabsContent>
 
@@ -619,10 +617,9 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <p className="text-sm text-gray-600">
-                  No package information available. Submit a request to get started.
-                </p>
+                  No package information available.Submit a request to get started</p>
               )}
-            </CardContent>
+          </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

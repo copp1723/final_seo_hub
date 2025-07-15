@@ -31,8 +31,8 @@ export const seoworksWebhookSchema = z.object({
       type: z.string(),
       title: z.string(),
       url: z.string().url(),
-      publishedDate: z.string().datetime().optional(),
-    })).optional(),
+      publishedDate: z.string().datetime().optional()
+    })).optional()
   })
 })
 

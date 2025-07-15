@@ -7,23 +7,15 @@ import { z } from 'zod'
 const updateAgencyProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   domain: z.string().optional().nullable(),
-  description: z.string().optional().nullable(),
-  contactEmail: z.string().email().optional().nullable(),
-  contactPhone: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  state: z.string().optional().nullable(),
-  zipCode: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  businessType: z.string().optional().nullable(),
-  industry: z.string().optional().nullable(),
-  timezone: z.string().optional().nullable(),
+  plan: z.string().optional(),
+  status: z.string().optional(),
   maxUsers: z.number().min(1).max(500).optional(),
-  allowSelfSignup: z.boolean().optional(),
-  defaultPackageType: z.enum(['SILVER', 'GOLD', 'PLATINUM']).optional(),
-  logoUrl: z.string().url().optional().nullable(),
-  primaryColor: z.string().optional().nullable(),
-  secondaryColor: z.string().optional().nullable(),
+  maxConversations: z.number().min(1).optional(),
+  logo: z.string().url().optional().nullable(),
+  primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  ga4PropertyId: z.string().optional().nullable(),
+  ga4PropertyName: z.string().optional().nullable()
 })
 
 // GET agency profile
@@ -33,7 +25,7 @@ export async function GET(request: NextRequest) {
   
   try {
     // Get user's agency
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: authResult.user.id },
       select: { agencyId: true, role: true }
     })
@@ -47,7 +39,7 @@ export async function GET(request: NextRequest) {
       return errorResponse('Insufficient permissions', 403)
     }
     
-    const agency = await prisma.agency.findUnique({
+    const agency = await prisma.agencies.findUnique({
       where: { id: user.agencyId },
       include: {
         _count: {
@@ -77,7 +69,7 @@ export async function PATCH(request: NextRequest) {
   
   try {
     // Get user's agency
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: authResult.user.id },
       select: { agencyId: true, role: true }
     })
@@ -96,7 +88,7 @@ export async function PATCH(request: NextRequest) {
     
     // Check if agency name is unique (if updating name)
     if (validatedData.name) {
-      const existingAgency = await prisma.agency.findFirst({
+      const existingAgency = await prisma.agencies.findFirst({
         where: { 
           name: { equals: validatedData.name, mode: 'insensitive' },
           id: { not: user.agencyId }
@@ -110,7 +102,7 @@ export async function PATCH(request: NextRequest) {
     
     // Check if domain is unique (if updating domain)
     if (validatedData.domain) {
-      const existingDomain = await prisma.agency.findFirst({
+      const existingDomain = await prisma.agencies.findFirst({
         where: { 
           domain: { equals: validatedData.domain, mode: 'insensitive' },
           id: { not: user.agencyId }
@@ -122,10 +114,9 @@ export async function PATCH(request: NextRequest) {
       }
     }
     
-    const updatedAgency = await prisma.agency.update({
+    const updatedAgency = await prisma.agencies.update({
       where: { id: user.agencyId },
-      data: {
-        ...validatedData,
+      data: { ...validatedData,
         updatedAt: new Date()
       },
       include: {

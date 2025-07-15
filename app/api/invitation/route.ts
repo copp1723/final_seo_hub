@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Looking for user with token:', token)
     const user = await prisma.users.findFirst({
       where: {
-        email: token,
+        invitationToken: token,
         invitationTokenExpires: {
           gt: new Date() // Token must not be expired
         }

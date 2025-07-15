@@ -438,6 +438,7 @@ model dealerships {
   website                      String?
   address                      String?
   phone                        String?
+  clientId                     String?                      @unique
   activePackageType            PackageType?
   currentBillingPeriodStart    DateTime?
   currentBillingPeriodEnd      DateTime?

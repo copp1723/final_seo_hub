@@ -1,5 +1,4 @@
 import NextAuth from 'next-auth'
-import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { PrismaClient } from '@prisma/client'
 import { UserRole } from '@prisma/client'
@@ -20,16 +19,7 @@ const authPrisma = globalForAuth.authPrisma ?? new PrismaClient({
 
 if (process.env.NODE_ENV !== 'production') globalForAuth.authPrisma = authPrisma
 
-// Debug logging for production
-console.log('[AUTH DEBUG] Creating NextAuth with Prisma client:', !!authPrisma)
-console.log('[AUTH DEBUG] Prisma client has findUnique:', !!authPrisma?.users?.findUnique)
-
-// Test connection immediately
-authPrisma.$connect().then(() => {
-  console.log('[AUTH DEBUG] Prisma client connected successfully')
-}).catch((error) => {
-  console.error('[AUTH DEBUG] Prisma client connection failed:', error)
-})
+// Simplified auth setup for invitation-only system
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(authPrisma),
@@ -42,53 +32,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     updateAge: 24 * 60 * 60, // 24 hours
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      }
-    })
+    // Google OAuth removed - using invitation-only system
   ],
   callbacks: {
-    signIn: async ({ user, account, profile }) => {
-      console.log('SignIn callback triggered:', {
-        user: user.email,
-        account: account?.provider,
-        profile: profile?.email
-      })
-      try {
-        // Only allow users who have been invited (exist in our database)
-        if (!user.email) {
-          console.log('SignIn denied: No email provided')
-          return false
-        }
-
-        // Check if user exists in our database (has been invited)
-        const existingUser = await authPrisma.users.findUnique({
-          where: { email: user.email }
-        })
-
-        if (!existingUser) {
-          console.log('SignIn denied: users not invited', { email: user.email })
-          return false
-        }
-
-        console.log('SignIn allowed: users found in database', {
-          email: user.email,
-          userId: existingUser.id,
-          role: existingUser.role
-        })
-        return true
-      } catch (error) {
-        console.error('SignIn callback error:', error)
-        return false
-      }
-    },
+    // No signIn callback needed - invitation system handles authentication
     session: async ({ session, user }) => {
       // With database strategy, the user object is already populated from DB
       // Just map the fields to the session

@@ -46,7 +46,7 @@ export default function RequestsPage() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const [requests, setRequests] = useState<typeof requests[]>([])
+  const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
 
   // State for filters and sorting, initialized from URL or defaults
@@ -266,7 +266,7 @@ export default function RequestsPage() {
           <div className="text-sm text-gray-600">
             Showing {displayRequests.length} {displayRequests.length === 1 ? "request" : "requests"}
           </div>
-          {displayRequests.map((request) => {
+          {displayRequests.map((request: Request) => {
             const progress = request.packageType 
               ? calculatePackageProgress(
                   request.packageType,
@@ -383,7 +383,7 @@ export default function RequestsPage() {
                     <div className="mt-6">
                       <h3 className="font-semibold mb-2">Completed Tasks</h3>
                       <div className="space-y-2">
-                        {request.completedTasks.slice(0, 5).map((task, index) => (
+                        {request.completedTasks.slice(0, 5).map((task: any, index: number) => (
                           <div key={index} className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-2">
                               {getTypeIcon(task.type)}

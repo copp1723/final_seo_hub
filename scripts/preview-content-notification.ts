@@ -1,4 +1,4 @@
-import { contentAddedTemplate } from './lib/mailgun/content-notifications.js'
+import { contentAddedTemplate } from '../lib/mailgun/content-notifications.js'
 import { requests, users } from '@prisma/client'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
@@ -19,7 +19,9 @@ const sampleUser: users = {
   invitationToken: null,
   invitationTokenExpires: null,
   createdAt: new Date(),
-  updatedAt: new Date()
+  updatedAt: new Date(),
+  theme: null,
+  isSuperAdmin: false
 }
 
 const sampleRequest: requests = {

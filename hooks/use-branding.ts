@@ -29,7 +29,7 @@ export function useBranding(): BrandingConfig {
 }
 
 // Server-side branding helper
-export function getServerBranding(request?: typeof requests): BrandingConfig {
+export function getServerBranding(request?: Request): BrandingConfig {
   if (request) {
     return getBrandingFromDomain(new URL(request.url).hostname)
   }

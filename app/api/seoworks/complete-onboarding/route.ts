@@ -106,17 +106,17 @@ export async function POST(request: NextRequest) {
     logger.info('Received dealer onboarding completion from invited user', {
       businessName: dealerData.businessName,
       package: dealerData.package,
-      userId: dealerData.user.id
+      userId: dealerData.userId
     })
 
     // For invited users, we should have a userId
-    if (!dealerData.user.id) {
+    if (!dealerData.userId) {
       return errorResponse('User ID is required for invited user onboarding', 400)
     }
 
     // Find the existing user created by agency admin
     const existingUser = await prisma.users.findUnique({
-      where: { id: dealerData.user.id },
+      where: { id: dealerData.userId },
       include: {
         agencies: true,
         dealerships: true
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     // Update the user's onboarding status
     const updatedUser = await prisma.users.update({
-      where: { id: dealerData.user.id },
+      where: { id: dealerData.userId },
       data: {
         onboardingCompleted: true
       }
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         dealershipId: existingUser.dealerships?.id,
         agencyId: existingUser.agencies?.id,
         title: `SEO Package Setup - ${dealerData.businessName}`,
-        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}\nManaged by Agency: ${existingUser.agencies.name || 'N/A'}`,
+        description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}\nManaged by Agency: ${existingUser.agencies?.name || 'N/A'}`,
         type: 'setup',
         packageType: dealerData.package as PackageType,
         targetUrl: dealerData.websiteUrl,

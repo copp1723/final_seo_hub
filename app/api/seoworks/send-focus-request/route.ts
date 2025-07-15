@@ -26,7 +26,7 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
   // Transform our request data to Jeff's expected format
   const seoworksPayload = {
     timestamp: new Date().toISOString(),
-    requestId: data.requests.id,
+    requestId: data.requestId,
     requestType: 'focus',
     title: data.title,
     description: data.description,
@@ -65,7 +65,7 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
     }
 
     logger.info('Successfully sent focus request to SEOWorks', {
-      requestId: data.requests.id,
+      requestId: data.requestId,
       title: data.title,
       type: data.type,
       seoworksResponse: responseData
@@ -79,7 +79,7 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
   } catch (error) {
     logger.error('Failed to send focus request to SEOWorks', {
       error: error instanceof Error ? error.message : String(error),
-      requestId: data.requests.id,
+      requestId: data.requestId,
       title: data.title,
       payload: seoworksPayload
     })
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    if (!requestData) {
+    if (!requestData || !requestData.users) {
       return errorResponse('Request not found', 404)
     }
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       requestId: requestData.id,
       title: requestData.title,
       type: requestData.type,
-      userEmail: requestData.user.email
+      userEmail: requestData.users.email
     })
 
     // Prepare focus request data
@@ -155,8 +155,8 @@ export async function POST(request: NextRequest) {
       targetModels: Array.isArray(requestData.targetModels) ? requestData.targetModels as string[] : [],
       keywords: Array.isArray(requestData.keywords) ? requestData.keywords as string[] : [],
       targetUrl: requestData.targetUrl || undefined,
-      clientEmail: requestData.user.email,
-      businessName: requestData.agencies.name || requestData.user.name || undefined
+      clientEmail: requestData.users.email,
+      businessName: requestData.agencies?.name || requestData.users.name || undefined
     }
 
     // Send to SEOWorks
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
     logger.info('Focus request sent to SEOWorks successfully', {
       requestId: requestData.id,
       title: requestData.title,
-      userEmail: requestData.user.email
+      userEmail: requestData.users.email
     })
 
     return successResponse({

@@ -141,13 +141,16 @@ export async function POST(request: NextRequest) {
 
     const auditLog = await prisma.audit_logs.create({
       data: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         action,
         resource,
-        resourceId,
+        entityType: resource,
+        entityId: resourceId || null,
         details: details || {},
-        ipAddress,
-        userAgent
+        users: {
+          connect: { id: session.user.id }
+        }
       },
       include: {
         users: {

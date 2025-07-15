@@ -130,7 +130,7 @@ export function NotificationPreferencesComponent({ preferences, onUpdate, saving
             </div>
             <Switch
               id="request-created"
-              checked={preferences.requests.reated && preferences.emailNotifications}
+              checked={preferences.requestCreated && preferences.emailNotifications}
               onCheckedChange={(checked) => updatePreference('requestCreated', checked)}
               disabled={!preferences.emailNotifications}
             />

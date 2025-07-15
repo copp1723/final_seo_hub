@@ -129,14 +129,14 @@ export function Navigation() {
               >
                 <div className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ring-2 ring-white shadow-sm">
-                    {session?.users.image ? (
+                    {session?.user.image ? (
                       <img
                         className="h-8 w-8 rounded-full"
-                        src={session.user.image}
+                        src={session.user.image || ''}
                         alt={session.user.name || 'User'}
                       />
                     ) : (
-                      <users className="h-4 w-4 text-gray-600" />
+                      <User className="h-4 w-4 text-gray-600" />
                     )}
                   </div>
                   <span className="hidden lg:block text-sm text-gray-600 max-w-[150px] truncate font-normal">
@@ -262,14 +262,14 @@ export function Navigation() {
             <div className="flex items-center px-4">
               <div className="flex-shrink-0">
                 <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  {session?.users.image ? (
+                  {session?.user.image ? (
                     <img
                       className="h-10 w-10 rounded-full"
-                      src={session.user.image}
+                      src={session.user.image || ''}
                       alt={session.user.name || 'User'}
                     />
                   ) : (
-                    <users className="h-6 w-6 text-gray-600" />
+                    <User className="h-6 w-6 text-gray-600" />
                   )}
                 </div>
               </div>

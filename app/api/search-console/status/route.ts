@@ -10,11 +10,11 @@ export async function GET() {
   try {
     // Get user's dealership ID
     const user = await prisma.users.findUnique({
-      where: { id: authResult.user.id },
+      where: { id: authResult.user!.id },
       select: { dealershipId: true }
     })
 
-    if (!user?.dealerships?.id) {
+    if (!user?.dealershipId) {
       return NextResponse.json({
         connected: false,
         debug: 'User not assigned to dealership'
@@ -22,7 +22,7 @@ export async function GET() {
     }
 
     const connection = await prisma.search_console_connections.findUnique({
-      where: { userId: user.dealerships?.id }
+      where: { userId: user.dealershipId }
     })
 
     if (!connection) {
@@ -50,7 +50,7 @@ export async function GET() {
       debug: debugInfo
     })
   } catch (error) {
-    logger.error('Search Console status error', error, { userId: authResult.user.id })
+    logger.error('Search Console status error', error, { userId: authResult.user!.id })
     return NextResponse.json({
       connected: false,
       debug: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`

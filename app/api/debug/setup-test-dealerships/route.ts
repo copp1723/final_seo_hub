@@ -26,16 +26,17 @@ export async function POST() {
       )
     }
 
-    let agency = user.agency
+    let agency = user.agencies
 
     // Create an agency if the user doesn't have one
     if (!agency) {
+      const agencyName = 'Jay Hatfield Automotive Group'
       agency = await prisma.agencies.create({
         data: {
         id: crypto.randomUUID(),
-        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        slug: agencyName.toLowerCase().replace(/\s+/g, '-'),
         updatedAt: new Date(),
-          name: 'Jay Hatfield Automotive Group',
+          name: agencyName,
           domain: 'jayhatfield.com'
         }
       })

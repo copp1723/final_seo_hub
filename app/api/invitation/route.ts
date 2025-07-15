@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
     
     // Redirect dealership users who haven't completed onboarding to the onboarding page
-    const redirectUrl = (user.role === 'USER' && user.agencies.id && !user.onboardingCompleted)
+    const redirectUrl = (user.role === 'USER' && user.agencyId && !user.onboardingCompleted)
       ? '/onboarding/seoworks?invited=true'
       : '/dashboard'
     

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set('scope', SCOPES.join(' '))
   authUrl.searchParams.set('access_type', 'offline')
   authUrl.searchParams.set('prompt', 'consent')
-  authUrl.searchParams.set('state', authResult.user.id) // Pass userId as state
+  authUrl.searchParams.set('state', authResult.user!.id) // Pass userId as state
 
   return NextResponse.redirect(authUrl.toString())
 }

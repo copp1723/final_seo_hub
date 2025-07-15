@@ -12,8 +12,8 @@ interface Dealership {
 }
 
 interface DealershipData {
-  currentDealership: dealerships | null
-  availableDealerships: typeof dealerships[]
+  currentDealership: Dealership | null
+  availableDealerships: Dealership[]
 }
 
 export function DealershipSelector() {

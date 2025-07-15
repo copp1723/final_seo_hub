@@ -12,10 +12,12 @@ async function createTestRequestsForJeff() {
     if (!testUser) {
       testUser = await prisma.users.create({
         data: {
+          id: 'test_user_jeff',
           email: 'manager@jayhatfieldchevrolet.com',
           name: 'Jay Hatfield Test User',
           role: 'USER',
-          onboardingCompleted: true
+          onboardingCompleted: true,
+          updatedAt: new Date()
         }
       })
       console.log('Created test user:', testUser.id)

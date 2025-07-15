@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   
   try {
     const user = await prisma.users.findUnique({
-      where: { id: authResult.user.id },
+      where: { id: authResult.user!.id },
       select: {
         id: true,
         email: true,
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     
     return successResponse({ user })
   } catch (error) {
-    logger.error('Error fetching user profile:', error, { userId: authResult.user.id })
+    logger.error('Error fetching user profile:', error, { userId: authResult.user!.id })
     return errorResponse('Failed to fetch profile', 500)
   }
 }
@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest) {
   
   try {
     // Check if email is being changed and if it's already taken
-    if (data.email !== authResult.user.email) {
+    if (data.email !== authResult.user!.email) {
       const existingUser = await prisma.users.findUnique({
         where: { email: data.email }
       })
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest) {
     }
     
     const updatedUser = await prisma.users.update({
-      where: { id: authResult.user.id },
+      where: { id: authResult.user!.id },
       data: {
         name: data.name,
         email: data.email
@@ -79,10 +79,10 @@ export async function PATCH(request: NextRequest) {
       }
     })
     
-    logger.info('User profile updated', { userId: authResult.user.id })
+    logger.info('User profile updated', { userId: authResult.user!.id })
     return successResponse({ user: updatedUser }, 'Profile updated successfully')
   } catch (error) {
-    logger.error('Error updating user profile:', error, { userId: authResult.user.id })
+    logger.error('Error updating user profile:', error, { userId: authResult.user!.id })
     return errorResponse('Failed to update profile', 500)
   }
 }

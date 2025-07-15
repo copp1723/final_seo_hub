@@ -103,5 +103,5 @@ export const getSystemPrompt = (options: {
     prompt += '\n\n' + automotiveSalesPrompt;
   }
   
-  return enhancedContextBuilder('', options.users.ackage, options.previousMessages);
+  return enhancedContextBuilder('', options.userPackage, options.previousMessages);
 };

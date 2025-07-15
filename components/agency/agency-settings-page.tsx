@@ -69,7 +69,7 @@ export function AgencySettingsPage() {
   const [activeTab, setActiveTab] = useState('profile')
   
   // Dealership management state
-  const [dealerships, setDealerships] = useState<typeof dealerships[]>([])
+  const [dealerships, setDealerships] = useState<Dealership[]>([])
   const [showCreateDealership, setShowCreateDealership] = useState(false)
   const [creatingDealership, setCreatingDealership] = useState(false)
   const [dealershipForm, setDealershipForm] = useState({
@@ -686,7 +686,7 @@ export function AgencySettingsPage() {
                         <Input
                           id="dealership-website"
                           value={dealershipForm.website}
-                          onChange={(e) => setDealershipForm({ ...dealerships.orm, website: e.target.value })}
+                          onChange={(e) => setDealershipForm({ ...dealershipForm, website: e.target.value })}
                           placeholder="https://example.com"
                         />
                       </div>
@@ -695,7 +695,7 @@ export function AgencySettingsPage() {
                         <Input
                           id="dealership-address"
                           value={dealershipForm.address}
-                          onChange={(e) => setDealershipForm({ ...dealerships.orm, address: e.target.value })}
+                          onChange={(e) => setDealershipForm({ ...dealershipForm, address: e.target.value })}
                           placeholder="123 Main St, City, State"
                         />
                       </div>
@@ -704,7 +704,7 @@ export function AgencySettingsPage() {
                         <Input
                           id="dealership-phone"
                           value={dealershipForm.phone}
-                          onChange={(e) => setDealershipForm({ ...dealerships.orm, phone: e.target.value })}
+                          onChange={(e) => setDealershipForm({ ...dealershipForm, phone: e.target.value })}
                           placeholder="(555) 123-4567"
                         />
                       </div>
@@ -712,7 +712,7 @@ export function AgencySettingsPage() {
                         <Label htmlFor="package-type">Default Package</Label>
                         <Select 
                           value={dealershipForm.activePackageType} 
-                          onValueChange={(value) => setDealershipForm({ ...dealerships.orm, activePackageType: value })}
+                          onValueChange={(value) => setDealershipForm({ ...dealershipForm, activePackageType: value })}
                         >
                           <SelectTrigger>
                             <SelectValue />

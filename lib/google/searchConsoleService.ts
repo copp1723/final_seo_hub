@@ -102,7 +102,7 @@ export class SearchConsoleService {
 // Helper to get service instance for a dealership
 export async function getSearchConsoleService(dealershipId: string) {
   const token = await prisma.search_console_connections.findUnique({
-    where: { dealershipId }
+    where: { userId: dealershipId }
   })
 
   if (!token) {

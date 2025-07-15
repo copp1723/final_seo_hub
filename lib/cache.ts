@@ -52,7 +52,7 @@ export const cachedQueries = {
   getUserPreferences: createCachedFunction(
     async (userId: string) => {
       const { prisma } = await import('./prisma')
-      return prisma.users.preferences.findUnique({
+      return prisma.user_preferences.findUnique({
         where: { userId }
       })
     },

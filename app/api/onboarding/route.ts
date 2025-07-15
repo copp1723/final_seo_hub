@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         include: { dealerships: true }
       })
 
-      if (!user?.dealerships?.id) {
+      if (!user?.dealerships) {
         logger.error('User has no dealership assigned', { userId })
         return NextResponse.json({ error: 'No dealership assigned to user' }, { status: 400 })
       }
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
       // Update dealership package and billing info
       await prisma.dealerships.update({
-        where: { id: user.dealerships?.id },
+        where: { id: user.dealerships.id },
         data: {
           activePackageType: formData.package as PackageType,
           currentBillingPeriodStart: startOfDay(now),
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      logger.info(`User ${userId} onboarding completed and dealership ${user.dealerships?.id} package ${formData.package} activated.`)
+      logger.info(`User ${userId} onboarding completed and dealership ${user.dealerships.id} package ${formData.package} activated.`)
 
     } catch (dbError) {
       logger.error('Failed to update user onboarding status and package info:', dbError);
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
         onboardingCompleted: true,
         createdAt: true,
         updatedAt: true,
-        dealership: {
+        dealerships: {
           select: {
             activePackageType: true
           }
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     const onboardingRecords = user.onboardingCompleted ? [{
       id: user.id,
       businessName: user.name || 'Unknown Business',
-      package: user.dealerships.activePackageType || 'SILVER',
+      package: user.dealerships?.activePackageType || 'SILVER',
       status: 'submitted',
       submittedAt: user.updatedAt.toISOString(),
       createdAt: user.createdAt.toISOString(),

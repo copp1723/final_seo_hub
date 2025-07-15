@@ -40,7 +40,7 @@ export default function AgencyRequestsPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
-  const agencyId = params.agencies.id as string
+  const agencyId = params.agencyId as string
 
   const [requests, setRequests] = useState<AgencyRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -74,7 +74,7 @@ export default function AgencyRequestsPage() {
 
   const fetchRequests = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
-    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId)) {
+    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
       setError(`Access Denied.You don&apos;t have permission to view these ${DEALERSHIP_TERMINOLOGY} requests.`)
       setIsLoading(false)
       return
@@ -147,7 +147,7 @@ export default function AgencyRequestsPage() {
   )
 
   if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
-  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId))) {
+  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
      return (
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>

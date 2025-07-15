@@ -56,7 +56,7 @@ export async function sendInvitationEmail(options: InvitationEmailOptions): Prom
     }
 
     // Check if user has email notifications enabled (default to true for invitations)
-    const preferences = userWithPreferences.users.preferences
+    const preferences = userWithPreferences.user_preferences
     const emailNotificationsEnabled = preferences?.emailNotifications ?? true
 
     if (!emailNotificationsEnabled) {
@@ -102,7 +102,7 @@ export async function sendInvitationEmail(options: InvitationEmailOptions): Prom
 // Helper function to create default user preferences for new users
 export async function createDefaultUserPreferences(userId: string): Promise<void> {
   try {
-    await prisma.users.preferences.create({
+    await prisma.user_preferences.create({
       data: {
         userId,
         emailNotifications: true,

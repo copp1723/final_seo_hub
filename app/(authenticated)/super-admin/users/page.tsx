@@ -46,7 +46,7 @@ interface PaginatedUsersResponse {
 
 export default function SuperAdminUsersPage() {
   const [users, setUsers] = useState<UserWithAgency[]>([])
-  const [agencies, setAgencies] = useState<typeof agencies[]>([])
+  const [agencies, setAgencies] = useState<agencies[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -162,7 +162,7 @@ export default function SuperAdminUsersPage() {
       name: user.name || '', 
       email: user.email || '', 
       role: user.role,
-      agencyId: user.agencies?.id || ''
+      agencyId: user.agency?.id || ''
     })
     setIsModalOpen(true)
   }
@@ -351,7 +351,7 @@ export default function SuperAdminUsersPage() {
               <SelectContent>
                 <SelectItem value="all">All Agencies</SelectItem>
                 <SelectItem value="none">No Agency</SelectItem>
-                {agencies.map(agency => (
+                {agencies.map((agency: agencies) => (
                   <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -406,7 +406,7 @@ export default function SuperAdminUsersPage() {
                       <TableCell className="font-medium">{user.name || 'N/A'}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
-                      <TableCell>{user.agencies?.name || 'No Agency'}</TableCell>
+                      <TableCell>{user.agency?.name || 'No Agency'}</TableCell>
                       <TableCell>{user._count.requests}</TableCell>
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
                       <TableCell>{formatDate(user.updatedAt)}</TableCell>
@@ -502,7 +502,7 @@ export default function SuperAdminUsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No Agency</SelectItem>
-                  {agencies.map(agency => (
+                  {agencies.map((agency: agencies) => (
                     <SelectItem key={agency.id} value={agency.id}>{agency.name}</SelectItem>
                   ))}
                 </SelectContent>

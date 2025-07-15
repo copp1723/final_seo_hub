@@ -60,14 +60,14 @@ export async function GET(request: NextRequest) {
           type: account.type,
           provider: account.provider,
           providerAccountId: account.providerAccountId,
-          userId: account.user.id,
-          user: account.user
+          userId: account.users.id,
+          user: account.users
         })),
         sessions: sessions.map(session => ({
           id: session.id,
           sessionToken: session.sessionToken.substring(0, 20) + '...', // Truncate for security
-          userId: session.user.id,
-          user: session.user,
+          userId: session.users.id,
+          user: session.users,
           expires: session.expires
         })),
         summary: {

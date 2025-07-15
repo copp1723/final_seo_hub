@@ -52,7 +52,7 @@ interface AuditStats {
 }
 
 export default function SuperAdminAuditPage() {
-  const [auditLogs, setAuditLogs] = useState<typeof audit_logs[]>([])
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [stats, setStats] = useState<AuditStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -159,7 +159,7 @@ export default function SuperAdminAuditPage() {
 
   const getActionIcon = (action: string) => {
     if (action.includes('LOGIN') || action.includes('LOGOUT')) {
-      return <users className="h-4 w-4" />
+      return <User className="h-4 w-4" />
     } else if (action.includes('CREATE')) {
       return <CheckCircle className="h-4 w-4 text-green-500" />
     } else if (action.includes('DELETE')) {

@@ -25,17 +25,17 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {
     // Get or create user preferences
-    let preferences = await prisma.users.preferences.findUnique({
+    let preferences = await prisma.user_preferences.findUnique({
       where: { userId: authResult.user.id }
     })
     
     // If preferences don't exist, create default ones
     if (!preferences) {
-      preferences = await prisma.users.preferences.create({
+      preferences = await prisma.user_preferences.create({
         data: {
           userId: authResult.user.id,
           emailNotifications: true,
@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
   
   // Validate request body
   const validation = await validateRequest(request, updatePreferencesSchema)
@@ -76,7 +76,7 @@ export async function PATCH(request: NextRequest) {
   
   try {
     // Update or create preferences
-    const preferences = await prisma.users.preferences.upsert({
+    const preferences = await prisma.user_preferences.upsert({
       where: { userId: authResult.user.id },
       update: data,
       create: {
@@ -90,8 +90,8 @@ export async function PATCH(request: NextRequest) {
       changes: data
     })
     
-    return successResponse({ 
-      preferences 
+    return successResponse({
+      preferences
     }, 'Preferences updated successfully')
   } catch (error) {
     logger.error('Error updating user preferences', error, {

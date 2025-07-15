@@ -26,7 +26,7 @@ import { formatDate } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
 
 type AgencyWithDetails = agencies & {
-  users: typeof users[]
+  users: users[]
   _count: {
     users: number
     requests: number

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       where: { id: session.user.id }
     })
 
-    if (!currentUser?.agencies?.id) {
+    if (!currentUser?.agencyId) {
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const dealershipUser = await prisma.users.findUnique({
       where: { 
         id: dealershipId,
-        agencyId: currentUser.agencies?.id
+        agencyId: currentUser.agencyId
       }
     })
     

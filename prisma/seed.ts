@@ -140,7 +140,7 @@ async function main() {
 
   // Create user preferences for all users
   for (const user of [superAdmin, agencyAdmin, dealershipAdmin1, dealershipAdmin2]) {
-    await prisma.users.preferences.upsert({
+    await prisma.user_preferences.upsert({
       where: { userId: user.id },
       update: {},
       create: {

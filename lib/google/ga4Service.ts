@@ -18,15 +18,15 @@ export class GA4Service {
   private dealershipId: string;
 
   constructor(dealershipId: string) {
-    this.dealerships.id = dealershipId;
+    this.dealershipId = dealershipId;
   }
 
   private async initialize() {
     // Refresh token if needed
-    await refreshGA4TokenIfNeeded(this.dealerships?.id);
+    await refreshGA4TokenIfNeeded(this.dealershipId);
 
     const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: this.dealerships?.id }
+      where: { userId: this.dealershipId }
     });
 
     if (!connection) {

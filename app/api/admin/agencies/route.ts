@@ -63,9 +63,6 @@ export async function POST(request: NextRequest) {
     const agency = await prisma.agencies.create({
       data: {
         id: crypto.randomUUID(),
-        slug: name.toLowerCase().replace(/\s+/g, '-'),
-        updatedAt: new Date(),
-        id: crypto.randomUUID(),
         name,
         slug: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
         domain: domain || null,

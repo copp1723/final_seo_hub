@@ -108,8 +108,8 @@ export function searchTasksByQuery(tasks: TaskReference[], query: string): TaskR
       task.completedNotes,
       task.targetCity,
       task.targetModel,
-      task.requests.itle,
-      task.requests.escription
+      task.requestTitle,
+      task.requestDescription
     ].filter(Boolean).join(' ').toLowerCase()
 
     // Extract keywords if available

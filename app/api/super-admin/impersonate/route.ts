@@ -108,17 +108,20 @@ export async function POST(request: NextRequest) {
     // Log the impersonation for audit purposes
     await prisma.audit_logs.create({
       data: {
+        id: crypto.randomUUID(),
         userId: session.user.id,
         action: 'IMPERSONATE_USER',
         resource: 'User',
-        resourceId: targetUser.id,
+        entityType: 'User',
+        entityId: targetUser.id,
         details: {
           targetUserEmail: targetUser.email,
           targetUserRole: targetUser.role,
           originalUserEmail: currentUser.email
         },
-        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-        userAgent: request.headers.get('user-agent') || null
+        users: {
+          connect: { id: session.user.id }
+        }
       }
     })
 
@@ -210,16 +213,19 @@ export async function DELETE(request: NextRequest) {
     if (impersonatedUserId) {
       await prisma.audit_logs.create({
         data: {
+          id: crypto.randomUUID(),
           userId: superAdmin.id,
           action: 'STOP_IMPERSONATION',
           resource: 'User',
-          resourceId: impersonatedUserId,
+          entityType: 'User',
+          entityId: impersonatedUserId,
           details: {
             impersonatedUserId,
             originalUserEmail: superAdmin.email
           },
-          ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-          userAgent: request.headers.get('user-agent') || null
+          users: {
+            connect: { id: superAdmin.id }
+          }
         }
       })
     }

@@ -169,6 +169,10 @@ async function createDealerships() {
             dealershipId: dealership.id,
             propertyId: dealershipData.ga4PropertyId,
             propertyName: `${dealership.name} - GA4`,
+            accessToken: '',
+            users: {
+              connect: { id: 'placeholder' }
+            }
             // OAuth tokens will be added when user connects
           }
         })
@@ -182,6 +186,10 @@ async function createDealerships() {
             dealershipId: dealership.id,
             siteUrl: dealershipData.searchConsoleUrl,
             siteName: `${dealership.name} - Search Console`,
+            accessToken: '',
+            users: {
+              connect: { id: 'placeholder' }
+            }
             // OAuth tokens will be added when user connects
           }
         })

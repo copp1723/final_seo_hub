@@ -90,7 +90,7 @@ export async function GET() {
           dealershipsCount: seowerksAgency.dealerships.length,
           usersCount: seowerksAgency.users.length
         } : null,
-        needsFix: !user.agencies.id && !!seowerksAgency
+        needsFix: !user.agencies?.id && !!seowerksAgency
       })
     }
 

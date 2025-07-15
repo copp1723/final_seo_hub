@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 const systemSettingsSchema = z.object({
   // Feature flags
@@ -129,13 +130,18 @@ export async function PUT(request: NextRequest) {
       try {
         await prisma.audit_logs.create({
           data: {
+            id: crypto.randomUUID(),
             userId: session.user.id,
             action: 'SYSTEM_SETTINGS_UPDATE',
             resource: 'SystemSettings',
-            resourceId: updatedSettings.id,
+            entityType: 'SystemSettings',
+            entityId: updatedSettings.id,
             details: {
               changes: validatedData,
               timestamp: new Date().toISOString()
+            },
+            users: {
+              connect: { id: session.user.id }
             }
           }
         })

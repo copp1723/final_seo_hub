@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger'
 export async function refreshGA4TokenIfNeeded(dealershipId: string): Promise<boolean> {
   try {
     const connection = await prisma.ga4_connections.findUnique({
-      where: { dealershipId }
+      where: { userId: dealershipId }
     })
 
     if (!connection) {

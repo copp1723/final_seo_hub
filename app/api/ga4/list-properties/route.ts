@@ -20,7 +20,7 @@ export async function GET() {
     })
 
     // For agency admins, we'll show all properties they have access to
-    if (!user?.dealerships.id && user?.role !== 'AGENCY_ADMIN') {
+    if (!user?.dealershipId && user?.role !== 'AGENCY_ADMIN') {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -30,17 +30,21 @@ export async function GET() {
     // Get GA4 connection - either from user's dealership or any dealership in their agency
     let connection = null
     
-    if (user?.dealerships?.id) {
+    if (user?.dealershipId) {
       connection = await prisma.ga4_connections.findUnique({
-        where: { userId: user.dealerships?.id }
+        where: { userId: user.dealershipId }
       })
-    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       // For agency admins, find any GA4 connection in their agency to use the tokens
       const agencyDealership = await prisma.dealerships.findFirst({
-        where: { agencyId: user.agencies?.id },
-        include: { ga4_connections: true }
+        where: { agencyId: user.agencyId }
       })
-      connection = agencyDealership?.ga4_connections
+      
+      if (agencyDealership) {
+        connection = await prisma.ga4_connections.findFirst({
+          where: { userId: agencyDealership.id }
+        })
+      }
     }
 
     if (!connection || !connection.accessToken) {
@@ -109,26 +113,32 @@ export async function GET() {
       currentPropertyId: string | null
       currentPropertyName: string | null
     }> = []
-    if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+    if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       const agencyDealerships = await prisma.dealerships.findMany({
-        where: { agencyId: user.agencies?.id },
-        include: {
-          ga4_connections: {
-            select: {
-              propertyId: true,
-              propertyName: true
-            }
-          }
-        },
+        where: { agencyId: user.agencyId },
         orderBy: { name: 'asc' }
       })
       
-      dealershipMappings = agencyDealerships.map(d => ({
-        dealershipId: d.id,
-        dealershipName: d.name,
-        currentPropertyId: d.ga4_connections?.propertyId || null,
-        currentPropertyName: d.ga4_connections?.propertyName || null
-      }))
+      // Get GA4 connections for each dealership
+      const dealershipIds = agencyDealerships.map(d => d.id)
+      const ga4Connections = await prisma.ga4_connections.findMany({
+        where: { userId: { in: dealershipIds } },
+        select: {
+          userId: true,
+          propertyId: true,
+          propertyName: true
+        }
+      })
+      
+      dealershipMappings = agencyDealerships.map(d => {
+        const connection = ga4Connections.find(c => c.userId === d.id)
+        return {
+          dealershipId: d.id,
+          dealershipName: d.name,
+          currentPropertyId: connection?.propertyId || null,
+          currentPropertyName: connection?.propertyName || null
+        }
+      })
     }
 
     logger.info('GA4 properties listed successfully', {

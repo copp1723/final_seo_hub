@@ -34,8 +34,8 @@ interface Agency {
 }
 
 export function ContentNotificationAdminPanel() {
-  const [users, setUsers] = useState<typeof users[]>([])
-  const [agencies, setAgencies] = useState<typeof agencies[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [agencies, setAgencies] = useState<Agency[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedAgency, setSelectedAgency] = useState<string>('all')
@@ -131,7 +131,7 @@ export function ContentNotificationAdminPanel() {
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesAgency = selectedAgency === 'all' || user.agencies.id === selectedAgency
+    const matchesAgency = selectedAgency === 'all' || user.agencyId === selectedAgency
     
     const matchesFilter = filterEnabled === 'all' || 
       (filterEnabled === 'enabled' && user.preferences?.emailNotifications && user.preferences?.taskCompleted) ||
@@ -235,7 +235,7 @@ export function ContentNotificationAdminPanel() {
                   <SelectItem value="all">All Agencies</SelectItem>
                   {agencies.map((agency) => (
                     <SelectItem key={agency.id} value={agency.id}>
-                      {agency.name} ({agency.users.ount} users)
+                      {agency.name} ({agency.userCount} users)
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -287,7 +287,7 @@ export function ContentNotificationAdminPanel() {
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => {
-                  const agency = agencies.find(a => a.id === user.agencies?.id)
+                  const agency = agencies.find(a => a.id === user.agencyId)
                   return (
                     <TableRow key={user.id}>
                       <TableCell>

@@ -22,7 +22,7 @@ export async function GET() {
             dealerships: true
           }
         },
-        dealership: true
+        dealerships: true
       }
     })
 
@@ -39,12 +39,12 @@ export async function GET() {
         email: user.email,
         name: user.name,
         role: user.role,
-        agencyId: user.agencies?.id,
-        dealershipId: user.dealerships?.id,
+        agencyId: user.agencyId,
+        dealershipId: user.dealershipId,
         agency: user.agencies ? {
           id: user.agencies?.id,
           name: user.agencies?.name,
-          dealerships: user.agencies.dealerships.map(d => ({
+          dealerships: user.agencies.dealerships.map((d: any) => ({
             id: d.id,
             name: d.name
           }))
@@ -54,15 +54,15 @@ export async function GET() {
           name: user.dealerships?.name
         } : null,
         sessionData: {
-          agencyId: session.user.agency.id,
-          dealershipId: session.user.dealership.id,
+          agencyId: session.user.agencyId,
+          dealershipId: session.user.dealershipId,
           role: session.user.role
         }
       },
       visibility: {
-        hasAgencyId: !!user.agencies?.id,
+        hasAgencyId: !!user.agencyId,
         hasAvailableDealerships: (user.agencies?.dealerships?.length || 0) > 0,
-        shouldShowSelector: !!user.agencies?.id && (user.agencies?.dealerships?.length || 0) > 0
+        shouldShowSelector: !!user.agencyId && (user.agencies?.dealerships?.length || 0) > 0
       }
     })
 

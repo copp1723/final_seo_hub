@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ age
   const { agencyId } = await context.params
   const user = authResult.user
 
-  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencies?.id !== agencyId)) {
+  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
     return errorResponse('Access denied.You do not have permission to view these users.', 403)
   }
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
   const { agencyId } = await context.params
   const user = authResult.user
 
-  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencies?.id !== agencyId)) {
+  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
     return errorResponse('Access denied.You do not have permission to create users for this agency.', 403)
   }
 
@@ -157,7 +157,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ age
   const { agencyId } = await context.params // Agency ID from URL
   const userMakingRequest = authResult.user
 
-  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencies?.id !== agencyId)) {
+  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencyId !== agencyId)) {
     return errorResponse('Access denied.You do not have permission to update users for this agency.', 403)
   }
 
@@ -224,7 +224,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const { agencyId } = await context.params
   const userMakingRequest = authResult.user
 
-  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencies?.id !== agencyId)) {
+  if (userMakingRequest.role !== UserRole.SUPER_ADMIN && (userMakingRequest.role !== UserRole.AGENCY_ADMIN || userMakingRequest.agencyId !== agencyId)) {
     return errorResponse('Access denied.You do not have permission to delete users from this agency.', 403)
   }
 

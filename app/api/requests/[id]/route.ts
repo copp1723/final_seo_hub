@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Request as PrismaRequest } from '@prisma/client';
+import { requests as PrismaRequest } from '@prisma/client';
 
 // Assume db is an instance of your database client (e.g., Prisma, Sequelize)
 // and Request is your database model/schema for requests.

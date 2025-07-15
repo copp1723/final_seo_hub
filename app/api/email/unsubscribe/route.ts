@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const { userId, emailType } = tokenData
     
     // Get user preferences
-    const preferences = await prisma.users.preferences.findUnique({
+    const preferences = await prisma.user_preferences.findUnique({
       where: { userId }
     })
     
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         updateData.emailNotifications = false
         break
       case 'requestCreated':
-        updateData.requests.reated = false
+        updateData.requestCreated = false
         break
       case 'statusChanged':
         updateData.statusChanged = false
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Update preferences
-    await prisma.users.preferences.update({
+    await prisma.user_preferences.update({
       where: { userId },
       data: updateData
     })

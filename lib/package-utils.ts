@@ -72,7 +72,7 @@ export function getPackageTotalTasks(packageType: PackageType): number {
  * Ensures the dealership's billing period is current.If a new period has started,
  * it archives the previous period's usage and resets counters for the new period.
  */
-export async function ensureDealershipBillingPeriodAndRollover(dealershipId: string): Promise<typeof dealerships> {
+export async function ensureDealershipBillingPeriodAndRollover(dealershipId: string): Promise<dealerships> {
   let dealership = await prisma.dealerships.findUnique({ where: { id: dealershipId } })
   if (!dealership) throw new Error(`Dealership with ID ${dealershipId} not found.`)
 
@@ -125,11 +125,11 @@ export async function ensureUserBillingPeriodAndRollover(userId: string): Promis
     where: { id: userId }
   })
   
-  if (!user?.dealerships?.id) {
+  if (!user?.dealershipId) {
     return null // User not assigned to a dealership
   }
   
-  return ensureDealershipBillingPeriodAndRollover(user.dealerships?.id)
+  return ensureDealershipBillingPeriodAndRollover(user.dealershipId)
 }
 
 export type TaskType = 'pages' | 'blogs' | 'gbpPosts' | 'improvements'
@@ -138,7 +138,7 @@ export type TaskType = 'pages' | 'blogs' | 'gbpPosts' | 'improvements'
  * Increments usage for a specific task type for a dealership.
  * Throws an error if the dealership has no active package or if the quota is exceeded.
  */
-export async function incrementDealershipUsage(dealershipId: string, taskType: TaskType): Promise<typeof dealerships> {
+export async function incrementDealershipUsage(dealershipId: string, taskType: TaskType): Promise<dealerships> {
   let dealership = await ensureDealershipBillingPeriodAndRollover(dealershipId)
 
   if (!dealership.activePackageType) {
@@ -148,7 +148,7 @@ export async function incrementDealershipUsage(dealershipId: string, taskType: T
   const limits = getPackageLimits(dealership.activePackageType)
   let currentUsage: number
   let limit: number
-  let updateData: Partial<typeof dealerships> = {}
+  let updateData: Partial<dealerships> = {}
 
   switch (taskType) {
     case 'pages':
@@ -197,11 +197,11 @@ export async function incrementUsage(userId: string, taskType: TaskType): Promis
     where: { id: userId }
   })
   
-  if (!user?.dealerships?.id) {
+  if (!user?.dealershipId) {
     throw new Error('User is not assigned to a dealership.')
   }
   
-  return incrementDealershipUsage(user.dealerships?.id, taskType)
+  return incrementDealershipUsage(user.dealershipId, taskType)
 }
 
 /**
@@ -274,12 +274,12 @@ export async function getUserPackageProgress(userId: string): Promise<PackagePro
       where: { id: userId }
     })
     
-    if (!user?.dealerships?.id) {
+    if (!user?.dealershipId) {
       console.log(`User ${userId} is not assigned to a dealership`)
       return null
     }
     
-    return getDealershipPackageProgress(user.dealerships?.id)
+    return getDealershipPackageProgress(user.dealershipId)
   } catch (error) {
     console.error(`Error getting package progress for user ${userId}:`, error)
     return null

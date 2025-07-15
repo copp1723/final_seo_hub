@@ -20,7 +20,7 @@ export async function GET() {
     })
 
     // For agency admins, we'll show all sites they have access to
-    if (!user?.dealerships.id && user?.role !== 'AGENCY_ADMIN') {
+    if (!user?.dealershipId && user?.role !== 'AGENCY_ADMIN') {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -30,17 +30,24 @@ export async function GET() {
     // Get Search Console connection - either from user's dealership or any dealership in their agency
     let connection = null
     
-    if (user?.dealerships?.id) {
+    if (user?.dealershipId) {
       connection = await prisma.search_console_connections.findUnique({
-        where: { userId: user.dealerships?.id }
+        where: { userId: user.dealershipId }
       })
-    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       // For agency admins, find any Search Console connection in their agency to use the tokens
-      const agencyDealership = await prisma.dealerships.findFirst({
-        where: { agencyId: user.agencies?.id },
-        include: { search_console_connections: true }
+      connection = await prisma.search_console_connections.findFirst({
+        where: {
+          users: {
+            dealershipId: {
+              in: await prisma.dealerships.findMany({
+                where: { agencyId: user.agencyId },
+                select: { id: true }
+              }).then(dealerships => dealerships.map(d => d.id))
+            }
+          }
+        }
       })
-      connection = agencyDealership?.search_console_connections
     }
 
     if (!connection || !connection.accessToken) {
@@ -98,26 +105,34 @@ export async function GET() {
       currentSiteUrl: string | null
       currentSiteName: string | null
     }> = []
-    if (user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+    if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       const agencyDealerships = await prisma.dealerships.findMany({
-        where: { agencyId: user.agencies?.id },
-        include: {
-          search_console_connections: {
+        where: { agencyId: user.agencyId },
+        orderBy: { name: 'asc' }
+      })
+      
+      // Get search console connections for each dealership
+      const dealershipConnections = await Promise.all(
+        agencyDealerships.map(async (d) => {
+          const scConnection = await prisma.search_console_connections.findFirst({
+            where: {
+              users: { dealershipId: d.id }
+            },
             select: {
               siteUrl: true,
               siteName: true
             }
+          })
+          return {
+            dealershipId: d.id,
+            dealershipName: d.name,
+            currentSiteUrl: scConnection?.siteUrl || null,
+            currentSiteName: scConnection?.siteName || null
           }
-        },
-        orderBy: { name: 'asc' }
-      })
+        })
+      )
       
-      dealershipMappings = agencyDealerships.map(d => ({
-        dealershipId: d.id,
-        dealershipName: d.name,
-        currentSiteUrl: d.search_console_connections?.siteUrl || null,
-        currentSiteName: d.search_console_connections?.siteName || null
-      }))
+      dealershipMappings = dealershipConnections
     }
 
     logger.info('Search Console sites listed successfully', {

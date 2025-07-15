@@ -126,7 +126,7 @@ export default function AdminPage() {
         )}
         {isAgencyAdmin && (
           <>
-            <Link href={`/admin/agencies/${session.user.agency.id}/requests`}>
+            <Link href={`/admin/agencies/${session.user.agencyId}/requests`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export default function AdminPage() {
               </Card>
             </Link>
             
-            <Link href={`/admin/agencies/${session.user.agency.id}/users`}>
+            <Link href={`/admin/agencies/${session.user.agencyId}/users`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

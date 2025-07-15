@@ -105,14 +105,14 @@ export async function POST(request: NextRequest) {
         dealershipId: true,
         role: true,
         agencyId: true,
-        dealership: true
+        dealerships: true
       }
     })
 
-    const targetDealershipId = user?.dealerships.id
+    const targetDealershipId = user?.dealershipId
     
     // If user is agency admin, they might be accessing on behalf of a dealership
-    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+    if (!targetDealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       // For agency admins, we need a dealershipId parameter or default behavior
       // For now, return an appropriate error since this endpoint needs dealership context
       return NextResponse.json(

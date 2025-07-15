@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Fetch all requests for current month
     const monthlyRequests = await prisma.requests.findMany({
       where: {
-        userId: authResult.user.id,
+        userId: authResult.user!.id,
         createdAt: {
           gte: startOfMonth,
           lte: endOfMonth
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     // Get user's active package (most recent request with package type)
     const latestPackageRequest = await prisma.requests.findFirst({
       where: {
-        userId: authResult.user.id,
+        userId: authResult.user!.id,
         packageType: { not: null }
       },
       orderBy: { createdAt: 'desc' },
@@ -101,11 +101,11 @@ export async function GET(request: NextRequest) {
     }
     
     // Add diagnostic logging
-    logger.info('Usage API response data:', { ...responseData, userId: authResult.user.id })
+    logger.info('Usage API response data:', { ...responseData, userId: authResult.user!.id })
     
     return successResponse(responseData)
   } catch (error) {
-    logger.error('Error fetching package usage:', error, { userId: authResult.user.id })
+    logger.error('Error fetching package usage:', error, { userId: authResult.user!.id })
     return errorResponse('Failed to fetch package usage', 500)
   }
 }

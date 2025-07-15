@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // Validate sender authorization
     const senderValidation = await CsvSecurityService.validateSender(sender)
-    if (!senderValidation.isValid || !senderValidation.users || !senderValidation.agencies) {
+    if (!senderValidation.isValid || !senderValidation.user || !senderValidation.agency) {
       logger.warn('Unauthorized sender attempted CSV upload', { sender, error: senderValidation.error })
       await sendErrorEmail(sender, 'Unauthorized sender', senderValidation.error || 'You are not authorized to create dealerships via email.')
       return errorResponse('Unauthorized sender', 403)
@@ -177,12 +177,12 @@ export async function POST(request: NextRequest) {
     // Create processing log
     const processingId = await CsvDealershipProcessor.createProcessingLog(
       sender,
-      senderValidation.agencies?.id,
+      senderValidation.agency?.id,
       csvFile.name,
       fileBuffer.length
     )
 
-    logger.info('Created processing log', { processingId, sender, agencyId: senderValidation.agencies?.id })
+    logger.info('Created processing log', { processingId, sender, agencyId: senderValidation.agency?.id })
 
     // Process CSV asynchronously to avoid timeout
     setImmediate(async () => {
@@ -191,22 +191,22 @@ export async function POST(request: NextRequest) {
         
         const result = await CsvDealershipProcessor.processCsv(
           fileBuffer,
-          senderValidation.agencies?.id,
+          senderValidation.agency!.id,
           processingId
         )
 
-        await sendSuccessEmail(sender, result, senderValidation.agencies?.name)
+        await sendSuccessEmail(sender, result, senderValidation.agency!.name)
         
-        logger.info('CSV processing completed successfully', { 
-          processingId, 
+        logger.info('CSV processing completed successfully', {
+          processingId,
           successfulRows: result.successfulRows,
-          failedRows: result.failedRows 
+          failedRows: result.failedRows
         })
       } catch (error) {
-        logger.error('Async CSV processing failed', error, { 
+        logger.error('Async CSV processing failed', error, {
           processingId,
-          sender, 
-          agencyId: senderValidation.agencies?.id 
+          sender,
+          agencyId: senderValidation.agency?.id
         })
         await sendErrorEmail(sender, 'Processing failed', 'An error occurred while processing your CSV file.Please check the format and try again.')
       }
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
     return successResponse({
       message: 'CSV file received and queued for processing',
       processingId,
-      agency: senderValidation.agencies?.name
+      agency: senderValidation.agency?.name
     })
 
   } catch (error) {

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       },
       // Agency admins can only see users in their agency
       where: authResult.user.role === 'AGENCY_ADMIN' 
-        ? { agencyId: authResult.user.agency.id }
+        ? { agencyId: authResult.user.agencyId }
         : undefined,
       orderBy: { email: 'asc' }
     })

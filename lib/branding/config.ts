@@ -45,13 +45,8 @@ export function getBrandingForAgency(agency?: agencies | null): BrandingConfig {
     return DEFAULT_BRANDING
   }
 
-  // Check if agency has custom branding in settings
-  if (agency.settings && typeof agency.settings === 'object') {
-    const settings = agency.settings as any
-    if (settings.branding) {
-      return { ...DEFAULT_BRANDING, ...settings.branding }
-    }
-  }
+  // Custom branding can be added here in the future when settings schema is updated
+  // For now, use predefined agency brandings
 
   // Fallback to predefined agency brandings
   const agencyKey = agency.name.toLowerCase().replace(/\s+/g, '')
@@ -68,7 +63,7 @@ export function getBrandingFromDomain(domain: string): BrandingConfig {
   return DEFAULT_BRANDING
 }
 
-export function getBrandingFromRequest(request: typeof requests): BrandingConfig {
+export function getBrandingFromRequest(request: Request): BrandingConfig {
   const url = new URL(request.url)
   return getBrandingFromDomain(url.hostname)
 }

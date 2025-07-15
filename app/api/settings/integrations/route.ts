@@ -10,15 +10,15 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {
     // Get user's dealership for connection queries or handle agency admin access
-    const targetDealershipId = authResult.user.dealership.id
+    const targetDealershipId = authResult.user.dealershipId
     
     // For agency admins without a dealership, show empty integrations state
     // This allows them to see the UI and connect integrations
-    if (!targetDealershipId && authResult.user.role === 'AGENCY_ADMIN' && authResult.user.agency.id) {
+    if (!targetDealershipId && authResult.user.role === 'AGENCY_ADMIN' && authResult.user.agencyId) {
       // Return empty integrations state for agency admins
       const integrations = {
         ga4: {

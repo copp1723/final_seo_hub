@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { PackageType, UserRole } from '@prisma/client'
+import crypto from 'crypto'
 
 // SEOWorks API key for authentication
 const SEOWORKS_API_KEY = '7f3e9b5d2a8c4f6e1b9d3c7a5e8f2b4d6c9a1e3f7b5d9c2a6e4f8b1d3c7a9e5f'
@@ -101,10 +102,12 @@ export async function POST(req: NextRequest) {
       // Create new user
       user = await prisma.users.create({
         data: {
+          id: crypto.randomUUID(),
           email: payload.clientEmail,
           name: payload.contactName,
           role: UserRole.USER,
-          onboardingCompleted: true
+          onboardingCompleted: true,
+          updatedAt: new Date()
         }
       })
 

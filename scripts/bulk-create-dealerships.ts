@@ -1,4 +1,4 @@
-import { prisma } from './lib/prisma'
+import { prisma } from '../lib/prisma'
 
 interface DealershipData {
   name: string
@@ -39,7 +39,11 @@ async function createDealerships(agencyId: string) {
           data: {
             dealershipId: created.id,
             propertyId: dealership.ga4PropertyId,
-            propertyName: dealership.name + " - GA4"
+            propertyName: dealership.name + " - GA4",
+            accessToken: '',
+            users: {
+              connect: { id: 'placeholder' }
+            }
             // Note: accessToken and refreshToken will be set when user connects
           }
         })
@@ -52,7 +56,11 @@ async function createDealerships(agencyId: string) {
           data: {
             dealershipId: created.id,
             siteUrl: dealership.searchConsoleUrl,
-            siteName: dealership.name + " - Search Console"
+            siteName: dealership.name + " - Search Console",
+            accessToken: '',
+            users: {
+              connect: { id: 'placeholder' }
+            }
             // Note: accessToken and refreshToken will be set when user connects
           }
         })

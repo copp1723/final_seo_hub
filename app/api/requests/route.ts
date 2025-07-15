@@ -15,7 +15,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   if (rateLimitResponse) return rateLimitResponse
 
   const authResult = await requireAuth()
-  if (!authResult.authenticated) {
+  if (!authResult.authenticated || !authResult.user) {
     return authResult.response || errorResponse('Unauthorized', 401)
   }
 
@@ -29,12 +29,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   const sortOrder = (sortOrderParam === 'asc' || sortOrderParam === 'desc') ? sortOrderParam : 'desc'
 
   try {
-    const where: Prisma.RequestWhereInput = {}
+    const where: Prisma.requestsWhereInput = {}
 
     // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
     // Otherwise, fetch requests for the individual user.
-    if (user.role === UserRole.AGENCY_ADMIN && user.agencies?.id) {
-      where.agencyId = user.agencies?.id
+    if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
+      where.agencyId = user.agencyId
     } else if (user.role === UserRole.SUPER_ADMIN) {
       // SUPER_ADMIN can see all requests if no specific agencyId is provided via a different route
       // For this route, we assume they want to see their own requests or all if not filtered by agency
@@ -73,7 +73,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       ]
     }
 
-    const orderBy: Prisma.RequestOrderByWithRelationInput = {}
+    const orderBy: Prisma.requestsOrderByWithRelationInput = {}
     if (sortBy === 'createdAt' || sortBy === 'priority' || sortBy === 'status') {
       orderBy[sortBy] = sortOrder
     } else {
@@ -120,7 +120,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated) {
+  if (!authResult.authenticated || !authResult.user) {
     logger.warn('Focus request unauthorized', {
       authenticated: authResult.authenticated,
       hasUser: !!authResult.user
@@ -131,7 +131,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   logger.info('Focus request auth successful', {
     userId: authResult.user.id,
     userRole: authResult.user.role,
-    agencyId: authResult.user.agency.id
+    agencyId: authResult.user.agencyId
   })
 
   // Log the raw request body for debugging
@@ -201,14 +201,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         keywords: data.keywords,
         targetCities: data.targetCities,
         targetModels: data.targetModels,
-        agencyId: authResult.user.agency.id
+        agencyId: authResult.user.agencyId
       }
     })
 
     const newRequest = await prisma.requests.create({
       data: {
         userId: authResult.user.id,
-        agencyId: authResult.user.agency.id || null, // Handle null agencyId
+        agencyId: authResult.user.agencyId || null, // Handle null agencyId
         title: data.title,
         description: data.description,
         type: data.type,
@@ -251,10 +251,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Send request created email notification
     const emailTemplate = requestCreatedTemplate(newRequest, newRequest.users)
     await queueEmailWithPreferences(
-      newRequest.user.id,
+      newRequest.userId,
       'requestCreated',
       { ...emailTemplate,
-        to: newRequest.user.email
+        to: newRequest.users.email
       },
     )
     
@@ -266,10 +266,10 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     if (requestCount === 1) {
       const welcomeTemplate = welcomeEmailTemplate(newRequest.users)
       await queueEmailWithPreferences(
-        newRequest.user.id,
+        newRequest.userId,
         'requestCreated', // Use requestCreated preference for welcome email
         { ...welcomeTemplate,
-          to: newRequest.user.email
+          to: newRequest.users.email
       },
       )
     }

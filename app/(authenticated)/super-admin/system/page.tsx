@@ -60,7 +60,7 @@ interface SystemHealth {
 }
 
 export default function SuperAdminSystemPage() {
-  const [settings, setSettings] = useState<system_settings | null>(null)
+  const [settings, setSettings] = useState<SystemSettings | null>(null)
   const [health, setHealth] = useState<SystemHealth | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)

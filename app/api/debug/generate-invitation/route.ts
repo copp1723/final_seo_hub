@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication - only SUPER_ADMIN can generate invitation tokens
     const session = await auth()
-    if (!session?.users || session.user.role !== 'SUPER_ADMIN') {
+    if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

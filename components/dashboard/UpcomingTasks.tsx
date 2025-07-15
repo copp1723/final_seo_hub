@@ -12,7 +12,7 @@ interface Task {
 }
 
 interface UpcomingTasksProps {
-  tasks: typeof tasks[]
+  tasks: Task[]
 }
 
 const getTaskVariant = (daysRemaining: number, status: string) => {

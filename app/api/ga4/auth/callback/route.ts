@@ -46,13 +46,13 @@ export async function GET(request: NextRequest) {
       select: { dealershipId: true }
     })
 
-    if (!user?.dealerships?.id) {
+    if (!user?.dealershipId) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=User not assigned to dealership`)
     }
 
     // Check if dealership already has a property selected
     const existingConnection = await prisma.ga4_connections.findUnique({
-      where: { userId: user.dealerships?.id }
+      where: { userId: user.dealershipId }
     })
     
     // Try to fetch property info from Google Analytics
@@ -87,16 +87,16 @@ export async function GET(request: NextRequest) {
     } else {
       logger.info('Preserving existing property selection', {
         userId: state,
-        dealershipId: user.dealerships?.id,
+        dealershipId: user.dealershipId,
         propertyId,
         propertyName
       })
     }
 
     await prisma.ga4_connections.upsert({
-      where: { userId: user.dealerships?.id },
+      where: { userId: user.dealershipId },
       create: {
-        dealershipId: user.dealerships?.id,
+        users: { connect: { id: user.dealershipId } },
         accessToken: encrypt(tokens.access_token),
         refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

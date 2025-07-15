@@ -144,7 +144,7 @@ async function handleGET(request: NextRequest) {
         targetDealershipId = dealershipId
       } else {
         // Non-agency user - can only access their own dealership
-        if (user.dealerships.id !== dealershipId) {
+        if (user.dealerships?.id !== dealershipId) {
           return NextResponse.json(
             { error: 'Access denied to this dealership' },
             { status: 403 }

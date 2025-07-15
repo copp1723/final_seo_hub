@@ -97,7 +97,7 @@ export async function GET(req: Request) {
       select: { dealershipId: true }
     })
 
-    if (!user?.dealerships?.id) {
+    if (!user?.dealershipId) {
       logger.error('User not assigned to dealership', { userId: session.user.id })
       return NextResponse.redirect(new URL('/settings?error=user_not_assigned_to_dealership', process.env.NEXTAUTH_URL!))
     }
@@ -107,7 +107,7 @@ export async function GET(req: Request) {
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
 
     await prisma.search_console_connections.upsert({
-      where: { userId: user.dealerships?.id },
+      where: { userId: user.dealershipId },
       update: {
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
@@ -116,7 +116,7 @@ export async function GET(req: Request) {
         siteName: siteName
       },
       create: {
-        dealershipId: user.dealerships?.id,
+        users: { connect: { id: user.dealershipId } },
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

@@ -17,8 +17,8 @@ function escapeHtml(text: string): string {
 
 // Content-specific email template for showing completed work
 export function contentAddedTemplate(
-  request: typeof requests,
-  user: typeof users,
+  request: requests,
+  user: users,
   taskDetails: { title: string; type: string; url?: string },
   branding?: BrandingConfig
 ): { subject: string; html: string } {

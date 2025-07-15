@@ -106,6 +106,7 @@ model audit_logs {
   userEmail  String
   userId     String?
   details    Json?
+  resource   String?
   createdAt  DateTime @default(now())
   users      users    @relation(fields: [userEmail], references: [email], onDelete: Cascade)
 
@@ -395,6 +396,7 @@ model users {
   isSuperAdmin               Boolean                       @default(false)
   onboardingCompleted        Boolean                       @default(false)
   invitationToken            String?
+  invitationTokenExpires     DateTime?
   apiKey                     String?
   apiKeyCreatedAt            DateTime?
   accounts                   accounts[]

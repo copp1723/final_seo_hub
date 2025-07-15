@@ -17,7 +17,7 @@ export async function GET() {
       select: { dealershipId: true }
     })
 
-    if (!user?.dealerships?.id) {
+    if (!user?.dealershipId) {
       return NextResponse.json({
         connected: false,
         message: 'User not assigned to dealership'
@@ -25,7 +25,7 @@ export async function GET() {
     }
 
     const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: user.dealerships?.id },
+      where: { userId: user.dealershipId },
       select: {
         id: true,
         propertyId: true,
@@ -39,7 +39,7 @@ export async function GET() {
     if (!connection) {
       logger.info('GA4 connection not found', {
         userId: session.user.id,
-        dealershipId: user.dealerships?.id,
+        dealershipId: user.dealershipId,
         path: '/api/ga4/status',
         method: 'GET'
       })

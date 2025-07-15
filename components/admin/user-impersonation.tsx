@@ -33,7 +33,7 @@ export function UserImpersonation() {
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [users, setUsers] = useState<typeof users[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isImpersonating, setIsImpersonating] = useState(false)
   const [impersonationStatus, setImpersonationStatus] = useState<any>(null)
@@ -74,7 +74,7 @@ export function UserImpersonation() {
       if (response.ok) {
         const data = await response.json()
         // Filter out super admins from the list
-        setUsers(data.users.filter((user: typeof users) => user.role !== 'SUPER_ADMIN'))
+        setUsers(data.users.filter((user: User) => user.role !== 'SUPER_ADMIN'))
       }
     } catch (error) {
       console.error('Error searching users:', error)
@@ -88,7 +88,7 @@ export function UserImpersonation() {
     }
   }
 
-  const handleImpersonate = async (user: typeof users) => {
+  const handleImpersonate = async (user: User) => {
     setIsImpersonating(true)
     try {
       const response = await fetch('/api/super-admin/impersonate', {
@@ -250,16 +250,16 @@ export function UserImpersonation() {
                       </div>
                       <div className="text-sm text-gray-500">{user.email}</div>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        {user.agencies && (
+                        {user.agency && (
                           <div className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
-                            {user.agencies?.name}
+                            {user.agency?.name}
                           </div>
                         )}
-                        {user.dealerships && (
+                        {user.dealership && (
                           <div className="flex items-center gap-1">
                             <Store className="h-3 w-3" />
-                            {user.dealerships?.name}
+                            {user.dealership?.name}
                           </div>
                         )}
                       </div>

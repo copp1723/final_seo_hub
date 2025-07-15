@@ -19,7 +19,7 @@ export async function POST() {
       select: { dealershipId: true }
     })
 
-    if (!user?.dealerships?.id) {
+    if (!user?.dealershipId) {
       return NextResponse.json(
         { error: 'User not assigned to dealership' },
         { status: 400 }
@@ -28,7 +28,7 @@ export async function POST() {
 
     // Get existing GA4 connection
     const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: user.dealerships?.id }
+      where: { userId: user.dealershipId }
     })
 
     if (!connection) {
@@ -85,7 +85,7 @@ export async function POST() {
 
       // Update the connection with property info
       await prisma.ga4_connections.update({
-        where: { userId: user.dealerships?.id },
+        where: { userId: user.dealershipId },
         data: {
           propertyId,
           propertyName,
@@ -95,7 +95,7 @@ export async function POST() {
 
       logger.info('GA4 property information updated', {
         userId: session.user.id,
-        dealershipId: user.dealerships?.id,
+        dealershipId: user.dealershipId,
         propertyId,
         propertyName
       })

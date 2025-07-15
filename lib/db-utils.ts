@@ -37,7 +37,7 @@ export const batchOperations = {
       marketingEmails: false
     }))
 
-    return prisma.users.preferences.createMany({
+    return prisma.user_preferences.createMany({
       data,
       skipDuplicates: true
     })
@@ -88,7 +88,7 @@ export const optimizedQueries = {
       orderDirection = 'desc'
     } = params
 
-    const where: Prisma.requests.WhereInput = {
+    const where: Prisma.requestsWhereInput = {
       userId,
       ...(status && { status }),
       ...(search && {

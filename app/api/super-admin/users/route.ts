@@ -24,7 +24,7 @@ const updateUserSchema = z.object({
 // Get all users with pagination and filtering (SUPER_ADMIN only)
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
     
     if (agency !== 'all') {
       if (agency === 'none') {
-        where.agencies.id = null
+        where.agencyId = null
       } else {
-        where.agencies.id = agency
+        where.agencyId = agency
       }
     }
 
@@ -74,7 +74,6 @@ export async function GET(request: NextRequest) {
       prisma.users.findMany({
         where,
         include: {
-          agencies: true,
           _count: {
             select: { requests: true }
           }
@@ -106,7 +105,7 @@ export async function GET(request: NextRequest) {
 // Create new user (SUPER_ADMIN only)
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -150,16 +149,17 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.users.create({
       data: {
+        id: crypto.randomUUID(),
         name,
         email,
         role,
         agencyId: agencyId || null,
         invitationToken,
         invitationTokenExpires,
-        onboardingCompleted: true // Super admin created users are considered onboarded
+        onboardingCompleted: true, // Super admin created users are considered onboarded
+        updatedAt: new Date()
       },
       include: {
-        agencies: true,
         _count: {
           select: { requests: true }
         }
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         email: user.email,
         role: user.role,
-        agencyId: user.agencies?.id,
+        agencyId: user.agencyId,
         invitedBy
       })
     } else {
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         email: user.email,
         role: user.role,
-        agencyId: user.agencies?.id,
+        agencyId: user.agencyId,
         invitedBy
       })
     }
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
 // Update user (SUPER_ADMIN only)
 export async function PUT(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -260,7 +260,6 @@ export async function PUT(request: NextRequest) {
         agencyId: agencyId || null
       },
       include: {
-        agencies: true,
         _count: {
           select: { requests: true }
         }
@@ -280,7 +279,7 @@ export async function PUT(request: NextRequest) {
 // Delete user (SUPER_ADMIN only)
 export async function DELETE(request: NextRequest) {
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -330,7 +329,7 @@ export async function DELETE(request: NextRequest) {
       })
 
       // Delete user's requests and tasks
-      await tx.task.deleteMany({
+      await tx.tasks.deleteMany({
         where: { userId }
       })
       
@@ -339,32 +338,32 @@ export async function DELETE(request: NextRequest) {
       })
       
       // Delete dealership integrations if this is the only user in the dealership
-      if (userToDelete?.dealerships?.id) {
+      if (userToDelete?.dealershipId) {
         const otherUsersInDealership = await tx.users.count({
           where: {
-            userId: userToDelete.dealerships?.id,
+            dealershipId: userToDelete.dealershipId,
             id: { not: userId }
           }
         })
 
         // If this is the last user in the dealership, clean up dealership integrations
         if (otherUsersInDealership === 0) {
-          await tx.gA4Connection.deleteMany({
-            where: { userId: userToDelete.dealerships?.id }
+          await tx.ga4_connections.deleteMany({
+            where: { userId: userToDelete.dealershipId }
           })
           
           await tx.search_console_connections.deleteMany({
-            where: { userId: userToDelete.dealerships?.id }
+            where: { userId: userToDelete.dealershipId }
           })
 
-          await tx.monthlyUsage.deleteMany({
-            where: { userId: userToDelete.dealerships?.id }
+          await tx.monthly_usage.deleteMany({
+            where: { userId: userToDelete.dealershipId }
           })
         }
       }
       
       // Delete user preferences
-      await tx.users.references.deleteMany({
+      await tx.user_preferences.deleteMany({
         where: { userId }
       })
       

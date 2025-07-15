@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ age
   const user = authResult.user
 
   // Security check: users must be SUPER_ADMIN or AGENCY_ADMIN for the specified agency
-  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencies.id !== agencyId)) {
+  if (user.role !== UserRole.SUPER_ADMIN && (user.role !== UserRole.AGENCY_ADMIN || user.agencyId !== agencyId)) {
     return errorResponse('Access denied.You do not have permission to view these requests.', 403)
   }
 

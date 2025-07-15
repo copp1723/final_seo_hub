@@ -26,15 +26,15 @@ export async function POST(req: Request) {
     })
 
     // Determine target dealership
-    let targetDealershipId = dealershipId || user?.dealerships.id
+    let targetDealershipId = dealershipId || user?.dealershipId
     
     // If agency admin is setting site for a specific dealership
-    if (dealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencies?.id) {
+    if (dealershipId && user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
       // Verify the dealership belongs to the agency
       const dealership = await prisma.dealerships.findFirst({
         where: {
           id: dealershipId,
-          agencyId: user.agencies?.id
+          agencyId: user.agencyId
         }
       })
       

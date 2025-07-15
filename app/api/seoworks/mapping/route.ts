@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
       request: {
         id: requestRecord.id,
         title: requestRecord.title,
-        clientId: requestRecord.user.id,
-        clientEmail: requestRecord.user.email
+        clientId: requestRecord.users.id,
+        clientEmail: requestRecord.users.email
       }
     })
   } catch (error) {
@@ -179,8 +179,8 @@ export async function GET(request: NextRequest) {
         id: mapping.request.id,
         title: mapping.request.title,
         status: mapping.request.status,
-        clientId: mapping.request.user.id,
-        clientEmail: mapping.request.user.email
+        clientId: mapping.request.users.id,
+        clientEmail: mapping.request.users.email
       }
     })
   } catch (error) {

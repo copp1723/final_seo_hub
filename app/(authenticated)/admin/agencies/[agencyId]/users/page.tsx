@@ -15,7 +15,14 @@ import { ArrowUpDown, Edit2, PlusCircle, Trash2, Users } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { LoadingSpinner } from '@/components/ui/loading'
 
-type AgencyUser = Pick<typeof users, 'id' | 'name' | 'email' | 'role' | 'createdAt' | 'updatedAt'>
+interface AgencyUser {
+  id: string
+  name: string | null
+  email: string
+  role: UserRole
+  createdAt: Date
+  updatedAt: Date
+}
 
 const USER_ROLES_EDITABLE_BY_AGENCY_ADMIN = [UserRole.USER, UserRole.AGENCY_ADMIN]
 const USER_ROLES_EDITABLE_BY_SUPER_ADMIN = Object.values(UserRole)
@@ -25,7 +32,7 @@ export default function AgencyUsersPage() {
   const router = useRouter()
   const params = useParams()
   const { data: session, status } = useSession()
-  const agencyId = params.agencies.id as string
+  const agencyId = params.agencyId as string
 
   const [users, setUsers] = useState<AgencyUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -45,7 +52,7 @@ export default function AgencyUsersPage() {
 
   const fetchUsers = useCallback(async () => {
     if (status === 'loading' || !session || !agencyId) return
-    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId)) {
+    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
       setError("Access Denied.You don&apos;t have permission to manage these users.")
       setIsLoading(false)
       return
@@ -212,7 +219,7 @@ export default function AgencyUsersPage() {
 
 
   if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
-  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agency.id !== agencyId))) {
+  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
      return (
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>

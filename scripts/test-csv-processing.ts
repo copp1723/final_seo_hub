@@ -1,6 +1,6 @@
-import { CsvDealershipProcessor } from './lib/services/csv-dealership-processor'
-import { CsvSecurityService } from './lib/services/csv-security'
-import { prisma } from './lib/prisma'
+import { CsvDealershipProcessor } from '../lib/services/csv-dealership-processor'
+import { CsvSecurityService } from '../lib/services/csv-security'
+import { prisma } from '../lib/prisma'
 
 // Test CSV content
 const testCsvContent = `name,website,ga4PropertyId,searchConsoleUrl

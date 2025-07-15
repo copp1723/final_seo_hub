@@ -16,21 +16,21 @@ export async function GET(request: NextRequest) {
   }
   
   const authResult = await requireAuth()
+  if (!authResult.authenticated || !authResult.user) {
+    logger.error('❌ Authentication failed')
+    return authResult.response
+  }
+  
   logger.info('🔐 Auth result:', {
     authenticated: authResult.authenticated,
     userId: authResult.user.id,
     hasUser: !!authResult.user
   })
   
-  if (!authResult.authenticated) {
-    logger.error('❌ Authentication failed')
-    return authResult.response
-  }
-  
   try {
     logger.info('🗄️ Querying userPreferences', { userId: authResult.user.id })
     
-    const preferences = await prisma.users.preferences.findUnique({
+    const preferences = await prisma.user_preferences.findUnique({
       where: { userId: authResult.user.id },
       select: {
         emailNotifications: true,
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth()
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response
   
   // Validate request body
   const validation = await validateRequest(request, notificationPreferencesSchema)
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest) {
   const { data } = validation
   
   try {
-    const preferences = await prisma.users.preferences.upsert({
+    const preferences = await prisma.user_preferences.upsert({
       where: { userId: authResult.user.id },
       create: {
         userId: authResult.user.id,

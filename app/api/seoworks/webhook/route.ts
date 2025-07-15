@@ -231,8 +231,8 @@ export async function POST(request: NextRequest) {
       eventType,
       requestId: requestRecord.id,
       externalId: data.externalId,
-      clientId: data.clientId || requestRecord.user.id,
-      clientEmail: data.clientEmail || requestRecord.user.email,
+      clientId: data.clientId || requestRecord.users.id,
+      clientEmail: data.clientEmail || requestRecord.users.email,
       taskType: data.taskType,
       status: data.status
     })
@@ -343,7 +343,7 @@ async function handleTaskCompleted(
     })
 
     // Increment usage for package tracking
-    if (updatedRequest.user.id) {
+    if (updatedRequest.userId) {
       let taskTypeForUsage: TaskType | null = null
       switch (data.taskType.toLowerCase()) {
         case 'page':
@@ -363,10 +363,10 @@ async function handleTaskCompleted(
 
       if (taskTypeForUsage) {
         try {
-          await incrementUsage(updatedRequest.user.id, taskTypeForUsage)
-          logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.user.id}`)
+          await incrementUsage(updatedRequest.userId, taskTypeForUsage)
+          logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`)
         } catch (usageError) {
-          logger.error(`Failed to increment usage for user ${updatedRequest.user.id}`, usageError)
+          logger.error(`Failed to increment usage for user ${updatedRequest.userId}`, usageError)
           // Continue processing even if usage tracking fails
         }
       }
@@ -381,10 +381,10 @@ async function handleTaskCompleted(
       : taskCompletedTemplate(updatedRequest, request.users, completedTask)
     
     await queueEmailWithPreferences(
-      request.user.id,
+      request.users.id,
       'taskCompleted',
       { ...emailTemplate,
-        to: request.user.email
+        to: request.users.email
       }
     )
 
@@ -397,10 +397,10 @@ async function handleTaskCompleted(
         RequestStatus.COMPLETED
       )
       await queueEmailWithPreferences(
-        request.user.id,
+        request.users.id,
         'statusChanged',
         { ...statusTemplate,
-          to: request.user.email
+          to: request.users.email
         }
       )
     }
@@ -408,7 +408,7 @@ async function handleTaskCompleted(
     logger.info('Task completed webhook processed', {
       requestId: request.id,
       taskType: data.taskType,
-      userId: request.user.id
+      userId: request.users.id
     })
   } catch (error) {
     logger.error('Error handling task completed', error, {
@@ -453,10 +453,10 @@ async function handleTaskCancelled(
         RequestStatus.CANCELLED
       )
       await queueEmailWithPreferences(
-        request.user.id,
+        request.users.id,
         'statusChanged',
         { ...statusTemplate,
-          to: request.user.email
+          to: request.users.email
         }
       )
     }

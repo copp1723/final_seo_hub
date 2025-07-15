@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 const createAgencySchema = z.object({
   name: z.string().min(1, 'Agency name is required').max(100, 'Agency name must be less than 100 characters'),
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
     const agency = await prisma.agencies.create({
       data: {
         id: crypto.randomUUID(),
-        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        slug: validatedData.name.toLowerCase().replace(/\s+/g, '-'),
         updatedAt: new Date(),
         name: validatedData.name,
         domain: validatedData.domain || null

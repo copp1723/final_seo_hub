@@ -31,7 +31,7 @@ interface PaginationInfo {
 }
 
 interface InfiniteScrollRequestsProps {
-  initialRequests: typeof requests[]
+  initialRequests: Request[]
   initialPagination: PaginationInfo
   searchQuery?: string
   statusFilter?: string
@@ -43,7 +43,7 @@ export function InfiniteScrollRequests({
   searchQuery = '',
   statusFilter = ''
 }: InfiniteScrollRequestsProps) {
-  const [requests, setRequests] = useState<typeof requests[]>(initialRequests)
+  const [requests, setRequests] = useState<Request[]>(initialRequests)
   const [pagination, setPagination] = useState<PaginationInfo>(initialPagination)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState(searchQuery)

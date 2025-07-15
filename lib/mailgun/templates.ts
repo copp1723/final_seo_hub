@@ -115,7 +115,7 @@ function baseTemplate(content: string, unsubscribeUrl?: string, branding?: Brand
 }
 
 // Welcome email template
-export function welcomeEmailTemplate(user: typeof users, branding?: BrandingConfig): { subject: string; html: string } {
+export function welcomeEmailTemplate(user: users, branding?: BrandingConfig): { subject: string; html: string } {
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'welcome')
   
@@ -145,14 +145,14 @@ export function welcomeEmailTemplate(user: typeof users, branding?: BrandingConf
 }
 
 // User invitation email template
-export function userInvitationTemplate(user: typeof users, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string } {
+export function userInvitationTemplate(user: users, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string } {
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   
   // If a magic link URL is provided, use it for all users
   // Otherwise, fall back to the default behavior
-  const isDealershipUser = user.role === 'USER' && user.agencies.id
+  const isDealershipUser = user.role === 'USER' && user.agencyId
   const onboardingUrl = `${appUrl}/onboarding/seoworks?token=${user.id}&invited=true`
   const finalLoginUrl = loginUrl || (isDealershipUser ? onboardingUrl : `${appUrl}/auth/signin`)
   
@@ -186,7 +186,7 @@ export function userInvitationTemplate(user: typeof users, invitedBy: string, lo
     <ul>
       <li><strong>Email:</strong> ${user.email}</li>
       <li><strong>Role:</strong> ${user.role.replace('_', ' ')}</li>
-      ${user.agencies.id ? '<li><strong>Agency:</strong> Assigned to your organization</li>' : ''}
+      ${user.agencyId ? '<li><strong>Agency:</strong> Assigned to your organization</li>' : ''}
     </ul>
     
     <h3>What you can do with ${config.companyName}:</h3>
@@ -210,7 +210,7 @@ export function userInvitationTemplate(user: typeof users, invitedBy: string, lo
 }
 
 // Request created confirmation template
-export function requestCreatedTemplate(request: typeof requests, user: typeof users, branding?: BrandingConfig): { subject: string; html: string } {
+export function requestCreatedTemplate(request: requests, user: users, branding?: BrandingConfig): { subject: string; html: string } {
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'requestCreated')
   
@@ -246,8 +246,8 @@ export function requestCreatedTemplate(request: typeof requests, user: typeof us
 
 // Status changed notification template
 export function statusChangedTemplate(
-  request: typeof requests,
-  user: typeof users,
+  request: requests,
+  user: users,
   oldStatus: string,
   newStatus: string,
   branding?: BrandingConfig
@@ -298,8 +298,8 @@ export function statusChangedTemplate(
 
 // Task completed notification template
 export function taskCompletedTemplate(
-  request: typeof requests,
-  user: typeof users,
+  request: requests,
+  user: users,
   taskDetails: { title: string; type: string; url?: string },
   branding?: BrandingConfig
 ): { subject: string; html: string } {
@@ -348,7 +348,7 @@ export function taskCompletedTemplate(
 
 // Weekly summary template
 export function weeklySummaryTemplate(
-  user: typeof users,
+  user: users,
   summary: {
     totalRequests: number
     completedRequests: number

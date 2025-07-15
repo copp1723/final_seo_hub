@@ -242,7 +242,7 @@ export async function GET(
             type: true,
             status: true,
             createdAt: true,
-            user: {
+            users: {
               select: {
                 name: true,
                 email: true

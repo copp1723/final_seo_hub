@@ -11,7 +11,7 @@ type ValidationError = { success: false; error: NextResponse }
 type ValidationResult<T> = ValidationSuccess<T> | ValidationError
 
 export async function validateRequest<T>(
-  request: typeof requests,
+  request: Request,
   schema: z.ZodSchema<T>
 ): Promise<ValidationResult<T>> {
   try {

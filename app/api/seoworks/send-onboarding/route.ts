@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { PackageType } from '@prisma/client'
+import crypto from 'crypto'
 
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = '7f3e9b5d2a8c4f6e1b9d3c7a5e8f2b4d6c9a1e3f7b5d9c2a6e4f8b1d3c7a9e5f'
@@ -128,10 +129,12 @@ export async function POST(request: NextRequest) {
     // Create new user for standalone onboarding
     const user = await prisma.users.create({
       data: {
+        id: crypto.randomUUID(),
         email: dealerData.clientEmail,
         name: dealerData.contactName,
         role: 'USER',
-        onboardingCompleted: true
+        onboardingCompleted: true,
+        updatedAt: new Date()
         // Note: agencyId and dealershipId are null for standalone users
         // Package tracking is now managed at dealership level
       }

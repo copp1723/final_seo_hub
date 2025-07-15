@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const authResult = await requireAuth()
   if (!authResult.authenticated) return authResult.response
 
-  if (authResult.user.role !== 'SUPER_ADMIN') {
+  if (authResult.user!.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
   }
 
@@ -60,11 +60,11 @@ export async function GET(request: NextRequest) {
         take: 5,
         where: { status: 'COMPLETED' },
         orderBy: { completedAt: 'desc' },
-        select: { 
-          id: true, 
-          title: true, 
+        select: {
+          id: true,
+          title: true,
           completedAt: true,
-          user: { select: { name: true, email: true } }
+          users: { select: { name: true, email: true } }
         }
       })
     ])
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
      ...recentCompletedRequests.map(request => ({
         id: `request-${request.id}`,
         type: 'request_completed' as const,
-        description: `Request completed: ${request.title} by ${request.user.name || request.user.email}`,
+        description: `Request completed: ${request.title} by ${request.users.name || request.users.email}`,
         timestamp: request.completedAt?.toISOString() || new Date().toISOString()
       }))
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10)

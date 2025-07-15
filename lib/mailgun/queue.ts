@@ -130,7 +130,7 @@ export async function queueEmailWithPreferences(
     // Get user with preferences
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      include: { preferences: true }
+      include: { user_preferences: true }
     })
 
     if (!user || !user.email) {
@@ -139,7 +139,7 @@ export async function queueEmailWithPreferences(
     }
 
     // Check if user has opted in for this type of email
-    const preferences = user.preferences
+    const preferences = user.user_preferences
     if (!preferences || !preferences.emailNotifications) {
       logger.info('User has disabled email notifications', { userId, emailType })
       return false

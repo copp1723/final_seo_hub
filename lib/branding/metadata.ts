@@ -22,7 +22,7 @@ export function generateMetadata(branding?: BrandingConfig): Metadata {
   }
 }
 
-export function generateDynamicMetadata(request?: typeof requests): Metadata {
+export function generateDynamicMetadata(request?: Request): Metadata {
   if (request) {
     const branding = getBrandingFromDomain(new URL(request.url).hostname)
     return generateMetadata(branding)

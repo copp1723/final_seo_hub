@@ -10,8 +10,25 @@ const nextAuthUrl = process.env.NEXTAUTH_URL || ''
 const useSecureCookies = nextAuthUrl.startsWith('https://')
 
 // Create dedicated Prisma client for NextAuth to avoid module loading issues
-const authPrisma = new PrismaClient({
+const globalForAuth = globalThis as unknown as {
+  authPrisma: PrismaClient | undefined
+}
+
+const authPrisma = globalForAuth.authPrisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+})
+
+if (process.env.NODE_ENV !== 'production') globalForAuth.authPrisma = authPrisma
+
+// Debug logging for production
+console.log('[AUTH DEBUG] Creating NextAuth with Prisma client:', !!authPrisma)
+console.log('[AUTH DEBUG] Prisma client has findUnique:', !!authPrisma?.users?.findUnique)
+
+// Test connection immediately
+authPrisma.$connect().then(() => {
+  console.log('[AUTH DEBUG] Prisma client connected successfully')
+}).catch((error) => {
+  console.error('[AUTH DEBUG] Prisma client connection failed:', error)
 })
 
 export const { handlers, auth, signIn, signOut } = NextAuth({

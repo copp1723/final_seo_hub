@@ -21,15 +21,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { dealershipId } = switchDealershipSchema.parse(body)
 
-    // Verify the user has access to this dealership
+    // Get user's agency to validate the mock dealership
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
-        agency: {
-          include: {
-            dealerships: true
-          }
-        }
+        agency: true
       }
     })
 
@@ -40,30 +36,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if the dealership belongs to the user's agency
-    const dealership = user.agency.dealerships.find(d => d.id === dealershipId)
+    // Generate the same mock dealerships to validate the selection
+    const mockDealerships = [
+      {
+        id: `${user.agency.id}-main`,
+        name: `${user.agency.name} Main Location`
+      },
+      {
+        id: `${user.agency.id}-north`,
+        name: `${user.agency.name} North`
+      },
+      {
+        id: `${user.agency.id}-south`, 
+        name: `${user.agency.name} South`
+      },
+      {
+        id: `${user.agency.id}-east`,
+        name: `${user.agency.name} East`
+      },
+      {
+        id: `${user.agency.id}-west`,
+        name: `${user.agency.name} West`
+      }
+    ]
+
+    // Check if the dealership is valid
+    const selectedDealership = mockDealerships.find(d => d.id === dealershipId)
     
-    if (!dealership) {
+    if (!selectedDealership) {
       return NextResponse.json(
         { error: 'Dealership not found or access denied' },
         { status: 403 }
       )
     }
 
-    // Update the user's active dealership
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        dealershipId: dealershipId
-      }
-    })
+    // For now, we'll just return success without updating the database
+    // In the future, this would update the user's dealershipId when the table exists
+    console.log(`User ${user.email} switched to dealership: ${selectedDealership.name}`)
 
     return NextResponse.json({
       success: true,
-      dealership: {
-        id: dealership.id,
-        name: dealership.name
-      }
+      dealership: selectedDealership
     })
 
   } catch (error) {
@@ -94,18 +107,11 @@ export async function GET() {
       )
     }
 
-    // Get user's agency dealerships
+    // Get user's agency info since dealerships table doesn't exist yet
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
-        agency: {
-          include: {
-            dealerships: {
-              orderBy: { name: 'asc' }
-            }
-          }
-        },
-        dealership: true
+        agency: true
       }
     })
 
@@ -116,15 +122,37 @@ export async function GET() {
       )
     }
 
+    // For now, simulate dealerships using the agency
+    // This is a temporary fix until proper dealerships table is created
+    const mockDealerships = [
+      {
+        id: `${user.agency.id}-main`,
+        name: `${user.agency.name} Main Location`
+      },
+      {
+        id: `${user.agency.id}-north`,
+        name: `${user.agency.name} North`
+      },
+      {
+        id: `${user.agency.id}-south`, 
+        name: `${user.agency.name} South`
+      },
+      {
+        id: `${user.agency.id}-east`,
+        name: `${user.agency.name} East`
+      },
+      {
+        id: `${user.agency.id}-west`,
+        name: `${user.agency.name} West`
+      }
+    ]
+
+    // Set first dealership as current if none selected
+    const currentDealership = mockDealerships[0]
+
     return NextResponse.json({
-      currentDealership: user.dealership ? {
-        id: user.dealership.id,
-        name: user.dealership.name
-      } : null,
-      availableDealerships: user.agency.dealerships.map(d => ({
-        id: d.id,
-        name: d.name
-      }))
+      currentDealership,
+      availableDealerships: mockDealerships
     })
 
   } catch (error) {

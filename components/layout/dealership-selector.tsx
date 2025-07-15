@@ -37,14 +37,21 @@ export function DealershipSelector() {
       try {
         const response = await fetch('/api/dealerships/switch')
         if (!response.ok) {
-          throw new Error('Failed to fetch dealerships')
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to fetch dealerships')
         }
 
         const data: DealershipData = await response.json()
+        console.log('Dealership data received:', data) // Debug log
         setDealershipData(data)
+        
+        // Log dealership count for debugging
+        if (data.availableDealerships) {
+          console.log(`Found ${data.availableDealerships.length} dealerships`)
+        }
       } catch (err) {
         console.error('Error fetching dealerships:', err)
-        setError('Failed to load dealerships')
+        setError(err instanceof Error ? err.message : 'Failed to load dealerships')
       } finally {
         setIsLoading(false)
       }
@@ -85,7 +92,8 @@ export function DealershipSelector() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to switch dealership')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to switch dealership')
       }
 
       const result = await response.json()
@@ -108,23 +116,18 @@ export function DealershipSelector() {
 
     } catch (err) {
       console.error('Error switching dealership:', err)
-      setError('Failed to switch dealership')
+      setError(err instanceof Error ? err.message : 'Failed to switch dealership')
     } finally {
       setIsSwitching(false)
     }
   }
 
-  // Don't render if user doesn't have access to multiple dealerships
-  if (!session?.user?.agencyId || !dealershipData?.availableDealerships?.length) {
-    return null
-  }
-
   // Show loading state
   if (isLoading) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-500">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Loading...</span>
+      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50/80 transition-colors duration-200">
+        <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+        <span className="text-sm text-gray-500 font-normal">Loading...</span>
       </div>
     )
   }
@@ -132,9 +135,20 @@ export function DealershipSelector() {
   // Show error state
   if (error) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 text-sm text-red-600">
+      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-red-50/80 text-red-600 border border-red-200/50">
         <Building2 className="h-4 w-4" />
-        <span>{error}</span>
+        <span className="text-sm font-normal">{error}</span>
+      </div>
+    )
+  }
+
+  // Don't render if no dealership data available
+  if (!dealershipData?.availableDealerships?.length) {
+    console.log('No dealerships available to display') // Debug log
+    return (
+      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50/80">
+        <Building2 className="h-4 w-4 text-gray-400" />
+        <span className="text-sm text-gray-400 font-normal">No dealerships</span>
       </div>
     )
   }
@@ -148,38 +162,42 @@ export function DealershipSelector() {
         onClick={() => setIsOpen(!isOpen)}
         disabled={isSwitching}
         className={cn(
-          "flex items-center space-x-1.5 px-2 py-1.5 rounded-md text-sm font-medium transition-colors",
-          "border border-gray-200 bg-white hover:bg-gray-50",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
           isSwitching && "opacity-50 cursor-not-allowed"
         )}
       >
         {isSwitching ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-500" />
+          <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
         ) : (
-          <Building2 className="h-3.5 w-3.5 text-gray-500" />
+          <Building2 className="h-4 w-4 text-blue-500" />
         )}
         
-        <span className="text-gray-700 max-w-[120px] lg:max-w-[150px] truncate text-xs lg:text-sm">
-          {currentDealership?.name || 'Select Dealership'}
-        </span>
+        <div className="flex flex-col items-start min-w-0">
+          <span className="text-xs font-normal text-gray-400 uppercase tracking-wide">
+            SELECT DEALERSHIP
+          </span>
+          <span className="text-sm text-gray-600 max-w-[120px] lg:max-w-[200px] truncate font-normal">
+            {currentDealership?.name || `${availableDealerships.length} Available`}
+          </span>
+        </div>
         
         <ChevronDown 
           className={cn(
-            "h-3 w-3 text-gray-500 transition-transform",
+            "h-3 w-3 text-gray-400 transition-transform duration-200",
             isOpen && "rotate-180"
           )} 
         />
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu - Matching User Dropdown Style */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-          <div className="py-1">
-            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-              Select Dealership
-            </div>
-            
+        <div className="origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-lg py-1 bg-white/95 backdrop-blur-md ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-gray-200/60">
+          <div className="px-4 py-3 border-b border-gray-200/60">
+            <p className="text-sm font-normal text-gray-600">Select Dealership</p>
+            <p className="text-xs text-gray-400">{availableDealerships.length} available</p>
+          </div>
+          
+          <div className="max-h-64 overflow-y-auto">
             {availableDealerships.map((dealership) => {
               const isSelected = currentDealership?.id === dealership.id
               
@@ -187,21 +205,26 @@ export function DealershipSelector() {
                 <button
                   key={dealership.id}
                   onClick={() => handleDealershipSwitch(dealership.id)}
-                  disabled={isSwitching || isSelected}
+                  disabled={isSwitching}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 text-sm text-left",
-                    "hover:bg-gray-50 focus:outline-none focus:bg-gray-50",
-                    isSelected && "bg-blue-50 text-blue-700",
-                    (isSwitching && !isSelected) && "opacity-50 cursor-not-allowed"
+                    "w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors duration-200",
+                    "hover:bg-gray-50/80 focus:outline-none focus:bg-gray-50/80",
+                    isSelected && "bg-blue-50/80 text-blue-700",
+                    isSwitching && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  <span className="flex items-center space-x-2">
-                    <Building2 className="h-4 w-4" />
-                    <span className="truncate">{dealership.name}</span>
-                  </span>
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center ring-2 ring-white shadow-sm">
+                      <Building2 className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-normal text-gray-700 truncate">{dealership.name}</span>
+                      <span className="text-xs text-gray-400">Dealership ID: {dealership.id.slice(-8)}</span>
+                    </div>
+                  </div>
                   
                   {isSelected && (
-                    <Check className="h-4 w-4 text-blue-600" />
+                    <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
                   )}
                 </button>
               )

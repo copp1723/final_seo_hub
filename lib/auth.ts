@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { prisma } from './prisma'
+import { PrismaClient } from '@prisma/client'
 import { UserRole } from '@prisma/client'
 
 // Simplified cookie configuration
@@ -9,8 +9,13 @@ const isProduction = process.env.NODE_ENV === 'production'
 const nextAuthUrl = process.env.NEXTAUTH_URL || ''
 const useSecureCookies = nextAuthUrl.startsWith('https://')
 
+// Create dedicated Prisma client for NextAuth to avoid module loading issues
+const authPrisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+})
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(authPrisma),
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development', // Only debug in development
@@ -47,7 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // Check if user exists in our database (has been invited)
-        const existingUser = await prisma.users.findUnique({
+        const existingUser = await authPrisma.users.findUnique({
           where: { email: user.email }
         })
 
@@ -86,7 +91,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (needsUpdate) {
           // Update user with default values
-          await prisma.users.update({
+          await authPrisma.users.update({
             where: { id: user.id },
             data: {
               role: Object.values(UserRole).includes((user as any).role) ? (user as any).role : UserRole.USER

@@ -7,48 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enums that the code expects
-enum UserRole {
-  USER
-  ADMIN
-  AGENCY_ADMIN
-  DEALERSHIP_ADMIN
-  SUPER_ADMIN
-}
-
-enum RequestStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum RequestPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum PackageType {
-  SILVER
-  GOLD
-  PLATINUM
-}
-
-enum TaskStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum TaskType {
-  PAGE
-  BLOG
-  GBP_POST
-  IMPROVEMENT
-}
-
 model accounts {
   id                String  @id
   userId            String
@@ -86,16 +44,16 @@ model agencies {
   ga4RefreshToken        String?
   conversations          conversations[]
   dealership_onboardings dealership_onboardings[]
+  dealerships            dealerships[]
   escalations            escalations[]
   orders                 orders[]
   report_schedules       report_schedules[]
+  requests               requests[]
   seoworks_tasks         seoworks_tasks[]
   themes                 themes?
   usage_metrics          usage_metrics[]
   user_invites           user_invites[]
   users                  users[]
-  dealerships            dealerships[]
-  requests               requests[]
 }
 
 model audit_logs {
@@ -382,19 +340,19 @@ model user_search_console_tokens {
 }
 
 model users {
-  id                         String                        @id
+  id                         String                      @id
   name                       String?
-  email                      String                        @unique
+  email                      String                      @unique
   emailVerified              DateTime?
   image                      String?
   agencyId                   String?
   dealershipId               String?
-  role                       UserRole                      @default(USER)
+  role                       UserRole                    @default(USER)
   theme                      String?
-  createdAt                  DateTime                      @default(now())
+  createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime
-  isSuperAdmin               Boolean                       @default(false)
-  onboardingCompleted        Boolean                       @default(false)
+  isSuperAdmin               Boolean                     @default(false)
+  onboardingCompleted        Boolean                     @default(false)
   invitationToken            String?
   invitationTokenExpires     DateTime?
   apiKey                     String?
@@ -403,21 +361,21 @@ model users {
   audit_logs                 audit_logs[]
   conversations              conversations[]
   escalations                escalations[]
+  ga4_connections            ga4_connections?
   messages                   messages[]
+  monthly_usage              monthly_usage[]
   orders                     orders[]
   report_schedules           report_schedules[]
+  requests                   requests[]
+  search_console_connections search_console_connections?
   sessions                   sessions[]
+  tasks                      tasks[]
   user_ga4_tokens            user_ga4_tokens?
   user_invites               user_invites[]
-  user_search_console_tokens user_search_console_tokens?
-  agencies                   agencies?                     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  dealerships                dealerships?                  @relation("UserDealership", fields: [dealershipId], references: [id], onDelete: SetNull)
-  requests                   requests[]
-  ga4_connections            ga4_connections?
-  search_console_connections search_console_connections?
   user_preferences           user_preferences?
-  monthly_usage              monthly_usage[]
-  tasks                      tasks[]
+  user_search_console_tokens user_search_console_tokens?
+  agencies                   agencies?                   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  dealerships                dealerships?                @relation("UserDealership", fields: [dealershipId], references: [id])
 
   @@index([dealershipId])
 }
@@ -430,60 +388,59 @@ model verification_tokens {
   @@unique([identifier, token])
 }
 
-// Missing models that the code expects
 model dealerships {
-  id                           String                       @id @default(cuid())
-  name                         String
-  agencyId                     String
-  website                      String?
-  address                      String?
-  phone                        String?
-  clientId                     String?                      @unique
-  activePackageType            PackageType?
-  currentBillingPeriodStart    DateTime?
-  currentBillingPeriodEnd      DateTime?
-  pagesUsedThisPeriod          Int                          @default(0)
-  blogsUsedThisPeriod          Int                          @default(0)
-  gbpPostsUsedThisPeriod       Int                          @default(0)
-  improvementsUsedThisPeriod   Int                          @default(0)
-  settings                     Json?
-  createdAt                    DateTime                     @default(now())
-  updatedAt                    DateTime                     @updatedAt
-  agencies                     agencies                     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  monthly_usage                monthly_usage[]
-  users_dealerships            users[]                      @relation("UserDealership")
+  id                         String          @id @default(cuid())
+  name                       String
+  agencyId                   String
+  website                    String?
+  address                    String?
+  phone                      String?
+  activePackageType          PackageType?
+  currentBillingPeriodStart  DateTime?
+  currentBillingPeriodEnd    DateTime?
+  pagesUsedThisPeriod        Int             @default(0)
+  blogsUsedThisPeriod        Int             @default(0)
+  gbpPostsUsedThisPeriod     Int             @default(0)
+  improvementsUsedThisPeriod Int             @default(0)
+  settings                   Json?
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+  clientId                   String?         @unique
+  agencies                   agencies        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  monthly_usage              monthly_usage[]
+  users_dealerships          users[]         @relation("UserDealership")
 
   @@index([agencyId])
 }
 
 model requests {
-  id               String           @id @default(cuid())
-  userId           String
-  agencyId         String?
-  dealershipId     String?
-  title            String
-  description      String
-  type             String
-  priority         RequestPriority  @default(MEDIUM)
-  status           RequestStatus    @default(PENDING)
-  packageType      PackageType?
-  pagesCompleted   Int              @default(0)
-  blogsCompleted   Int              @default(0)
-  gbpPostsCompleted Int             @default(0)
-  improvementsCompleted Int         @default(0)
-  keywords         Json?
-  targetUrl        String?
-  targetCities     Json?
-  targetModels     Json?
-  completedTasks   Json?
-  contentUrl       String?
-  pageTitle        String?
-  seoworksTaskId   String?
-  completedAt      DateTime?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  users            users            @relation(fields: [userId], references: [id], onDelete: Restrict)
-  agencies         agencies?        @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  id                     String                   @id @default(cuid())
+  userId                 String
+  agencyId               String?
+  dealershipId           String?
+  title                  String
+  description            String
+  type                   String
+  priority               RequestPriority          @default(MEDIUM)
+  status                 RequestStatus            @default(PENDING)
+  packageType            PackageType?
+  pagesCompleted         Int                      @default(0)
+  blogsCompleted         Int                      @default(0)
+  gbpPostsCompleted      Int                      @default(0)
+  improvementsCompleted  Int                      @default(0)
+  keywords               Json?
+  targetUrl              String?
+  targetCities           Json?
+  targetModels           Json?
+  completedTasks         Json?
+  contentUrl             String?
+  pageTitle              String?
+  seoworksTaskId         String?
+  completedAt            DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  agencies               agencies?                @relation(fields: [agencyId], references: [id])
+  users                  users                    @relation(fields: [userId], references: [id])
   seoworks_task_mappings seoworks_task_mappings[]
 
   @@index([userId, status])
@@ -542,28 +499,28 @@ model user_preferences {
 }
 
 model system_settings {
-  id                     String   @id @default("default")
-  maintenanceMode        Boolean  @default(false)
-  newUserRegistration    Boolean  @default(true)
-  emailNotifications     Boolean  @default(true)
-  auditLogging           Boolean  @default(true)
-  maxUsersPerAgency      Int      @default(50)
-  maxRequestsPerUser     Int      @default(1000)
-  maxFileUploadSize      Int      @default(10)
-  smtpHost               String   @default("")
-  smtpPort               Int      @default(587)
-  smtpUser               String   @default("")
-  smtpFromEmail          String   @default("")
-  maintenanceMessage     String   @default("The system is currently under maintenance. Please try again later.")
-  welcomeMessage         String   @default("Welcome to our SEO management platform! Get started by exploring your dashboard.")
-  rateLimitPerMinute     Int      @default(60)
-  sessionTimeoutMinutes  Int      @default(480)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                    String   @id @default("default")
+  maintenanceMode       Boolean  @default(false)
+  newUserRegistration   Boolean  @default(true)
+  emailNotifications    Boolean  @default(true)
+  auditLogging          Boolean  @default(true)
+  maxUsersPerAgency     Int      @default(50)
+  maxRequestsPerUser    Int      @default(1000)
+  maxFileUploadSize     Int      @default(10)
+  smtpHost              String   @default("")
+  smtpPort              Int      @default(587)
+  smtpUser              String   @default("")
+  smtpFromEmail         String   @default("")
+  maintenanceMessage    String   @default("The system is currently under maintenance. Please try again later.")
+  welcomeMessage        String   @default("Welcome to our SEO management platform! Get started by exploring your dashboard.")
+  rateLimitPerMinute    Int      @default(60)
+  sessionTimeoutMinutes Int      @default(480)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
 model monthly_usage {
-  id               String      @id @default(cuid())
+  id               String       @id @default(cuid())
   userId           String?
   dealershipId     String?
   month            Int
@@ -573,9 +530,9 @@ model monthly_usage {
   blogsUsed        Int
   gbpPostsUsed     Int
   improvementsUsed Int
-  archivedAt       DateTime    @default(now())
-  users            users?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  archivedAt       DateTime     @default(now())
   dealerships      dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  users            users?       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, month, year])
   @@unique([dealershipId, month, year])
@@ -584,39 +541,79 @@ model monthly_usage {
 }
 
 model tasks {
-  id           String     @id @default(cuid())
+  id           String          @id @default(cuid())
   userId       String
   dealershipId String?
   agencyId     String?
   type         TaskType
-  status       TaskStatus @default(PENDING)
+  status       TaskStatus      @default(PENDING)
   title        String
   description  String?
   priority     RequestPriority @default(MEDIUM)
   targetUrl    String?
   keywords     Json?
   completedAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  users        users      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  users        users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
 }
 
-
 model seoworks_task_mappings {
-  id              String   @id @default(cuid())
-  requestId       String
-  seoworksTaskId  String   @unique
-  taskType        String
-  metadata        Json     @default("{}")
-  status          String   @default("active")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  request         requests @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  
+  id             String   @id @default(cuid())
+  requestId      String
+  seoworksTaskId String   @unique
+  taskType       String
+  metadata       Json     @default("{}")
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  request        requests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
   @@index([requestId])
   @@index([seoworksTaskId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  AGENCY_ADMIN
+  DEALERSHIP_ADMIN
+  SUPER_ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PackageType {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskType {
+  PAGE
+  BLOG
+  GBP_POST
+  IMPROVEMENT
 }

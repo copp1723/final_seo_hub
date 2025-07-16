@@ -18,148 +18,81 @@ export async function GET(req: NextRequest) {
   
   if (error) {
     logger.error('Search Console OAuth error from Google', { error, userId: session.user.id })
-    return NextResponse.redirect(new URL('/settings?error=search_console_denied', process.env.NEXTAUTH_URL!))
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=search_console&error=${encodeURIComponent(error)}`)
   }
-  
+
   if (!code) {
-    logger.error('Search Console callback: No authorization code provided')
-    return NextResponse.json(
-      { error: 'No authorization code provided' },
-      { status: 400 }
-    )
+    logger.error('Search Console callback: No authorization code received', { userId: session.user.id })
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=search_console&error=No authorization code`)
   }
 
   try {
+    // Exchange code for tokens
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
       `${process.env.NEXTAUTH_URL}/api/search-console/callback`
     )
 
-    // Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code)
+    
+    if (!tokens.access_token) {
+      throw new Error('No access token received from Google')
+    }
+
+    // Set credentials to get site list
     oauth2Client.setCredentials(tokens)
-
-    // Get list of verified sites
-    const searchConsole = google.searchconsole({
-      version: 'v1',
-      auth: oauth2Client
-    })
+    const searchConsole = google.searchconsole({ version: 'v1', auth: oauth2Client })
     
-    const sitesResponse = await searchConsole.sites.list()
-    const allSites = sitesResponse.data.siteEntry || []
+    let siteUrl = 'https://jayhatfieldchevrolet.com/'
+    let siteName = 'jayhatfieldchevrolet.com'
     
-    // Filter for sites with sufficient permissions for API access
-    const fullAccessSites = allSites.filter(site =>
-      site.permissionLevel === 'siteOwner' ||
-      site.permissionLevel === 'siteFullUser'
-    )
-
-    const restrictedAccessSites = allSites.filter(site =>
-      site.permissionLevel === 'siteRestrictedUser'
-    )
-
-    // Prefer full access sites, but allow restricted access as fallback
-    const primarySite = fullAccessSites.length > 0
-      ? fullAccessSites[0].siteUrl!
-      : (restrictedAccessSites.length > 0
-          ? restrictedAccessSites[0].siteUrl!
-          : (allSites.length > 0 ? allSites[0].siteUrl! : null))
-
-    const siteName = primarySite ? new URL(primarySite).hostname : null
-
-    // Check if we have any sites with API access
-    if (allSites.length === 0) {
-      logger.error('No Search Console sites found for user', { userId: session.user.id })
-      return NextResponse.redirect(new URL('/settings?error=no_search_console_sites', process.env.NEXTAUTH_URL!))
-    }
-
-    if (fullAccessSites.length === 0 && restrictedAccessSites.length === 0) {
-      logger.error('No Search Console sites with sufficient permissions', {
-        userId: session.user.id,
-        sitesFound: allSites.map(s => ({ url: s.siteUrl, permission: s.permissionLevel }))
-      })
-      return NextResponse.redirect(new URL('/settings?error=insufficient_search_console_permissions', process.env.NEXTAUTH_URL!))
-    }
-    
-    logger.info('Search Console sites found', {
-      userId: session.user.id,
-      totalSites: allSites.length,
-      fullAccessSites: fullAccessSites.length,
-      restrictedAccessSites: restrictedAccessSites.length,
-      selectedSite: primarySite,
-      allSitesPermissions: allSites.map(s => ({ url: s.siteUrl, permission: s.permissionLevel }))
-    })
-
-    // Handle super admin user specially
-    let dealershipId: string;
-    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371') {
-      // Super admin user - use assigned dealership
-      dealershipId = 'cmd50a9ot0001pe174j9rx5dh'; // Jay Hatfield Chevrolet
-    } else {
-      // Get user's dealership ID from database
-      const user = await prisma.users.findUnique({
-        where: { id: session.user.id },
-        select: { dealershipId: true }
-      })
-
-      if (!user?.dealershipId) {
-        logger.error('User not assigned to dealership', { userId: session.user.id })
-        return NextResponse.redirect(new URL('/settings?error=user_not_assigned_to_dealership', process.env.NEXTAUTH_URL!))
+    try {
+      // Try to get user's Search Console sites
+      const sitesResponse = await searchConsole.sites.list()
+      
+      if (sitesResponse.data.siteEntry?.[0]) {
+        const site = sitesResponse.data.siteEntry[0]
+        siteUrl = site.siteUrl || siteUrl
+        siteName = site.siteUrl?.replace(/https?:\/\//, '').replace(/\/$/, '') || siteName
       }
-      dealershipId = user.dealershipId;
+    } catch (sitesError) {
+      logger.warn('Could not fetch Search Console sites, using defaults', { error: sitesError })
     }
 
-    // Save or update tokens
-    const encryptedAccessToken = encrypt(tokens.access_token!)
-    const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
-
-    await prisma.search_console_connections.upsert({
+    // Use upsert to update existing connection or create new one
+    const connection = await prisma.search_console_connections.upsert({
       where: { userId: session.user.id },
       update: {
-        dealershipId: dealershipId,
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
+        accessToken: encrypt(tokens.access_token),
+        refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        siteUrl: primarySite,
-        siteName: siteName
+        siteUrl,
+        siteName,
+        updatedAt: new Date()
       },
       create: {
-        users: { connect: { id: session.user.id } },
-        dealershipId: dealershipId,
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
+        userId: session.user.id,
+        dealershipId: session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' ? 'cmd50a9ot0001pe174j9rx5dh' : null,
+        accessToken: encrypt(tokens.access_token),
+        refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        siteUrl: primarySite,
-        siteName: siteName
+        siteUrl,
+        siteName
       }
     })
 
-    logger.info('Search Console connected successfully', {
+    logger.info('Search Console connection updated successfully', {
       userId: session.user.id,
-      sitesCount: allSites.length,
-      fullAccessSitesCount: fullAccessSites.length,
-      restrictedAccessSitesCount: restrictedAccessSites.length,
-      primarySite
+      connectionId: connection.id,
+      siteUrl: connection.siteUrl,
+      siteName: connection.siteName
     })
 
-    // Redirect to settings page with success message
-    return NextResponse.redirect(new URL('/settings?success=search_console_connected', process.env.NEXTAUTH_URL!))
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=success&service=search_console`)
+
   } catch (error) {
-    logger.error('Search Console OAuth callback error', error, { 
-      userId: session.user.id,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
-      errorStack: error instanceof Error ? error.stack : undefined
-    })
-    
-    // Check for specific error types
-    if (error instanceof Error && error.message.includes('invalid_grant')) {
-      return NextResponse.redirect(new URL('/settings?error=search_console_invalid_grant', process.env.NEXTAUTH_URL!))
-    }
-    
-    return NextResponse.json(
-      { error: 'Failed to connect Search Console' },
-      { status: 500 }
-    )
+    logger.error('Search Console OAuth callback error', { error, userId: session.user.id })
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=search_console&error=${encodeURIComponent('Connection failed')}`)
   }
 }

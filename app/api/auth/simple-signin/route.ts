@@ -78,10 +78,8 @@ export async function POST(request: NextRequest) {
       name: user.name
     });
 
-    // Set cookie
-    await SimpleAuth.setSessionCookie(sessionToken);
-
-    return NextResponse.json({
+    // Create the response object
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -92,6 +90,17 @@ export async function POST(request: NextRequest) {
         name: user.name
       }
     });
+
+    // Set the session cookie directly on the response
+    response.cookies.set(SimpleAuth.COOKIE_NAME, sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Simple signin error:', error);

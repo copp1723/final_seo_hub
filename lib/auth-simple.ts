@@ -18,7 +18,7 @@ export interface SimpleSession {
 }
 
 export class SimpleAuth {
-  private static readonly COOKIE_NAME = 'seo-hub-session';
+  public static readonly COOKIE_NAME = 'seo-hub-session';
   private static readonly JWT_SECRET = process.env.NEXTAUTH_SECRET!;
 
   // Web Crypto API for token generation (edge runtime compatible)
@@ -317,17 +317,6 @@ export class SimpleAuth {
     }
   }
 
-  static async setSessionCookie(token: string): Promise<void> {
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    cookieStore.set(this.COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      path: '/',
-    });
-  }
 }
 
 // Export functions for compatibility with old auth system

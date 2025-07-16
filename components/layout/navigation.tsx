@@ -14,7 +14,8 @@ import {
   LogOut,
   ChevronDown,
   Settings,
-  PlusCircle
+  PlusCircle,
+  MessageSquare
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/requests', label: 'My Requests', icon: FileText },
   { href: '/focus-request', label: 'New Request', icon: PlusCircle },
+  { href: '/chat', label: 'SEO Assistant', icon: MessageSquare },
   { href: '/reporting', label: 'Reports', icon: BarChart }
 ]
 
@@ -78,7 +80,10 @@ export function Navigation() {
             <div className="hidden md:flex items-center gap-2 lg:gap-4">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/')) || (item.href === '/focus-request' && pathname?.startsWith('/focus-request'))
+                const isActive = pathname === item.href || 
+                  (item.href === '/requests' && pathname?.startsWith('/requests/')) || 
+                  (item.href === '/focus-request' && pathname?.startsWith('/focus-request')) ||
+                  (item.href === '/chat' && pathname?.startsWith('/chat'))
                 return (
                   <Link
                     key={item.href}
@@ -186,7 +191,10 @@ export function Navigation() {
           <div className="pt-2 pb-3 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || (item.href === '/requests' && pathname?.startsWith('/requests/'))
+              const isActive = pathname === item.href || 
+                (item.href === '/requests' && pathname?.startsWith('/requests/')) ||
+                (item.href === '/focus-request' && pathname?.startsWith('/focus-request')) ||
+                (item.href === '/chat' && pathname?.startsWith('/chat'))
               
               return (
                 <Link

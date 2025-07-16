@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { UserRole } from '@prisma/client'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,7 @@ interface User {
 }
 
 export function UserImpersonation() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
@@ -163,7 +163,7 @@ export function UserImpersonation() {
   }
 
   // Only show for super admins
-  if (session?.user.role !== 'SUPER_ADMIN') {
+  if (user?.role !== 'SUPER_ADMIN') {
     return null
   }
 

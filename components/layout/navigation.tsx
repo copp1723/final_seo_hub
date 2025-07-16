@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { signOut, useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import {
   Home,
   FileText,
@@ -30,15 +30,14 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname()
-  const { data: session } = useSession()
-  const user = session?.user
+  const { user, signOut } = useAuth()
   const branding = useBranding()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/auth/signin' })
+    await signOut()
   }
 
   // Handle click outside to close dropdown
@@ -129,18 +128,10 @@ export function Navigation() {
               >
                 <div className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200">
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ring-2 ring-white shadow-sm">
-                    {session?.user.image ? (
-                      <img
-                        className="h-8 w-8 rounded-full"
-                        src={session.user.image || ''}
-                        alt={session.user.name || 'User'}
-                      />
-                    ) : (
-                      <User className="h-4 w-4 text-gray-600" />
-                    )}
+                    <User className="h-4 w-4 text-gray-600" />
                   </div>
                   <span className="hidden lg:block text-sm text-gray-600 max-w-[150px] truncate font-normal">
-                    {session?.user.name || 'User'}
+                    {user?.name || 'User'}
                   </span>
                   <ChevronDown className="h-3 w-3 text-gray-400" />
                 </div>
@@ -150,8 +141,8 @@ export function Navigation() {
               {isUserMenuOpen && (
                 <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                   <div className="px-4 py-3 border-b border-gray-200">
-                    <p className="text-sm text-gray-700">{session?.user.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{session?.user.email}</p>
+                    <p className="text-sm text-gray-700">{user?.name}</p>
+                    <p className="text-sm text-gray-500 truncate">{user?.email}</p>
                   </div>
                   <Link
                     href="/settings"
@@ -262,23 +253,15 @@ export function Navigation() {
             <div className="flex items-center px-4">
               <div className="flex-shrink-0">
                 <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  {session?.user.image ? (
-                    <img
-                      className="h-10 w-10 rounded-full"
-                      src={session.user.image || ''}
-                      alt={session.user.name || 'User'}
-                    />
-                  ) : (
-                    <User className="h-6 w-6 text-gray-600" />
-                  )}
+                  <User className="h-6 w-6 text-gray-600" />
                 </div>
               </div>
               <div className="ml-3">
                 <div className="text-base font-medium text-gray-800">
-                  {session?.user.name || 'User'}
+                  {user?.name || 'User'}
                 </div>
                 <div className="text-sm font-medium text-gray-500">
-                  {session?.user.email}
+                  {user?.email}
                 </div>
               </div>
             </div>

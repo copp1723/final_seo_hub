@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { Navigation } from './navigation'
@@ -11,23 +11,23 @@ interface AuthenticatedLayoutProps {
 }
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (status === 'loading') return
-    if (!session) {
-      router.push('/auth/signin')
+    if (isLoading) return
+    if (!user) {
+      router.push('/auth/simple-signin')
     }
-  }, [session, status, router])
+  }, [user, isLoading, router])
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <PageLoading />
     )
   }
 
-  if (!session) {
+  if (!user) {
     return null
   }
 

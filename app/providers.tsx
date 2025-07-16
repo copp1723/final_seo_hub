@@ -1,6 +1,6 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
+import { SimpleAuthProvider } from './simple-auth-provider'
 import { Toaster } from 'sonner'
 import ErrorBoundary from '@/components/error-boundary'
 import { useEffect, useState } from 'react'
@@ -24,14 +24,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ErrorBoundary>
-      <SessionProvider
-        // Add some resilience options
-        refetchInterval={5 * 60} // Refetch session every 5 minutes
-        refetchOnWindowFocus={true}
-      >
+      <SimpleAuthProvider>
         {children}
         <Toaster position="top-center" richColors />
-      </SessionProvider>
+      </SimpleAuthProvider>
     </ErrorBoundary>
   )
 }

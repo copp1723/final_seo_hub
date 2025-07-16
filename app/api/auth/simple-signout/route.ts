@@ -5,15 +5,11 @@ export async function POST(request: NextRequest) {
   try {
     await SimpleAuth.deleteSession();
     
-    return NextResponse.json({
-      success: true,
-      message: 'Signed out successfully'
-    });
-
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Signout error:', error);
+    console.error('Sign out error:', error);
     return NextResponse.json(
-      { error: 'Signout failed' },
+      { error: 'Failed to sign out' },
       { status: 500 }
     );
   }

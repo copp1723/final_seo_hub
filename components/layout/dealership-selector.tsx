@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Building2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -17,7 +17,7 @@ interface DealershipData {
 }
 
 export function DealershipSelector() {
-  const { data: session, update } = useSession()
+  const { user, refreshSession } = useAuth()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -29,7 +29,7 @@ export function DealershipSelector() {
   // Fetch dealerships on component mount
   useEffect(() => {
     const fetchDealerships = async () => {
-      if (!session?.user.id) return
+      if (!user?.id) return
 
       setIsLoading(true)
       setError(null)
@@ -58,7 +58,7 @@ export function DealershipSelector() {
     }
 
     fetchDealerships()
-  }, [session?.user.id])
+  }, [user?.id])
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -98,11 +98,6 @@ export function DealershipSelector() {
 
       const result = await response.json()
 
-      // Update the session to reflect the new dealership
-      await update({
-        dealershipId: result.dealerships?.id
-      })
-
       // Update local state
       setDealershipData(prev => prev ? {
        ...prev,
@@ -111,7 +106,8 @@ export function DealershipSelector() {
 
       setIsOpen(false)
 
-      // Refresh the page to update all dealership-specific data
+      // Refresh the session and page to update all dealership-specific data
+      await refreshSession()
       router.refresh()
 
     } catch (err) {

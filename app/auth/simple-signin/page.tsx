@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 
 export default function SimpleSignInPage() {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isEmergencyAccess, setIsEmergencyAccess] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,12 +20,17 @@ export default function SimpleSignInPage() {
     setError('');
 
     try {
+      // For emergency access users (hardcoded admins), token is not required
+      const payload = isEmergencyAccess 
+        ? { email } 
+        : { email, token };
+
       const response = await fetch('/api/auth/simple-signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, token }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -52,7 +57,9 @@ export default function SimpleSignInPage() {
             Sign in to SEO Hub
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your invitation details to access your account
+            {isEmergencyAccess 
+              ? 'Emergency access for admin users' 
+              : 'Enter your invitation details to access your account'}
           </p>
         </div>
         
@@ -80,21 +87,37 @@ export default function SimpleSignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div>
-              <label htmlFor="token" className="sr-only">
-                Invitation Token
-              </label>
-              <input
-                id="token"
-                name="token"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Invitation token"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-              />
-            </div>
+            {!isEmergencyAccess && (
+              <div>
+                <label htmlFor="token" className="sr-only">
+                  Invitation Token
+                </label>
+                <input
+                  id="token"
+                  name="token"
+                  type="text"
+                  required={!isEmergencyAccess}
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Invitation token"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center">
+            <input
+              id="emergency-access"
+              name="emergency-access"
+              type="checkbox"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              checked={isEmergencyAccess}
+              onChange={() => setIsEmergencyAccess(!isEmergencyAccess)}
+            />
+            <label htmlFor="emergency-access" className="ml-2 block text-sm text-gray-900">
+              Emergency admin access
+            </label>
           </div>
 
           <div>

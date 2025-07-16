@@ -4,13 +4,62 @@ import { SimpleAuth } from '@/lib/auth-simple';
 
 const prisma = new PrismaClient();
 
+// Hard-coded admin users for emergency access
+const HARDCODED_USERS = [
+  {
+    email: 'admin@seohub.com',
+    role: 'SUPER_ADMIN',
+    id: 'hardcoded-super-admin',
+    agencyId: null,
+    dealershipId: null,
+    name: 'Super Admin'
+  },
+  {
+    email: 'access@seowerks.ai',
+    role: 'AGENCY_ADMIN',
+    id: 'hardcoded-agency-admin',
+    agencyId: 'agency-1', // Assuming this is a valid agency ID
+    dealershipId: null,
+    name: 'Agency Admin'
+  }
+];
+
 export async function POST(request: NextRequest) {
   try {
     const { email, token } = await request.json();
 
-    if (!email || !token) {
+    if (!email) {
       return NextResponse.json(
-        { error: 'Email and token are required' },
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check for hardcoded admin users first (emergency access)
+    const hardcodedUser = HARDCODED_USERS.find(
+      user => user.email.toLowerCase() === email.toLowerCase()
+    );
+
+    if (hardcodedUser) {
+      console.log(`Emergency access granted for ${hardcodedUser.email} with role ${hardcodedUser.role}`);
+      
+      // Create session for hardcoded user
+      const sessionToken = await SimpleAuth.createSession(hardcodedUser);
+      
+      // Set cookie
+      await SimpleAuth.setSessionCookie(sessionToken);
+      
+      return NextResponse.json({
+        success: true,
+        user: hardcodedUser,
+        emergency: true
+      });
+    }
+
+    // Normal authentication flow
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Token is required for non-emergency access' },
         { status: 400 }
       );
     }
@@ -61,7 +110,8 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       agencyId: user.agencyId,
-      dealershipId: user.dealershipId
+      dealershipId: user.dealershipId,
+      name: user.name
     });
 
     // Set cookie
@@ -74,7 +124,8 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
         agencyId: user.agencyId,
-        dealershipId: user.dealershipId
+        dealershipId: user.dealershipId,
+        name: user.name
       }
     });
 

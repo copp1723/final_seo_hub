@@ -1,13 +1,10 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
 import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/branding/config'
 import { useEffect, useState } from 'react'
 
 export function useBranding(): BrandingConfig {
-  const sessionResult = useSession()
-  const session = sessionResult?.data
-  const status = sessionResult?.status
+  // Remove NextAuth dependency
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING)
 
   useEffect(() => {
@@ -23,7 +20,7 @@ export function useBranding(): BrandingConfig {
         setBranding(DEFAULT_BRANDING)
       }
     }
-  }, [session, status])
+  }, [])
 
   return branding
 }

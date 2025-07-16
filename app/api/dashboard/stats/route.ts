@@ -201,21 +201,8 @@ async function handleGET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dealershipId = searchParams.get('dealershipId')
 
-    // Handle hardcoded admin user - CREATE USER IF NOT EXISTS
-    if (session.user.id === 'hardcoded-super-admin') {
-      // Ensure super admin user exists
-      await prisma.users.upsert({
-        where: { id: 'hardcoded-super-admin' },
-        update: {},
-        create: {
-          id: 'hardcoded-super-admin',
-          email: 'josh.copp@onekeel.ai',
-          name: 'Josh Copp (Super Admin)',
-          role: 'SUPER_ADMIN',
-          agencyId: 'agency-seowerks',
-          updatedAt: new Date()
-        }
-      })
+          // Handle super admin user  
+      if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
 
       // For super admin, return basic stats from first available dealership or empty stats
       const firstDealership = await prisma.dealerships.findFirst()

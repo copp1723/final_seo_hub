@@ -3,12 +3,12 @@ import { SimpleUser, SimpleSession } from './auth-simple';
 
 // Give the demo user agency context for full functionality
 const DEMO_SUPER_ADMIN: SimpleUser = {
-  id: 'hardcoded-super-admin', // Using the ID that some code expects
+  id: '3e50bcc8-cd3e-4773-a790-e0570de37371', // Real Josh user ID
   email: 'josh.copp@onekeel.ai',
   role: 'SUPER_ADMIN',
   agencyId: 'agency-seowerks', // SEOWorks agency from production database
-  dealershipId: null, // Super admins can access all dealerships
-  name: 'Demo Super Admin'
+  dealershipId: 'cmd50a9ot0001pe174j9rx5dh', // Jay Hatfield Columbus for GA4/SC access
+  name: 'Josh Copp (Super Admin)'
 };
 
 const DEMO_SESSION: SimpleSession = {

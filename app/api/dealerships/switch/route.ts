@@ -21,31 +21,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { dealershipId } = switchDealershipSchema.parse(body)
 
-    // Handle hardcoded admin user (doesn't exist in database)
-    if (session.user.id === 'hardcoded-super-admin') {
-      // For hardcoded admin, allow access to any dealership
-      const dealershipUser = await prisma.users.findUnique({
+    // Handle super admin user
+    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
+      // For super admin, allow access to any dealership
+      const dealership = await prisma.dealerships.findUnique({
         where: { id: dealershipId }
       })
       
-      if (!dealershipUser || !dealershipUser.id.startsWith('user-dealer-')) {
+      if (!dealership) {
         return NextResponse.json(
-          { error: 'Dealership not found or access denied' },
-          { status: 403 }
+          { error: 'Dealership not found' },
+          { status: 404 }
         )
       }
 
-      // Extract dealership name
-      const match = dealershipUser.name?.match(/\((.+)\)$/)
-      const dealershipName = match ? match[1] : dealershipUser.name || 'Unknown Dealership'
-
-      console.log(`Hardcoded admin switched to dealership: ${dealershipName}`)
+      console.log(`Super admin switched to dealership: ${dealership.name}`)
 
       return NextResponse.json({
         success: true,
         dealership: {
-          id: dealershipUser.id,
-          name: dealershipName
+          id: dealership.id,
+          name: dealership.name
         }
       })
     }
@@ -122,26 +118,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Handle hardcoded admin user (doesn't exist in database)
-    if (session.user.id === 'hardcoded-super-admin') {
-      // For hardcoded admin, get all dealerships from all agencies
-      const dealershipUsers = await prisma.users.findMany({
-        where: {
-          id: { startsWith: 'user-dealer-' } // Only get dealership users
-        },
+    // Handle super admin user
+    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
+      // For super admin, get all dealerships directly from dealerships table
+      const dealerships = await prisma.dealerships.findMany({
         orderBy: { name: 'asc' }
       })
 
-      // Extract dealership name from user name (format: "Manager Name (Dealership Name)")
-      const availableDealerships = dealershipUsers.map(user => {
-        const match = user.name?.match(/\((.+)\)$/)
-        const dealershipName = match ? match[1] : user.name || 'Unknown Dealership'
-        
-        return {
-          id: user.id,
-          name: dealershipName
-        }
-      })
+      const availableDealerships = dealerships.map(dealership => ({
+        id: dealership.id,
+        name: dealership.name
+      }))
 
       return NextResponse.json({
         currentDealership: availableDealerships.length > 0 ? availableDealerships[0] : null,

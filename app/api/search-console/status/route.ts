@@ -1,28 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/api-auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
-  const authResult = await requireAuth(request)
-  if (!authResult.authenticated) return authResult.response
-
+  const session = await SimpleAuth.getSessionFromRequest(request)
+  
   try {
-    // Get user's dealership ID
-    const user = await prisma.users.findUnique({
-      where: { id: authResult.user!.id },
-      select: { dealershipId: true }
-    })
-
-    if (!user?.dealershipId) {
-      return NextResponse.json({
-        connected: false,
-        debug: 'User not assigned to dealership'
-      })
+    if (!session?.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const connection = await prisma.search_console_connections.findUnique({
-      where: { userId: user.dealershipId }
+      where: { userId: session.user.id }
     })
 
     if (!connection) {
@@ -50,7 +40,7 @@ export async function GET(request: NextRequest) {
       debug: debugInfo
     })
   } catch (error) {
-    logger.error('Search Console status error', error, { userId: authResult.user!.id })
+    logger.error('Search Console status error', error, { userId: session?.user.id })
     return NextResponse.json({
       connected: false,
       debug: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`

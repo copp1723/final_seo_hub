@@ -40,19 +40,27 @@ export async function GET(request: NextRequest) {
     // Import encryption function
     const { encrypt } = await import('@/lib/encryption')
 
-    // Get user's dealership ID
-    const user = await prisma.users.findUnique({
-      where: { id: state },
-      select: { dealershipId: true }
-    })
+    // Handle super admin user specially
+    let dealershipId: string;
+    if (state === '3e50bcc8-cd3e-4773-a790-e0570de37371') {
+      // Super admin user - use assigned dealership
+      dealershipId = 'cmd50a9ot0001pe174j9rx5dh'; // Jay Hatfield Chevrolet
+    } else {
+      // Get user's dealership ID from database
+      const user = await prisma.users.findUnique({
+        where: { id: state },
+        select: { dealershipId: true }
+      })
 
-    if (!user?.dealershipId) {
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=User not assigned to dealership`)
+      if (!user?.dealershipId) {
+        return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=User not assigned to dealership`)
+      }
+      dealershipId = user.dealershipId;
     }
 
-    // Check if dealership already has a property selected
+    // Check if user already has a GA4 connection
     const existingConnection = await prisma.ga4_connections.findUnique({
-      where: { userId: user.dealershipId }
+      where: { userId: state }
     })
     
     // Try to fetch property info from Google Analytics
@@ -87,16 +95,17 @@ export async function GET(request: NextRequest) {
     } else {
       logger.info('Preserving existing property selection', {
         userId: state,
-        dealershipId: user.dealershipId,
+        dealershipId: dealershipId,
         propertyId,
         propertyName
       })
     }
 
     await prisma.ga4_connections.upsert({
-      where: { userId: user.dealershipId },
+      where: { userId: state },
       create: {
-        users: { connect: { id: user.dealershipId } },
+        users: { connect: { id: state } },
+        dealershipId: dealershipId,
         accessToken: encrypt(tokens.access_token),
         refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
@@ -104,6 +113,7 @@ export async function GET(request: NextRequest) {
         propertyName
       },
       update: {
+        dealershipId: dealershipId,
         accessToken: encrypt(tokens.access_token),
         refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

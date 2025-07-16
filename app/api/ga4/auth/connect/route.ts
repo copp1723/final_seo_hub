@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/api-auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 
 export async function GET(request: NextRequest) {
-  const authResult = await requireAuth(request)
-  if (!authResult.authenticated) {
-    return NextResponse.redirect('/auth/signin')
+  const session = await SimpleAuth.getSessionFromRequest(request)
+  if (!session?.user.id) {
+    return NextResponse.redirect('/auth/simple-signin')
   }
 
   const SCOPES = [
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set('scope', SCOPES.join(' '))
   authUrl.searchParams.set('access_type', 'offline')
   authUrl.searchParams.set('prompt', 'consent')
-  authUrl.searchParams.set('state', authResult.user!.id) // Pass userId as state
+  authUrl.searchParams.set('state', session.user.id) // Pass userId as state
 
   return NextResponse.redirect(authUrl.toString())
 }

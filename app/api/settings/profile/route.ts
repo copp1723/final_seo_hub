@@ -1,88 +1,131 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
-import { rateLimits } from '@/lib/rate-limit'
-import { validateRequest, updateProfileSchema } from '@/lib/validations'
-import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
-  // Apply rate limiting
-  const rateLimitResponse = await rateLimits.api(request)
-  if (rateLimitResponse) return rateLimitResponse
-  
-  const authResult = await requireAuth(request)
-  if (!authResult.authenticated) return authResult.response
-  
   try {
+    const session = await SimpleAuth.getSessionFromRequest(request)
+    
+    if (!session?.user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Handle super admin user
+    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+          role: session.user.role,
+          agencyId: session.user.agencyId,
+          dealershipId: session.user.dealershipId
+        }
+      })
+    }
+
+    // Get user profile from database
     const user = await prisma.users.findUnique({
-      where: { id: authResult.user!.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        image: true,
-        role: true,
-        agencyId: true,
-        createdAt: true
+      where: { id: session.user.id },
+      include: {
+        agencies: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        },
+        dealerships: {
+          select: {
+            id: true,
+            name: true,
+            website: true
+          }
+        }
       }
     })
-    
+
     if (!user) {
-      return errorResponse('User not found', 404)
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
     }
-    
-    return successResponse({ user })
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        agencyId: user.agencyId,
+        dealershipId: user.dealershipId,
+        agency: user.agencies,
+        dealership: user.dealerships
+      }
+    })
+
   } catch (error) {
-    logger.error('Error fetching user profile:', error, { userId: authResult.user!.id })
-    return errorResponse('Failed to fetch profile', 500)
+    console.error('Error fetching user profile:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 
-export async function PATCH(request: NextRequest) {
-  // Apply rate limiting
-  const rateLimitResponse = await rateLimits.api(request)
-  if (rateLimitResponse) return rateLimitResponse
-  
-  const authResult = await requireAuth(request)
-  if (!authResult.authenticated) return authResult.response
-  
-  // Validate request body
-  const validation = await validateRequest(request, updateProfileSchema)
-  if (!validation.success) return validation.error
-  
-  const { data } = validation
-  
+export async function PUT(request: NextRequest) {
   try {
-    // Check if email is being changed and if it's already taken
-    if (data.email !== authResult.user!.email) {
-      const existingUser = await prisma.users.findUnique({
-        where: { email: data.email }
-      })
-      
-      if (existingUser) {
-        return errorResponse('Email already in use', 409)
-      }
-    }
+    const session = await SimpleAuth.getSessionFromRequest(request)
     
+    if (!session?.user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { name, email } = body
+
+    // Handle super admin user (can't update hardcoded user)
+    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { error: 'Cannot update super admin profile' },
+        { status: 403 }
+      )
+    }
+
+    // Update user profile
     const updatedUser = await prisma.users.update({
-      where: { id: authResult.user!.id },
+      where: { id: session.user.id },
       data: {
-        name: data.name,
-        email: data.email
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        image: true,
-        role: true
+        ...(name && { name }),
+        ...(email && { email }),
+        updatedAt: new Date()
       }
     })
-    
-    logger.info('User profile updated', { userId: authResult.user!.id })
-    return successResponse({ user: updatedUser }, 'Profile updated successfully')
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role
+      }
+    })
+
   } catch (error) {
-    logger.error('Error updating user profile:', error, { userId: authResult.user!.id })
-    return errorResponse('Failed to update profile', 500)
+    console.error('Error updating user profile:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

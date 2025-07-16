@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { google } from 'googleapis'
 import { encrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
-export async function GET(req: Request) {
-  const session = await auth()
+export async function GET(req: NextRequest) {
+  const session = await SimpleAuth.getSessionFromRequest(req)
   if (!session?.user) {
     logger.error('Search Console callback: No session found')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -91,15 +91,23 @@ export async function GET(req: Request) {
       allSitesPermissions: allSites.map(s => ({ url: s.siteUrl, permission: s.permissionLevel }))
     })
 
-    // Get user's dealership ID
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      select: { dealershipId: true }
-    })
+    // Handle super admin user specially
+    let dealershipId: string;
+    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371') {
+      // Super admin user - use assigned dealership
+      dealershipId = 'cmd50a9ot0001pe174j9rx5dh'; // Jay Hatfield Chevrolet
+    } else {
+      // Get user's dealership ID from database
+      const user = await prisma.users.findUnique({
+        where: { id: session.user.id },
+        select: { dealershipId: true }
+      })
 
-    if (!user?.dealershipId) {
-      logger.error('User not assigned to dealership', { userId: session.user.id })
-      return NextResponse.redirect(new URL('/settings?error=user_not_assigned_to_dealership', process.env.NEXTAUTH_URL!))
+      if (!user?.dealershipId) {
+        logger.error('User not assigned to dealership', { userId: session.user.id })
+        return NextResponse.redirect(new URL('/settings?error=user_not_assigned_to_dealership', process.env.NEXTAUTH_URL!))
+      }
+      dealershipId = user.dealershipId;
     }
 
     // Save or update tokens
@@ -107,8 +115,9 @@ export async function GET(req: Request) {
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
 
     await prisma.search_console_connections.upsert({
-      where: { userId: user.dealershipId },
+      where: { userId: session.user.id },
       update: {
+        dealershipId: dealershipId,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
@@ -116,7 +125,8 @@ export async function GET(req: Request) {
         siteName: siteName
       },
       create: {
-        users: { connect: { id: user.dealershipId } },
+        users: { connect: { id: session.user.id } },
+        dealershipId: dealershipId,
         accessToken: encryptedAccessToken,
         refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

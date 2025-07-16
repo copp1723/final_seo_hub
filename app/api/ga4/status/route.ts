@@ -1,31 +1,18 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's dealership ID
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      select: { dealershipId: true }
-    })
-
-    if (!user?.dealershipId) {
-      return NextResponse.json({
-        connected: false,
-        message: 'User not assigned to dealership'
-      })
-    }
-
     const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: user.dealershipId },
+      where: { userId: session.user.id },
       select: {
         id: true,
         propertyId: true,
@@ -39,7 +26,6 @@ export async function GET() {
     if (!connection) {
       logger.info('GA4 connection not found', {
         userId: session.user.id,
-        dealershipId: user.dealershipId,
         path: '/api/ga4/status',
         method: 'GET'
       })
@@ -69,9 +55,7 @@ export async function GET() {
     })
 
   } catch (error) {
-    const session = await auth()
     logger.error('GA4 status check error', error, {
-      userId: session?.user.id,
       path: '/api/ga4/status',
       method: 'GET'
     })

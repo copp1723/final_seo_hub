@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { signIn } from '@/lib/auth'
 import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
   console.log('🎯 Accept Invitation GET endpoint hit!')
   console.log('Request URL:', request.url)
-  console.log('Request headers:', request.headers)
+  console.log('Request headers:', Object.fromEntries(request.headers.entries()))
+  console.log('Environment check:')
+  console.log('- NODE_ENV:', process.env.NODE_ENV)
+  console.log('- NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
+  console.log('- NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET)
   
   try {
     const { searchParams } = new URL(request.url)
@@ -45,23 +50,42 @@ export async function GET(request: NextRequest) {
         emailVerified: new Date() // Mark email as verified
       }
     })
-    console.log('✅ Token cleared')
+    console.log('✅ Token cleared and email verified')
 
-    // Create a session for this user
-    const sessionToken = crypto.randomUUID()
+    // Instead of manually creating sessions, use NextAuth's approach
+    // Create a temporary account record that NextAuth can use
+    const account = await prisma.accounts.upsert({
+      where: {
+        provider_providerAccountId: {
+          provider: 'invitation',
+          providerAccountId: user.id
+        }
+      },
+      update: {},
+      create: {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        type: 'invitation',
+        provider: 'invitation',
+        providerAccountId: user.id
+      }
+    })
+    console.log('✅ Account record created/updated')
+
+    // Create session using NextAuth's PrismaAdapter approach
+    const sessionToken = crypto.randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
-    await prisma.sessions.create({
+    const session = await prisma.sessions.create({
       data: {
-        id: crypto.randomUUID(),
         sessionToken,
         userId: user.id,
         expires
       }
     })
-    console.log('✅ Session created:', sessionToken)
+    console.log('✅ NextAuth-compatible session created:', sessionToken.substring(0, 20) + '...')
 
-    // Set the session cookie - use NEXTAUTH_URL for proper production redirects
+    // Set the session cookie using NextAuth's expected format
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
     
     // Redirect dealership users who haven't completed onboarding to the onboarding page
@@ -71,20 +95,33 @@ export async function GET(request: NextRequest) {
     
     const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
     
-    // Use the correct cookie name based on environment
+    // Use NextAuth's cookie configuration from lib/auth.ts
     const isProduction = process.env.NODE_ENV === 'production'
-    const cookieName = isProduction ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
+    const useSecureCookies = baseUrl.startsWith('https://')
     
-    response.cookies.set(cookieName, sessionToken, {
+    console.log('🍪 Cookie configuration:')
+    console.log('- isProduction:', isProduction)
+    console.log('- useSecureCookies:', useSecureCookies)
+    console.log('- sessionToken:', sessionToken.substring(0, 20) + '...')
+    console.log('- expires:', expires)
+    console.log('- baseUrl:', baseUrl)
+    console.log('- redirectUrl:', redirectUrl)
+    
+    // Set the session cookie with NextAuth's expected name and configuration
+    response.cookies.set('next-auth.session-token', sessionToken, {
       expires,
       httpOnly: true,
-      secure: isProduction,
+      secure: useSecureCookies,
       sameSite: 'lax',
       path: '/'
     })
     
-    console.log('✅ Cookie set:', cookieName)
+    console.log('✅ NextAuth session cookie set: next-auth.session-token')
     console.log('🎯 Redirecting to:', baseUrl + redirectUrl)
+    
+    // Log all response headers and cookies for debugging
+    console.log('📤 Response headers:', Object.fromEntries(response.headers.entries()))
+    console.log('📤 Response cookies:', response.cookies.getAll())
 
     return response
 

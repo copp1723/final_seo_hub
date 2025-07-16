@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       })
 
       const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
-      const loginUrl = `${baseUrl}/api/invitation?token=${invitationToken}`
+      const loginUrl = `${baseUrl}/api/auth/accept-invitation?token=${invitationToken}`
 
       console.log(`🎯 Generated login link for ${email}: ${loginUrl}`)
 

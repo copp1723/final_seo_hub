@@ -133,9 +133,9 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Token saved to database')
 
-    // Generate invitation URL - IMPORTANT: Use /api/invitation not /api/auth/invitation
+    // Generate invitation URL - Updated to use the fixed endpoint
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-    const invitationUrl = `${baseUrl}/api/invitation?token=${invitationToken}`
+    const invitationUrl = `${baseUrl}/api/auth/accept-invitation?token=${invitationToken}`
 
     console.log('✅ Invitation URL generated:', invitationUrl)
 

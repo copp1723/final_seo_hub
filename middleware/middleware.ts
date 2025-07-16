@@ -40,7 +40,17 @@ export async function middleware(request: NextRequest) {
     request.cookies.get('next-auth.session-token') ||
     request.cookies.get('__Secure-next-auth.session-token')
 
+  // Add detailed cookie debugging for protected routes
+  if (!isPublicRoute) {
+    console.log('🔍 Middleware cookie check for:', pathname)
+    console.log('- All cookies:', request.cookies.getAll().map(c => `${c.name}=${c.value.substring(0, 20)}...`))
+    console.log('- next-auth.session-token:', request.cookies.get('next-auth.session-token')?.value?.substring(0, 20) + '...')
+    console.log('- __Secure-next-auth.session-token:', request.cookies.get('__Secure-next-auth.session-token')?.value?.substring(0, 20) + '...')
+    console.log('- sessionToken found:', !!sessionToken)
+  }
+
   if (!sessionToken) {
+    console.log('❌ No session token found, redirecting to signin')
     if (pathname !== '/' && pathname !== '/onboarding') {
       const signInUrl = new URL('/auth/signin', request.url)
       signInUrl.searchParams.set('callbackUrl', pathname)
@@ -48,6 +58,8 @@ export async function middleware(request: NextRequest) {
     }
     return NextResponse.next();
   }
+
+  console.log('✅ Session token found, allowing access to:', pathname)
 
   // You cannot check onboardingCompleted in middleware with database sessions
   // If you need onboarding logic, handle it in your page/server logic

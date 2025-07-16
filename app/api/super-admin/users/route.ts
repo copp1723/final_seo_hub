@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     // Generate the magic link URL
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const magicLinkUrl = `${baseUrl}/api/invitation?token=${invitationToken}`
+    const magicLinkUrl = `${baseUrl}/api/auth/accept-invitation?token=${invitationToken}`
 
     // Send invitation email to the new user with magic link
     const invitedBy = authResult.user.name || authResult.user.email || 'Super Administrator'

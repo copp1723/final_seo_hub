@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { SimpleAuth } from '@/lib/auth-simple'
 import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
@@ -47,19 +48,16 @@ export async function GET(request: NextRequest) {
     })
     console.log('✅ Token cleared')
 
-    // Create a session for this user
-    const sessionToken = crypto.randomUUID()
-    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-
-    await prisma.sessions.create({
-      data: {
-        id: crypto.randomUUID(),
-        sessionToken,
-        userId: user.id,
-        expires
-      }
+    // Create a SimpleAuth session for this user
+    const sessionToken = await SimpleAuth.createSession({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      agencyId: user.agencyId,
+      dealershipId: user.dealershipId
     })
-    console.log('✅ Session created:', sessionToken)
+    console.log('✅ SimpleAuth session created')
 
     // Set the session cookie - use NEXTAUTH_URL for proper production redirects
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
@@ -71,20 +69,17 @@ export async function GET(request: NextRequest) {
     
     const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
     
-    // Use the correct cookie name based on environment
-    const isProduction = process.env.NODE_ENV === 'production'
-    const cookieName = isProduction ? '__Secure-next-auth.session-token' : 'next-auth.session-token'
-    
-    response.cookies.set(cookieName, sessionToken, {
-      expires,
+    // Set SimpleAuth session cookie manually on the response
+    response.cookies.set('seo-hub-session', sessionToken, {
       httpOnly: true,
-      secure: isProduction,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/'
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      path: '/',
     })
     
-    console.log('✅ Cookie set:', cookieName)
-    console.log('🎯 Redirecting to:', baseUrl + '/dashboard')
+    console.log('✅ SimpleAuth cookie set')
+    console.log('🎯 Redirecting to:', baseUrl + redirectUrl)
 
     return response
 

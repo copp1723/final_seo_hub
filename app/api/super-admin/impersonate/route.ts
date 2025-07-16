@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import crypto from 'crypto'
@@ -12,20 +12,27 @@ const impersonateSchema = z.object({
 // Start impersonation
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Check if user is super admin
-    const currentUser = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      select: { role: true, email: true, name: true }
-    })
-
-    if (currentUser?.role !== 'SUPER_ADMIN') {
+    if (session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Forbidden: Super admin access required' }, { status: 403 })
+    }
+
+    // For hardcoded admin, get user info from session
+    const currentUser = session.user.id === 'hardcoded-super-admin'
+      ? { role: 'SUPER_ADMIN', email: session.user.email, name: session.user.name }
+      : await prisma.users.findUnique({
+          where: { id: session.user.id },
+          select: { role: true, email: true, name: true }
+        })
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Current user not found' }, { status: 404 })
     }
 
     const body = await request.json()
@@ -76,33 +83,23 @@ export async function POST(request: NextRequest) {
       maxAge: 60 * 60 * 4 // 4 hours max impersonation
     })
 
-    // Create a new session for the target user
-    const sessionToken = crypto.randomUUID()
-    const expires = new Date(Date.now() + 4 * 60 * 60 * 1000) // 4 hours
-
-    // First, clean up any existing sessions for the current user
-    await prisma.sessions.deleteMany({
-      where: { userId: session.user.id }
-    })
-
-    // Create new session for the target user
-    await prisma.sessions.create({
-      data: {
-        id: crypto.randomUUID(),
-        sessionToken,
-        userId: targetUser.id,
-        expires
-      }
+    // Create a SimpleAuth session for the target user
+    const sessionToken = await SimpleAuth.createSession({
+      id: targetUser.id,
+      email: targetUser.email,
+      name: targetUser.name,
+      role: targetUser.role,
+      agencyId: targetUser.agencyId,
+      dealershipId: targetUser.dealershipId
     })
 
     // Set the new session cookie
-    const cookiePrefix = isProduction && isSecure ? '__Secure-' : ''
-    cookieStore.set(`${cookiePrefix}next-auth.session-token`, sessionToken, {
+    cookieStore.set('seo-hub-session', sessionToken, {
       httpOnly: true,
       secure: isProduction && isSecure,
       sameSite: 'lax',
       path: '/',
-      expires
+      maxAge: 4 * 60 * 60 // 4 hours
     })
 
     // Log the impersonation for audit purposes
@@ -169,41 +166,29 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get current session to log who was being impersonated
-    const session = await auth()
-    const impersonatedUserId = session?.user.id
+    const currentSession = await SimpleAuth.getSessionFromRequest(request)
+    const impersonatedUserId = currentSession?.user.id
 
-    // Create a new session for the original user
-    const sessionToken = crypto.randomUUID()
-    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-
-    // Clean up existing sessions
-    if (impersonatedUserId) {
-      await prisma.sessions.deleteMany({
-        where: { userId: impersonatedUserId }
-      })
-    }
-
-    // Create new session for the original super admin
-    await prisma.sessions.create({
-      data: {
-        id: crypto.randomUUID(),
-        sessionToken,
-        userId: superAdmin.id,
-        expires
-      }
+    // Create a SimpleAuth session for the original super admin
+    const sessionToken = await SimpleAuth.createSession({
+      id: superAdmin.id,
+      email: superAdmin.email,
+      name: superAdmin.name,
+      role: superAdmin.role,
+      agencyId: superAdmin.agencyId,
+      dealershipId: superAdmin.dealershipId
     })
 
     // Set the session cookie
     const isProduction = process.env.NODE_ENV === 'production'
     const isSecure = process.env.NEXTAUTH_URL?.startsWith('https://') || false
-    const cookiePrefix = isProduction && isSecure ? '__Secure-' : ''
     
-    cookieStore.set(`${cookiePrefix}next-auth.session-token`, sessionToken, {
+    cookieStore.set('seo-hub-session', sessionToken, {
       httpOnly: true,
       secure: isProduction && isSecure,
       sameSite: 'lax',
       path: '/',
-      expires
+      maxAge: 30 * 24 * 60 * 60 // 30 days
     })
 
     // Clear the impersonation cookie
@@ -260,7 +245,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ impersonating: false })
     }
 
-    const session = await auth()
+    const session = await SimpleAuth.getSessionFromRequest(request)
     if (!session?.user) {
       return NextResponse.json({ impersonating: false })
     }

@@ -9,47 +9,141 @@ import { CACHE_TTL } from '@/lib/constants'
 // Cached function for fetching dealership stats
 const getCachedDealershipStats = createCachedFunction(
   async (dealershipId: string) => {
-    // Get all users from this dealership for request statistics
-    const dealershipUsers = await prisma.users.findMany({
-      where: { dealershipId },
-      select: { id: true }
-    })
-
-    const userIds = dealershipUsers.map(u => u.id)
-
-    // Fetch dashboard stats for the dealership
-    const [statusCounts, completedThisMonth, latestRequest] = await Promise.all([
+    // Try both approaches: requests by dealershipId and by userId
+    const [statusCountsByDealership, statusCountsByUserId, completedThisMonth, latestRequest] = await Promise.all([
+      // Direct dealership requests
       prisma.requests.groupBy({
         by: ['status'],
         where: { 
-          userId: { in: userIds }
+          dealershipId: dealershipId
         },
         _count: true
-      }),
-      prisma.requests.count({
-        where: {
-          userId: { in: userIds },
-          status: 'COMPLETED',
-          completedAt: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-          }
+      }).catch(() => []),
+      
+      // User-based requests (fallback)
+      (async () => {
+        try {
+          const dealershipUsers = await prisma.users.findMany({
+            where: { dealershipId },
+            select: { id: true }
+          })
+          const userIds = dealershipUsers.map(u => u.id)
+          
+          if (userIds.length === 0) return []
+          
+          return prisma.requests.groupBy({
+            by: ['status'],
+            where: { 
+              userId: { in: userIds }
+            },
+            _count: true
+          })
+        } catch (error) {
+          return []
         }
-      }),
-      prisma.requests.findFirst({
-        where: {
-          userId: { in: userIds },
-          packageType: { not: null }
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          packageType: true,
-          pagesCompleted: true,
-          blogsCompleted: true,
-          gbpPostsCompleted: true,
-          improvementsCompleted: true
+      })(),
+      
+      // Completed this month - try both approaches
+      (async () => {
+        try {
+          // Try by dealershipId first
+          const byDealership = await prisma.requests.count({
+            where: {
+              dealershipId: dealershipId,
+              status: 'COMPLETED',
+              completedAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+              }
+            }
+          })
+          
+          if (byDealership > 0) return byDealership
+          
+          // Fallback to user-based
+          const dealershipUsers = await prisma.users.findMany({
+            where: { dealershipId },
+            select: { id: true }
+          })
+          const userIds = dealershipUsers.map(u => u.id)
+          
+          if (userIds.length === 0) return 0
+          
+          return prisma.requests.count({
+            where: {
+              userId: { in: userIds },
+              status: 'COMPLETED',
+              completedAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+              }
+            }
+          })
+        } catch (error) {
+          return 0
         }
-      })
+      })(),
+      
+      // Latest request - try both approaches
+      (async () => {
+        try {
+          // Try by dealershipId first
+          const byDealership = await prisma.requests.findFirst({
+            where: {
+              dealershipId: dealershipId,
+              packageType: { not: null }
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              packageType: true,
+              pagesCompleted: true,
+              blogsCompleted: true,
+              gbpPostsCompleted: true,
+              improvementsCompleted: true
+            }
+          })
+          
+          if (byDealership) return byDealership
+          
+          // Fallback to user-based
+          const dealershipUsers = await prisma.users.findMany({
+            where: { dealershipId },
+            select: { id: true }
+          })
+          const userIds = dealershipUsers.map(u => u.id)
+          
+          if (userIds.length === 0) return null
+          
+          return prisma.requests.findFirst({
+            where: {
+              userId: { in: userIds },
+              packageType: { not: null }
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              packageType: true,
+              pagesCompleted: true,
+              blogsCompleted: true,
+              gbpPostsCompleted: true,
+              improvementsCompleted: true
+            }
+          })
+        } catch (error) {
+          return null
+        }
+      })()
     ])
+
+    // Combine status counts from both approaches
+    const combinedStatusCounts = [...statusCountsByDealership, ...statusCountsByUserId]
+    const statusCountsMap = combinedStatusCounts.reduce((acc: Record<string, number>, item: any) => {
+      acc[item.status] = (acc[item.status] || 0) + item._count
+      return acc
+    }, {})
+
+    // Convert back to array format
+    const statusCounts = Object.entries(statusCountsMap).map(([status, count]) => ({
+      status,
+      _count: count
+    }))
 
     // Get package progress for the dealership
     let packageProgress = null
@@ -59,7 +153,7 @@ const getCachedDealershipStats = createCachedFunction(
       console.error("API Dashboard: Failed to get dealership package progress", error)
     }
 
-    // Check GA4 connection
+    // Check GA4 connection by dealershipId
     let gaConnected = false
     try {
       const gaConnection = await prisma.ga4_connections.findFirst({
@@ -107,8 +201,22 @@ async function handleGET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dealershipId = searchParams.get('dealershipId')
 
-    // Handle hardcoded admin user
+    // Handle hardcoded admin user - CREATE USER IF NOT EXISTS
     if (session.user.id === 'hardcoded-super-admin') {
+      // Ensure super admin user exists
+      await prisma.users.upsert({
+        where: { id: 'hardcoded-super-admin' },
+        update: {},
+        create: {
+          id: 'hardcoded-super-admin',
+          email: 'josh.copp@onekeel.ai',
+          name: 'Josh Copp (Super Admin)',
+          role: 'SUPER_ADMIN',
+          agencyId: 'agency-seowerks',
+          updatedAt: new Date()
+        }
+      })
+
       // For super admin, return basic stats from first available dealership or empty stats
       const firstDealership = await prisma.dealerships.findFirst()
       if (!firstDealership) {
@@ -143,7 +251,7 @@ async function handleGET(request: NextRequest) {
       const tasksTotalThisMonth = packageProgress ? packageProgress.totalTasks.total : 0
       const tasksSubtitle = packageProgress
         ? `${tasksCompletedThisMonth} of ${tasksTotalThisMonth} used this month`
-        : "No active package"
+        : totalRequests > 0 ? `${completedThisMonth} requests completed this month` : "No active package"
 
       return NextResponse.json({
         success: true,
@@ -234,7 +342,7 @@ async function handleGET(request: NextRequest) {
     const tasksTotalThisMonth = packageProgress ? packageProgress.totalTasks.total : 0
     const tasksSubtitle = packageProgress
       ? `${tasksCompletedThisMonth} of ${tasksTotalThisMonth} used this month`
-      : "No active package"
+      : totalRequests > 0 ? `${completedThisMonth} requests completed this month` : "No active package"
 
     return NextResponse.json({
       success: true,

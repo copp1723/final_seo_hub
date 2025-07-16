@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 
 interface DebugData {
   debug: {
@@ -34,7 +34,7 @@ interface DebugData {
 }
 
 export default function DealershipDebugPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [debugData, setDebugData] = useState<DebugData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,10 +55,10 @@ export default function DealershipDebugPage() {
       }
     }
 
-    if (session?.user?.id) {
+    if (user?.id) {
       fetchDebugData()
     }
-  }, [session?.user?.id])
+  }, [user?.id])
 
   if (loading) {
     return <div className="p-8">Loading debug data...</div>

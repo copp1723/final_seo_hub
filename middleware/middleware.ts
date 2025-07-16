@@ -29,13 +29,16 @@ export async function middleware(request: NextRequest) {
 
   // If trying to access a protected route without a session, redirect to signin
   if (isProtectedRoute && !session) {
-    const callbackUrl = encodeURIComponent(request.url);
-    return NextResponse.redirect(new URL(`/auth/simple-signin?callbackUrl=${callbackUrl}`, request.url));
+    const siteUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com';
+    const signInUrl = new URL('/auth/simple-signin', siteUrl);
+    signInUrl.searchParams.set('callbackUrl', request.url);
+    return NextResponse.redirect(signInUrl);
   }
 
   // If session exists and trying to access an auth route, redirect to dashboard
   if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const siteUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com';
+    return NextResponse.redirect(new URL('/dashboard', siteUrl));
   }
 
   // Allow the request to continue

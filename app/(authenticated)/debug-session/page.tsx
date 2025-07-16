@@ -1,12 +1,12 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function DebugSessionPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const [cookies, setCookies] = useState<string>('')
   const [sessionData, setSessionData] = useState<any>(null)
   const [error, setError] = useState<string>('')
@@ -16,14 +16,14 @@ export default function DebugSessionPage() {
     setCookies(document.cookie)
 
     // Fetch session from API
-    fetch('/api/auth/session')
+    fetch('/api/auth/simple-session')
       .then(res => res.json())
       .then(data => setSessionData(data))
       .catch(err => setError(err.toString()))
   }, [])
 
   const handleSignIn = () => {
-    window.location.href = '/auth/signin'
+    window.location.href = '/auth/simple-signin'
   }
 
   const handleClearCookies = () => {
@@ -44,10 +44,10 @@ export default function DebugSessionPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <p><strong>Status:</strong> {status}</p>
+              <p><strong>Status:</strong> {isLoading ? 'loading' : (user ? 'authenticated' : 'unauthenticated')}</p>
               <p><strong>Session Data:</strong></p>
               <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
-                {JSON.stringify(session, null, 2)}
+                {JSON.stringify(user, null, 2)}
               </pre>
             </div>
           </CardContent>

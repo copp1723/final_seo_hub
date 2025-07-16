@@ -86,16 +86,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
     
     // Generate invitation token for magic link authentication
     const invitationToken = crypto.randomBytes(32).toString('hex')
+    const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     
     const newUser = await prisma.users.create({
       data: {
         id: crypto.randomUUID(),
         email,
         name,
-        role: role || UserRole.USER, // Default to USER if not provided
+        role: role || UserRole.USER,
         agencyId,
+        invitationToken,
+        invitationTokenExpires,
         updatedAt: new Date(),
-        // onboardingCompleted will default to false as per schema
       },
       select: { id: true, email: true, name: true, role: true, agencyId: true, createdAt: true }
     })

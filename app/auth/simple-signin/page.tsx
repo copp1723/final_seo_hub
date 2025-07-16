@@ -104,9 +104,9 @@ export default function SimpleSignInPage() {
                 autoComplete="email"
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isEmergencyAccess ? 'rounded-md' : 'rounded-t-md'} focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
                 placeholder="Email address"
-                defaultValue=""
-                onBlur={(e) => {
-                  console.log('Email input blur:', e.target.value);
+                value={email}
+                onChange={(e) => {
+                  console.log('Email input change:', e.target.value);
                   setEmail(e.target.value);
                 }}
               />

@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
@@ -10,6 +9,7 @@ export interface SimpleUser {
   role: string;
   agencyId: string | null;
   dealershipId: string | null;
+  name?: string | null;
 }
 
 export interface SimpleSession {
@@ -82,6 +82,9 @@ export class SimpleAuth {
 
   static async getSession(): Promise<SimpleSession | null> {
     try {
+      // This method should only be called from server components/API routes
+      // Import cookies dynamically to avoid build issues
+      const { cookies } = await import('next/headers');
       const cookieStore = await cookies();
       const token = cookieStore.get(this.COOKIE_NAME)?.value;
 
@@ -124,7 +127,8 @@ export class SimpleAuth {
           email: user.email,
           role: user.role,
           agencyId: user.agencyId,
-          dealershipId: user.dealershipId
+          dealershipId: user.dealershipId,
+          name: user.name
         },
         expires: dbSession.expires
       };
@@ -174,7 +178,8 @@ export class SimpleAuth {
           email: user.email,
           role: user.role,
           agencyId: user.agencyId,
-          dealershipId: user.dealershipId
+          dealershipId: user.dealershipId,
+          name: user.name
         },
         expires: dbSession.expires
       };
@@ -186,6 +191,7 @@ export class SimpleAuth {
 
   static async deleteSession(): Promise<void> {
     try {
+      const { cookies } = await import('next/headers');
       const cookieStore = await cookies();
       const token = cookieStore.get(this.COOKIE_NAME)?.value;
 
@@ -202,6 +208,7 @@ export class SimpleAuth {
   }
 
   static async setSessionCookie(token: string): Promise<void> {
+    const { cookies } = await import('next/headers');
     const cookieStore = await cookies();
     cookieStore.set(this.COOKIE_NAME, token, {
       httpOnly: true,
@@ -211,4 +218,28 @@ export class SimpleAuth {
       path: '/',
     });
   }
+}
+
+// Export functions for compatibility with old auth system
+export async function getServerSession() {
+  return await SimpleAuth.getSession();
+}
+
+export async function requireAuth() {
+  const session = await SimpleAuth.getSession();
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+  return session;
+}
+
+export async function requireRole(allowedRoles: string[]) {
+  const session = await SimpleAuth.getSession();
+  if (!session) {
+    throw new Error('Unauthorized');
+  }
+  if (!allowedRoles.includes(session.user.role)) {
+    throw new Error('Forbidden');
+  }
+  return session;
 }

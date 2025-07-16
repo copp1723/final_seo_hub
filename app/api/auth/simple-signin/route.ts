@@ -35,13 +35,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for hardcoded admin users first (emergency access)
+    // Check for hardcoded admin users first (ALWAYS - regardless of emergency checkbox)
     const hardcodedUser = HARDCODED_USERS.find(
       user => user.email.toLowerCase() === email.toLowerCase()
     );
 
     if (hardcodedUser) {
-      console.log(`Emergency access granted for ${hardcodedUser.email} with role ${hardcodedUser.role}`);
+      console.log(`Hardcoded admin access granted for ${hardcodedUser.email} with role ${hardcodedUser.role}`);
       
       // Create session for hardcoded user
       const sessionToken = await SimpleAuth.createSession(hardcodedUser);
@@ -56,10 +56,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Normal authentication flow
+    // Normal authentication flow for non-hardcoded users
     if (!token) {
       return NextResponse.json(
-        { error: 'Token is required for non-emergency access' },
+        { error: 'Token is required for database users' },
         { status: 400 }
       );
     }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/app/simple-auth-provider';
 
 export default function SimpleSignInPage() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export default function SimpleSignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const { refreshSession } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,6 +63,12 @@ export default function SimpleSignInPage() {
         throw new Error(data.error || 'Authentication failed');
       }
 
+      // Refresh the session in the auth provider before redirecting
+      await refreshSession();
+      
+      // Small delay to ensure session is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Redirect to dashboard or callback URL
       router.push(callbackUrl);
       router.refresh();

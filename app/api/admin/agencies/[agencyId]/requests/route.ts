@@ -5,7 +5,7 @@ import { UserRole, RequestStatus, Prisma } from '@prisma/client'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 
 export async function GET(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   const { agencyId } = await context.params

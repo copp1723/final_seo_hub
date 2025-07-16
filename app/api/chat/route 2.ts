@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   const rateLimitResponse = await rateLimits.ai(request)
   if (rateLimitResponse) return rateLimitResponse
   
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {

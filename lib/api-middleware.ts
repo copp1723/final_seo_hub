@@ -32,7 +32,7 @@ export function createApiHandler<T = any>(
       // Check authentication if required
       let user = null
       if (options.auth !== false) {
-        const authResult = await requireAuth()
+        const authResult = await requireAuth(req)
         if (!authResult.authenticated) {
           return authResult.response
         }

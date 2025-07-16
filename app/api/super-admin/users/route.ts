@@ -23,7 +23,7 @@ const updateUserSchema = z.object({
 
 // Get all users with pagination and filtering (SUPER_ADMIN only)
 export async function GET(request: NextRequest) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
 // Create new user (SUPER_ADMIN only)
 export async function POST(request: NextRequest) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
 
 // Update user (SUPER_ADMIN only)
 export async function PUT(request: NextRequest) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
@@ -278,7 +278,7 @@ export async function PUT(request: NextRequest) {
 
 // Delete user (SUPER_ADMIN only)
 export async function DELETE(request: NextRequest) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   if (authResult.user.role !== 'SUPER_ADMIN') {

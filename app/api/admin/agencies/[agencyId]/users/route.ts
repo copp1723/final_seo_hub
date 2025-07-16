@@ -22,7 +22,7 @@ const updateUserSchema = z.object({
 })
 
 export async function GET(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   const { agencyId } = await context.params
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ age
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   const { agencyId } = await context.params
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
 // This implies updating a user based on userId in the request body or a query param.
 // For simplicity and adhering to the plan step, we'll assume userId is part of the body for PUT.
 export async function PUT(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   const { agencyId } = await context.params // Agency ID from URL
@@ -220,7 +220,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ age
 
 
 export async function DELETE(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
 
   const { agencyId } = await context.params

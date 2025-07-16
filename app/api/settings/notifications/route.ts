@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     return rateLimitResponse
   }
   
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {
     logger.error('❌ Authentication failed')
     return authResult.response
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
   const rateLimitResponse = await rateLimits.api(request)
   if (rateLimitResponse) return rateLimitResponse
   
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   // Validate request body

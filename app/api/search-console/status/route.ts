@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
-export async function GET() {
-  const authResult = await requireAuth()
+export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated) return authResult.response
 
   try {

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated) return authResult.response
 
   if (authResult.user!.role !== 'SUPER_ADMIN') {

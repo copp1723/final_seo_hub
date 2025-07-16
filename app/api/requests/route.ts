@@ -14,7 +14,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   const rateLimitResponse = await rateLimits.api(request)
   if (rateLimitResponse) return rateLimitResponse
 
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {
     return authResult.response || errorResponse('Unauthorized', 401)
   }
@@ -119,7 +119,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     return rateLimitResponse
   }
   
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {
     logger.warn('Focus request unauthorized', {
       authenticated: authResult.authenticated,

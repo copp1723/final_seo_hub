@@ -38,6 +38,11 @@ export async function middleware(request: NextRequest) {
 
   // Get session
   const session = await SimpleAuth.getSessionFromRequest(request);
+  
+  // Debug session info
+  if (session) {
+    console.log(`Middleware: Authenticated user ${session.user.email} with role ${session.user.role}`);
+  }
 
   // Handle protected routes
   if (isProtectedRoute) {

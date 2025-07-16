@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // Hard-coded admin users for emergency access
 const HARDCODED_USERS = [
   {
-    email: 'admin@seohub.com',
+    email: 'josh.copp@onekeel.ai',
     role: 'SUPER_ADMIN',
     id: 'hardcoded-super-admin',
     agencyId: null,

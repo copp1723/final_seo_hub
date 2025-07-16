@@ -14,17 +14,39 @@ export default function SimpleSignInPage() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
     setIsLoading(true);
     setError('');
 
     try {
+      // For emergency access, use hardcoded admin email
+      let emailToUse = email;
+      
+      if (isEmergencyAccess) {
+        // Force use of admin email for emergency access
+        emailToUse = 'josh.copp@onekeel.ai';
+        console.log('Using emergency admin email:', emailToUse);
+      } else {
+        // For normal login, validate email
+        if (!email || email.trim() === '') {
+          setIsLoading(false);
+          setError('Email is required');
+          return;
+        }
+      }
+      
       // For emergency access users (hardcoded admins), token is not required
-      const payload = isEmergencyAccess 
-        ? { email } 
-        : { email, token };
+      const payload = isEmergencyAccess
+        ? { email: emailToUse }
+        : { email: emailToUse, token };
 
+      console.log('Submitting with payload:', payload);
+      
+      // Add a small delay to ensure the console log is visible
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const response = await fetch('/api/auth/simple-signin', {
         method: 'POST',
         headers: {
@@ -78,13 +100,15 @@ export default function SimpleSignInPage() {
               <input
                 id="email"
                 name="email"
-                type="email"
+                type="text"
                 autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isEmergencyAccess ? 'rounded-md' : 'rounded-t-md'} focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
                 placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                defaultValue=""
+                onBlur={(e) => {
+                  console.log('Email input blur:', e.target.value);
+                  setEmail(e.target.value);
+                }}
               />
             </div>
             {!isEmergencyAccess && (
@@ -113,7 +137,10 @@ export default function SimpleSignInPage() {
               type="checkbox"
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               checked={isEmergencyAccess}
-              onChange={() => setIsEmergencyAccess(!isEmergencyAccess)}
+              onChange={() => {
+                console.log('Emergency access toggled, current:', isEmergencyAccess);
+                setIsEmergencyAccess(!isEmergencyAccess);
+              }}
             />
             <label htmlFor="emergency-access" className="ml-2 block text-sm text-gray-900">
               Emergency admin access

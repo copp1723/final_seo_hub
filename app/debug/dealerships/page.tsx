@@ -1,13 +1,12 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useState, useEffect } from 'react'
 
 export default function DebugDealershipsPage() {
-  const sessionResult = useSession()
-  const session = sessionResult?.data
+  const { user: session, isLoading } = useAuth()
   const [data, setData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -22,22 +21,22 @@ export default function DebugDealershipsPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error')
       } finally {
-        setLoading(false)
+        setDataLoading(false)
       }
     }
 
-    if (session?.user.id) {
+    if (session?.id) {
       fetchData()
     } else {
-      setLoading(false)
+      setDataLoading(false)
     }
-  }, [session?.user.id])
+  }, [session?.id])
 
   if (!session) {
     return <div className="p-8">Not authenticated</div>
   }
   
-  if (loading) {
+  if (dataLoading) {
     return <div className="p-8">Loading...</div>
   }
   

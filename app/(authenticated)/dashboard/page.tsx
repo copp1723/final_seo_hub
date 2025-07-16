@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { redirect } from 'next/navigation'
 
 // Force dynamic rendering - don't pre-render this page
@@ -53,7 +53,7 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const { toast } = useToast()
   
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
@@ -62,7 +62,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   
   // Handle authentication
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -70,8 +70,8 @@ export default function DashboardPage() {
     )
   }
   
-  if (status === 'unauthenticated') {
-    redirect('/auth/signin')
+  if (!user) {
+    redirect('/auth/simple-signin')
   }
 
   // Fetch dashboard data
@@ -113,10 +113,10 @@ export default function DashboardPage() {
 
   // Initial data fetch
   useEffect(() => {
-    if (session?.user.id) {
+    if (user?.id) {
       fetchDashboardData()
     }
-  }, [session?.user.id])
+  }, [user?.id])
 
   if (loading && !dashboardData) {
     return (
@@ -165,7 +165,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-medium text-gray-900">Dashboard</h1>
-              <p className="mt-1 text-sm text-gray-500">Welcome back, {session?.user.name || session?.user.email || 'User'}</p>
+              <p className="mt-1 text-sm text-gray-500">Welcome back, {user?.name || user?.email || 'User'}</p>
             </div>
             <DealershipSelector />
           </div>

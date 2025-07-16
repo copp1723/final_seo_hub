@@ -34,23 +34,42 @@ export async function POST(request: NextRequest) {
 
       console.log(`🎯 Generated login link for ${email}: ${loginUrl}`)
 
-      // Send invitation email using existing email infrastructure
-      const emailSent = await sendInvitationEmail({
-        user,
-        invitedBy: 'System', // Or you could track who requested access
-        loginUrl,
-        skipPreferences: true
-      })
+      // Debug: Check Mailgun configuration
+      console.log('🔍 Checking Mailgun config...')
+      console.log('MAILGUN_API_KEY:', process.env.MAILGUN_API_KEY ? 'SET' : 'MISSING')
+      console.log('MAILGUN_DOMAIN:', process.env.MAILGUN_DOMAIN || 'MISSING')
+      console.log('MAILGUN_FROM_EMAIL:', process.env.MAILGUN_FROM_EMAIL || 'MISSING')
 
-      if (emailSent) {
-        return NextResponse.json({ 
-          success: true, 
-          message: 'Access request sent! Check your email for a login link.'
+      try {
+        // Send invitation email using existing email infrastructure
+        console.log('🔄 Attempting to send email...')
+        const emailSent = await sendInvitationEmail({
+          user,
+          invitedBy: 'System',
+          loginUrl,
+          skipPreferences: true
         })
-      } else {
+
+        console.log('📧 Email send result:', emailSent)
+
+        if (emailSent) {
+          return NextResponse.json({ 
+            success: true, 
+            message: 'Access request sent! Check your email for a login link.'
+          })
+        } else {
+          console.error('❌ Email sending failed - no specific error')
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Failed to send email. Please try again or contact support.'
+          }, { status: 500 })
+        }
+      } catch (emailError) {
+        console.error('❌ Email sending threw error:', emailError)
+        const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown error'
         return NextResponse.json({ 
           success: false, 
-          message: 'Failed to send email. Please try again or contact support.'
+          message: `Email sending failed: ${errorMessage}`
         }, { status: 500 })
       }
           } else {

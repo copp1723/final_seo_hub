@@ -41,16 +41,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the invitation token
-    const invitation = await prisma.user_invites.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        token: token,
-        status: 'pending',
-        expiresAt: {
-          gt: new Date()
-        }
+    const whereClause = {
+      email: email.toLowerCase(),
+      token: token,
+      status: 'pending',
+      expiresAt: {
+        gt: new Date()
       }
+    };
+    console.log('🔍 SIGNIN: Querying for invitation with:', JSON.stringify(whereClause, null, 2));
+
+    const invitation = await prisma.user_invites.findFirst({
+      where: whereClause
     });
+
+    console.log('📬 SIGNIN: Invitation query result:', invitation ? `Found invite ID ${invitation.id}` : 'null');
 
     if (!invitation) {
       return NextResponse.json(

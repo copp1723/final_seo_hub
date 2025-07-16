@@ -5,12 +5,12 @@ async function setupDemoConnections() {
   console.log('🔧 Setting up demo GA4 and Search Console connections...\n')
   
   try {
-    // Find or create SEOWERKS agency
+    // Find SEOWERKS agency
     let agency = await prisma.agencies.findFirst({
       where: {
         OR: [
-          { id: 'f1b175133856c973b7e864b4' },
-          { name: { contains: 'SEOWERKS', mode: 'insensitive' } }
+          { id: 'agency-seowerks' },
+          { name: { contains: 'SEOWorks', mode: 'insensitive' } }
         ]
       }
     })
@@ -28,7 +28,6 @@ async function setupDemoConnections() {
       update: {
         propertyId: 'GA4-DEMO-PROPERTY',
         propertyName: 'SEOWERKS Demo Property',
-        accountId: 'GA4-DEMO-ACCOUNT',
         accessToken: 'demo-access-token',
         refreshToken: 'demo-refresh-token',
         expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
@@ -38,7 +37,6 @@ async function setupDemoConnections() {
         userId: agency.id,
         propertyId: 'GA4-DEMO-PROPERTY',
         propertyName: 'SEOWERKS Demo Property',
-        accountId: 'GA4-DEMO-ACCOUNT',
         accessToken: 'demo-access-token',
         refreshToken: 'demo-refresh-token',
         expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
@@ -89,7 +87,7 @@ async function setupDemoConnections() {
         update: {
           propertyId: `GA4-${dealership.id}`,
           propertyName: `${dealership.name} - GA4 Property`,
-          accountId: 'GA4-DEMO-ACCOUNT',
+          dealershipId: dealership.id,
           accessToken: 'demo-access-token',
           refreshToken: 'demo-refresh-token',
           expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
@@ -99,7 +97,7 @@ async function setupDemoConnections() {
           userId: dealership.id,
           propertyId: `GA4-${dealership.id}`,
           propertyName: `${dealership.name} - GA4 Property`,
-          accountId: 'GA4-DEMO-ACCOUNT',
+          dealershipId: dealership.id,
           accessToken: 'demo-access-token',
           refreshToken: 'demo-refresh-token',
           expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),

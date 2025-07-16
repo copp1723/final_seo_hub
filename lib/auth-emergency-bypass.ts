@@ -6,7 +6,7 @@ const DEMO_SUPER_ADMIN: SimpleUser = {
   id: 'hardcoded-super-admin', // Using the ID that some code expects
   email: 'josh.copp@onekeel.ai',
   role: 'SUPER_ADMIN',
-  agencyId: 'f1b175133856c973b7e864b4', // SEOWERKS agency from database
+  agencyId: 'agency-seowerks', // SEOWorks agency from production database
   dealershipId: null, // Super admins can access all dealerships
   name: 'Demo Super Admin'
 };

@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
-import { SimpleAuth } from '@/lib/auth-simple'
 
 export default async function Home() {
-  // EMERGENCY BYPASS - Always redirect to dashboard
+  // AUTO-LOGIN: Direct access to dashboard as super admin
   redirect('/dashboard')
 }

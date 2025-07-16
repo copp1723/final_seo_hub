@@ -36,34 +36,21 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const router = useRouter();
 
   const checkSession = async () => {
-    try {
-      const response = await fetch('/api/auth/simple-session');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.authenticated) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Session check error:', error);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
+    // AUTO-LOGIN: Always set super admin user
+    setUser({
+      id: 'auto-super-admin',
+      email: 'josh.copp@onekeel.ai',
+      role: 'SUPER_ADMIN',
+      agencyId: null,
+      dealershipId: null,
+      name: 'Josh Copp (Auto Super Admin)'
+    });
+    setIsLoading(false);
   };
 
   const signOut = async () => {
-    try {
-      await fetch('/api/auth/simple-signout', { method: 'POST' });
-      setUser(null);
-      router.push('/auth/simple-signin');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
+    // AUTO-LOGIN: Prevent sign out, just refresh to dashboard
+    router.push('/dashboard');
   };
 
   const refreshSession = async () => {

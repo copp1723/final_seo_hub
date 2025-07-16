@@ -54,20 +54,14 @@ export class SimpleAuth {
 
   private static async verifyToken(token: string): Promise<any> {
     try {
-      console.log('🔐 VERIFY: Starting token verification, token length:', token.length);
       const [encodedData, signature] = token.split('.');
-      console.log('🔐 VERIFY: Token parts - data:', !!encodedData, 'signature:', !!signature);
       
-      // For hardcoded emergency admin tokens, bypass verification
       if (encodedData && signature) {
         const data = Buffer.from(encodedData, 'base64').toString();
-        console.log('🔐 VERIFY: Decoded data:', data);
         const payload = JSON.parse(data);
-        console.log('🔐 VERIFY: Parsed payload:', payload);
         
         // If this is a hardcoded emergency user, bypass signature verification
         if (payload.userId && payload.userId.startsWith('hardcoded-')) {
-          console.log('✅ VERIFY: Emergency admin token detected, bypassing verification');
           return payload;
         }
         
@@ -125,7 +119,7 @@ export class SimpleAuth {
     const token = await this.generateToken(payload);
 
     // Check if this is a hardcoded emergency user
-    const isEmergencyUser = user.id.startsWith('hardcoded-');
+    const isEmergencyUser = user.id.startsWith('hardcoded-') || user.id === 'auto-super-admin';
     
     if (!isEmergencyUser) {
       // Only create database session for regular users
@@ -142,159 +136,33 @@ export class SimpleAuth {
   }
 
   static async getSession(): Promise<SimpleSession | null> {
-    try {
-      
-      // This method should only be called from server components/API routes
-      // Import cookies dynamically to avoid build issues
-      const { cookies } = await import('next/headers');
-      const cookieStore = await cookies();
-      const token = cookieStore.get(this.COOKIE_NAME)?.value;
-
-      console.log('🔍 GET_SESSION: Cookie found:', !!token, 'length:', token?.length || 0);
-      
-      if (!token) {
-        console.log('❌ GET_SESSION: No cookie found');
-        return null;
-      }
-
-      // Verify token
-      const decoded = await this.verifyToken(token);
-      console.log('🔑 GET_SESSION: Token decoded:', !!decoded, decoded?.userId);
-      if (!decoded) {
-        console.log('❌ GET_SESSION: Token verification failed');
-        return null;
-      }
-      
-      // Check if this is a hardcoded emergency user
-      if (decoded.userId && decoded.userId.startsWith('hardcoded-')) {
-        // For hardcoded users, construct the session directly from the token
-        return {
-          user: {
-            id: decoded.userId,
-            email: decoded.email,
-            role: decoded.role,
-            agencyId: decoded.agencyId,
-            dealershipId: decoded.dealershipId,
-            name: decoded.userId.includes('super-admin') ? 'Super Admin' : 'Agency Admin'
-          },
-          expires: new Date(decoded.exp * 1000)
-        };
-      }
-      
-      // For regular users, check if session exists in database
-      const dbSession = await prisma.sessions.findFirst({
-        where: {
-          sessionToken: token,
-          expires: {
-            gt: new Date()
-          }
-        }
-      });
-
-      if (!dbSession) {
-        return null;
-      }
-
-      // Get user separately
-      const user = await prisma.users.findUnique({
-        where: { id: dbSession.userId }
-      });
-
-      if (!user) {
-        return null;
-      }
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          agencyId: user.agencyId,
-          dealershipId: user.dealershipId,
-          name: user.name
-        },
-        expires: dbSession.expires
-      };
-    } catch (error) {
-      console.error('Session validation error:', error);
-      return null;
-    }
+    // AUTO-LOGIN: Always return super admin session
+    return {
+      user: {
+        id: 'auto-super-admin',
+        email: 'josh.copp@onekeel.ai',
+        role: 'SUPER_ADMIN',
+        agencyId: null,
+        dealershipId: null,
+        name: 'Josh Copp (Auto Super Admin)'
+      },
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    };
   }
 
   static async getSessionFromRequest(request: NextRequest): Promise<SimpleSession | null> {
-    try {
-      
-      console.log('🔍 AUTH: Getting session from request...');
-      const token = request.cookies.get(this.COOKIE_NAME)?.value;
-      console.log('🍪 AUTH: Token from cookie:', !!token, 'length:', token?.length || 0);
-      
-      if (!token) {
-        console.log('❌ AUTH: No token found in cookies');
-        return null;
-      }
-
-      console.log('🔑 AUTH: Verifying token...');
-      const decoded = await this.verifyToken(token);
-      console.log('🔑 AUTH: Token decoded:', !!decoded, decoded?.userId, decoded?.email);
-      if (!decoded) {
-        console.log('❌ AUTH: Token verification failed');
-        return null;
-      }
-      
-      // Check if this is a hardcoded emergency user
-      if (decoded.userId && decoded.userId.startsWith('hardcoded-')) {
-        console.log('✅ AUTH: Emergency user session found:', decoded.userId);
-        // For hardcoded users, construct the session directly from the token
-        return {
-          user: {
-            id: decoded.userId,
-            email: decoded.email,
-            role: decoded.role,
-            agencyId: decoded.agencyId,
-            dealershipId: decoded.dealershipId,
-            name: decoded.userId.includes('super-admin') ? 'Super Admin' : 'Agency Admin'
-          },
-          expires: new Date(decoded.exp * 1000)
-        };
-      }
-      
-      // For regular users, check database
-      const dbSession = await prisma.sessions.findFirst({
-        where: {
-          sessionToken: token,
-          expires: {
-            gt: new Date()
-          }
-        }
-      });
-
-      if (!dbSession) {
-        return null;
-      }
-
-      const user = await prisma.users.findUnique({
-        where: { id: dbSession.userId }
-      });
-
-      if (!user) {
-        return null;
-      }
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          agencyId: user.agencyId,
-          dealershipId: user.dealershipId,
-          name: user.name
-        },
-        expires: dbSession.expires
-      };
-    } catch (error) {
-      console.error('Session validation error:', error);
-      return null;
-    }
+    // AUTO-LOGIN: Always return super admin session
+    return {
+      user: {
+        id: 'auto-super-admin',
+        email: 'josh.copp@onekeel.ai',
+        role: 'SUPER_ADMIN',
+        agencyId: null,
+        dealershipId: null,
+        name: 'Josh Copp (Auto Super Admin)'
+      },
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    };
   }
 
   static async deleteSession(): Promise<void> {
@@ -323,20 +191,31 @@ export async function getServerSession() {
 }
 
 export async function requireAuth() {
-  const session = await SimpleAuth.getSession();
-  if (!session) {
-    throw new Error('Unauthorized');
-  }
-  return session;
+  // AUTO-LOGIN: Always return super admin session
+  return {
+    user: {
+      id: 'auto-super-admin',
+      email: 'josh.copp@onekeel.ai',
+      role: 'SUPER_ADMIN',
+      agencyId: null,
+      dealershipId: null,
+      name: 'Josh Copp (Auto Super Admin)'
+    },
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  };
 }
 
 export async function requireRole(allowedRoles: string[]) {
-  const session = await SimpleAuth.getSession();
-  if (!session) {
-    throw new Error('Unauthorized');
-  }
-  if (!allowedRoles.includes(session.user.role)) {
-    throw new Error('Forbidden');
-  }
-  return session;
+  // AUTO-LOGIN: Always return super admin session (has all roles)
+  return {
+    user: {
+      id: 'auto-super-admin',
+      email: 'josh.copp@onekeel.ai',
+      role: 'SUPER_ADMIN',
+      agencyId: null,
+      dealershipId: null,
+      name: 'Josh Copp (Auto Super Admin)'
+    },
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  };
 }

@@ -30,26 +30,17 @@ export function successResponse<T>(data?: T, message?: string): NextResponse {
 
 // Reusable auth check for API routes
 export async function requireAuth(request?: NextRequest) {
-  let session;
-  
-  // If request is provided, use getSessionFromRequest (for API routes)
-  // Otherwise use getSession (for server components)
-  if (request) {
-    session = await SimpleAuth.getSessionFromRequest(request);
-  } else {
-    session = await SimpleAuth.getSession();
-  }
-  
-  if (!session?.user.id) {
-    return { 
-      authenticated: false, 
-      response: errorResponse('Unauthorized', 401) 
-    }
-  }
-  
+  // AUTO-LOGIN: Always return super admin user
   return { 
     authenticated: true, 
-    user: session.user
+    user: {
+      id: 'auto-super-admin',
+      email: 'josh.copp@onekeel.ai',
+      role: 'SUPER_ADMIN',
+      agencyId: null,
+      dealershipId: null,
+      name: 'Josh Copp (Auto Super Admin)'
+    }
   }
 }
 

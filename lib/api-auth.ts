@@ -30,7 +30,7 @@ export function successResponse<T>(data?: T, message?: string): NextResponse {
 
 // Reusable auth check for API routes
 export async function requireAuth(request?: NextRequest) {
-  // AUTO-LOGIN: Always return super admin user
+  // AUTO-LOGIN: Always return super admin user with response property for compatibility
   return { 
     authenticated: true, 
     user: {
@@ -40,7 +40,8 @@ export async function requireAuth(request?: NextRequest) {
       agencyId: null,
       dealershipId: null,
       name: 'Josh Copp (Auto Super Admin)'
-    }
+    },
+    response: null // For compatibility with existing code
   }
 }
 

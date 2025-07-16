@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { UserRole } from '@prisma/client'
 import type { users } from '@prisma/client'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,7 @@ const USER_ROLES_EDITABLE_BY_SUPER_ADMIN = Object.values(UserRole)
 export default function AgencyUsersPage() {
   const router = useRouter()
   const params = useParams()
-  const { data: session, status } = useSession()
+  const { user: currentUser, isLoading: authLoading } = useAuth()
   const agencyId = params.agencyId as string
 
   const [users, setUsers] = useState<AgencyUser[]>([])
@@ -51,8 +51,8 @@ export default function AgencyUsersPage() {
 
 
   const fetchUsers = useCallback(async () => {
-    if (status === 'loading' || !session || !agencyId) return
-    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
+    if (authLoading || !currentUser || !agencyId) return
+    if (currentUser.role !== UserRole.SUPER_ADMIN && (currentUser.role !== UserRole.AGENCY_ADMIN || currentUser.agencyId !== agencyId)) {
       setError("Access Denied.You don&apos;t have permission to manage these users.")
       setIsLoading(false)
       return
@@ -74,7 +74,7 @@ export default function AgencyUsersPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [status, session, agencyId])
+  }, [authLoading, currentUser, agencyId])
 
   useEffect(() => {
     fetchUsers()
@@ -103,7 +103,7 @@ export default function AgencyUsersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!session) return
+    if (!currentUser) return
 
     const url = editingUser
       ? `/api/admin/agencies/${agencyId}/users` // PUT request includes userId in body
@@ -148,37 +148,37 @@ export default function AgencyUsersPage() {
     }
   }
 
-  const openDeleteConfirm = (user: AgencyUser) => {
-    if (user.id === session?.user.id) {
+  const openDeleteConfirm = (userToCheck: AgencyUser) => {
+    if (userToCheck.id === currentUser?.id) {
         toast("You cannot delete yourself.", 'error');
         return;
     }
-    setUserToDelete(user);
+    setUserToDelete(userToCheck);
     setShowDeleteConfirm(true);
   }
 
   const handleDeleteUser = async () => {
-    if (!userToDelete || !session) return;
+    if (!userToDelete || !currentUser) return;
 
     // Prevent deleting oneself (double check, already in openDeleteConfirm)
-    if (userToDelete.id === session.user.id) {
+    if (userToDelete.id === currentUser.id) {
       toast("You cannot delete yourself.", 'error');
       setShowDeleteConfirm(false);
       return;
     }
     // Prevent AGENCY_ADMIN from deleting SUPER_ADMIN
-    if (session.user.role === UserRole.AGENCY_ADMIN && userToDelete.role === UserRole.SUPER_ADMIN) {
+    if (currentUser.role === UserRole.AGENCY_ADMIN && userToDelete.role === UserRole.SUPER_ADMIN) {
         toast("AGENCY_ADMINs cannot delete SUPER_ADMIN users.", 'error');
         setShowDeleteConfirm(false);
         return;
     }
     // Prevent anyone from deleting SUPER_ADMIN through this UI (API has stricter checks too)
-    if (userToDelete.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN) { // Only super admin can delete super admin
+    if (userToDelete.role === UserRole.SUPER_ADMIN && currentUser.role !== UserRole.SUPER_ADMIN) { // Only super admin can delete super admin
          toast("Only a SUPER_ADMIN can delete another SUPER_ADMIN.", 'error');
          setShowDeleteConfirm(false);
          return;
     }
-     if (userToDelete.role === UserRole.SUPER_ADMIN && userToDelete.id !== session.user.id && session.user.role === UserRole.SUPER_ADMIN) {
+     if (userToDelete.role === UserRole.SUPER_ADMIN && userToDelete.id !== currentUser.id && currentUser.role === UserRole.SUPER_ADMIN) {
         // A SUPER_ADMIN trying to delete another SUPER_ADMIN.This might be allowed or disallowed by policy.
         // The API has the final say.For now, let's allow the attempt
     }
@@ -203,10 +203,10 @@ export default function AgencyUsersPage() {
   }
 
   const getEditableRoles = () => {
-    if (session?.user.role === UserRole.SUPER_ADMIN) {
+    if (currentUser?.role === UserRole.SUPER_ADMIN) {
       return USER_ROLES_EDITABLE_BY_SUPER_ADMIN;
     }
-    if (session?.user.role === UserRole.AGENCY_ADMIN) {
+    if (currentUser?.role === UserRole.AGENCY_ADMIN) {
       // Agency admin cannot promote to SUPER_ADMIN
       // and cannot demote a SUPER_ADMIN
       if (editingUser && editingUser.role === UserRole.SUPER_ADMIN) {
@@ -218,8 +218,8 @@ export default function AgencyUsersPage() {
   }
 
 
-  if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
-  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
+  if (authLoading) return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
+  if (!currentUser || (currentUser.role !== UserRole.SUPER_ADMIN && (currentUser.role !== UserRole.AGENCY_ADMIN || currentUser.agencyId !== agencyId))) {
      return (
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
@@ -266,12 +266,12 @@ export default function AgencyUsersPage() {
                     <Button variant="ghost" size="sm" onClick={() => openModalForEdit(user)} className="mr-2">
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    {user.id !== session?.user.id && ( // Prevent deleting self via button
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    {user.id !== currentUser?.id && ( // Prevent deleting self via button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => openDeleteConfirm(user)}
-                        disabled={user.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN}
+                        disabled={user.role === UserRole.SUPER_ADMIN && currentUser?.role !== UserRole.SUPER_ADMIN}
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>

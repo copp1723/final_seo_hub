@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
@@ -7,7 +7,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json(
@@ -19,30 +19,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dealershipId = searchParams.get('dealershipId')
 
-    // Get user's information and verify access
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      include: {
-        agencies: {
-          include: {
-            dealerships: true
-          }
-        },
-        dealerships: true
-      }
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    // Determine which dealership to get activity for
+    // Handle hardcoded admin user
     let targetDealershipId: string
     
-    if (user.role === 'SUPER_ADMIN') {
+    if (session.user.id === 'hardcoded-super-admin') {
       // Super admin can view any dealership
       if (dealershipId) {
         targetDealershipId = dealershipId
@@ -54,26 +34,61 @@ export async function GET(request: NextRequest) {
         }
         targetDealershipId = firstDealership.id
       }
-    } else if (user.role === 'AGENCY_ADMIN' && user.agencies?.id) {
-      // Agency admin can view dealerships in their agency
-      if (dealershipId && user.agencies?.dealerships.some(d => d.id === dealershipId)) {
-        targetDealershipId = dealershipId
-      } else {
-        // Default to first dealership in agency
-        const firstDealership = user.agencies?.dealerships[0]
-        if (!firstDealership) {
-          return NextResponse.json({ success: true, data: [] })
-        }
-        targetDealershipId = firstDealership.id
-      }
-    } else if (user.dealerships?.id) {
-      // Regular user can only view their own dealership
-      targetDealershipId = user.dealerships?.id
     } else {
-      return NextResponse.json(
-        { error: 'No dealership access' },
-        { status: 403 }
-      )
+      // Get user's information and verify access
+      const user = await prisma.users.findUnique({
+        where: { id: session.user.id },
+        include: {
+          agencies: {
+            include: {
+              dealerships: true
+            }
+          },
+          dealerships: true
+        }
+      })
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'User not found' },
+          { status: 404 }
+        )
+      }
+
+      // Determine which dealership to get activity for
+      if (user.role === 'SUPER_ADMIN') {
+        // Super admin can view any dealership
+        if (dealershipId) {
+          targetDealershipId = dealershipId
+        } else {
+          // Default to first available dealership
+          const firstDealership = await prisma.dealerships.findFirst()
+          if (!firstDealership) {
+            return NextResponse.json({ success: true, data: [] })
+          }
+          targetDealershipId = firstDealership.id
+        }
+      } else if (user.role === 'AGENCY_ADMIN' && user.agencies?.id) {
+        // Agency admin can view dealerships in their agency
+        if (dealershipId && user.agencies?.dealerships.some(d => d.id === dealershipId)) {
+          targetDealershipId = dealershipId
+        } else {
+          // Default to first dealership in agency
+          const firstDealership = user.agencies?.dealerships[0]
+          if (!firstDealership) {
+            return NextResponse.json({ success: true, data: [] })
+          }
+          targetDealershipId = firstDealership.id
+        }
+      } else if (user.dealerships?.id) {
+        // Regular user can only view their own dealership
+        targetDealershipId = user.dealerships?.id
+      } else {
+        return NextResponse.json(
+          { error: 'No dealership access' },
+          { status: 403 }
+        )
+      }
     }
 
     // Get users for this dealership

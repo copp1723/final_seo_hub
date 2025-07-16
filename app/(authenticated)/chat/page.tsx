@@ -1,13 +1,13 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { AutomotiveSEOChat } from '@/components/chat/automotive-seo-chat'
 import { PageLoading } from '@/components/ui/loading'
 
 export default function ChatPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
 
   // Demo dealership info - in production this would come from session/database
@@ -16,17 +16,17 @@ export default function ChatPage() {
   }
 
   useEffect(() => {
-    if (status === 'loading') return
-    if (!session) {
-      router.push('/auth/signin')
+    if (isLoading) return
+    if (!user) {
+      router.push('/auth/simple-signin')
     }
-  }, [session, status, router])
+  }, [user, isLoading, router])
 
-  if (status === 'loading') {
+  if (isLoading) {
     return <PageLoading />
   }
 
-  if (!session) {
+  if (!user) {
     return null
   }
 

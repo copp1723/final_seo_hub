@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -13,7 +13,7 @@ import Link from 'next/link'
 
 export default function FocusRequestPage() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -35,14 +35,14 @@ export default function FocusRequestPage() {
   // Fetch current month's request count
   useEffect(() => {
     const fetchRequestCount = async () => {
-      if (!session?.user.id) return
+      if (!user?.id) return
       
       const now = new Date()
       const month = now.getMonth() + 1 // 1-based month
       const year = now.getFullYear()
       
       try {
-        const response = await fetch(`/api/requests/count?userId=${session.user.id}&month=${month}&year=${year}&type=all`)
+        const response = await fetch(`/api/requests/count?userId=${user.id}&month=${month}&year=${year}&type=all`)
         if (response.ok) {
           const data = await response.json()
           setRequestCount(data.data?.count || 0)
@@ -55,14 +55,14 @@ export default function FocusRequestPage() {
     }
 
     fetchRequestCount()
-  }, [session?.user.id])
+  }, [user?.id])
 
   const isAtLimit = requestCount >= 2
   const remainingRequests = Math.max(0, 2 - requestCount)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!session || isAtLimit) return
+    if (!user || isAtLimit) return
 
     setLoading(true)
     setError('')

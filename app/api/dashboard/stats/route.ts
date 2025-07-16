@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { getDealershipPackageProgress } from '@/lib/package-utils'
 import { withApiMonitoring } from '@/lib/api-wrapper'
@@ -95,7 +95,7 @@ const getCachedDealershipStats = createCachedFunction(
 
 async function handleGET(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json(
@@ -106,6 +106,59 @@ async function handleGET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const dealershipId = searchParams.get('dealershipId')
+
+    // Handle hardcoded admin user
+    if (session.user.id === 'hardcoded-super-admin') {
+      // For super admin, return basic stats from first available dealership or empty stats
+      const firstDealership = await prisma.dealerships.findFirst()
+      if (!firstDealership) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            activeRequests: 0,
+            totalRequests: 0,
+            tasksCompletedThisMonth: 0,
+            tasksSubtitle: "No dealerships available",
+            gaConnected: false,
+            packageProgress: null,
+            latestRequest: null,
+            dealershipId: null
+          }
+        })
+      }
+
+      const targetDealershipId = dealershipId || firstDealership.id
+      const cachedStats = await getCachedDealershipStats(targetDealershipId)
+      const { statusCounts, completedThisMonth, latestRequest, packageProgress, gaConnected } = cachedStats
+
+      const statusCountsMap = statusCounts.reduce((acc: Record<string, number>, item: any) => {
+        acc[item.status] = item._count
+        return acc
+      }, {})
+
+      const activeRequests = statusCountsMap['IN_PROGRESS'] || 0
+      const totalRequests = Object.values(statusCountsMap).reduce((sum: number, count: any) => sum + (count as number), 0)
+      
+      const tasksCompletedThisMonth = packageProgress ? packageProgress.totalTasks.completed : completedThisMonth
+      const tasksTotalThisMonth = packageProgress ? packageProgress.totalTasks.total : 0
+      const tasksSubtitle = packageProgress
+        ? `${tasksCompletedThisMonth} of ${tasksTotalThisMonth} used this month`
+        : "No active package"
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          activeRequests,
+          totalRequests,
+          tasksCompletedThisMonth,
+          tasksSubtitle,
+          gaConnected,
+          packageProgress,
+          latestRequest,
+          dealershipId: targetDealershipId
+        }
+      })
+    }
 
     // Get user's information and verify access
     const user = await prisma.users.findUnique({

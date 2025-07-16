@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { UserRole } from '@prisma/client'
 import type { requests } from '@prisma/client'
 import { Button } from '@/components/ui/button'
@@ -39,7 +39,7 @@ export default function AgencyRequestsPage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
-  const { data: session, status } = useSession()
+  const { user: currentUser, isLoading: authLoading } = useAuth()
   const agencyId = params.agencyId as string
 
   const [requests, setRequests] = useState<AgencyRequest[]>([])
@@ -73,8 +73,8 @@ export default function AgencyRequestsPage() {
 
 
   const fetchRequests = useCallback(async () => {
-    if (status === 'loading' || !session || !agencyId) return
-    if (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId)) {
+    if (authLoading || !currentUser || !agencyId) return
+    if (currentUser.role !== UserRole.SUPER_ADMIN && (currentUser.role !== UserRole.AGENCY_ADMIN || currentUser.agencyId !== agencyId)) {
       setError(`Access Denied.You don&apos;t have permission to view these ${DEALERSHIP_TERMINOLOGY} requests.`)
       setIsLoading(false)
       return
@@ -116,7 +116,7 @@ export default function AgencyRequestsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [status, session, agencyId, page, limit, searchTerm, statusFilter, typeFilter, sortBy, sortOrder])
+  }, [authLoading, currentUser, agencyId, page, limit, searchTerm, statusFilter, typeFilter, sortBy, sortOrder])
 
   useEffect(() => {
     fetchRequests()
@@ -146,8 +146,8 @@ export default function AgencyRequestsPage() {
     </TableHead>
   )
 
-  if (status === 'loading') return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
-  if (!session || (session.user.role !== UserRole.SUPER_ADMIN && (session.user.role !== UserRole.AGENCY_ADMIN || session.user.agencyId !== agencyId))) {
+  if (authLoading) return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>
+  if (!currentUser || (currentUser.role !== UserRole.SUPER_ADMIN && (currentUser.role !== UserRole.AGENCY_ADMIN || currentUser.agencyId !== agencyId))) {
      return (
       <div className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>

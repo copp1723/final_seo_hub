@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -13,7 +13,7 @@ import Link from 'next/link'
 
 export default function NewRequestPage() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -31,7 +31,7 @@ export default function NewRequestPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!session) return
+    if (!user) return
 
     setLoading(true)
     setError('')

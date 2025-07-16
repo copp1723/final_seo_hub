@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -129,12 +129,12 @@ const mockTasks: Task[] = [
 ]
 
 export default function TasksPage() {
-  const { data: session, status: sessionStatus } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('all')
   const [tasks] = useState<Task[]>(mockTasks)
 
-  if (sessionStatus === 'loading') {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
@@ -142,8 +142,8 @@ export default function TasksPage() {
     )
   }
 
-  if (!session) {
-    router.push('/auth/signin')
+  if (!user) {
+    router.push('/auth/simple-signin')
     return null
   }
 

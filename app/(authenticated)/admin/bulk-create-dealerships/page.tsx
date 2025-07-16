@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,7 +15,7 @@ interface DealershipData {
 }
 
 export default function BulkCreateDealershipsPage() {
-  const { data: session } = useSession()
+  const { user } = useAuth()
   const [csvData, setCsvData] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [results, setResults] = useState<string[]>([])
@@ -87,7 +87,7 @@ Dealership Two,https://dealership2.com,987654321,https://dealership2.com`
     }
   }
 
-  if (session?.user.role !== 'AGENCY_ADMIN' && session?.user.role !== 'SUPER_ADMIN') {
+  if (user?.role !== 'AGENCY_ADMIN' && user?.role !== 'SUPER_ADMIN') {
     return <div>Access denied. Agency admin required</div>
   }
 

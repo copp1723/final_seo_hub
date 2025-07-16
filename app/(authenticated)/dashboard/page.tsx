@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
       // Fetch both dashboard stats and recent activity in parallel
       const [statsResponse, activityResponse] = await Promise.all([
-        fetch('/api/dashboard/stats'),
+        fetch('/api/dashboard/simple-stats'),
         fetch('/api/dashboard/recent-activity')
       ])
 

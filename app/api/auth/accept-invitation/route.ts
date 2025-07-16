@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       ? '/onboarding/seoworks?invited=true'
       : '/dashboard'
     
-    const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
+    const response = NextResponse.redirect(baseUrl + redirectUrl)
     
     // Use NextAuth's cookie configuration from lib/auth.ts
     const isProduction = process.env.NODE_ENV === 'production'

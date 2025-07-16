@@ -26,9 +26,12 @@ const HARDCODED_USERS = [
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔐 SIGNIN: Starting authentication process');
     const { email, token } = await request.json();
+    console.log('🔐 SIGNIN: Received email:', email, 'token provided:', !!token);
 
     if (!email) {
+      console.log('❌ SIGNIN: Email missing');
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
@@ -41,19 +44,32 @@ export async function POST(request: NextRequest) {
     );
 
     if (hardcodedUser) {
-      console.log(`Hardcoded admin access granted for ${hardcodedUser.email} with role ${hardcodedUser.role}`);
+      console.log(`✅ SIGNIN: Hardcoded admin access granted for ${hardcodedUser.email} with role ${hardcodedUser.role}`);
       
       // Create session for hardcoded user
+      console.log('🔑 SIGNIN: Creating session token...');
       const sessionToken = await SimpleAuth.createSession(hardcodedUser);
+      console.log('🔑 SIGNIN: Session token created, length:', sessionToken.length);
       
-      // Set cookie
-      await SimpleAuth.setSessionCookie(sessionToken);
-      
-      return NextResponse.json({
+      // Create response first
+      const response = NextResponse.json({
         success: true,
         user: hardcodedUser,
         emergency: true
       });
+      
+      // Set cookie on response
+      console.log('🍪 SIGNIN: Setting session cookie...');
+      response.cookies.set('seo-hub-session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      });
+      
+      console.log('✅ SIGNIN: Emergency admin login complete');
+      return response;
     }
 
     // Normal authentication flow for non-hardcoded users

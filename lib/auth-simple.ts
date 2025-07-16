@@ -56,16 +56,20 @@ export class SimpleAuth {
 
   private static async verifyToken(token: string): Promise<any> {
     try {
+      console.log('🔐 VERIFY: Starting token verification, token length:', token.length);
       const [encodedData, signature] = token.split('.');
+      console.log('🔐 VERIFY: Token parts - data:', !!encodedData, 'signature:', !!signature);
       
       // For hardcoded emergency admin tokens, bypass verification
       if (encodedData && signature) {
         const data = Buffer.from(encodedData, 'base64').toString();
+        console.log('🔐 VERIFY: Decoded data:', data);
         const payload = JSON.parse(data);
+        console.log('🔐 VERIFY: Parsed payload:', payload);
         
         // If this is a hardcoded emergency user, bypass signature verification
         if (payload.userId && payload.userId.startsWith('hardcoded-')) {
-          console.log('Emergency admin token detected, bypassing verification');
+          console.log('✅ VERIFY: Emergency admin token detected, bypassing verification');
           return payload;
         }
         
@@ -215,19 +219,26 @@ export class SimpleAuth {
 
   static async getSessionFromRequest(request: NextRequest): Promise<SimpleSession | null> {
     try {
+      console.log('🔍 AUTH: Getting session from request...');
       const token = request.cookies.get(this.COOKIE_NAME)?.value;
+      console.log('🍪 AUTH: Token from cookie:', !!token, 'length:', token?.length || 0);
       
       if (!token) {
+        console.log('❌ AUTH: No token found in cookies');
         return null;
       }
 
+      console.log('🔑 AUTH: Verifying token...');
       const decoded = await this.verifyToken(token);
+      console.log('🔑 AUTH: Token decoded:', !!decoded, decoded?.userId, decoded?.email);
       if (!decoded) {
+        console.log('❌ AUTH: Token verification failed');
         return null;
       }
       
       // Check if this is a hardcoded emergency user
       if (decoded.userId && decoded.userId.startsWith('hardcoded-')) {
+        console.log('✅ AUTH: Emergency user session found:', decoded.userId);
         // For hardcoded users, construct the session directly from the token
         return {
           user: {

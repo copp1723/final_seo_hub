@@ -42,7 +42,9 @@ export async function middleware(request: NextRequest) {
   
   // Debug session info
   if (session) {
-    console.log(`Middleware: Authenticated user ${session.user.email} with role ${session.user.role}`);
+    console.log(`✅ Middleware: Authenticated user ${session.user.email} with role ${session.user.role}`);
+  } else {
+    console.log(`❌ Middleware: No session found for path ${pathname}`);
   }
 
   // Handle protected routes

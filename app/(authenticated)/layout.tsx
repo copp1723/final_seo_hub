@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { redirect } from 'next/navigation'
 import { Navigation } from '@/components/layout/navigation'
 import { Toaster } from '@/components/ui/toaster'
@@ -8,10 +8,10 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
+  const session = await SimpleAuth.getSession()
   
   if (!session) {
-    redirect('/auth/signin')
+    redirect('/auth/simple-signin')
   }
 
   return (

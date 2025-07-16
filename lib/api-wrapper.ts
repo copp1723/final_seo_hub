@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { apiMonitor } from './api-monitor'
-import { auth } from './auth'
+import { SimpleAuth } from './auth-simple'
 
 export function withApiMonitoring(
   handler: (req: NextRequest) => Promise<NextResponse>
@@ -12,7 +12,7 @@ export function withApiMonitoring(
     
     try {
       // Get user ID for logging context
-      const session = await auth()
+      const session = await SimpleAuth.getSessionFromRequest(req)
       userId = session?.user.id
       
       response = await handler(req)

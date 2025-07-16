@@ -151,13 +151,18 @@ export class SimpleAuth {
       const cookieStore = await cookies();
       const token = cookieStore.get(this.COOKIE_NAME)?.value;
 
+      console.log('🔍 GET_SESSION: Cookie found:', !!token, 'length:', token?.length || 0);
+      
       if (!token) {
+        console.log('❌ GET_SESSION: No cookie found');
         return null;
       }
 
       // Verify token
       const decoded = await this.verifyToken(token);
+      console.log('🔑 GET_SESSION: Token decoded:', !!decoded, decoded?.userId);
       if (!decoded) {
+        console.log('❌ GET_SESSION: Token verification failed');
         return null;
       }
       

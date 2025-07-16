@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { NextRequest } from 'next/server';
-import { getEmergencySession, EMERGENCY_BYPASS_ENABLED } from './auth-emergency-bypass';
 
 const prisma = new PrismaClient();
 
@@ -146,10 +145,6 @@ export class SimpleAuth {
 
   static async getSession(): Promise<SimpleSession | null> {
     try {
-      // EMERGENCY BYPASS FOR DEMO
-      if (EMERGENCY_BYPASS_ENABLED) {
-        return await getEmergencySession();
-      }
       
       // This method should only be called from server components/API routes
       // Import cookies dynamically to avoid build issues
@@ -230,10 +225,6 @@ export class SimpleAuth {
 
   static async getSessionFromRequest(request: NextRequest): Promise<SimpleSession | null> {
     try {
-      // EMERGENCY BYPASS FOR DEMO
-      if (EMERGENCY_BYPASS_ENABLED) {
-        return await getEmergencySession();
-      }
       
       console.log('🔍 AUTH: Getting session from request...');
       const token = request.cookies.get(this.COOKIE_NAME)?.value;

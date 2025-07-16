@@ -9,7 +9,6 @@ export default function SimpleSignInPage() {
   const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isEmergencyAccess, setIsEmergencyAccess] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,28 +22,13 @@ export default function SimpleSignInPage() {
     setError('');
 
     try {
-      // For emergency access, use hardcoded admin email
-      let emailToUse = email;
-      
-      if (isEmergencyAccess) {
-        // Force use of admin email for emergency access
-        emailToUse = 'josh.copp@onekeel.ai';
-        console.log('Using emergency admin email:', emailToUse);
-      } else {
-        // For normal login, validate email
-        if (!email || email.trim() === '') {
-          setIsLoading(false);
-          setError('Email is required');
-          return;
-        }
+      if (!email || !token) {
+        setError('Email and token are required.');
+        setIsLoading(false);
+        return;
       }
-      
-      // For emergency access users (hardcoded admins), token is not required
-      const payload = isEmergencyAccess
-        ? { email: emailToUse }
-        : { email: emailToUse, token };
 
-      console.log('Submitting with payload:', payload);
+      console.log('Submitting with payload:', { email, token });
       
       // Add a small delay to ensure the console log is visible
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -54,7 +38,7 @@ export default function SimpleSignInPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ email, token }),
       });
 
       const data = await response.json();
@@ -87,9 +71,7 @@ export default function SimpleSignInPage() {
             Sign in to SEO Hub
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {isEmergencyAccess 
-              ? 'Emergency access for admin users' 
-              : 'Enter your invitation details to access your account'}
+            Enter your invitation details to access your account
           </p>
         </div>
         
@@ -108,9 +90,10 @@ export default function SimpleSignInPage() {
               <input
                 id="email"
                 name="email"
-                type="text"
+                type="email"
                 autoComplete="email"
-                className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isEmergencyAccess ? 'rounded-md' : 'rounded-t-md'} focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => {
@@ -119,40 +102,21 @@ export default function SimpleSignInPage() {
                 }}
               />
             </div>
-            {!isEmergencyAccess && (
-              <div>
-                <label htmlFor="token" className="sr-only">
-                  Invitation Token
-                </label>
-                <input
-                  id="token"
-                  name="token"
-                  type="text"
-                  required={!isEmergencyAccess}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Invitation token"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="emergency-access"
-              name="emergency-access"
-              type="checkbox"
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              checked={isEmergencyAccess}
-              onChange={() => {
-                console.log('Emergency access toggled, current:', isEmergencyAccess);
-                setIsEmergencyAccess(!isEmergencyAccess);
-              }}
-            />
-            <label htmlFor="emergency-access" className="ml-2 block text-sm text-gray-900">
-              Emergency admin access
-            </label>
+            <div>
+              <label htmlFor="token" className="sr-only">
+                Invitation Token
+              </label>
+              <input
+                id="token"
+                name="token"
+                type="text"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Invitation token"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+              />
+            </div>
           </div>
 
           <div>

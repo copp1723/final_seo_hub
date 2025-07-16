@@ -23,18 +23,22 @@ const authRoutes = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // EMERGENCY BYPASS - Always allow access
-  console.log('🚨 EMERGENCY BYPASS: Middleware allowing all access 🚨');
-  
-  // Skip auth routes since we're always "authenticated"
-  const isAuthRoute = authRoutes.some(route => 
-    pathname.startsWith(route)
-  );
-  
-  if (isAuthRoute) {
+  const session = await SimpleAuth.getSessionFromRequest(request);
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
+  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+
+  // If trying to access a protected route without a session, redirect to signin
+  if (isProtectedRoute && !session) {
+    const callbackUrl = encodeURIComponent(request.url);
+    return NextResponse.redirect(new URL(`/auth/simple-signin?callbackUrl=${callbackUrl}`, request.url));
+  }
+
+  // If session exists and trying to access an auth route, redirect to dashboard
+  if (isAuthRoute && session) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
+  // Allow the request to continue
   return NextResponse.next();
 }
 

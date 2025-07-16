@@ -4,25 +4,7 @@ import { SimpleAuth } from '@/lib/auth-simple';
 
 const prisma = new PrismaClient();
 
-// Hard-coded admin users for emergency access
-const HARDCODED_USERS = [
-  {
-    email: 'josh.copp@onekeel.ai',
-    role: 'SUPER_ADMIN',
-    id: 'hardcoded-super-admin',
-    agencyId: null,
-    dealershipId: null,
-    name: 'Super Admin'
-  },
-  {
-    email: 'access@seowerks.ai',
-    role: 'AGENCY_ADMIN',
-    id: 'hardcoded-agency-admin',
-    agencyId: 'agency-1', // Assuming this is a valid agency ID
-    dealershipId: null,
-    name: 'Agency Admin'
-  }
-];
+// No hardcoded users in production
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,41 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for hardcoded admin users first (ALWAYS - regardless of emergency checkbox)
-    const hardcodedUser = HARDCODED_USERS.find(
-      user => user.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (hardcodedUser) {
-      console.log(`✅ SIGNIN: Hardcoded admin access granted for ${hardcodedUser.email} with role ${hardcodedUser.role}`);
-      
-      // Create session for hardcoded user
-      console.log('🔑 SIGNIN: Creating session token...');
-      const sessionToken = await SimpleAuth.createSession(hardcodedUser);
-      console.log('🔑 SIGNIN: Session token created, length:', sessionToken.length);
-      
-      // Create response first
-      const response = NextResponse.json({
-        success: true,
-        user: hardcodedUser,
-        emergency: true
-      });
-      
-      // Set cookie on response
-      console.log('🍪 SIGNIN: Setting session cookie...');
-      response.cookies.set('seo-hub-session', sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        path: '/',
-      });
-      
-      console.log('✅ SIGNIN: Emergency admin login complete');
-      return response;
-    }
-
-    // Normal authentication flow for non-hardcoded users
+    // Normal authentication flow
     if (!token) {
       return NextResponse.json(
         { error: 'Token is required for database users' },

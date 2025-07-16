@@ -1,92 +1,37 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
-import { rateLimits } from '@/lib/rate-limit'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
-  // Apply rate limiting
-  const rateLimitResponse = await rateLimits.api(request)
-  if (rateLimitResponse) return rateLimitResponse
-  
-  const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
-  
   try {
-    // Get user's dealership for connection queries or handle agency admin access
-    const targetDealershipId = authResult.user.dealershipId
+    const session = await SimpleAuth.getSessionFromRequest(request)
     
-    // For agency admins without a dealership, show empty integrations state
-    // This allows them to see the UI and connect integrations
-    if (!targetDealershipId && authResult.user.role === 'AGENCY_ADMIN' && authResult.user.agencyId) {
-      // Return empty integrations state for agency admins
-      const integrations = {
-        ga4: {
-          connected: false,
-          propertyId: null,
-          propertyName: null,
-          connectedAt: null,
-          lastUpdated: null
-        },
-        searchConsole: {
-          connected: false,
-          siteUrl: null,
-          siteName: null,
-          connectedAt: null,
-          lastUpdated: null
-        }
+    if (!session?.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    // Check GA4 connection
+    const ga4Connection = await prisma.ga4_connections.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        propertyId: true,
+        propertyName: true,
+        createdAt: true,
+        updatedAt: true
       }
-      
-      return successResponse({ integrations })
-    }
-    
-    // For SUPER_ADMIN without dealership, also show empty state
-    if (!targetDealershipId && authResult.user.role === 'SUPER_ADMIN') {
-      const integrations = {
-        ga4: {
-          connected: false,
-          propertyId: null,
-          propertyName: null,
-          connectedAt: null,
-          lastUpdated: null
-        },
-        searchConsole: {
-          connected: false,
-          siteUrl: null,
-          siteName: null,
-          connectedAt: null,
-          lastUpdated: null
-        }
-      }
-      
-      return successResponse({ integrations })
-    }
-    
-    if (!targetDealershipId) {
-      return errorResponse('User not assigned to a dealership', 400)
-    }
+    })
 
-    // Fetch all integration statuses in parallel
-    const [ga4Connection, searchConsoleConnection] = await Promise.all([
-      prisma.ga4_connections.findUnique({
-        where: { userId: targetDealershipId },
-        select: {
-          propertyId: true,
-          propertyName: true,
-          createdAt: true,
-          updatedAt: true
-        }
-      }),
-      prisma.search_console_connections.findUnique({
-        where: { userId: targetDealershipId },
-        select: {
-          siteUrl: true,
-          siteName: true,
-          createdAt: true,
-          updatedAt: true
-        }
-      })
-    ])
+    // Check Search Console connection
+    const searchConsoleConnection = await prisma.search_console_connections.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        siteUrl: true,
+        siteName: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    })
     
     const integrations = {
       ga4: {
@@ -105,9 +50,22 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    return successResponse({ integrations })
+    logger.info('Integrations status retrieved', {
+      userId: session.user.id,
+      ga4Connected: integrations.ga4.connected,
+      searchConsoleConnected: integrations.searchConsole.connected
+    })
+    
+    return NextResponse.json({
+      success: true,
+      data: { integrations }
+    })
+    
   } catch (error) {
-    logger.error('Error fetching integration status:', error, { userId: authResult.user.id })
-    return errorResponse('Failed to fetch integration status', 500)
+    logger.error('Integrations status error', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch integrations status' },
+      { status: 500 }
+    )
   }
 }

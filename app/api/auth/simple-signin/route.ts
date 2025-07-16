@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { SimpleAuth } from '@/lib/auth-simple';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
-// No hardcoded users in production
+// Emergency access for super admin
+const EMERGENCY_ACCESS_TOKEN = process.env.EMERGENCY_ADMIN_TOKEN;
+const EMERGENCY_ADMIN_EMAIL = process.env.EMERGENCY_ADMIN_EMAIL || 'emergency@seohub.com';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +21,62 @@ export async function POST(request: NextRequest) {
         { error: 'Email is required' },
         { status: 400 }
       );
+    }
+
+    // Check for emergency access token
+    if (EMERGENCY_ACCESS_TOKEN && token === EMERGENCY_ACCESS_TOKEN && email === EMERGENCY_ADMIN_EMAIL) {
+      console.log('🚨 SIGNIN: Emergency access token used');
+      
+      // Create or get the emergency super admin user
+      let emergencyUser = await prisma.users.findUnique({
+        where: { email: EMERGENCY_ADMIN_EMAIL }
+      });
+
+      if (!emergencyUser) {
+        // Create the emergency super admin if it doesn't exist
+        emergencyUser = await prisma.users.create({
+          data: {
+            id: crypto.randomUUID(),
+            email: EMERGENCY_ADMIN_EMAIL,
+            role: 'SUPER_ADMIN',
+            name: 'Emergency Super Admin',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+      }
+
+      // Create session
+      const sessionToken = await SimpleAuth.createSession({
+        id: emergencyUser.id,
+        email: emergencyUser.email,
+        role: emergencyUser.role,
+        agencyId: emergencyUser.agencyId,
+        dealershipId: emergencyUser.dealershipId,
+        name: emergencyUser.name
+      });
+
+      const response = NextResponse.json({
+        success: true,
+        user: {
+          id: emergencyUser.id,
+          email: emergencyUser.email,
+          role: emergencyUser.role,
+          agencyId: emergencyUser.agencyId,
+          dealershipId: emergencyUser.dealershipId,
+          name: emergencyUser.name
+        }
+      });
+
+      response.cookies.set(SimpleAuth.COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      });
+
+      return response;
     }
 
     // Normal authentication flow

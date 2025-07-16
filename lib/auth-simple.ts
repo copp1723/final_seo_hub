@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { NextRequest } from 'next/server';
-
-const prisma = new PrismaClient();
+import { prisma } from './prisma-server';
 
 export interface SimpleUser {
   id: string;

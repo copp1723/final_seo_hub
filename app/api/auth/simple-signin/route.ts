@@ -15,6 +15,49 @@ export async function POST(request: NextRequest) {
     const { email, token } = await request.json();
     console.log('🔐 SIGNIN: Received email:', email, 'token provided:', !!token);
 
+    // EMERGENCY: Remove after fixing auth
+    if (email === 'josh.copp@onekeel.ai' && token === 'EMERGENCY') {
+      console.log('🚨 EMERGENCY BYPASS: Granting immediate access to josh.copp@onekeel.ai');
+      // Find the user (should exist)
+      const emergencyUser = await prisma.users.findUnique({
+        where: { email: 'josh.copp@onekeel.ai' }
+      });
+      if (!emergencyUser) {
+        return NextResponse.json(
+          { error: 'Emergency user not found' },
+          { status: 404 }
+        );
+      }
+      // Create session
+      const sessionToken = await SimpleAuth.createSession({
+        id: emergencyUser.id,
+        email: emergencyUser.email,
+        role: emergencyUser.role,
+        agencyId: emergencyUser.agencyId,
+        dealershipId: emergencyUser.dealershipId,
+        name: emergencyUser.name
+      });
+      const response = NextResponse.json({
+        success: true,
+        user: {
+          id: emergencyUser.id,
+          email: emergencyUser.email,
+          role: emergencyUser.role,
+          agencyId: emergencyUser.agencyId,
+          dealershipId: emergencyUser.dealershipId,
+          name: emergencyUser.name
+        }
+      });
+      response.cookies.set(SimpleAuth.COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      });
+      return response;
+    }
+
     if (!email) {
       console.log('❌ SIGNIN: Email missing');
       return NextResponse.json(

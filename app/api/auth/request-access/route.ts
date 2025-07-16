@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { sendInvitationEmail } from '@/lib/mailgun/invitation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,22 +34,39 @@ export async function POST(request: NextRequest) {
 
       console.log(`🎯 Generated login link for ${email}: ${loginUrl}`)
 
-      // In a real app, you'd send this via email
-      // For now, we'll just log it and return success
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Login link generated! (Check server logs for development)',
-        loginUrl: process.env.NODE_ENV === 'development' ? loginUrl : undefined
+      // Send invitation email using existing email infrastructure
+      const emailSent = await sendInvitationEmail({
+        user,
+        invitedBy: 'System', // Or you could track who requested access
+        loginUrl,
+        skipPreferences: true
       })
-    } else {
-      // User doesn't exist - they need to be invited by an admin
-      console.log(`⚠️ Access request from non-existent user: ${email}`)
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Access request received. An administrator will review your request and send you an invitation if approved.'
-      })
-    }
+
+      if (emailSent) {
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Access request sent! Check your email for a login link.'
+        })
+      } else {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'Failed to send email. Please try again or contact support.'
+        }, { status: 500 })
+      }
+          } else {
+        // User doesn't exist - they need to be invited by an admin
+        console.log(`⚠️ Access request from non-existent user: ${email}`)
+        
+        // In a production system, you might want to:
+        // 1. Store the access request in a database table
+        // 2. Send notification email to admins
+        // 3. Create a admin interface to approve/deny requests
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Access request received. An administrator will review your request and send you an invitation if approved.'
+        })
+      }
 
   } catch (error) {
     console.error('Request access error:', error)

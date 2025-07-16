@@ -27,6 +27,7 @@ const navItems = [
   { href: '/requests', label: 'My Requests', icon: FileText },
   { href: '/focus-request', label: 'New Request', icon: PlusCircle },
   { href: '/chat', label: 'SEO Assistant', icon: MessageSquare },
+  { href: '/tasks', label: 'Tasks', icon: Settings },
   { href: '/reporting', label: 'Reports', icon: BarChart }
 ]
 

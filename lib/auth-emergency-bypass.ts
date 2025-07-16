@@ -18,13 +18,16 @@ const DEMO_SESSION: SimpleSession = {
 
 // Always return super admin session
 export async function getEmergencySession(): Promise<SimpleSession> {
-  console.log('🚨 EMERGENCY BYPASS ACTIVE - DEMO MODE 🚨');
-  console.log('📋 Demo User:', {
-    email: DEMO_SUPER_ADMIN.email,
-    role: DEMO_SUPER_ADMIN.role,
-    agencyId: DEMO_SUPER_ADMIN.agencyId,
-    hasFullAccess: true
-  });
+  // Only log during runtime, not during build
+  if (typeof window !== 'undefined' || process.env.RUNTIME) {
+    console.log('🚨 EMERGENCY BYPASS ACTIVE - DEMO MODE 🚨');
+    console.log('📋 Demo User:', {
+      email: DEMO_SUPER_ADMIN.email,
+      role: DEMO_SUPER_ADMIN.role,
+      agencyId: DEMO_SUPER_ADMIN.agencyId,
+      hasFullAccess: true
+    });
+  }
   return DEMO_SESSION;
 }
 

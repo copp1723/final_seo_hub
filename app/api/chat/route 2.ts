@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
   
   try {
     const { message } = await request.json()

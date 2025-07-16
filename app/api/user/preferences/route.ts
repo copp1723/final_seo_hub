@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
   
   try {
     // Get or create user preferences
@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
   
   // Validate request body
   const validation = await validateRequest(request, updatePreferencesSchema)

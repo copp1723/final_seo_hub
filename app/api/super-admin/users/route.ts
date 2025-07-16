@@ -24,7 +24,7 @@ const updateUserSchema = z.object({
 // Get all users with pagination and filtering (SUPER_ADMIN only)
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
 // Create new user (SUPER_ADMIN only)
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
 // Update user (SUPER_ADMIN only)
 export async function PUT(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
@@ -279,7 +279,7 @@ export async function PUT(request: NextRequest) {
 // Delete user (SUPER_ADMIN only)
 export async function DELETE(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
 
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
 
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('userId')

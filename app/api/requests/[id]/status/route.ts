@@ -24,7 +24,7 @@ export async function PATCH(
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
   
   // Validate request body
   const validation = await validateRequest(request, updateStatusSchema)

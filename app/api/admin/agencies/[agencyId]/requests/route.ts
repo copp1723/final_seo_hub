@@ -6,7 +6,9 @@ import { logger, getSafeErrorMessage } from '@/lib/logger'
 
 export async function GET(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) {
+    return authResult.response || errorResponse('Unauthorized', 401)
+  }
 
   const { agencyId } = await context.params
   const user = authResult.user

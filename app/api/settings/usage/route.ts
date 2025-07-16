@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated) return authResult.response || errorResponse('Unauthorized', 401)
   
   try {
     // Get current month's start and end dates

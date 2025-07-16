@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {
     logger.error('❌ Authentication failed')
-    return authResult.response
+    return authResult.response || errorResponse('Unauthorized', 401)
   }
   
   logger.info('🔐 Auth result:', {
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest) {
   if (rateLimitResponse) return rateLimitResponse
   
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
   
   // Validate request body
   const validation = await validateRequest(request, notificationPreferencesSchema)

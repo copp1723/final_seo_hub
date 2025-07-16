@@ -21,7 +21,7 @@ const updateAgencyProfileSchema = z.object({
 // GET agency profile
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
   
   try {
     // Get user's agency
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 // PATCH update agency profile
 export async function PATCH(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
   
   try {
     // Get user's agency

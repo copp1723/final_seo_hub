@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated) return authResult.response
+  if (!authResult.authenticated) return authResult.response || errorResponse('Unauthorized', 401)
 
   if (authResult.user!.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })

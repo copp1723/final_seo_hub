@@ -12,7 +12,7 @@ const createAgencySchema = z.object({
 // Get all agencies (SUPER_ADMIN only)
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied.Super Admin required.' }, { status: 403 })
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 // Create new agency (SUPER_ADMIN only)
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request)
-  if (!authResult.authenticated || !authResult.user) return authResult.response
+  if (!authResult.authenticated || !authResult.user) return authResult.response || errorResponse('Unauthorized', 401)
 
   if (authResult.user.role !== 'SUPER_ADMIN') {
     return NextResponse.json({ error: 'Access denied.Super Admin required.' }, { status: 403 })

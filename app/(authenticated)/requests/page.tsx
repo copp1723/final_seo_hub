@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { PackageType, RequestStatus } from '@prisma/client'
@@ -41,7 +41,7 @@ interface Request {
 }
 
 export default function RequestsPage() {
-  const { data: session, status: sessionStatus } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -98,13 +98,13 @@ export default function RequestsPage() {
   }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, createQueryString])
 
   useEffect(() => {
-    if (sessionStatus === 'loading') return
-    if (!session) {
-      router.push('/auth/signin')
+    if (isLoading) return
+    if (!user) {
+      router.push('/auth/simple-signin')
       return
     }
     fetchRequests()
-  }, [session, sessionStatus, router, fetchRequests])
+  }, [user, isLoading, router, fetchRequests])
 
   // Update URL when filters change
   useEffect(() => {

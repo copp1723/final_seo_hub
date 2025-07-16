@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { NotificationPreferencesComponent } from '@/components/settings/notification-preferences'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ProfileData {
@@ -53,7 +53,7 @@ interface PackageUsage {
 }
 
 export default function SettingsPage() {
-  const { data: session, update } = useSession()
+  const { user, refreshSession } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('profile')
@@ -219,8 +219,8 @@ export default function SettingsPage() {
       if (res.ok) {
         setMessage({ type: 'success', text: 'Profile updated successfully' })
         // Update session if email changed
-        if (profile.email !== session?.user.email) {
-          await update()
+        if (profile.email !== user?.email) {
+          await refreshSession()
         }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update profile' })
@@ -435,7 +435,7 @@ export default function SettingsPage() {
                   <div className="h-20 bg-gray-200 rounded"></div>
                 </div>
               ) : (
-                session?.user.role === 'SUPER_ADMIN' || session?.user.role === 'AGENCY_ADMIN' ? (
+                user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? (
                   integrations && (
                     <>
                       <div className="p-4 border rounded-lg">

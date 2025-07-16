@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,31 +9,31 @@ import { Building2, Users, FileText, Settings, PlusCircle, BarChart } from 'luci
 import Link from 'next/link'
 
 export default function AdminPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (isLoading) return
     
-    if (!session || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'AGENCY_ADMIN')) {
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN')) {
       router.push('/dashboard')
       return
     }
     
     setLoading(false)
-  }, [session, status, router])
+  }, [user, isLoading, router])
 
-  if (status === 'loading' || loading) {
+  if (isLoading || loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
   
-  if (!session || (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'AGENCY_ADMIN')) {
+  if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN')) {
     return null
   }
 
-  const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
-  const isAgencyAdmin = session.user.role === 'AGENCY_ADMIN'
+  const isSuperAdmin = user.role === 'SUPER_ADMIN'
+  const isAgencyAdmin = user.role === 'AGENCY_ADMIN'
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -126,7 +126,7 @@ export default function AdminPage() {
         )}
         {isAgencyAdmin && (
           <>
-            <Link href={`/admin/agencies/${session.user.agencyId}/requests`}>
+            <Link href={`/admin/agencies/${user.agencyId}/requests`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export default function AdminPage() {
               </Card>
             </Link>
             
-            <Link href={`/admin/agencies/${session.user.agencyId}/users`}>
+            <Link href={`/admin/agencies/${user.agencyId}/users`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/loading'
@@ -10,19 +10,19 @@ export default function SuperAdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { data: session, status } = useSession()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (isLoading) return
     
-    if (!session || session.user.role !== 'SUPER_ADMIN') {
+    if (!user || user.role !== 'SUPER_ADMIN') {
       router.push('/dashboard')
       return
     }
-  }, [session, status, router])
+  }, [user, isLoading, router])
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner />
@@ -30,7 +30,7 @@ export default function SuperAdminLayout({
     )
   }
 
-  if (!session || session.user.role !== 'SUPER_ADMIN') {
+  if (!user || user.role !== 'SUPER_ADMIN') {
     return null
   }
 

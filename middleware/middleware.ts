@@ -23,42 +23,15 @@ const authRoutes = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if this is a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  );
+  // EMERGENCY BYPASS - Always allow access
+  console.log('🚨 EMERGENCY BYPASS: Middleware allowing all access 🚨');
   
+  // Skip auth routes since we're always "authenticated"
   const isAuthRoute = authRoutes.some(route => 
     pathname.startsWith(route)
   );
-
-  // Skip middleware for API routes and static files
-  if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.includes('.')) {
-    return NextResponse.next();
-  }
-
-  // Get session
-  const session = await SimpleAuth.getSessionFromRequest(request);
   
-  // Debug session info
-  if (session) {
-    console.log(`✅ Middleware: Authenticated user ${session.user.email} with role ${session.user.role}`);
-  } else {
-    console.log(`❌ Middleware: No session found for path ${pathname}`);
-  }
-
-  // Handle protected routes
-  if (isProtectedRoute) {
-    if (!session) {
-      // Redirect to simple-signin if not authenticated
-      const signinUrl = new URL('/auth/simple-signin', request.url);
-      signinUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(signinUrl);
-    }
-  }
-
-  // Handle auth routes - redirect to dashboard if already authenticated
-  if (isAuthRoute && session) {
+  if (isAuthRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

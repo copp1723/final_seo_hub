@@ -8,9 +8,12 @@ const prisma = new PrismaClient();
 // TEMPORARY FORCE LOGIN - REMOVE AFTER GETTING ACCESS
 export async function GET(request: NextRequest) {
   try {
-    // Only allow in development or with secret query param
+    // Only allow with correct secret
     const secret = request.nextUrl.searchParams.get('secret');
-    if (process.env.NODE_ENV === 'production' && secret !== process.env.NEXTAUTH_SECRET?.substring(0, 10)) {
+    const expectedSecret = process.env.EMERGENCY_ADMIN_TOKEN || process.env.NEXTAUTH_SECRET?.substring(0, 10);
+    
+    if (!secret || secret !== expectedSecret) {
+      console.log('Force login denied - invalid secret');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

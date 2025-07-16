@@ -79,14 +79,17 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "audit-ci": "^7.1.0",
+    "depcheck": "^1.4.7",
     "eslint": "^9.29.0",
     "eslint-config-next": "15.3.4",
     "jest": "^30.0.3",
+    "knip": "^5.61.3",
     "prettier": "^3.5.3",
     "prisma": "^6.10.1",
     "redis-memory-server": "^0.12.1",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
+    "ts-prune": "^0.10.3",
     "tsx": "^4.20.3"
   },
   "engines": {

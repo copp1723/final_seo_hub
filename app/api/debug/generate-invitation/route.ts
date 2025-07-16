@@ -5,11 +5,13 @@ import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication - only SUPER_ADMIN can generate invitation tokens
+    // TEMPORARILY DISABLED AUTH for first-time admin token generation
+    /*
     const session = await auth()
     if (!session?.user || session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    */
 
     const { email } = await request.json()
 

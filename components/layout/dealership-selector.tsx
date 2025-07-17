@@ -38,20 +38,32 @@ export function DealershipSelector() {
         const response = await fetch('/api/dealerships/switch')
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to fetch dealerships')
+          throw new Error(errorData.error || `Failed to fetch dealerships (${response.status})`)
         }
 
         const data: DealershipData = await response.json()
         console.log('Dealership data received:', data) // Debug log
-        setDealershipData(data)
         
-        // Log dealership count for debugging
-        if (data.availableDealerships) {
+        // Handle empty dealership arrays gracefully
+        if (!data.availableDealerships?.length) {
+          console.warn('No dealerships found for user')
+          setDealershipData({
+            currentDealership: null,
+            availableDealerships: []
+          })
+        } else {
+          setDealershipData(data)
           console.log(`Found ${data.availableDealerships.length} dealerships`)
         }
       } catch (err) {
         console.error('Error fetching dealerships:', err)
         setError(err instanceof Error ? err.message : 'Failed to load dealerships')
+        
+        // Set empty dealership data to prevent null reference errors
+        setDealershipData({
+          currentDealership: null,
+          availableDealerships: []
+        })
       } finally {
         setIsLoading(false)
       }

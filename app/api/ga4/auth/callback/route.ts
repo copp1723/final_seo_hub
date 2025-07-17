@@ -95,9 +95,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=success&service=ga4`)
 
   } catch (error) {
-    logger.error('GA4 OAuth callback error', { 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+    logger.error('GA4 OAuth callback error', error, {
+      code: searchParams?.get('code') ? 'present' : 'missing',
+      state: searchParams?.get('state'),
+      hasClientId: !!process.env.GOOGLE_CLIENT_ID,
+      hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET
     })
     const errorMessage = error instanceof Error ? error.message : 'Connection failed'
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=ga4&error=${encodeURIComponent(errorMessage)}`)

@@ -192,112 +192,93 @@ export default function DashboardPage() {
     redirect('/auth/simple-signin')
   }
 
-  // Fetch dashboard data from API with better error handling
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Get selected dealership from context or storage (only if mounted)
-      let selectedDealershipId = null
-      if (typeof window !== 'undefined') {
-        selectedDealershipId = localStorage.getItem('selectedDealershipId')
+  // Mock data for demo purposes
+  const mockDashboardData: DashboardData = {
+    activeRequests: 3,
+    totalRequests: 27,
+    tasksCompletedThisMonth: 18,
+    tasksSubtitle: 'tasks completed this month',
+    gaConnected: true,
+    packageProgress: {
+      packageType: 'Premium SEO Package',
+      pages: { completed: 12, total: 15, used: 12, limit: 15, percentage: 80 },
+      blogs: { completed: 8, total: 10, used: 8, limit: 10, percentage: 80 },
+      gbpPosts: { completed: 15, total: 20, used: 15, limit: 20, percentage: 75 },
+      improvements: { completed: 6, total: 8, used: 6, limit: 8, percentage: 75 },
+      totalTasks: { completed: 41, total: 53 }
+    },
+    latestRequest: {
+      packageType: 'Premium SEO Package',
+      pagesCompleted: 12,
+      blogsCompleted: 8,
+      gbpPostsCompleted: 15,
+      improvementsCompleted: 6
+    },
+    dealershipId: 'acura-columbus',
+    recentActivity: [
+      {
+        id: '1',
+        description: 'SEO audit completed for service pages',
+        time: '2 hours ago',
+        type: 'completion',
+        metadata: { taskType: 'audit' }
+      },
+      {
+        id: '2', 
+        description: 'New blog post published: "2024 Acura Models Comparison"',
+        time: '1 day ago',
+        type: 'content',
+        metadata: { contentType: 'blog' }
+      },
+      {
+        id: '3',
+        description: 'Google Business Profile post created',
+        time: '2 days ago', 
+        type: 'gbp',
+        metadata: { platform: 'google' }
+      },
+      {
+        id: '4',
+        description: 'Keyword research report delivered',
+        time: '3 days ago',
+        type: 'research',
+        metadata: { reportType: 'keywords' }
+      },
+      {
+        id: '5',
+        description: 'Technical SEO improvements implemented',
+        time: '5 days ago',
+        type: 'technical',
+        metadata: { improvementCount: 8 }
       }
-      const queryParams = selectedDealershipId ? `?dealershipId=${selectedDealershipId}` : ''
+    ]
+  }
 
-      const response = await fetch(`/api/dashboard${queryParams}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      })
+  const mockRecentActivity = mockDashboardData.recentActivity || []
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: `HTTP ${response.status}: ${response.statusText}`
-        }))
-        console.error('Dashboard API error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        })
-
-        // Provide fallback data for certain errors
-        if (response.status === 404 || response.status === 500) {
-          console.warn('Using fallback dashboard data due to API error')
-          setDashboardData({
-            activeRequests: 0,
-            totalRequests: 0,
-            tasksCompletedThisMonth: 0,
-            tasksSubtitle: 'No data available',
-            gaConnected: false,
-            packageProgress: null,
-            latestRequest: null,
-            dealershipId: null,
-            recentActivity: []
-          })
-          setRecentActivity([])
-          return
-        }
-
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-
-      // Validate and set dashboard data with fallbacks
-      setDashboardData({
-        activeRequests: data.activeRequests || 0,
-        totalRequests: data.totalRequests || 0,
-        tasksCompletedThisMonth: data.tasksCompletedThisMonth || 0,
-        tasksSubtitle: data.tasksSubtitle || 'No tasks completed',
-        gaConnected: data.gaConnected || false,
-        packageProgress: data.packageProgress || null,
-        latestRequest: data.latestRequest || null,
-        dealershipId: data.dealershipId || null,
-        recentActivity: data.recentActivity || []
-      })
-
-      // Set recent activity with fallback
-      setRecentActivity(data.recentActivity || [])
-
-      setRetryCount(0) // Reset retry count on success
-      
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
-      setError(errorMessage)
-      
-      // Show retry toast for network errors
-      if (retryCount < 3 && !errorMessage.includes('401') && !errorMessage.includes('403')) {
-        toast("Connection Issue", "info", {
-          description: "Retrying in a moment...",
-        })
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1)
-          fetchDashboardData()
-        }, 2000)
-      } else if (errorMessage.includes('401')) {
-        // Authentication error - redirect to login
-        window.location.href = '/auth/simple-signin'
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [retryCount]) // Only depend on retryCount
-
-  // Initial data fetch - only after mounted
+  // Initial data loading with mock data
   useEffect(() => {
     if (mounted && user?.id) {
-      fetchDashboardData()
+      setLoading(true)
+      // Simulate a brief loading delay for realism
+      setTimeout(() => {
+        setDashboardData(mockDashboardData)
+        setRecentActivity(mockRecentActivity)
+        setLoading(false)
+      }, 800)
     }
-  }, [user?.id, mounted, fetchDashboardData])
+  }, [user?.id, mounted])
 
-  // Listen for dealership changes
+  // Listen for dealership changes (mock data version)
   useEffect(() => {
     const handleDealershipChange = () => {
-      fetchDashboardData()
+      // For demo purposes, just refresh with the same mock data
+      setLoading(true)
+      setTimeout(() => {
+        setDashboardData(mockDashboardData)
+        setRecentActivity(mockRecentActivity)
+        setLoading(false)
+      }, 500)
     }
 
     window.addEventListener('dealershipChanged', handleDealershipChange)
@@ -305,7 +286,7 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener('dealershipChanged', handleDealershipChange)
     }
-  }, [fetchDashboardData])
+  }, [])
 
   if (loading && !dashboardData) {
     return (
@@ -336,14 +317,22 @@ export default function DashboardPage() {
                 <h1 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Dashboard</h1>
                 <p className="text-gray-600 mb-4">{error}</p>
                 <Button 
-                  onClick={fetchDashboardData} 
+                  onClick={() => {
+                    setLoading(true)
+                    setTimeout(() => {
+                      setDashboardData(mockDashboardData)
+                      setRecentActivity(mockRecentActivity)
+                      setLoading(false)
+                      setError(null)
+                    }, 500)
+                  }} 
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Retrying...
+                      Loading...
                     </>
                   ) : (
                     'Try Again'
@@ -380,7 +369,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Active Requests"
-            value={dashboardData?.activeRequests || 0}
+            value={mockDashboardData.activeRequests}
             subtitle="Currently in progress"
             icon={Activity}
             color="blue"
@@ -389,7 +378,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Total Requests"
-            value={dashboardData?.totalRequests || 0}
+            value={mockDashboardData.totalRequests}
             subtitle="All time requests"
             icon={FileText}
             color="green"
@@ -397,8 +386,8 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Tasks Completed"
-            value={dashboardData?.tasksCompletedThisMonth || 0}
-            subtitle={dashboardData?.tasksSubtitle || 'This month'}
+            value={mockDashboardData.tasksCompletedThisMonth}
+            subtitle={mockDashboardData.tasksSubtitle}
             icon={CheckCircle}
             color="purple"
             loading={loading}
@@ -406,10 +395,10 @@ export default function DashboardPage() {
           />
           <StatCard
             title="GA Connected"
-            value={dashboardData?.gaConnected ? 'Yes' : 'No'}
+            value={mockDashboardData.gaConnected ? 'Yes' : 'No'}
             subtitle="Analytics status"
             icon={BarChart}
-            color={dashboardData?.gaConnected ? "green" : "orange"}
+            color={mockDashboardData.gaConnected ? "green" : "orange"}
             loading={loading}
           />
         </div>

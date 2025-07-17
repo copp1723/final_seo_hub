@@ -38,9 +38,9 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
   const checkSession = async () => {
     try {
-      // AUTO-LOGIN: Always set super admin user
+      // AUTO-LOGIN: Always set super admin user (using real database user ID)
       setUser({
-        id: 'auto-super-admin',
+        id: 'user-super-admin-001', // Real user ID from database
         email: 'josh.copp@onekeel.ai',
         role: 'SUPER_ADMIN',
         agencyId: null,

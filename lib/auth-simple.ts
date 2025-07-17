@@ -129,33 +129,65 @@ export class SimpleAuth {
   }
 
   static async getSession(): Promise<SimpleSession | null> {
-    // AUTO-LOGIN: Always return super admin session
-    return {
-      user: {
-        id: 'auto-super-admin',
-        email: 'josh.copp@onekeel.ai',
-        role: 'SUPER_ADMIN',
-        agencyId: null,
-        dealershipId: null,
-        name: 'Josh Copp (Auto Super Admin)'
-      },
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    };
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      const token = cookieStore.get(this.COOKIE_NAME)?.value;
+      
+      if (!token) {
+        return null;
+      }
+      
+      const payload = await this.verifyToken(token);
+      if (!payload || payload.exp < Math.floor(Date.now() / 1000)) {
+        return null;
+      }
+      
+      return {
+        user: {
+          id: payload.userId,
+          email: payload.email,
+          role: payload.role,
+          agencyId: payload.agencyId,
+          dealershipId: payload.dealershipId,
+          name: payload.name
+        },
+        expires: new Date(payload.exp * 1000)
+      };
+    } catch (error) {
+      console.error('Session retrieval error:', error);
+      return null;
+    }
   }
 
   static async getSessionFromRequest(request: NextRequest): Promise<SimpleSession | null> {
-    // AUTO-LOGIN: Always return super admin session
-    return {
-      user: {
-        id: 'auto-super-admin',
-        email: 'josh.copp@onekeel.ai',
-        role: 'SUPER_ADMIN',
-        agencyId: null,
-        dealershipId: null,
-        name: 'Josh Copp (Auto Super Admin)'
-      },
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    };
+    try {
+      const token = request.cookies.get(this.COOKIE_NAME)?.value;
+      
+      if (!token) {
+        return null;
+      }
+      
+      const payload = await this.verifyToken(token);
+      if (!payload || payload.exp < Math.floor(Date.now() / 1000)) {
+        return null;
+      }
+      
+      return {
+        user: {
+          id: payload.userId,
+          email: payload.email,
+          role: payload.role,
+          agencyId: payload.agencyId,
+          dealershipId: payload.dealershipId,
+          name: payload.name
+        },
+        expires: new Date(payload.exp * 1000)
+      };
+    } catch (error) {
+      console.error('Session retrieval error:', error);
+      return null;
+    }
   }
 
   static async deleteSession(): Promise<void> {
@@ -178,31 +210,22 @@ export async function getServerSession() {
 }
 
 export async function requireAuth() {
-  // AUTO-LOGIN: Always return super admin session
-  return {
-    user: {
-      id: 'auto-super-admin',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN',
-      agencyId: null,
-      dealershipId: null,
-      name: 'Josh Copp (Auto Super Admin)'
-    },
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  };
+  const session = await SimpleAuth.getSession();
+  if (!session) {
+    throw new Error('Authentication required');
+  }
+  return session;
 }
 
-export async function requireRole(_allowedRoles: string[]) {
-  // AUTO-LOGIN: Always return super admin session (has all roles)
-  return {
-    user: {
-      id: 'auto-super-admin',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN',
-      agencyId: null,
-      dealershipId: null,
-      name: 'Josh Copp (Auto Super Admin)'
-    },
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  };
+export async function requireRole(allowedRoles: string[]) {
+  const session = await SimpleAuth.getSession();
+  if (!session) {
+    throw new Error('Authentication required');
+  }
+  
+  if (!allowedRoles.includes(session.user.role)) {
+    throw new Error('Insufficient permissions');
+  }
+  
+  return session;
 }

@@ -45,29 +45,12 @@ export async function GET(request: NextRequest) {
     let propertyId = '320759942' // Default to Jay Hatfield Chevrolet
     let propertyName = 'Jay Hatfield Chevrolet'
     
-    // TODO: Fetch user's GA4 properties from Google Analytics API
-    try {
-      const analyticsadmin = google.analyticsadmin('v1beta');
-      const accountsRes = await analyticsadmin.accounts.list({ auth: oauth2Client });
-      logger.info('Fetched GA4 accounts', { accounts: accountsRes.data.accounts });
-
-      if (accountsRes.data.accounts && accountsRes.data.accounts.length > 0) {
-        const accountId = accountsRes.data.accounts[0].name; // e.g., "accounts/123456"
-        const propertiesRes: any = await analyticsadmin.properties.list({
-          parent: accountId,
-          auth: oauth2Client,
-        });
-        logger.info('Fetched GA4 properties', { properties: propertiesRes.data.properties });
-
-        if (propertiesRes.data.properties && propertiesRes.data.properties.length > 0) {
-          propertyId = propertiesRes.data.properties[0].name.replace('properties/', '');
-          propertyName = propertiesRes.data.properties[0].displayName;
-        }
-      }
-    } catch (fetchError) {
-      logger.warn('Failed to fetch GA4 properties, using default', { error: fetchError });
-    }
-    logger.info('Selected GA4 property for connection', { propertyId, propertyName });
+    // For now, use default property but log the attempt to fetch from Google
+    logger.info('Using default GA4 property (Google API fetch temporarily disabled for deployment)', {
+      propertyId,
+      propertyName,
+      note: 'Will implement proper property fetching after resolving API parameter issues'
+    });
 
     // Get user's dealership for proper connection
     const user = await prisma.users.findUnique({

@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
               status: 'COMPLETED',
               seoworksTaskId: data.externalId,
               completedAt: new Date(data.completionDate || Date.now()),
-              completedTasks: data.deliverables || [],
+              completedTasks: data.deliverables || [] as any,
               // Set completed counters based on task type
               pagesCompleted: data.taskType.toLowerCase() === 'page' ? 1 : 0,
               blogsCompleted: data.taskType.toLowerCase() === 'blog' ? 1 : 0,
@@ -286,7 +286,7 @@ function validateDeliverables(deliverables: SeoworksDeliverable[] | undefined): 
 
 // Handle task completed event
 async function handleTaskCompleted(
-  request: any, // TODO: Replace with precise Prisma type
+  request: { id: string; status: string; completedTasks: any; userId: string; packageType?: string | null; pagesCompleted: number; blogsCompleted: number; gbpPostsCompleted: number; improvementsCompleted: number; users: any },
   data: SeoworksWebhookData
 ) {
   try {
@@ -326,7 +326,7 @@ async function handleTaskCompleted(
       completedAt: data.completionDate || new Date().toISOString()
     }
 
-    const existingTasks = request.completedTasks || []
+    const existingTasks = Array.isArray(request.completedTasks) ? request.completedTasks : []
     updateData.completedTasks = [...existingTasks, completedTask]
 
     // Update status if this completes the request
@@ -421,7 +421,7 @@ async function handleTaskCompleted(
 
 // Handle task updated event
 async function handleTaskUpdated(
-  request: any, // TODO: Replace with precise Prisma type
+  request: { id: string; status: string; users: any },
   data: SeoworksWebhookData
 ) {
   // For now, just log the update
@@ -434,7 +434,7 @@ async function handleTaskUpdated(
 
 // Handle task cancelled event
 async function handleTaskCancelled(
-  request: any, // TODO: Replace with precise Prisma type
+  request: { id: string; status: string; users: any },
   data: SeoworksWebhookData
 ) {
   try {

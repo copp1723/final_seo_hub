@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     // Test dealership query
     console.log('Querying dealerships...')
-    let dealerships
+    let dealerships: any[]
     
     if (session.user.role === 'SUPER_ADMIN') {
       dealerships = await prisma.dealerships.findMany({

@@ -11,7 +11,7 @@ class EmailQueue {
   private failedEmails: Array<{ email: EmailOptions; retries: number; timestamp: Date }> = []
 
   constructor() {
-    this.validateEmailConfig()
+    // Skip validation during build time
   }
 
   private validateEmailConfig(): void {
@@ -27,6 +27,16 @@ class EmailQueue {
   }
 
   async add(email: EmailOptions): Promise<void> {
+    // Validate config at runtime when actually sending emails
+    if (typeof window === 'undefined') {
+      try {
+        this.validateEmailConfig()
+      } catch (error) {
+        logger.error('Email configuration invalid, skipping email', error)
+        return
+      }
+    }
+    
     // Log email attempt for debugging
     logger.info('Adding email to queue', {
       to: email.to,

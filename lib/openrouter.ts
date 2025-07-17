@@ -1,10 +1,6 @@
-import OpenAI from 'openai'
-
-// OpenRouter client configuration
-export const openrouter = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY
-})
+// OpenRouter configuration
+const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -77,16 +73,30 @@ Provide helpful, accurate responses about SEO services.If you don't have specifi
       { role: 'user', content: userMessage }
     ]
 
-    // Call OpenRouter API
-    const completion = await openrouter.chat.completions.create({
-      model: "anthropic/claude-3.5-sonnet", // You can change this to other models
-      messages: messages,
-      max_tokens: 500,
-      temperature: 0.7
+    // Call OpenRouter API directly
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'X-Title': 'SEO Hub Chat'
+      },
+      body: JSON.stringify({
+        model: "anthropic/claude-3.5-sonnet",
+        messages: messages,
+        max_tokens: 500,
+        temperature: 0.7
+      })
     })
 
-    const assistantResponse = completion.choices[0]?.message?.content || 
-      "I apologize, but I'm having trouble generating a response right now.Please try again or escalate to our SEO team."
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status}`)
+    }
+
+    const completion = await response.json()
+    const assistantResponse = completion.choices?.[0]?.message?.content || 
+      "I apologize, but I'm having trouble generating a response right now. Please try again or escalate to our SEO team."
 
     // Update conversation
     const updatedMessages: ChatMessage[] = [

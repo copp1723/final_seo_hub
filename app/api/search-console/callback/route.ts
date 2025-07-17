@@ -26,12 +26,12 @@ export async function GET(req: NextRequest) {
   
   if (error) {
     logger.error('Search Console OAuth error from Google', { error, userId: session.user.id })
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=search_console&error=${encodeURIComponent(error)}`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent(error)}`)
   }
 
   if (!code) {
     logger.error('Search Console callback: No authorization code received', { userId: session.user.id })
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=search_console&error=No authorization code`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=No authorization code`)
   }
 
   try {
@@ -117,10 +117,10 @@ export async function GET(req: NextRequest) {
       siteName: connection.siteName
     })
 
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=success&service=search_console`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=success&service=search_console`)
 
   } catch (error) {
     logger.error('Search Console OAuth callback error', { error, userId: session.user.id })
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=search_console&error=${encodeURIComponent('Connection failed')}`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent('Connection failed')}`)
   }
 }

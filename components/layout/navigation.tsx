@@ -130,9 +130,9 @@ export function Navigation() {
           </div>
 
           {/* Right side: Notifications, Dealership Selector, User menu */}
-          <div className="flex items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-3 lg:gap-6">
             {/* Notification Bell */}
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200">
                 <Bell className="h-5 w-5" />
                 {hasNotifications && (
@@ -140,7 +140,9 @@ export function Navigation() {
                 )}
               </button>
             </div>
-            <DealershipSelector />
+            <div className="flex-shrink-0">
+              <DealershipSelector />
+            </div>
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}

@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error('GA4 OAuth error from Google', { error })
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=ga4&error=${encodeURIComponent(error)}`)
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent(error)}`)
     }
 
     if (!code || !state) {
       logger.error('GA4 OAuth missing parameters', { hasCode: !!code, hasState: !!state })
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=ga4&error=Missing authorization code`)
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=Missing authorization code`)
     }
 
     // Exchange code for tokens
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       propertyName: connection.propertyName
     })
 
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=success&service=ga4`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=success&service=ga4`)
 
   } catch (error) {
     // Parse URL params from request for error logging
@@ -107,6 +107,6 @@ export async function GET(request: NextRequest) {
       hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET
     })
     const errorMessage = error instanceof Error ? error.message : 'Connection failed'
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=error&service=ga4&error=${encodeURIComponent(errorMessage)}`)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent(errorMessage)}`)
   }
 }

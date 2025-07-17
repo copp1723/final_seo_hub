@@ -137,6 +137,17 @@ export async function GET(request: NextRequest) {
   try {
     console.log('=== DEBUG: GET /api/dealerships/switch called ===');
     
+    // Test database connection first
+    try {
+      await prisma.$connect()
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError)
+      return NextResponse.json(
+        { error: 'Database connection failed', details: dbError instanceof Error ? dbError.message : 'Unknown DB error' },
+        { status: 503 }
+      )
+    }
+    
     const session = await SimpleAuth.getSessionFromRequest(request)
     console.log('Session:', {
       hasUser: !!session?.user.id,

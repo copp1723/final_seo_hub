@@ -1,30 +1,40 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// TEMPORARY DB TEST ENDPOINT - REMOVE AFTER TROUBLESHOOTING
 export async function GET() {
   try {
-    // Test basic database connectivity
+    // Test basic connection
+    await prisma.$connect()
+    
+    // Test dealerships count
+    const dealershipCount = await prisma.dealerships.count()
+    
+    // Test users count
     const userCount = await prisma.users.count()
     
-    // Test if we can create a simple query
-    const testQuery = await prisma.$queryRaw`SELECT 1 as test`
+    // Get sample data
+    const sampleDealerships = await prisma.dealerships.findMany({
+      select: { id: true, name: true, agencyId: true },
+      take: 3
+    })
     
     return NextResponse.json({
-      success: true,
+      status: 'connected',
+      dealershipCount,
       userCount,
-      testQuery,
-      timestamp: new Date().toISOString(),
-      databaseUrl: process.env.DATABASE_URL ? 'SET' : 'MISSING',
-      databaseUrlLength: process.env.DATABASE_URL?.length || 0
+      sampleDealerships,
+      timestamp: new Date().toISOString()
     })
+    
   } catch (error) {
     console.error('Database test error:', error)
+    
     return NextResponse.json({
-      success: false,
+      status: 'error',
       error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString(),
-      databaseUrl: process.env.DATABASE_URL ? 'SET' : 'MISSING'
+      timestamp: new Date().toISOString()
     }, { status: 500 })
+  } finally {
+    await prisma.$disconnect()
   }
 }

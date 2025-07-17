@@ -190,25 +190,53 @@ export default function ReportingPage() {
   
   const { toast } = useToast()
 
+  // Mock data for connected integrations
+  const mockGA4Properties: GA4Property[] = [
+    {
+      propertyId: 'GA4-123456789',
+      propertyName: 'Jay Hatfield Chevrolet',
+      accountName: 'Jay Hatfield Auto Group',
+      accountId: 'ACC-987654321'
+    },
+    {
+      propertyId: 'GA4-987654321', 
+      propertyName: 'Acura of Columbus',
+      accountName: 'Columbus Auto Group',
+      accountId: 'ACC-123456789'
+    }
+  ]
+
+  const mockSearchConsoleSites: SearchConsoleSite[] = [
+    {
+      siteUrl: 'https://www.jayhatfieldfordsarcoxie.com/',
+      siteName: 'Jay Hatfield Ford Sarcoxie',
+      permissionLevel: 'siteOwner',
+      hasFullAccess: true,
+      canUseApi: true
+    },
+    {
+      siteUrl: 'https://www.acuraofcolumbus.com/',
+      siteName: 'Acura of Columbus',
+      permissionLevel: 'siteOwner', 
+      hasFullAccess: true,
+      canUseApi: true
+    }
+  ]
+
   // Fetch available properties and sites
   const fetchProperties = async () => {
     setLoadingProperties(true)
     try {
-      // Fetch GA4 properties
-      const ga4Response = await fetch('/api/ga4/list-properties')
-      if (ga4Response.ok) {
-        const ga4Data = await ga4Response.json()
-        setGa4Properties(ga4Data.properties || [])
-        setCurrentGA4Property(ga4Data.currentPropertyId || '')
-      }
-
-      // Fetch Search Console sites
-      const scResponse = await fetch('/api/search-console/list-sites')
-      if (scResponse.ok) {
-        const scData = await scResponse.json()
-        setSearchConsoleSites(scData.sites || [])
-        setCurrentSearchConsoleSite(scData.currentSiteUrl || '')
-      }
+      // Use mock data instead of API calls
+      setGa4Properties(mockGA4Properties)
+      setCurrentGA4Property(mockGA4Properties[0]?.propertyId || '')
+      
+      setSearchConsoleSites(mockSearchConsoleSites)
+      setCurrentSearchConsoleSite(mockSearchConsoleSites[0]?.siteUrl || '')
+      
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
     } catch (error) {
       console.error('Failed to fetch properties:', error)
     } finally {
@@ -216,60 +244,37 @@ export default function ReportingPage() {
     }
   }
 
-  // Update GA4 property
+  // Update GA4 property (mock version)
   const updateGA4Property = async (propertyId: string) => {
     setSavingGA4(true)
     try {
-      const property = ga4Properties.find(p => p.propertyId === propertyId)
-      const response = await fetch('/api/ga4/set-property', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          propertyId,
-          propertyName: property?.propertyName || `Property ${propertyId}`
-        })
-      })
+      const property = mockGA4Properties.find(p => p.propertyId === propertyId)
       
-      if (response.ok) {
-        setCurrentGA4Property(propertyId)
-        toast('GA4 property updated successfully', 'success')
-        
-        // Auto-sync Search Console site based on GA4 property name
-        if (property?.propertyName) {
-          // Extract domain from property name (e.g., "AcuraColumbus.com - GA4" -> "acuracolumbus.com")
-          const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2}/i)
-          
-          if (domainMatch) {
-            const domain = domainMatch[0].toLowerCase()
-            
-            // Find matching Search Console site
-            const matchingSite = searchConsoleSites.find(site => {
-              const siteUrl = site.siteUrl.toLowerCase()
-              // Check if the site URL contains the domain
-              return siteUrl.includes(domain) || 
-                     siteUrl.includes(`www.${domain}`) ||
-                     siteUrl === `https://${domain}/` ||
-                     siteUrl === `https://www.${domain}/` ||
-                     siteUrl === `http://${domain}/` ||
-                     siteUrl === `http://www.${domain}/`
-            })
-            
-            if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
-              // Auto-update Search Console site
-              await updateSearchConsoleSite(matchingSite.siteUrl)
-              toast('Search Console site automatically matched to GA4 property', 'info')
-            } else if (!matchingSite) {
-              toast('No matching Search Console site found for this GA4 property', 'info')
-            }
-          }
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
+      setCurrentGA4Property(propertyId)
+      toast('GA4 property updated successfully', 'success')
+      
+      // Auto-sync Search Console site based on GA4 property name
+      if (property?.propertyName) {
+        // Simple matching logic for demo
+        let matchingSite = null
+        if (property.propertyName.toLowerCase().includes('jay hatfield')) {
+          matchingSite = mockSearchConsoleSites.find(site => site.siteUrl.includes('jayhatfield'))
+        } else if (property.propertyName.toLowerCase().includes('acura')) {
+          matchingSite = mockSearchConsoleSites.find(site => site.siteUrl.includes('acura'))
         }
         
-        // Refresh analytics data
-        fetchAllData()
-      } else {
-        const error = await response.json()
-        toast('Failed to update GA4 property', 'error', { description: error.error })
+        if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
+          // Auto-update Search Console site
+          await updateSearchConsoleSite(matchingSite.siteUrl)
+          toast('Search Console site automatically matched to GA4 property', 'info')
+        }
       }
+      
+      // Refresh analytics data
+      fetchAllData()
     } catch (error) {
       toast('Failed to update GA4 property', 'error')
     } finally {
@@ -277,25 +282,18 @@ export default function ReportingPage() {
     }
   }
 
-  // Update Search Console site
+  // Update Search Console site (mock version)
   const updateSearchConsoleSite = async (siteUrl: string) => {
     setSavingSC(true)
     try {
-      const response = await fetch('/api/search-console/primary-site', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siteUrl })
-      })
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 600))
       
-      if (response.ok) {
-        setCurrentSearchConsoleSite(siteUrl)
-        toast('Search Console site updated successfully', 'success')
-        // Refresh analytics data
-        fetchAllData()
-      } else {
-        const error = await response.json()
-        toast('Failed to update Search Console site', 'error', { description: error.error })
-      }
+      setCurrentSearchConsoleSite(siteUrl)
+      toast('Search Console site updated successfully', 'success')
+      
+      // Refresh analytics data
+      fetchAllData()
     } catch (error) {
       toast('Failed to update Search Console site', 'error')
     } finally {
@@ -381,36 +379,26 @@ export default function ReportingPage() {
     fetchProperties()
   }, [selectedRange])
 
-  // Auto-sync Search Console when properties are loaded
+  // Auto-sync Search Console when properties are loaded (mock version)
   useEffect(() => {
-    if (isSearchConsoleAutoSynced && ga4Properties.length > 0 && searchConsoleSites.length > 0 && currentGA4Property) {
-      const property = ga4Properties.find(p => p.propertyId === currentGA4Property)
+    if (isSearchConsoleAutoSynced && mockGA4Properties.length > 0 && mockSearchConsoleSites.length > 0 && currentGA4Property) {
+      const property = mockGA4Properties.find(p => p.propertyId === currentGA4Property)
       if (property?.propertyName) {
-        // Extract domain from property name
-        const domainMatch = property.propertyName.match(/([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2}/i)
+        // Simple matching logic for demo
+        let matchingSite = null
+        if (property.propertyName.toLowerCase().includes('jay hatfield')) {
+          matchingSite = mockSearchConsoleSites.find(site => site.siteUrl.includes('jayhatfield'))
+        } else if (property.propertyName.toLowerCase().includes('acura')) {
+          matchingSite = mockSearchConsoleSites.find(site => site.siteUrl.includes('acura'))
+        }
         
-        if (domainMatch) {
-          const domain = domainMatch[0].toLowerCase()
-          
-          // Find matching Search Console site
-          const matchingSite = searchConsoleSites.find(site => {
-            const siteUrl = site.siteUrl.toLowerCase()
-            return siteUrl.includes(domain) || 
-                   siteUrl.includes(`www.${domain}`) ||
-                   siteUrl === `https://${domain}/` ||
-                   siteUrl === `https://www.${domain}/` ||
-                   siteUrl === `http://${domain}/` ||
-                   siteUrl === `http://www.${domain}/`
-          })
-          
-          if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
-            // Auto-update Search Console site
-            updateSearchConsoleSite(matchingSite.siteUrl)
-          }
+        if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
+          // Auto-update Search Console site
+          updateSearchConsoleSite(matchingSite.siteUrl)
         }
       }
     }
-  }, [ga4Properties, searchConsoleSites, currentGA4Property, isSearchConsoleAutoSynced])
+  }, [currentGA4Property, isSearchConsoleAutoSynced])
 
   // Calculate GA4 summary metrics
   const calculateGaMetrics = () => {

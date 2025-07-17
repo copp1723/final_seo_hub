@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
-import { DealershipSelector } from './dealership-selector'
 import { Badge } from '@/components/ui/badge'
 
 
@@ -126,11 +125,8 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Right side: Dealership Selector, User menu */}
+          {/* Right side: User menu */}
           <div className="flex items-center gap-3 lg:gap-6">
-            <div className="flex-shrink-0">
-              <DealershipSelector />
-            </div>
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -258,13 +254,6 @@ export function Navigation() {
                 })}
               </>
             )}
-          </div>
-          
-          {/* Mobile Dealership Selector */}
-          <div className="pt-4 pb-3 border-t border-gray-200">
-            <div className="px-4">
-              <DealershipSelector />
-            </div>
           </div>
           
           {/* Mobile User Info */}

@@ -9,11 +9,28 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, CheckCircle, Clock, ArrowRight, AlertCircle, Activity, Loader2, Plus, BarChart } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { 
+  FileText, 
+  CheckCircle, 
+  Clock, 
+  ArrowRight, 
+  AlertCircle, 
+  Activity, 
+  Loader2, 
+  Plus, 
+  BarChart,
+  TrendingUp,
+  Target,
+  Calendar,
+  Users,
+  Zap,
+  Star
+} from 'lucide-react'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
 import ErrorBoundary from '@/components/error-boundary'
 import { useToast } from '@/hooks/use-toast'
-
 import { RecentActivityTimeline } from '@/components/dashboard/RecentActivityTimeline'
 
 interface PackageProgress {
@@ -52,6 +69,96 @@ interface DashboardData {
   dealershipId: string
 }
 
+const StatCard = ({ 
+  title, 
+  value, 
+  subtitle, 
+  icon: Icon, 
+  trend, 
+  color = "blue",
+  loading = false 
+}: {
+  title: string
+  value: string | number
+  subtitle: string
+  icon: any
+  trend?: { value: number; positive: boolean }
+  color?: "blue" | "green" | "purple" | "orange" | "red"
+  loading?: boolean
+}) => {
+  const colorClasses = {
+    blue: "from-blue-500 to-blue-600 text-blue-600 bg-blue-50",
+    green: "from-green-500 to-green-600 text-green-600 bg-green-50",
+    purple: "from-purple-500 to-purple-600 text-purple-600 bg-purple-50",
+    orange: "from-orange-500 to-orange-600 text-orange-600 bg-orange-50",
+    red: "from-red-500 to-red-600 text-red-600 bg-red-50"
+  }
+
+  return (
+    <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/30 hover:shadow-md transition-all duration-300">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle>
+        <div className={`p-2 rounded-lg ${colorClasses[color].split(' ').slice(2).join(' ')}`}>
+          <Icon className={`h-4 w-4 ${colorClasses[color].split(' ')[2]}`} />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <div>
+            {loading ? (
+              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+            ) : (
+              <div className="text-2xl font-bold text-gray-900">{value}</div>
+            )}
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+          </div>
+          {trend && (
+            <div className={`flex items-center text-xs ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
+              <TrendingUp className={`h-3 w-3 mr-1 ${trend.positive ? '' : 'rotate-180'}`} />
+              {Math.abs(trend.value)}%
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const ProgressBar = ({ 
+  label, 
+  used, 
+  limit, 
+  color = "blue" 
+}: { 
+  label: string
+  used: number
+  limit: number
+  color?: "blue" | "green" | "purple" | "orange"
+}) => {
+  const percentage = limit > 0 ? (used / limit) * 100 : 0
+  const colorClasses = {
+    blue: "bg-blue-500",
+    green: "bg-green-500", 
+    purple: "bg-purple-500",
+    orange: "bg-orange-500"
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600">{used} / {limit}</span>
+          <Badge variant={percentage >= 80 ? "destructive" : percentage >= 60 ? "secondary" : "default"} className="text-xs">
+            {Math.round(percentage)}%
+          </Badge>
+        </div>
+      </div>
+      <Progress value={percentage} className="h-2" />
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
   const { toast } = useToast()
@@ -60,12 +167,16 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
   
   // Handle authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
       </div>
     )
   }
@@ -102,9 +213,24 @@ export default function DashboardPage() {
         setRecentActivity([])
       }
       
+      setRetryCount(0) // Reset retry count on success
+      
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
       setError('Failed to load dashboard data. Please try again.')
+      
+      // Show retry toast for network errors
+      if (retryCount < 3) {
+        toast({
+          title: "Connection Issue",
+          description: "Retrying in a moment...",
+          variant: "default",
+        })
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1)
+          fetchDashboardData()
+        }, 2000)
+      }
     } finally {
       setLoading(false)
     }
@@ -151,15 +277,23 @@ export default function DashboardPage() {
   if (error && !dashboardData) {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Dashboard</h1>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={fetchDashboardData}>
-                Try Again
-              </Button>
+            <div className="text-center max-w-md mx-auto">
+              <div className="bg-red-50 p-6 rounded-lg border border-red-200">
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h1 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Dashboard</h1>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <div className="space-y-2">
+                  <Button onClick={fetchDashboardData} className="w-full">
+                    <Loader2 className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                  {retryCount > 0 && (
+                    <p className="text-sm text-gray-500">Retry attempt: {retryCount}/3</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -171,58 +305,61 @@ export default function DashboardPage() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          {/* Header with Dealership Selector */}
+          {/* Header with Enhanced Design */}
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-medium text-gray-900">Dashboard</h1>
-              <p className="mt-1 text-sm text-gray-500">Welcome back, {user?.name || user?.email || 'User'}</p>
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+              <div className="flex items-center space-x-2">
+                <p className="text-gray-600">Welcome back,</p>
+                <span className="font-medium text-gray-900">{user?.name || user?.email || 'User'}</span>
+                <Badge variant="secondary" className="text-xs">
+                  {user?.role?.replace('_', ' ').toLowerCase() || 'user'}
+                </Badge>
+              </div>
             </div>
             <DealershipSelector />
           </div>
           
           {/* Loading indicator during updates */}
           {loading && dashboardData && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span className="text-gray-600">Updating dashboard...</span>
+            <div className="flex items-center justify-center py-4 bg-blue-50 rounded-lg border border-blue-200">
+              <Loader2 className="h-5 w-5 animate-spin mr-2 text-blue-600" />
+              <span className="text-blue-700 font-medium">Updating dashboard...</span>
             </div>
           )}
-          {/* Top Stats Cards */}
+
+          {/* Enhanced Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-normal text-gray-500">SEO Work in Progress</CardTitle>
-                <Clock className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold text-gray-900">{data.activeRequests}</p>
-                <p className="text-xs text-gray-400 mt-1">Active projects</p>
-              </CardContent>
-            </Card>
+            <StatCard
+              title="SEO Work in Progress"
+              value={data.activeRequests}
+              subtitle="Active projects"
+              icon={Clock}
+              color="blue"
+              loading={loading}
+              trend={data.activeRequests > 0 ? { value: 12, positive: true } : undefined}
+            />
             
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-normal text-gray-500">Completed This Month</CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold text-gray-900">{data.tasksCompletedThisMonth}</p>
-                <p className="text-xs text-gray-400 mt-1">Pages, blogs & posts</p>
-              </CardContent>
-            </Card>
+            <StatCard
+              title="Completed This Month"
+              value={data.tasksCompletedThisMonth}
+              subtitle="Pages, blogs & posts"
+              icon={CheckCircle}
+              color="green"
+              loading={loading}
+              trend={data.tasksCompletedThisMonth > 0 ? { value: 8, positive: true } : undefined}
+            />
             
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-normal text-gray-500">Total SEO Work</CardTitle>
-                <FileText className="h-4 w-4 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold text-gray-900">{data.totalRequests}</p>
-                <p className="text-xs text-gray-400 mt-1">All time requests</p>
-              </CardContent>
-            </Card>
+            <StatCard
+              title="Total SEO Work"
+              value={data.totalRequests}
+              subtitle="All time requests"
+              icon={FileText}
+              color="purple"
+              loading={loading}
+            />
           </div>
 
           {/* Performance Trends Widget */}

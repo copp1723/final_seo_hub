@@ -15,11 +15,14 @@ import {
   ChevronDown,
   Settings,
   PlusCircle,
-  MessageSquare
+  MessageSquare,
+  Bell,
+  Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBranding } from '@/hooks/use-branding'
 import { DealershipSelector } from './dealership-selector'
+import { Badge } from '@/components/ui/badge'
 
 
 const navItems = [
@@ -37,6 +40,7 @@ export function Navigation() {
   const branding = useBranding()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [hasNotifications, setHasNotifications] = useState(true) // Simulated notifications
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
@@ -61,7 +65,7 @@ export function Navigation() {
 
   // Admin navigation items - simplified
   const adminNavItems = user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? [
-    { href: user?.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin', label: 'Admin', icon: Settings },
+    { href: user?.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin', label: 'Admin', icon: Shield },
     ...(user?.role === 'AGENCY_ADMIN' ? [{ href: '/agency/dashboard', label: 'Analytics', icon: BarChart }] : [])
   ] : []
 

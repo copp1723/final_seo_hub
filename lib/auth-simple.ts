@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { prisma } from './prisma-server';
 
 export interface SimpleUser {
   id: string;
@@ -122,14 +121,8 @@ export class SimpleAuth {
     const isEmergencyUser = user.id.startsWith('hardcoded-') || user.id === 'auto-super-admin';
     
     if (!isEmergencyUser) {
-      // Only create database session for regular users
-      await prisma.sessions.create({
-        data: {
-          sessionToken: token,
-          userId: user.id,
-          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        },
-      });
+      // Skip database session for edge runtime compatibility
+      // Sessions will be handled in API routes instead
     }
 
     return token;
@@ -169,14 +162,8 @@ export class SimpleAuth {
     try {
       const { cookies } = await import('next/headers');
       const cookieStore = await cookies();
-      const token = cookieStore.get(this.COOKIE_NAME)?.value;
-
-      if (token) {
-        await prisma.sessions.deleteMany({
-          where: { sessionToken: token }
-        });
-      }
-
+      
+      // Just delete the cookie, skip database operations for edge runtime
       cookieStore.delete(this.COOKIE_NAME);
     } catch (error) {
       console.error('Session deletion error:', error);
@@ -205,7 +192,7 @@ export async function requireAuth() {
   };
 }
 
-export async function requireRole(allowedRoles: string[]) {
+export async function requireRole(_allowedRoles: string[]) {
   // AUTO-LOGIN: Always return super admin session (has all roles)
   return {
     user: {

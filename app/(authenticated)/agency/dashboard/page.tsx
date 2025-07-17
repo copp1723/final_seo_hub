@@ -206,7 +206,7 @@ export default function AgencyDashboard() {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="count"
-                      label={({ package: pkg, count }) => `${pkg}: ${count}`}
+                      label={({ package: pkg, count }: any) => `${pkg}: ${count}`}
                     >
                       {analytics.packageDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

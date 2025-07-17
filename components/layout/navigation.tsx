@@ -62,7 +62,7 @@ export function Navigation() {
   // Admin navigation items - simplified
   const adminNavItems = user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? [
     { href: user?.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin', label: 'Admin', icon: Settings },
-    ...(user?.role === 'AGENCY_ADMIN' ? [{ href: '/agency/dashboard', label: 'Analytics', icon: BarChart3 }] : [])
+    ...(user?.role === 'AGENCY_ADMIN' ? [{ href: '/agency/dashboard', label: 'Analytics', icon: BarChart }] : [])
   ] : []
 
   return (

@@ -68,7 +68,7 @@ async function sendToSEOWorks(data: DealerOnboardingData) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': SEOWORKS_API_KEY
+        'x-api-key': SEOWORKS_API_KEY || ''
       },
       body: JSON.stringify(seoworksPayload)
     })

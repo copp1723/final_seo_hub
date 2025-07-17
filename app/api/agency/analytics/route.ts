@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         users_dealerships: true,
         monthly_usage: {
           where: {
-            createdAt: { gte: startOfMonth(now) }
+            archivedAt: { gte: startOfMonth(now) }
           }
         }
       }

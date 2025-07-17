@@ -24,12 +24,18 @@ export function DealershipSelector() {
   const [isSwitching, setIsSwitching] = useState(false)
   const [dealershipData, setDealershipData] = useState<DealershipData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Fetch dealerships on component mount
+  // Set mounted state to prevent hydration issues
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Fetch dealerships on component mount - only after mounted
   useEffect(() => {
     const fetchDealerships = async () => {
-      if (!user?.id) return
+      if (!mounted || !user?.id) return
 
       setIsLoading(true)
       setError(null)
@@ -70,7 +76,7 @@ export function DealershipSelector() {
     }
 
     fetchDealerships()
-  }, [user?.id])
+  }, [user?.id, mounted])
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -128,6 +134,16 @@ export function DealershipSelector() {
     } finally {
       setIsSwitching(false)
     }
+  }
+
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50/80 transition-colors duration-200">
+        <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+        <span className="text-sm text-gray-500 font-normal">Loading...</span>
+      </div>
+    )
   }
 
   // Show loading state

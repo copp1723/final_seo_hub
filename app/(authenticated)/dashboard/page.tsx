@@ -66,7 +66,8 @@ interface DashboardData {
   gaConnected: boolean
   packageProgress: PackageProgress | null
   latestRequest: LatestRequest | null
-  dealershipId: string
+  dealershipId: string | null
+  recentActivity?: Activity[]
 }
 
 const StatCard = ({ 
@@ -168,6 +169,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  // Set mounted state to prevent hydration issues
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Handle authentication
   if (isLoading) {
@@ -185,40 +192,76 @@ export default function DashboardPage() {
     redirect('/auth/simple-signin')
   }
 
-  // Fetch dashboard data from API
+  // Fetch dashboard data from API with better error handling
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Get selected dealership from context or storage
-      const selectedDealershipId = localStorage.getItem('selectedDealershipId')
+      // Get selected dealership from context or storage (only if mounted)
+      let selectedDealershipId = null
+      if (typeof window !== 'undefined') {
+        selectedDealershipId = localStorage.getItem('selectedDealershipId')
+      }
       const queryParams = selectedDealershipId ? `?dealershipId=${selectedDealershipId}` : ''
-      
-      const response = await fetch(`/api/dashboard${queryParams}`)
-      
+
+      const response = await fetch(`/api/dashboard${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        const errorData = await response.json().catch(() => ({
+          error: `HTTP ${response.status}: ${response.statusText}`
+        }))
         console.error('Dashboard API error:', {
           status: response.status,
           statusText: response.statusText,
           error: errorData
         })
+
+        // Provide fallback data for certain errors
+        if (response.status === 404 || response.status === 500) {
+          console.warn('Using fallback dashboard data due to API error')
+          setDashboardData({
+            activeRequests: 0,
+            totalRequests: 0,
+            tasksCompletedThisMonth: 0,
+            tasksSubtitle: 'No data available',
+            gaConnected: false,
+            packageProgress: null,
+            latestRequest: null,
+            dealershipId: null,
+            recentActivity: []
+          })
+          setRecentActivity([])
+          return
+        }
+
         throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
-      
+
       const data = await response.json()
-      
-      setDashboardData(data)
-      
-      // Set recent activity if available
-      if (data.recentActivity && data.recentActivity.length > 0) {
-        setRecentActivity(data.recentActivity)
-      } else {
-        // Set empty activity if no recent activity
-        setRecentActivity([])
-      }
-      
+
+      // Validate and set dashboard data with fallbacks
+      setDashboardData({
+        activeRequests: data.activeRequests || 0,
+        totalRequests: data.totalRequests || 0,
+        tasksCompletedThisMonth: data.tasksCompletedThisMonth || 0,
+        tasksSubtitle: data.tasksSubtitle || 'No tasks completed',
+        gaConnected: data.gaConnected || false,
+        packageProgress: data.packageProgress || null,
+        latestRequest: data.latestRequest || null,
+        dealershipId: data.dealershipId || null,
+        recentActivity: data.recentActivity || []
+      })
+
+      // Set recent activity with fallback
+      setRecentActivity(data.recentActivity || [])
+
       setRetryCount(0) // Reset retry count on success
       
     } catch (err) {
@@ -244,12 +287,12 @@ export default function DashboardPage() {
     }
   }
 
-  // Initial data fetch
+  // Initial data fetch - only after mounted
   useEffect(() => {
-    if (user?.id) {
+    if (mounted && user?.id) {
       fetchDashboardData()
     }
-  }, [user?.id])
+  }, [user?.id, mounted])
 
   // Listen for dealership changes
   useEffect(() => {

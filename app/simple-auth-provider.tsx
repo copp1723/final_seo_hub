@@ -33,45 +33,71 @@ export function useAuth() {
 export function SimpleAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   const checkSession = async () => {
-    // AUTO-LOGIN: Always set super admin user
-    setUser({
-      id: 'auto-super-admin',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN',
-      agencyId: null,
-      dealershipId: null,
-      name: 'Josh Copp (Auto Super Admin)'
-    });
-    setIsLoading(false);
+    try {
+      // AUTO-LOGIN: Always set super admin user
+      setUser({
+        id: 'auto-super-admin',
+        email: 'josh.copp@onekeel.ai',
+        role: 'SUPER_ADMIN',
+        agencyId: null,
+        dealershipId: null,
+        name: 'Josh Copp (Auto Super Admin)'
+      });
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error in checkSession:', error);
+      setIsLoading(false);
+    }
   };
 
   const signOut = async () => {
-    // AUTO-LOGIN: Prevent sign out, just refresh to dashboard
-    router.push('/dashboard');
+    try {
+      // AUTO-LOGIN: Prevent sign out, just refresh to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error in signOut:', error);
+    }
   };
 
   const refreshSession = async () => {
-    await checkSession();
+    try {
+      await checkSession();
+    } catch (error) {
+      console.error('Error in refreshSession:', error);
+    }
   };
 
+  // Set mounted state
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Initialize session after mount
+  useEffect(() => {
+    if (!mounted) return;
+
     checkSession();
-    
+
     // Check session every 5 minutes
     const interval = setInterval(checkSession, 5 * 60 * 1000);
-    
-    // Check session on window focus
+
+    // Check session on window focus - only if window is available
     const handleFocus = () => checkSession();
-    window.addEventListener('focus', handleFocus);
-    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleFocus);
+    }
+
     return () => {
       clearInterval(interval);
-      window.removeEventListener('focus', handleFocus);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', handleFocus);
+      }
     };
-  }, []);
+  }, [mounted]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, signOut, refreshSession }}>

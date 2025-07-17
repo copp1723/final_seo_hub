@@ -12,22 +12,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
-  // Prevent hydration issues by not rendering session-dependent content until mounted
-  if (!mounted) {
-    return (
-      <ErrorBoundary>
-        {children}
-        <Toaster position="top-center" richColors />
-      </ErrorBoundary>
-    )
-  }
-
+  // Always wrap in ErrorBoundary, but delay auth provider until mounted
   return (
     <ErrorBoundary>
-      <SimpleAuthProvider>
-        {children}
-        <Toaster position="top-center" richColors />
-      </SimpleAuthProvider>
+      {mounted ? (
+        <SimpleAuthProvider>
+          {children}
+          <Toaster position="top-center" richColors />
+        </SimpleAuthProvider>
+      ) : (
+        <>
+          {children}
+          <Toaster position="top-center" richColors />
+        </>
+      )}
     </ErrorBoundary>
   )
 }

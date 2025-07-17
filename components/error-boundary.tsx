@@ -52,7 +52,7 @@ class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
           <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
             <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
               <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,28 +61,46 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
             <div className="mt-4 text-center">
               <h3 className="text-lg font-medium text-gray-900">
-                Oops! Something went wrong</h3>
+                Oops! Something went wrong
+              </h3>
               <p className="mt-2 text-sm text-gray-500">
-                We're sorry for the trouble.An unexpected error occurred.You can try reloading the page, or go back to the homepage.If the problem persists, please contact support</p>
+                We're sorry for the trouble. An unexpected error occurred. You can try reloading the page, or go back to the dashboard. If the problem persists, please contact support.
+              </p>
+
+              {/* Show error details in development */}
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-left">
+                  <h4 className="text-sm font-medium text-red-800 mb-2">Error Details (Development)</h4>
+                  <p className="text-xs text-red-700 font-mono break-all">
+                    {this.state.error.message}
+                  </p>
+                  {this.state.error.stack && (
+                    <details className="mt-2">
+                      <summary className="text-xs text-red-600 cursor-pointer">Stack Trace</summary>
+                      <pre className="text-xs text-red-600 mt-1 overflow-x-auto whitespace-pre-wrap">
+                        {this.state.error.stack}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              )}
+
               <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => {
+                    this.setState({ hasError: false, error: undefined })
+                    window.location.reload()
+                  }}
                   className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto"
                 >
-                  Reload Page
+                  Try Again
                 </button>
                 <a
-                  href="/"
+                  href="/dashboard"
                   className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto"
                 >
-                  Go to Homepage
+                  Go to Dashboard
                 </a>
-                <button
-                  onClick={() => this.setState({ hasError: false, error: undefined })}
-                  className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto sm:text-xs"
-                >
-                  Try to Render Again
-                </button>
               </div>
             </div>
           </div>

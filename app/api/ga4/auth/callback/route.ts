@@ -95,9 +95,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?status=success&service=ga4`)
 
   } catch (error) {
+    // Parse URL params from request for error logging
+    const url = new URL(request.url)
+    const errorCode = url.searchParams.get('code')
+    const errorState = url.searchParams.get('state')
+    
     logger.error('GA4 OAuth callback error', error, {
-      code: searchParams?.get('code') ? 'present' : 'missing',
-      state: searchParams?.get('state'),
+      code: errorCode ? 'present' : 'missing',
+      state: errorState,
       hasClientId: !!process.env.GOOGLE_CLIENT_ID,
       hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET
     })

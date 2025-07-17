@@ -87,9 +87,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if dealership has GA4 connection
+    // Check if user has GA4 connection
     const ga4Connection = await prisma.ga4_connections.findUnique({
-      where: { userId: targetDealershipId }
+      where: { userId: session.user.id }
     })
 
     if (!ga4Connection || !ga4Connection.propertyId) {
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize GA4 service
-    const ga4Service = new GA4Service(targetDealershipId)
+    const ga4Service = new GA4Service(session.user.id)
 
     // Prepare batch requests for different reports
     const batchRequests = [

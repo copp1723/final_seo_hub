@@ -18,7 +18,7 @@ export class SearchConsoleService {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.NEXTAUTH_URL + '/api/auth/callback/google'
+      process.env.NEXTAUTH_URL + '/api/auth/google/callback'
     )
 
     oauth2Client.setCredentials({
@@ -99,14 +99,14 @@ export class SearchConsoleService {
   }
 }
 
-// Helper to get service instance for a dealership
-export async function getSearchConsoleService(dealershipId: string) {
+// Helper to get service instance for a user
+export async function getSearchConsoleService(userId: string) {
   const token = await prisma.search_console_connections.findUnique({
-    where: { userId: dealershipId }
+    where: { userId: userId }
   })
 
   if (!token) {
-    throw new Error('No Search Console token found for dealership')
+    throw new Error('No Search Console token found for user')
   }
 
   console.log('DEBUG: SearchConsole token.accessToken type:', typeof token.accessToken, 'value:', token.accessToken)

@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     })
 
     searchConsoleConnection = await prisma.search_console_connections.findUnique({
-      where: { userId: targetDealershipId }
+      where: { userId: session.user.id }
     })
 
     logger.info('Search Console connection query result', {
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     let searchConsoleService
     try {
-      searchConsoleService = await getSearchConsoleService(targetDealershipId)
+      searchConsoleService = await getSearchConsoleService(session.user.id)
       logger.info('Search Console service initialized successfully', {
         userId: session.user.id,
         dealershipId: targetDealershipId

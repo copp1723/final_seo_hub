@@ -15,18 +15,18 @@ interface RunReportOptions {
 
 export class GA4Service {
   private analyticsData: any;
-  private dealershipId: string;
+  private userId: string;
 
-  constructor(dealershipId: string) {
-    this.dealershipId = dealershipId;
+  constructor(userId: string) {
+    this.userId = userId;
   }
 
   private async initialize() {
     // Refresh token if needed
-    await refreshGA4TokenIfNeeded(this.dealershipId);
+    await refreshGA4TokenIfNeeded(this.userId);
 
     const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: this.dealershipId }
+      where: { userId: this.userId }
     });
 
     if (!connection) {

@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { encrypt, decrypt } from '@/lib/encryption'
 import { logger } from '@/lib/logger'
 
-export async function refreshGA4TokenIfNeeded(dealershipId: string): Promise<boolean> {
+export async function refreshGA4TokenIfNeeded(userId: string): Promise<boolean> {
   try {
     const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: dealershipId }
+      where: { userId: userId }
     })
 
     if (!connection) {
@@ -56,11 +56,11 @@ export async function refreshGA4TokenIfNeeded(dealershipId: string): Promise<boo
       }
     })
 
-    logger.info('GA4 token refreshed successfully', { dealershipId })
+    logger.info('GA4 token refreshed successfully', { userId })
     return true
 
   } catch (error) {
-    logger.error('Failed to refresh GA4 token', error, { dealershipId })
+    logger.error('Failed to refresh GA4 token', error, { userId })
     return false
   }
 }

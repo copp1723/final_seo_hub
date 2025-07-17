@@ -27,25 +27,10 @@ export async function GET() {
       )
     }
 
-    // Get GA4 connection - either from user's dealership or any dealership in their agency
-    let connection = null
-    
-    if (user?.dealershipId) {
-      connection = await prisma.ga4_connections.findUnique({
-        where: { userId: user.dealershipId }
-      })
-    } else if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
-      // For agency admins, find any GA4 connection in their agency to use the tokens
-      const agencyDealership = await prisma.dealerships.findFirst({
-        where: { agencyId: user.agencyId }
-      })
-      
-      if (agencyDealership) {
-        connection = await prisma.ga4_connections.findFirst({
-          where: { userId: agencyDealership.id }
-        })
-      }
-    }
+    // Get GA4 connection for the user
+    let connection = await prisma.ga4_connections.findUnique({
+      where: { userId: user.id }
+    })
 
     if (!connection || !connection.accessToken) {
       return NextResponse.json(

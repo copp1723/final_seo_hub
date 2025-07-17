@@ -233,7 +233,7 @@ async function main() {
   let agencyAdmin = await prisma.users.findFirst({
     where: {
       agencyId: agency.id,
-      role: 'admin'
+      role: 'ADMIN'
     }
   })
 
@@ -244,7 +244,7 @@ async function main() {
         id: 'user-admin-auto-group',
         email: 'admin@autogroup.com',
         name: 'Auto Group Admin',
-        role: 'admin',
+        role: 'ADMIN',
         agencyId: agency.id,
         emailVerified: new Date(),
         updatedAt: new Date()
@@ -273,7 +273,7 @@ async function main() {
           id: `user-${dealershipData.id}`,
           email: dealershipData.userEmail,
           name: `${dealershipData.userName} (${dealershipData.name})`,
-          role: 'user',
+          role: 'USER',
           agencyId: agency.id,
           emailVerified: new Date(),
           updatedAt: new Date()

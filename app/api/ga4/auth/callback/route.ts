@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state') // This is the userId
     const error = searchParams.get('error')
 
+    console.log('[GA4 CALLBACK] Received state:', state)
     logger.info('GA4 OAuth callback received', { code: !!code, state, error })
 
     if (error) {
@@ -44,13 +45,40 @@ export async function GET(request: NextRequest) {
     let propertyId = '320759942' // Default to Jay Hatfield Chevrolet
     let propertyName = 'Jay Hatfield Chevrolet'
     
-    logger.info('Using default GA4 property', { propertyId, propertyName })
+    // TODO: Fetch user's GA4 properties from Google Analytics API
+    try {
+      const analyticsadmin = google.analyticsadmin('v1beta');
+      const accountsRes = await analyticsadmin.accounts.list({ auth: oauth2Client });
+      logger.info('Fetched GA4 accounts', { accounts: accountsRes.data.accounts });
+
+      if (accountsRes.data.accounts && accountsRes.data.accounts.length > 0) {
+        const accountId = accountsRes.data.accounts[0].name; // e.g., "accounts/123456"
+        const propertiesRes: any = await analyticsadmin.properties.list({
+          parent: accountId,
+          auth: oauth2Client,
+        });
+        logger.info('Fetched GA4 properties', { properties: propertiesRes.data.properties });
+
+        if (propertiesRes.data.properties && propertiesRes.data.properties.length > 0) {
+          propertyId = propertiesRes.data.properties[0].name.replace('properties/', '');
+          propertyName = propertiesRes.data.properties[0].displayName;
+        }
+      }
+    } catch (fetchError) {
+      logger.warn('Failed to fetch GA4 properties, using default', { error: fetchError });
+    }
+    logger.info('Selected GA4 property for connection', { propertyId, propertyName });
 
     // Get user's dealership for proper connection
     const user = await prisma.users.findUnique({
       where: { id: state },
       include: { dealerships: true }
     })
+    if (!user) {
+      console.log('[GA4 CALLBACK] User not found for state:', state)
+    } else {
+      console.log('[GA4 CALLBACK] Found user:', { id: user.id, email: user.email, role: user.role })
+    }
 
     if (!user) {
       throw new Error('User not found')
@@ -105,7 +133,10 @@ export async function GET(request: NextRequest) {
       state: errorState,
       hasClientId: !!process.env.GOOGLE_CLIENT_ID,
       hasClientSecret: !!process.env.GOOGLE_CLIENT_SECRET
-    })
+    });
+    if (error && typeof error === 'object' && 'response' in error) {
+      logger.error('GA4 API error response', { response: error.response });
+    }
     const errorMessage = error instanceof Error ? error.message : 'Connection failed'
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent(errorMessage)}`)
   }

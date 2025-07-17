@@ -3,6 +3,7 @@ import { SimpleAuth } from '@/lib/auth-simple'
 
 export async function GET(request: NextRequest) {
   const session = await SimpleAuth.getSessionFromRequest(request)
+  console.log('[GA4 CONNECT] Session:', session)
   if (!session?.user.id) {
     return NextResponse.redirect('/auth/simple-signin')
   }
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set('access_type', 'offline')
   authUrl.searchParams.set('prompt', 'consent')
   authUrl.searchParams.set('state', session.user.id) // Pass userId as state
+  console.log('[GA4 CONNECT] Using state:', session.user.id)
 
   return NextResponse.redirect(authUrl.toString())
 }

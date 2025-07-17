@@ -48,11 +48,13 @@ export function DealershipSelector() {
         }
 
         const data: DealershipData = await response.json()
-        console.log('Dealership data received:', data) // Debug log
-        
+
         // Handle empty dealership arrays gracefully
         if (!data.availableDealerships?.length) {
-          console.warn('No dealerships found for user')
+          // Only log once, not repeatedly
+          if (!dealershipData) {
+            console.warn('No dealerships found for user')
+          }
           setDealershipData({
             currentDealership: null,
             availableDealerships: []
@@ -64,7 +66,7 @@ export function DealershipSelector() {
       } catch (err) {
         console.error('Error fetching dealerships:', err)
         setError(err instanceof Error ? err.message : 'Failed to load dealerships')
-        
+
         // Set empty dealership data to prevent null reference errors
         setDealershipData({
           currentDealership: null,
@@ -168,7 +170,6 @@ export function DealershipSelector() {
 
   // Don't render if no dealership data available
   if (!dealershipData?.availableDealerships?.length) {
-    console.log('No dealerships available to display') // Debug log
     return (
       <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50/80">
         <Building2 className="h-4 w-4 text-gray-400" />

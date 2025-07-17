@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/app/simple-auth-provider'
 import { redirect } from 'next/navigation'
 
@@ -193,7 +193,7 @@ export default function DashboardPage() {
   }
 
   // Fetch dashboard data from API with better error handling
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -285,14 +285,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [retryCount]) // Only depend on retryCount
 
   // Initial data fetch - only after mounted
   useEffect(() => {
     if (mounted && user?.id) {
       fetchDashboardData()
     }
-  }, [user?.id, mounted])
+  }, [user?.id, mounted, fetchDashboardData])
 
   // Listen for dealership changes
   useEffect(() => {
@@ -301,11 +301,11 @@ export default function DashboardPage() {
     }
 
     window.addEventListener('dealershipChanged', handleDealershipChange)
-    
+
     return () => {
       window.removeEventListener('dealershipChanged', handleDealershipChange)
     }
-  }, [])
+  }, [fetchDashboardData])
 
   if (loading && !dashboardData) {
     return (
@@ -528,7 +528,7 @@ export default function DashboardPage() {
                     <span className="text-xs text-gray-500">Check request status</span>
                   </Button>
                 </Link>
-                <Link href="/reports">
+                <Link href="/reporting">
                   <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2 hover:bg-white hover:shadow-sm transition-all">
                     <BarChart className="h-6 w-6 text-purple-600" />
                     <span className="font-medium">View Reports</span>

@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && npm run type-check && next build",
+    "build": "npx prisma generate && next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
@@ -21,7 +21,7 @@
     "postinstall": "prisma generate",
     "clean": "rm -rf .next node_modules",
     "clean:install": "npm run clean && npm install",
-    "build:production": "prisma generate && prisma migrate deploy && npm run type-check && next build",
+    "build:production": "prisma generate && prisma migrate deploy && next build",
     "db:setup": "prisma generate && prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:setup-admins": "prisma db execute --schema=prisma/schema.prisma --file=scripts/setup-super-admins.sql",

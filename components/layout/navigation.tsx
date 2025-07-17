@@ -26,8 +26,7 @@ import { Badge } from '@/components/ui/badge'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/requests', label: 'My Requests', icon: FileText },
-  { href: '/focus-request', label: 'New Request', icon: PlusCircle },
+  { href: '/requests', label: 'Requests', icon: FileText },
   { href: '/chat', label: 'SEO Assistant', icon: MessageSquare },
   { href: '/tasks', label: 'Tasks', icon: Settings },
   { href: '/reporting', label: 'Reports', icon: BarChart }
@@ -86,8 +85,7 @@ export function Navigation() {
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || 
-                  (item.href === '/requests' && pathname?.startsWith('/requests/')) || 
-                  (item.href === '/focus-request' && pathname?.startsWith('/focus-request')) ||
+                  (item.href === '/requests' && (pathname?.startsWith('/requests/') || pathname?.startsWith('/focus-request'))) ||
                   (item.href === '/chat' && pathname?.startsWith('/chat'))
                 return (
                   <Link
@@ -206,8 +204,7 @@ export function Navigation() {
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || 
-                (item.href === '/requests' && pathname?.startsWith('/requests/')) ||
-                (item.href === '/focus-request' && pathname?.startsWith('/focus-request')) ||
+                (item.href === '/requests' && (pathname?.startsWith('/requests/') || pathname?.startsWith('/focus-request'))) ||
                 (item.href === '/chat' && pathname?.startsWith('/chat'))
               
               return (

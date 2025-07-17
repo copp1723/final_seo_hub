@@ -78,6 +78,7 @@ export class SimpleAuth {
         // For regular tokens, verify signature
         const encoder = new TextEncoder();
         const secretKey = encoder.encode(this.JWT_SECRET);
+        const data = Buffer.from(encodedData, 'base64').toString();
         
         // Create a key from the secret
         const key = await crypto.subtle.importKey(

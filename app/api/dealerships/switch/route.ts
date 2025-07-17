@@ -9,9 +9,12 @@ const switchDealershipSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== DEBUG: POST /api/dealerships/switch called ===');
+    
     const session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
+      console.log('DEBUG: POST - No user ID in session');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -19,24 +22,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('DEBUG: POST - Request body:', body);
+    
     const { dealershipId } = switchDealershipSchema.parse(body)
+    console.log('DEBUG: POST - Parsed dealershipId:', dealershipId);
 
     // Handle super admin user
     if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
-      // For super admin, allow access to any dealership
+      console.log('DEBUG: POST - Super admin detected, allowing any dealership');
+      
       const dealership = await prisma.dealerships.findUnique({
         where: { id: dealershipId }
       })
       
       if (!dealership) {
+        console.log('DEBUG: POST - Dealership not found:', dealershipId);
         return NextResponse.json(
           { error: 'Dealership not found' },
           { status: 404 }
         )
       }
 
-      console.log(`Super admin switched to dealership: ${dealership.name}`)
-
+      console.log('DEBUG: POST - Super admin switched to dealership:', dealership.name);
+      
       return NextResponse.json({
         success: true,
         dealership: {
@@ -47,12 +55,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current user
+    console.log('DEBUG: POST - Fetching user:', session.user.id);
     const currentUser = await prisma.users.findUnique({
       where: { id: session.user.id }
     })
 
     // SUPER_ADMIN users don't need an agencyId, but other users do
     if (!currentUser?.agencyId && session.user.role !== 'SUPER_ADMIN') {
+      console.log('DEBUG: POST - User not associated with agency');
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
@@ -60,19 +70,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Find dealership by ID and verify access
+    console.log('DEBUG: POST - Finding dealership:', dealershipId);
     const dealership = await prisma.dealerships.findUnique({
       where: { id: dealershipId }
     })
 
     if (!dealership) {
+      console.log('DEBUG: POST - Dealership not found:', dealershipId);
       return NextResponse.json(
         { error: 'Dealership not found' },
         { status: 404 }
       )
     }
 
+    console.log('DEBUG: POST - Found dealership:', dealership.name, 'agencyId:', dealership.agencyId);
+
     // Check if user has access to this dealership
     if (session.user.role !== 'SUPER_ADMIN') {
+      console.log('DEBUG: POST - Checking access for non-super admin');
       const hasAccess = await prisma.users.findFirst({
         where: {
           id: session.user.id,
@@ -81,6 +96,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (!hasAccess) {
+        console.log('DEBUG: POST - Access denied for user to dealership');
         return NextResponse.json(
           { error: 'Access denied to this dealership' },
           { status: 403 }
@@ -88,7 +104,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`User ${currentUser?.email} switched to dealership: ${dealership.name}`)
+    console.log('DEBUG: POST - User switched to dealership:', dealership.name);
 
     return NextResponse.json({
       success: true,
@@ -99,9 +115,11 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error switching dealership:', error)
+    console.error('=== DEBUG: POST Error ===', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     if (error instanceof z.ZodError) {
+      console.log('DEBUG: POST - Zod validation error:', error.errors);
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
         { status: 400 }
@@ -109,7 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
@@ -117,9 +135,17 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('=== DEBUG: GET /api/dealerships/switch called ===');
+    
     const session = await SimpleAuth.getSessionFromRequest(request)
+    console.log('Session:', {
+      hasUser: !!session?.user.id,
+      userId: session?.user.id,
+      role: session?.user.role
+    });
     
     if (!session?.user.id) {
+      console.log('DEBUG: No user ID in session');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -128,10 +154,13 @@ export async function GET(request: NextRequest) {
 
     // Handle super admin user
     if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
-      // For super admin, get all dealerships directly from dealerships table
+      console.log('DEBUG: Super admin detected, fetching all dealerships');
+      
       const dealerships = await prisma.dealerships.findMany({
         orderBy: { name: 'asc' }
       })
+
+      console.log('DEBUG: Found dealerships for super admin:', dealerships.length);
 
       const availableDealerships = dealerships.map(dealership => ({
         id: dealership.id,
@@ -145,15 +174,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current user
+    console.log('DEBUG: Fetching user with agency:', session.user.id);
     const currentUser = await prisma.users.findUnique({
       where: { id: session.user.id },
       include: {
         agencies: true
       }
     })
+    
+    console.log('DEBUG: User data:', {
+      userId: currentUser?.id,
+      email: currentUser?.email,
+      agencyId: currentUser?.agencies?.id,
+      dealershipId: currentUser?.dealershipId
+    });
 
     // SUPER_ADMIN users don't need an agencyId, but other users do
     if (!currentUser?.agencies?.id && session.user.role !== 'SUPER_ADMIN') {
+      console.log('DEBUG: User not associated with agency');
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
@@ -161,6 +199,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all dealerships for the agency
+    console.log('DEBUG: Fetching dealerships for agency:', currentUser?.agencies?.id);
     const dealerships = await prisma.dealerships.findMany({
       where: session.user.role === 'SUPER_ADMIN'
         ? {} // SUPER_ADMIN can see all dealerships
@@ -169,6 +208,8 @@ export async function GET(request: NextRequest) {
           },
       orderBy: { name: 'asc' }
     })
+
+    console.log('DEBUG: Found dealerships:', dealerships.length, dealerships.map(d => ({ id: d.id, name: d.name })));
 
     // Map dealerships to the expected format
     const availableDealerships = dealerships.map(dealership => ({
@@ -194,8 +235,10 @@ export async function GET(request: NextRequest) {
       currentDealership = availableDealerships[0]
     }
     
-    // Add debug logging
-    console.log(`Found ${availableDealerships.length} dealerships for user ${currentUser?.email}`)
+    console.log('DEBUG: Final response:', {
+      currentDealership,
+      availableDealershipsCount: availableDealerships.length
+    });
 
     return NextResponse.json({
       currentDealership,
@@ -203,9 +246,10 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error fetching dealerships:', error)
+    console.error('=== DEBUG: Error in GET /api/dealerships/switch ===', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

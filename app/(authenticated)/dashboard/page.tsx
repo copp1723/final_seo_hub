@@ -198,7 +198,13 @@ export default function DashboardPage() {
       const response = await fetch(`/api/dashboard${queryParams}`)
       
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Dashboard API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
       }
       
       const data = await response.json()
@@ -217,10 +223,11 @@ export default function DashboardPage() {
       
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
-      setError('Failed to load dashboard data. Please try again.')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data'
+      setError(errorMessage)
       
       // Show retry toast for network errors
-      if (retryCount < 3) {
+      if (retryCount < 3 && !errorMessage.includes('401') && !errorMessage.includes('403')) {
         toast("Connection Issue", "info", {
           description: "Retrying in a moment...",
         })
@@ -228,6 +235,9 @@ export default function DashboardPage() {
           setRetryCount(prev => prev + 1)
           fetchDashboardData()
         }, 2000)
+      } else if (errorMessage.includes('401')) {
+        // Authentication error - redirect to login
+        window.location.href = '/auth/simple-signin'
       }
     } finally {
       setLoading(false)

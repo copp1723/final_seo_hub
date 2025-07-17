@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { encrypt } from '@/lib/encryption'
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,12 +59,16 @@ export async function GET(request: NextRequest) {
     const dealershipId = user.dealerships?.id || null
     logger.info('Creating GA4 connection', { userId: state, dealershipId, propertyId })
 
+    // Encrypt tokens before storing
+    const encryptedAccessToken = encrypt(tokens.access_token)
+    const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
+
     // Use upsert to update existing connection or create new one
     const connection = await prisma.ga4_connections.upsert({
       where: { userId: state },
       update: {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || null,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         propertyId,
         propertyName,
@@ -72,8 +77,8 @@ export async function GET(request: NextRequest) {
       create: {
         userId: state,
         dealershipId,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token || null,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         propertyId,
         propertyName

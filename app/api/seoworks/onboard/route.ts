@@ -7,9 +7,7 @@ import crypto from 'crypto'
 
 // SEOWorks API key for authentication
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
-if (!SEOWORKS_API_KEY) {
-  logger.error('SEOWORKS_API_KEY environment variable is not set')
-}
+
 
 interface OnboardingPayload {
   timestamp: string

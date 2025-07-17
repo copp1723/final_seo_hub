@@ -6,9 +6,7 @@ import { PackageType } from '@prisma/client'
 
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
-if (!SEOWORKS_API_KEY) {
-  logger.error('SEOWORKS_API_KEY environment variable is not set')
-}
+
 const SEOWORKS_ONBOARD_URL = 'https://api.seoworks.ai/rylie-onboard.cfm'
 
 interface DealerOnboardingData {

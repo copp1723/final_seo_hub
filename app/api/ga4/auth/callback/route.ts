@@ -58,7 +58,9 @@ export async function GET(request: NextRequest) {
       include: { dealerships: true }
     })
     if (!user) {
-      console.log('[GA4 CALLBACK] User not found for state:', state)
+      console.log('[GA4 CALLBACK] PRODUCTION DIAGNOSIS - User not found for state:', state)
+      console.log('[GA4 CALLBACK] This is the hardcoded demo user ID that does not exist in database')
+      console.log('[GA4 CALLBACK] Environment URL being used:', process.env.NEXTAUTH_URL)
     } else {
       console.log('[GA4 CALLBACK] Found user:', { id: user.id, email: user.email, role: user.role })
     }

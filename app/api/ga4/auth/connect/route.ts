@@ -4,6 +4,8 @@ import { SimpleAuth } from '@/lib/auth-simple'
 export async function GET(request: NextRequest) {
   const session = await SimpleAuth.getSessionFromRequest(request)
   console.log('[GA4 CONNECT] Session:', session)
+  console.log('[GA4 CONNECT] Production diagnosis - user ID that will be sent as state:', session?.user.id)
+  console.log('[GA4 CONNECT] Environment URL:', process.env.NEXTAUTH_URL)
   if (!session?.user.id) {
     return NextResponse.redirect('/auth/simple-signin')
   }

@@ -59,34 +59,42 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // For SUPER_ADMIN, allow access to any dealership. For others, check agency
-    const dealershipUser = await prisma.users.findUnique({
-      where: session.user.role === 'SUPER_ADMIN'
-        ? { id: dealershipId }
-        : {
-            id: dealershipId,
-            agencyId: currentUser?.agencyId
-          }
+    // Find dealership by ID and verify access
+    const dealership = await prisma.dealerships.findUnique({
+      where: { id: dealershipId }
     })
-    
-    if (!dealershipUser || !dealershipUser.id.startsWith('user-dealer-')) {
+
+    if (!dealership) {
       return NextResponse.json(
-        { error: 'Dealership not found or access denied' },
-        { status: 403 }
+        { error: 'Dealership not found' },
+        { status: 404 }
       )
     }
 
-    // Extract dealership name
-    const match = dealershipUser.name?.match(/\((.+)\)$/)
-    const dealershipName = match ? match[1] : dealershipUser.name || 'Unknown Dealership'
+    // Check if user has access to this dealership
+    if (session.user.role !== 'SUPER_ADMIN') {
+      const hasAccess = await prisma.users.findFirst({
+        where: {
+          id: session.user.id,
+          agencyId: dealership.agencyId
+        }
+      })
 
-    console.log(`User ${currentUser?.email} switched to dealership: ${dealershipName}`)
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: 'Access denied to this dealership' },
+          { status: 403 }
+        )
+      }
+    }
+
+    console.log(`User ${currentUser?.email} switched to dealership: ${dealership.name}`)
 
     return NextResponse.json({
       success: true,
       dealership: {
-        id: dealershipUser.id,
-        name: dealershipName
+        id: dealership.id,
+        name: dealership.name
       }
     })
 
@@ -152,36 +160,42 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get all users in the same agency (these represent dealerships)
-    const dealershipUsers = await prisma.users.findMany({
+    // Get all dealerships for the agency
+    const dealerships = await prisma.dealerships.findMany({
       where: session.user.role === 'SUPER_ADMIN'
-        ? { id: { startsWith: 'user-dealer-' } } // SUPER_ADMIN can see all dealerships
+        ? {} // SUPER_ADMIN can see all dealerships
         : {
-            agencyId: currentUser?.agencies?.id,
-            id: { startsWith: 'user-dealer-' } // Only get dealership users
+            agencyId: currentUser?.agencies?.id
           },
       orderBy: { name: 'asc' }
     })
 
-    // Extract dealership name from user name (format: "Manager Name (Dealership Name)")
-    const availableDealerships = dealershipUsers.map(user => {
-      const match = user.name?.match(/\((.+)\)$/)
-      const dealershipName = match ? match[1] : user.name || 'Unknown Dealership'
-      
-      return {
-        id: user.id,
-        name: dealershipName
-      }
-    })
+    // Map dealerships to the expected format
+    const availableDealerships = dealerships.map(dealership => ({
+      id: dealership.id,
+      name: dealership.name
+    }))
 
-    // Determine current dealership
-    const currentDealership = currentUser?.id.startsWith('user-dealer-') ? {
-      id: currentUser.id,
-      name: (() => {
-        const match = currentUser.name?.match(/\((.+)\)$/)
-        return match ? match[1] : currentUser.name || 'Unknown Dealership'
-      })()
-    } : (availableDealerships.length > 0 ? availableDealerships[0] : null)
+    // Determine current dealership - either from user's dealershipId or first available
+    let currentDealership = null
+    
+    if (currentUser?.dealershipId) {
+      const userDealership = dealerships.find(d => d.id === currentUser.dealershipId)
+      if (userDealership) {
+        currentDealership = {
+          id: userDealership.id,
+          name: userDealership.name
+        }
+      }
+    }
+    
+    // Fallback to first available dealership if no current one is set
+    if (!currentDealership && availableDealerships.length > 0) {
+      currentDealership = availableDealerships[0]
+    }
+    
+    // Add debug logging
+    console.log(`Found ${availableDealerships.length} dealerships for user ${currentUser?.email}`)
 
     return NextResponse.json({
       currentDealership,

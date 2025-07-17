@@ -14,7 +14,15 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
+  const state = searchParams.get('state')
   const error = searchParams.get('error')
+  
+  logger.info('Search Console OAuth callback received', { 
+    hasCode: !!code, 
+    hasState: !!state, 
+    error, 
+    userId: session.user.id 
+  })
   
   if (error) {
     logger.error('Search Console OAuth error from Google', { error, userId: session.user.id })
@@ -34,7 +42,13 @@ export async function GET(req: NextRequest) {
       `${process.env.NEXTAUTH_URL}/api/search-console/callback`
     )
 
+    logger.info('Exchanging code for tokens', { userId: session.user.id })
     const { tokens } = await oauth2Client.getToken(code)
+    logger.info('Tokens received', { 
+      hasAccessToken: !!tokens.access_token, 
+      hasRefreshToken: !!tokens.refresh_token,
+      userId: session.user.id
+    })
     
     if (!tokens.access_token) {
       throw new Error('No access token received from Google')
@@ -60,6 +74,20 @@ export async function GET(req: NextRequest) {
       logger.warn('Could not fetch Search Console sites, using defaults', { error: sitesError })
     }
 
+    // Get user's dealership for proper connection
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      include: { dealerships: true }
+    })
+
+    const dealershipId = user?.dealerships?.id || null
+    logger.info('Creating Search Console connection', { 
+      userId: session.user.id, 
+      dealershipId, 
+      siteUrl, 
+      siteName 
+    })
+
     // Use upsert to update existing connection or create new one
     const connection = await prisma.search_console_connections.upsert({
       where: { userId: session.user.id },
@@ -73,7 +101,7 @@ export async function GET(req: NextRequest) {
       },
       create: {
         userId: session.user.id,
-        dealershipId: session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' ? 'cmd50a9ot0001pe174j9rx5dh' : null,
+        dealershipId,
         accessToken: encrypt(tokens.access_token),
         refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

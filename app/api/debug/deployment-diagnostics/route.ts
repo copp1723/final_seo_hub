@@ -1,132 +1,136 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { SimpleAuth } from '@/lib/auth-simple'
 
 export async function GET(request: NextRequest) {
-  const diagnostics = {
-    timestamp: new Date().toISOString(),
-    environment: {
+  try {
+    console.log('🔍 DEPLOYMENT DIAGNOSTICS STARTING...')
+    
+    // Check environment variables
+    const envVars = {
       NODE_ENV: process.env.NODE_ENV,
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'MISSING',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'MISSING',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'MISSING',
       DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'SET' : 'MISSING',
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'MISSING',
-    },
-    database: {
-      connection: 'UNKNOWN',
-      userCount: 0,
-      migrationStatus: 'UNKNOWN'
-    },
-    auth: {
-      configuration: 'UNKNOWN',
-      cookieSettings: 'UNKNOWN'
-    },
-    errors: [] as string[]
-  }
+    }
+    
+    console.log('Environment Variables Check:', envVars)
 
-  // Test 1: Database Connection
-  try {
-    console.log('🔍 Testing database connection...')
-    await prisma.$connect()
-    
-    // Test basic query
-    const userCount = await prisma.users.count()
-    diagnostics.database.connection = 'SUCCESS'
-    diagnostics.database.userCount = userCount
-    console.log(`✅ Database connected successfully. User count: ${userCount}`)
-    
-    // Test if basic schema exists
+    // Test database connection
+    let databaseStatus = 'FAILED'
+    let userCount = 0
     try {
-      const agencyCount = await prisma.agencies.count()
-      diagnostics.database.migrationStatus = 'SCHEMA_EXISTS'
-      console.log(`✅ Schema exists. Agency count: ${agencyCount}`)
-    } catch (schemaError) {
-      diagnostics.database.migrationStatus = 'SCHEMA_MISSING'
-      diagnostics.errors.push(`Schema issue: ${(schemaError as Error).message}`)
-      console.error('❌ Schema missing or incomplete:', schemaError)
+      await prisma.$queryRaw`SELECT 1`
+      userCount = await prisma.users.count()
+      databaseStatus = 'SUCCESS'
+      console.log('✅ Database connected successfully')
+    } catch (error) {
+      console.error('❌ Database connection failed:', error)
     }
-    
-  } catch (dbError) {
-    diagnostics.database.connection = 'FAILED'
-    diagnostics.errors.push(`Database connection failed: ${(dbError as Error).message}`)
-    console.error('❌ Database connection failed:', dbError)
-  }
 
-  // Test 2: Environment Variables Detail Check
-  const missingEnvVars = []
-  const envChecks = {
-    DATABASE_URL: process.env.DATABASE_URL,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET
-  }
-
-  for (const [key, value] of Object.entries(envChecks)) {
-    if (!value) {
-      missingEnvVars.push(key)
+    // Check dealerships table structure
+    let dealershipSchema: any[] = []
+    try {
+      const columns = await prisma.$queryRaw<any[]>`
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns
+        WHERE table_name = 'dealerships'
+        ORDER BY ordinal_position
+      `
+      dealershipSchema = columns || []
+      console.log('Dealerships table schema:', columns)
+    } catch (error) {
+      console.error('Failed to get dealerships schema:', error)
     }
-  }
 
-  if (missingEnvVars.length > 0) {
-    diagnostics.errors.push(`Missing environment variables: ${missingEnvVars.join(', ')}`)
-    console.error('❌ Missing environment variables:', missingEnvVars)
-  } else {
-    console.log('✅ All required environment variables are set')
-  }
+    // Check if clientId column exists
+    let clientIdExists = false
+    try {
+      const result = await prisma.$queryRaw<any[]>`
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'dealerships'
+        AND column_name = 'clientId'
+      `
+      clientIdExists = result && result.length > 0
+      console.log('clientId column exists:', clientIdExists)
+    } catch (error) {
+      console.error('Error checking clientId column:', error)
+    }
 
-  // Test 3: NextAuth Configuration
-  try {
-    const nextAuthUrl = process.env.NEXTAUTH_URL
-    const isProduction = process.env.NODE_ENV === 'production'
-    const isSecureContext = nextAuthUrl?.startsWith('https://')
-    
-    diagnostics.auth.configuration = 'CONFIGURED'
-    diagnostics.auth.cookieSettings = `Production: ${isProduction}, Secure: ${isSecureContext}`
-    
-    console.log('🔍 Auth configuration:', {
-      isProduction,
-      nextAuthUrl,
-      isSecureContext,
-      useSecureCookies: isProduction && isSecureContext
+    // Check users and their roles
+    let users: any[] = []
+    try {
+      users = await prisma.users.findMany({
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          agencyId: true,
+          dealershipId: true,
+          isSuperAdmin: true
+        }
+      })
+      console.log('✅ Found users:', users.length)
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+
+    // Check dealerships
+    let dealerships: any[] = []
+    try {
+      dealerships = await prisma.dealerships.findMany({
+        select: {
+          id: true,
+          name: true,
+          agencyId: true,
+          clientId: true
+        },
+        take: 10
+      })
+      console.log('✅ Found dealerships:', dealerships.length)
+    } catch (error) {
+      console.error('Error fetching dealerships:', error)
+    }
+
+    // Check sessions
+    let sessionCount = 0
+    try {
+      sessionCount = await prisma.sessions.count()
+      console.log('✅ Session count:', sessionCount)
+    } catch (error) {
+      console.error('Error counting sessions:', error)
+    }
+
+    // Check current auth session
+    let currentSession = null
+    try {
+      currentSession = await SimpleAuth.getSessionFromRequest(request)
+      console.log('Current session:', currentSession)
+    } catch (error) {
+      console.error('Error getting current session:', error)
+    }
+
+    return NextResponse.json({
+      environment: envVars,
+      database: databaseStatus,
+      userCount,
+      sessionCount,
+      dealershipSchema,
+      clientIdExists,
+      users,
+      dealerships: dealerships.slice(0, 5), // Limit output
+      currentSession,
+      errors: []
     })
-    
-    if (isProduction && !isSecureContext) {
-      diagnostics.errors.push('Production environment but NEXTAUTH_URL is not HTTPS')
-      console.warn('⚠️ Production environment but NEXTAUTH_URL is not HTTPS')
-    }
-    
-  } catch (authError) {
-    diagnostics.auth.configuration = 'ERROR'
-    diagnostics.errors.push(`Auth configuration error: ${(authError as Error).message}`)
-    console.error('❌ Auth configuration error:', authError)
-  }
 
-  // Test 4: Prisma Client Status
-  try {
-    await prisma.$queryRaw`SELECT 1 as test`
-    console.log('✅ Prisma client working correctly')
-  } catch (prismaError) {
-    diagnostics.errors.push(`Prisma client error: ${(prismaError as Error).message}`)
-    console.error('❌ Prisma client error:', prismaError)
+  } catch (error) {
+    console.error('❌ DEPLOYMENT DIAGNOSTICS ERROR:', error)
+    return NextResponse.json({
+      error: 'Diagnostics failed',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 })
   }
-
-  // Summary
-  const hasErrors = diagnostics.errors.length > 0
-  console.log('\n📊 DIAGNOSTIC SUMMARY:')
-  console.log(`Status: ${hasErrors ? '❌ ISSUES FOUND' : '✅ ALL CHECKS PASSED'}`)
-  console.log(`Errors: ${diagnostics.errors.length}`)
-  if (hasErrors) {
-    diagnostics.errors.forEach((error, index) => {
-      console.log(`  ${index + 1}. ${error}`)
-    })
-  }
-
-  return NextResponse.json({
-    status: hasErrors ? 'ERROR' : 'SUCCESS',
-    summary: hasErrors ? 'Configuration issues detected' : 'All systems operational',
-    ...diagnostics
-  }, {
-    status: hasErrors ? 500 : 200
-  })
 }

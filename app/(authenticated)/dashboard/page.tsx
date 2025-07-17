@@ -221,10 +221,8 @@ export default function DashboardPage() {
       
       // Show retry toast for network errors
       if (retryCount < 3) {
-        toast({
-          title: "Connection Issue",
+        toast("Connection Issue", "info", {
           description: "Retrying in a moment...",
-          variant: "default",
         })
         setTimeout(() => {
           setRetryCount(prev => prev + 1)

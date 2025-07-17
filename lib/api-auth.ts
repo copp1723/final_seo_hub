@@ -30,18 +30,28 @@ export function successResponse<T>(data?: T, message?: string): NextResponse {
 
 // Reusable auth check for API routes
 export async function requireAuth(request?: NextRequest) {
-  // AUTO-LOGIN: Always return super admin user with response property for compatibility
-  return { 
-    authenticated: true, 
-    user: {
-      id: 'auto-super-admin',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN',
-      agencyId: null,
-      dealershipId: null,
-      name: 'Josh Copp (Auto Super Admin)'
-    },
-    response: null // For compatibility with existing code
+  if (!request) {
+    return {
+      authenticated: false,
+      user: null,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
+  const session = await SimpleAuth.getSessionFromRequest(request)
+
+  if (!session?.user.id) {
+    return {
+      authenticated: false,
+      user: null,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
+  return {
+    authenticated: true,
+    user: session.user,
+    response: null
   }
 }
 

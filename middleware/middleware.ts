@@ -11,28 +11,22 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
-  // AUTO-LOGIN: Create super admin session if none exists
+  // Check for existing session
   let session = await SimpleAuth.getSessionFromRequest(request);
   if (!session) {
-    // Create auto-login session
-    const superAdminToken = await SimpleAuth.createSession({
-      id: 'auto-super-admin',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN',
-      agencyId: null,
-      dealershipId: null,
-      name: 'Josh Copp (Auto Super Admin)'
-    });
-    
-    const response = NextResponse.next();
-    response.cookies.set(SimpleAuth.COOKIE_NAME, superAdminToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/'
-    });
-    return response;
+    // No session - redirect to login for protected routes
+    if (pathname.startsWith('/dashboard') ||
+        pathname.startsWith('/requests') ||
+        pathname.startsWith('/settings') ||
+        pathname.startsWith('/reporting') ||
+        pathname.startsWith('/tasks') ||
+        pathname.startsWith('/chat') ||
+        pathname.startsWith('/focus-request') ||
+        pathname.startsWith('/super-admin') ||
+        pathname.startsWith('/admin') ||
+        pathname.startsWith('/agency')) {
+      return NextResponse.redirect(new URL('/auth/simple-signin', request.url));
+    }
   }
 
   // If trying to access auth routes with session, redirect to dashboard

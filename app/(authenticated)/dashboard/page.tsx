@@ -282,6 +282,217 @@ export default function DashboardPage() {
                 <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <h1 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Dashboard</h1>
                 <p className="text-gray-600 mb-4">{error}</p>
+                <Button 
+                  onClick={fetchDashboardData} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Retrying...
+                    </>
+                  ) : (
+                    'Try Again'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ErrorBoundary>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600 mt-1">Welcome back, {user?.name || 'User'}</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <DealershipSelector />
+              <Link href="/requests/new">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Request
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            title="Active Requests"
+            value={dashboardData?.activeRequests || 0}
+            subtitle="Currently in progress"
+            icon={Activity}
+            color="blue"
+            loading={loading}
+            trend={{ value: 12, positive: true }}
+          />
+          <StatCard
+            title="Total Requests"
+            value={dashboardData?.totalRequests || 0}
+            subtitle="All time requests"
+            icon={FileText}
+            color="green"
+            loading={loading}
+          />
+          <StatCard
+            title="Tasks Completed"
+            value={dashboardData?.tasksCompletedThisMonth || 0}
+            subtitle={dashboardData?.tasksSubtitle || 'This month'}
+            icon={CheckCircle}
+            color="purple"
+            loading={loading}
+            trend={{ value: 8, positive: true }}
+          />
+          <StatCard
+            title="GA Connected"
+            value={dashboardData?.gaConnected ? 'Yes' : 'No'}
+            subtitle="Analytics status"
+            icon={BarChart}
+            color={dashboardData?.gaConnected ? "green" : "orange"}
+            loading={loading}
+          />
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Package Progress */}
+          <div className="lg:col-span-2">
+            <Card className="border-0 shadow-sm bg-white">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Target className="h-5 w-5 mr-2 text-blue-600" />
+                  Package Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dashboardData?.packageProgress ? (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-gray-900">
+                        {dashboardData.packageProgress.packageType || 'Current Package'}
+                      </h3>
+                      <Badge variant="outline" className="text-blue-600 border-blue-200">
+                        {dashboardData.packageProgress.totalTasks.completed} / {dashboardData.packageProgress.totalTasks.total} Complete
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <ProgressBar
+                        label="Pages"
+                        used={dashboardData.packageProgress.pages.used}
+                        limit={dashboardData.packageProgress.pages.limit}
+                        color="blue"
+                      />
+                      <ProgressBar
+                        label="Blog Posts"
+                        used={dashboardData.packageProgress.blogs.used}
+                        limit={dashboardData.packageProgress.blogs.limit}
+                        color="green"
+                      />
+                      <ProgressBar
+                        label="GBP Posts"
+                        used={dashboardData.packageProgress.gbpPosts.used}
+                        limit={dashboardData.packageProgress.gbpPosts.limit}
+                        color="purple"
+                      />
+                      <ProgressBar
+                        label="Improvements"
+                        used={dashboardData.packageProgress.improvements.used}
+                        limit={dashboardData.packageProgress.improvements.limit}
+                        color="orange"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No active package found</p>
+                    <Link href="/requests/new">
+                      <Button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">
+                        Start New Request
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <div>
+            <Card className="border-0 shadow-sm bg-white">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Clock className="h-5 w-5 mr-2 text-blue-600" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentActivity.length > 0 ? (
+                  <RecentActivityTimeline activities={recentActivity} />
+                ) : (
+                  <div className="text-center py-8">
+                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">No recent activity</p>
+                    <p className="text-sm text-gray-500">Activity will appear here as you use the platform</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-blue-600" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link href="/requests/new">
+                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2 hover:bg-white hover:shadow-sm transition-all">
+                    <Plus className="h-6 w-6 text-blue-600" />
+                    <span className="font-medium">New Request</span>
+                    <span className="text-xs text-gray-500">Start a new SEO project</span>
+                  </Button>
+                </Link>
+                <Link href="/requests">
+                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2 hover:bg-white hover:shadow-sm transition-all">
+                    <FileText className="h-6 w-6 text-green-600" />
+                    <span className="font-medium">View Requests</span>
+                    <span className="text-xs text-gray-500">Check request status</span>
+                  </Button>
+                </Link>
+                <Link href="/reports">
+                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2 hover:bg-white hover:shadow-sm transition-all">
+                    <BarChart className="h-6 w-6 text-purple-600" />
+                    <span className="font-medium">View Reports</span>
+                    <span className="text-xs text-gray-500">Analytics & insights</span>
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
                 <div className="space-y-2">
                   <Button onClick={fetchDashboardData} className="w-full">
                     <Loader2 className="h-4 w-4 mr-2" />

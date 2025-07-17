@@ -77,7 +77,7 @@ export function Navigation() {
           <div className="flex items-center gap-2 lg:gap-6 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-lg lg:text-xl font-medium text-gray-900 tracking-tight">
+              <Link href="/dashboard" className="text-lg lg:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent tracking-tight hover:from-blue-700 hover:to-indigo-700 transition-all duration-200">
                 {branding.companyName}
               </Link>
             </div>
@@ -129,8 +129,17 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Right side: dealerships Selector, User menu */}
+          {/* Right side: Notifications, Dealership Selector, User menu */}
           <div className="flex items-center gap-2 lg:gap-4">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200">
+                <Bell className="h-5 w-5" />
+                {hasNotifications && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
+                )}
+              </button>
+            </div>
             <DealershipSelector />
             <div className="relative" ref={userMenuRef}>
               <button
@@ -138,12 +147,19 @@ export function Navigation() {
                 className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <div className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center ring-2 ring-white shadow-sm">
-                    <User className="h-4 w-4 text-gray-600" />
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center ring-2 ring-white shadow-sm">
+                    <User className="h-4 w-4 text-blue-600" />
                   </div>
-                  <span className="hidden lg:block text-sm text-gray-600 max-w-[150px] truncate font-normal">
-                    {user?.name || 'User'}
-                  </span>
+                  <div className="hidden lg:block">
+                    <span className="text-sm text-gray-700 max-w-[150px] truncate font-medium">
+                      {user?.name || 'User'}
+                    </span>
+                    {user?.role && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {user.role.replace('_', ' ')}
+                      </Badge>
+                    )}
+                  </div>
                   <ChevronDown className="h-3 w-3 text-gray-400" />
                 </div>
               </button>

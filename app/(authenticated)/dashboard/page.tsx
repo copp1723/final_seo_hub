@@ -415,40 +415,40 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {dashboardData?.packageProgress ? (
+                {mockDashboardData.packageProgress ? (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-semibold text-gray-900">
-                        {dashboardData.packageProgress.packageType || 'Current Package'}
+                        {mockDashboardData.packageProgress.packageType || 'Current Package'}
                       </h3>
                       <Badge variant="outline" className="text-blue-600 border-blue-200">
-                        {dashboardData.packageProgress.totalTasks.completed} / {dashboardData.packageProgress.totalTasks.total} Complete
+                        {mockDashboardData.packageProgress.totalTasks.completed} / {mockDashboardData.packageProgress.totalTasks.total} Complete
                       </Badge>
                     </div>
                     
                     <div className="space-y-4">
                       <ProgressBar
                         label="Pages"
-                        used={dashboardData.packageProgress.pages.used}
-                        limit={dashboardData.packageProgress.pages.limit}
+                        used={mockDashboardData.packageProgress.pages.used}
+                        limit={mockDashboardData.packageProgress.pages.limit}
                         color="blue"
                       />
                       <ProgressBar
                         label="Blog Posts"
-                        used={dashboardData.packageProgress.blogs.used}
-                        limit={dashboardData.packageProgress.blogs.limit}
+                        used={mockDashboardData.packageProgress.blogs.used}
+                        limit={mockDashboardData.packageProgress.blogs.limit}
                         color="green"
                       />
                       <ProgressBar
                         label="GBP Posts"
-                        used={dashboardData.packageProgress.gbpPosts.used}
-                        limit={dashboardData.packageProgress.gbpPosts.limit}
+                        used={mockDashboardData.packageProgress.gbpPosts.used}
+                        limit={mockDashboardData.packageProgress.gbpPosts.limit}
                         color="purple"
                       />
                       <ProgressBar
                         label="Improvements"
-                        used={dashboardData.packageProgress.improvements.used}
-                        limit={dashboardData.packageProgress.improvements.limit}
+                        used={mockDashboardData.packageProgress.improvements.used}
+                        limit={mockDashboardData.packageProgress.improvements.limit}
                         color="orange"
                       />
                     </div>
@@ -478,8 +478,8 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {recentActivity.length > 0 ? (
-                  <RecentActivityTimeline activities={recentActivity} />
+                {mockRecentActivity.length > 0 ? (
+                  <RecentActivityTimeline activities={mockRecentActivity} />
                 ) : (
                   <div className="text-center py-8">
                     <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />

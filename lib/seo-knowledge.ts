@@ -2,15 +2,15 @@ export const SEO_KNOWLEDGE_BASE = {
   packages: {
     silver: {
       pages: 3,
-      blogs: 3,
+      blogs: 4,
       gbpPosts: 8,
       improvements: 8,
       description: "content updates, metadata, schema, internal links, etc."
     },
     gold: {
-      pages: 5,
-      blogs: 6,
-      gbpPosts: 12,
+      pages: 6,
+      blogs: 8,
+      gbpPosts: 16,
       improvements: 10,
       description: "content updates, metadata, schema, internal links, etc."
     },
@@ -28,14 +28,14 @@ export const SEO_KNOWLEDGE_BASE = {
       question: "What does my SEO package include each month?",
       answer: `Each package is designed to build authority, visibility, and organic lead generation through consistent, high-quality content and optimization.Here's what's included monthly in each tier.All content is high quality, original and targeted content for areas you serve and the vehicles you sell.Silver Package:
 • 3 pages
-• 3 blogs
+• 4 blogs
 • 8 Google Business Profile (GBP) posts
 • 8 SEO improvements/changes (content updates, metadata, schema, internal links, etc)
 
 Gold Package:
-• 5 pages
-• 6 blogs
-• 12 GBP posts
+• 6 pages
+• 8 blogs
+• 16 GBP posts
 • 10 SEO improvements/changes
 
 Platinum Package:

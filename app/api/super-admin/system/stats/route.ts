@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/api-auth'
+import { requireAuth, errorResponse } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)

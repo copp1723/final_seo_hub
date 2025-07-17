@@ -74,64 +74,37 @@ export default function DashboardPage() {
     redirect('/auth/simple-signin')
   }
 
-  // Fetch dashboard data - EMERGENCY HARDCODED FOR DEMO
+  // Fetch dashboard data from API
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // EMERGENCY: Use hardcoded demo data for immediate demo success
-      const emergencyData = {
-        activeRequests: 8,
-        totalRequests: 54,
-        tasksCompletedThisMonth: 18,
-        tasksSubtitle: "18 of 30 tasks completed this month",
-        gaConnected: true,
-        packageProgress: {
-          packageType: "PLATINUM",
-          pages: { completed: 4, total: 9, used: 4, limit: 9, percentage: 44 },
-          blogs: { completed: 6, total: 12, used: 6, limit: 12, percentage: 50 },
-          gbpPosts: { completed: 12, total: 20, used: 12, limit: 20, percentage: 60 },
-          improvements: { completed: 9, total: 20, used: 9, limit: 20, percentage: 45 },
-          totalTasks: { completed: 31, total: 61 }
-        },
-        latestRequest: {
-          packageType: "PLATINUM",
-          pagesCompleted: 4,
-          blogsCompleted: 6,
-          gbpPostsCompleted: 12,
-          improvementsCompleted: 9
-        },
-        dealershipId: "jay-hatfield-columbus"
+      // Get selected dealership from context or storage
+      const selectedDealershipId = localStorage.getItem('selectedDealershipId')
+      const queryParams = selectedDealershipId ? `?dealershipId=${selectedDealershipId}` : ''
+      
+      const response = await fetch(`/api/dashboard${queryParams}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data')
       }
       
-      setDashboardData(emergencyData)
+      const data = await response.json()
       
-      // Set some demo recent activity
-      setRecentActivity([
-        {
-          id: '1',
-          description: 'New blog post "Best SUVs for Columbus Families" completed',
-          time: '2 hours ago',
-          type: 'blog_completed'
-        },
-        {
-          id: '2', 
-          description: 'Google Business Profile post about new inventory published',
-          time: '4 hours ago',
-          type: 'gbp_completed'
-        },
-        {
-          id: '3',
-          description: 'SEO improvements applied to inventory pages',
-          time: '1 day ago',
-          type: 'improvement_completed'
-        }
-      ])
+      setDashboardData(data)
+      
+      // Set recent activity if available
+      if (data.recentActivity && data.recentActivity.length > 0) {
+        setRecentActivity(data.recentActivity)
+      } else {
+        // Set empty activity if no recent activity
+        setRecentActivity([])
+      }
       
     } catch (err) {
-      console.error('Error setting dashboard data:', err)
-      setError('Demo mode - contact support if issues persist')
+      console.error('Error fetching dashboard data:', err)
+      setError('Failed to load dashboard data. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -143,6 +116,19 @@ export default function DashboardPage() {
       fetchDashboardData()
     }
   }, [user?.id])
+
+  // Listen for dealership changes
+  useEffect(() => {
+    const handleDealershipChange = () => {
+      fetchDashboardData()
+    }
+
+    window.addEventListener('dealershipChanged', handleDealershipChange)
+    
+    return () => {
+      window.removeEventListener('dealershipChanged', handleDealershipChange)
+    }
+  }, [])
 
   if (loading && !dashboardData) {
     return (

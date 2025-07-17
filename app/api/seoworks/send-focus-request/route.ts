@@ -4,7 +4,10 @@ import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 
 // SEOWorks API configuration
-const SEOWORKS_API_KEY = '7f3e9b5d2a8c4f6e1b9d3c7a5e8f2b4d6c9a1e3f7b5d9c2a6e4f8b1d3c7a9e5f'
+const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
+if (!SEOWORKS_API_KEY) {
+  logger.error('SEOWORKS_API_KEY environment variable is not set')
+}
 const SEOWORKS_FOCUS_URL = 'https://api.seowerks.ai/rylie-focus.cfm'
 
 interface FocusRequestData {

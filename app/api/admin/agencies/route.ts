@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth } from '@/lib/api-auth'
+import { requireAuth, errorResponse } from '@/lib/api-auth'
 import { z } from 'zod'
 import crypto from 'crypto'
 

@@ -16,7 +16,6 @@ import {
   Settings,
   PlusCircle,
   MessageSquare,
-  Bell,
   Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -40,7 +39,7 @@ export function Navigation() {
   const branding = useBranding()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [hasNotifications, setHasNotifications] = useState(true) // Simulated notifications
+
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
@@ -129,17 +128,8 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Right side: Notifications, Dealership Selector, User menu */}
+          {/* Right side: Dealership Selector, User menu */}
           <div className="flex items-center gap-3 lg:gap-6">
-            {/* Notification Bell */}
-            <div className="relative flex-shrink-0">
-              <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors duration-200">
-                <Bell className="h-5 w-5" />
-                {hasNotifications && (
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse"></span>
-                )}
-              </button>
-            </div>
             <div className="flex-shrink-0">
               <DealershipSelector />
             </div>

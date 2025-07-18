@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   console.log('🔍 Session Check Debug Endpoint')
-  
+
   try {
-    // Check NextAuth session
-    const session = await auth()
-    console.log('NextAuth session:', session)
-    
+    // Check SimpleAuth session
+    const session = await SimpleAuth.getSessionFromRequest(request)
+    console.log('SimpleAuth session:', session)
+
     // Check cookies
     const cookies = request.cookies.getAll()
     console.log('All cookies:', cookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`))
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     console.log('Database sessions:', dbSessions.length)
     
     return NextResponse.json({
-      nextAuthSession: session,
+      simpleAuthSession: session,
       cookies: cookies.map(c => ({
         name: c.name,
         value: c.value.substring(0, 20) + '...',

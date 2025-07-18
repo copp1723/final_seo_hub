@@ -179,23 +179,6 @@ export default function DashboardPage() {
     setMounted(true)
   }, [])
   
-  // Handle authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <p className="text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    )
-  }
-  
-  if (!user) {
-    redirect('/auth/simple-signin')
-  }
-
-
   const fetchDashboardData = useCallback(async () => {
     if (!user?.id || !mounted) return
 
@@ -274,6 +257,22 @@ export default function DashboardPage() {
     }
   }, [fetchDashboardData])
 
+  // Handle authentication - moved after all hooks
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!user) {
+    redirect('/auth/simple-signin')
+  }
+
   if (loading && !dashboardData) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -302,12 +301,12 @@ export default function DashboardPage() {
                 <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                 <h1 className="text-xl font-semibold text-gray-900 mb-2">Unable to Load Dashboard</h1>
                 <p className="text-gray-600 mb-4">{error}</p>
-                <Button 
+                <Button
                   onClick={() => {
                     setLoading(true)
                     setError(null)
                     fetchDashboardData()
-                  }} 
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={loading}
                 >

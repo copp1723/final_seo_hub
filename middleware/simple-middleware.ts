@@ -16,6 +16,7 @@ const protectedRoutes = [
 
 const authRoutes = [
   '/auth/signin',
+  '/auth/simple-signin',
   '/auth/error'
 ];
 
@@ -43,7 +44,7 @@ export async function middleware(request: NextRequest) {
   if (isProtectedRoute) {
     if (!session) {
       // Redirect to signin if not authenticated
-      const signinUrl = new URL('/auth/signin', request.url);
+      const signinUrl = new URL('/auth/simple-signin', request.url);
       signinUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(signinUrl);
     }

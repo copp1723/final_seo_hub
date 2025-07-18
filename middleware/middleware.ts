@@ -11,34 +11,19 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
-  // AUTO-LOGIN: Create super admin session if none exists
-  let session = await SimpleAuth.getSessionFromRequest(request);
-  if (!session) {
-    // Create auto-login session
-    const superAdminToken = await SimpleAuth.createSession({
-      id: 'user-super-admin-001',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN',
-      agencyId: null,
-      dealershipId: null,
-      name: 'Josh Copp (Auto Super Admin)'
-    });
-    
-    const response = NextResponse.next();
-    response.cookies.set(SimpleAuth.COOKIE_NAME, superAdminToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/'
-    });
-    return response;
-  }
-
+  // Check if user has valid session for protected routes
+  const session = await SimpleAuth.getSessionFromRequest(request);
+  
   // If trying to access auth routes with session, redirect to dashboard
   if (isAuthRoute && session) {
     const siteUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com';
     return NextResponse.redirect(new URL('/dashboard', siteUrl));
+  }
+  
+  // If trying to access protected routes without session, redirect to login
+  if (!isAuthRoute && !session && !pathname.startsWith('/api') && !pathname.startsWith('/_next') && !pathname.includes('.')) {
+    const siteUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com';
+    return NextResponse.redirect(new URL('/auth/simple-signin', siteUrl));
   }
 
   return NextResponse.next();

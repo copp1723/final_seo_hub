@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
-import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,17 +9,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Return empty activity for alpha launch
+    // Return no emergency status for alpha launch
     return NextResponse.json({
       success: true,
       data: {
-        activities: [],
-        message: "Alpha launch - activity tracking coming soon"
+        hasEmergency: false,
+        message: "All systems operational"
       }
     })
 
   } catch (error) {
-    console.error('Recent activity error:', error)
+    console.error('Emergency check error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -66,13 +66,6 @@ export class SimpleAuth {
         }
       }
 
-      // Bypass signature requirements for hard-coded or demo super-admin accounts
-      if (payload && payload.userId && (
-            payload.userId.startsWith('hardcoded-') ||
-            payload.userId === 'user-super-admin-001')
-      ) {
-        return payload;
-      }
 
       if (encodedData && signature) {
         // For regular tokens, verify signature
@@ -129,13 +122,8 @@ export class SimpleAuth {
 
     const token = await this.generateToken(payload);
 
-    // Check if this is a hardcoded emergency user
-    const isEmergencyUser = user.id.startsWith('hardcoded-') || user.id === 'user-super-admin-001';
-    
-    if (!isEmergencyUser) {
-      // Skip database session for edge runtime compatibility
-      // Sessions will be handled in API routes instead
-    }
+    // Skip database session for edge runtime compatibility
+    // Sessions will be handled in API routes instead
 
     return token;
   }

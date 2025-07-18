@@ -4,15 +4,18 @@ import { google } from 'googleapis'
 import { logger } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
-  // EMERGENCY DEMO FIX: Hardcode session for OAuth
-  const session = {
-    user: {
-      id: 'user-super-admin-001',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN'
-    }
+  // Get session from auth
+  const session = await SimpleAuth.getSessionFromRequest(req)
+  
+  if (!session) {
+    logger.error('Search Console connect: No valid session found')
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    )
   }
-  logger.info('Search Console connect: Using hardcoded session for demo')
+  
+  logger.info('Search Console connect: Valid session found', { userId: session.user.id })
 
   try {
     const oauth2Client = new google.auth.OAuth2(

@@ -6,14 +6,15 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
-  // EMERGENCY DEMO FIX: Hardcode session
-  const session = {
-    user: {
-      id: 'user-super-admin-001',
-      email: 'josh.copp@onekeel.ai'
-    }
+  // Get session from auth
+  const session = await SimpleAuth.getSessionFromRequest(req)
+  
+  if (!session) {
+    logger.error('Search Console callback: No valid session found')
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/simple-signin?error=Authentication required`)
   }
-  logger.info('Search Console callback: Using hardcoded session for demo')
+  
+  logger.info('Search Console callback: Valid session found', { userId: session.user.id })
 
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')

@@ -52,13 +52,18 @@ export async function GET(request: NextRequest) {
       note: 'Will implement proper property fetching after resolving API parameter issues'
     });
 
-    // EMERGENCY DEMO FIX: Use hardcoded user data
-    const user = {
-      id: 'user-super-admin-001',
-      email: 'josh.copp@onekeel.ai',
-      dealerships: null
+    // Get user from database using state (userId) from OAuth flow
+    const user = await prisma.users.findUnique({
+      where: { id: state },
+      include: { dealerships: true }
+    })
+
+    if (!user) {
+      logger.error('GA4 OAuth: User not found', { userId: state })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=User not found`)
     }
-    console.log('[GA4 CALLBACK] Using hardcoded user for demo')
+    
+    console.log('[GA4 CALLBACK] Retrieved user from database', { userId: user.id, email: user.email })
 
     const dealershipId = user.dealerships?.id || null
     logger.info('Creating GA4 connection', { userId: state, dealershipId, propertyId })

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import crypto from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -14,7 +15,7 @@ async function main() {
       updatedAt: new Date()
     },
     create: {
-      id: 'user-super-admin-001',
+      id: crypto.randomUUID(),
       email: 'josh.copp@onekeel.ai',
       name: 'Josh Copp',
       role: 'SUPER_ADMIN',

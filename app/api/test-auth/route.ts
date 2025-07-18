@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
     hasSession: !!session,
     userId: session?.user?.id,
     email: session?.user?.email,
-    role: session?.user?.role,
-    isHardcoded: session?.user?.id?.startsWith('hardcoded-')
+    role: session?.user?.role
   });
   
   // Test 3: Get session from server (should fail in API route)
@@ -35,8 +34,7 @@ export async function GET(request: NextRequest) {
     requestSession: session ? {
       userId: session.user.id,
       email: session.user.email,
-      role: session.user.role,
-      isHardcoded: session.user.id.startsWith('hardcoded-')
+      role: session.user.role
     } : null,
     serverSession: serverSession ? {
       userId: serverSession.user.id,

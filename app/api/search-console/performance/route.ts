@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -30,12 +30,15 @@ export async function POST(request: NextRequest) {
       method: 'POST'
     })
 
-    // EMERGENCY DEMO FIX: Hardcode session
-    const session = {
-      user: {
-        id: 'user-super-admin-001',
-        email: 'josh.copp@onekeel.ai'
-      }
+    // Get session from auth
+    const session = await SimpleAuth.getSessionFromRequest(request)
+    
+    if (!session) {
+      logger.error('Search Console performance: No valid session found')
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
     }
 
     logger.info('Search Console performance auth successful', {

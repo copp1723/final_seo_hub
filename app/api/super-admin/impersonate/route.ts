@@ -23,13 +23,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Super admin access required' }, { status: 403 })
     }
 
-    // For hardcoded admin, get user info from session
-    const currentUser = session.user.id === 'hardcoded-super-admin'
-      ? { role: 'SUPER_ADMIN', email: session.user.email, name: session.user.name }
-      : await prisma.users.findUnique({
-          where: { id: session.user.id },
-          select: { role: true, email: true, name: true }
-        })
+    // Get current user info from database
+    const currentUser = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, email: true, name: true }
+    })
 
     if (!currentUser) {
       return NextResponse.json({ error: 'Current user not found' }, { status: 404 })

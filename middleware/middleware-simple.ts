@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
   if (!hasCookie) {
     // Create a simple auto-login token
     const autoLoginToken = Buffer.from(JSON.stringify({
-      userId: 'user-super-admin-001',
+      userId: '3e50bcc8-cd3e-4773-a790-e0570de37371',
       email: 'josh.copp@onekeel.ai',
       role: 'SUPER_ADMIN',
       exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60)

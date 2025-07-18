@@ -64,6 +64,9 @@ interface DashboardData {
   tasksCompletedThisMonth: number
   tasksSubtitle: string
   gaConnected: boolean
+  gaAnalyticsData?: any // Add GA4 analytics data
+  searchConsoleConnected: boolean
+  searchConsoleData?: any // Add Search Console data
   packageProgress: PackageProgress | null
   latestRequest: LatestRequest | null
   dealershipId: string | null
@@ -192,101 +195,84 @@ export default function DashboardPage() {
     redirect('/auth/simple-signin')
   }
 
-  // Mock data for demo purposes
-  const mockDashboardData: DashboardData = {
-    activeRequests: 3,
-    totalRequests: 27,
-    tasksCompletedThisMonth: 18,
-    tasksSubtitle: 'tasks completed this month',
-    gaConnected: true,
-    packageProgress: {
-      packageType: 'Premium SEO Package',
-      pages: { completed: 12, total: 15, used: 12, limit: 15, percentage: 80 },
-      blogs: { completed: 8, total: 10, used: 8, limit: 10, percentage: 80 },
-      gbpPosts: { completed: 15, total: 20, used: 15, limit: 20, percentage: 75 },
-      improvements: { completed: 6, total: 8, used: 6, limit: 8, percentage: 75 },
-      totalTasks: { completed: 41, total: 53 }
-    },
-    latestRequest: {
-      packageType: 'Premium SEO Package',
-      pagesCompleted: 12,
-      blogsCompleted: 8,
-      gbpPostsCompleted: 15,
-      improvementsCompleted: 6
-    },
-    dealershipId: 'acura-columbus',
-    recentActivity: [
-      {
-        id: '1',
-        description: 'SEO audit completed for service pages',
-        time: '2 hours ago',
-        type: 'completion',
-        metadata: { taskType: 'audit' }
-      },
-      {
-        id: '2', 
-        description: 'New blog post published: "2024 Acura Models Comparison"',
-        time: '1 day ago',
-        type: 'content',
-        metadata: { contentType: 'blog' }
-      },
-      {
-        id: '3',
-        description: 'Google Business Profile post created',
-        time: '2 days ago', 
-        type: 'gbp',
-        metadata: { platform: 'google' }
-      },
-      {
-        id: '4',
-        description: 'Keyword research report delivered',
-        time: '3 days ago',
-        type: 'research',
-        metadata: { reportType: 'keywords' }
-      },
-      {
-        id: '5',
-        description: 'Technical SEO improvements implemented',
-        time: '5 days ago',
-        type: 'technical',
-        metadata: { improvementCount: 8 }
+
+  const fetchDashboardData = useCallback(async () => {
+    if (!user?.id || !mounted) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Pass the dealershipId if available from the session
+      const currentDealershipId = localStorage.getItem('selectedDealershipId');
+      const statsResponse = await fetch(`/api/dashboard/stats${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
+      const recentActivityResponse = await fetch(`/api/dashboard/recent-activity${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
+
+      if (!statsResponse.ok) {
+        let errorBody = await statsResponse.text()
+        try {
+          const errorJson = JSON.parse(errorBody)
+          errorBody = errorJson.error || errorBody
+        } catch (e) {
+          // not JSON
+        }
+        console.error(`[Dashboard] Failed to fetch stats: ${statsResponse.status} - ${errorBody}`)
+        throw new Error(`Failed to fetch dashboard statistics: ${errorBody}`)
       }
-    ]
-  }
 
-  const mockRecentActivity = mockDashboardData.recentActivity || []
+      const statsData = await statsResponse.json()
+      const activityData = await recentActivityResponse.json()
 
-  // Initial data loading with mock data
+      setDashboardData(statsData.data)
+      setRecentActivity(activityData.data || [])
+    } catch (err: any) {
+      console.error('[Dashboard] Error fetching data:', err)
+      setError(err.message || 'An unexpected error occurred while fetching dashboard data.')
+      toast('Error loading dashboard', 'error', {
+        description: err.message,
+        duration: 5000,
+      })
+
+      // Check emergency endpoint if main stats fail
+      try {
+        const emergencyResponse = await fetch('/api/dashboard/emergency')
+        if (emergencyResponse.ok) {
+          const emergencyData = await emergencyResponse.json()
+          setDashboardData(emergencyData)
+          setRecentActivity(emergencyData.recentActivity || [])
+          setError(null)
+          toast('Partial Dashboard Loaded', 'info', {
+            description: 'Some data could not be loaded, but a basic dashboard is available.',
+            duration: 5000,
+          })
+        }
+      } catch (emergencyErr) {
+        console.error('[Dashboard] Emergency endpoint also failed:', emergencyErr)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id, mounted, toast])
+
   useEffect(() => {
     if (mounted && user?.id) {
-      setLoading(true)
-      // Simulate a brief loading delay for realism
-      setTimeout(() => {
-        setDashboardData(mockDashboardData)
-        setRecentActivity(mockRecentActivity)
-        setLoading(false)
-      }, 800)
+      fetchDashboardData()
     }
-  }, [user?.id, mounted])
+  }, [user?.id, mounted, fetchDashboardData])
 
-  // Listen for dealership changes (mock data version)
   useEffect(() => {
     const handleDealershipChange = () => {
-      // For demo purposes, just refresh with the same mock data
-      setLoading(true)
-      setTimeout(() => {
-        setDashboardData(mockDashboardData)
-        setRecentActivity(mockRecentActivity)
-        setLoading(false)
-      }, 500)
+      fetchDashboardData()
     }
 
+    // Add event listener for custom dealership changed event
     window.addEventListener('dealershipChanged', handleDealershipChange)
 
+    // Clean up the event listener
     return () => {
       window.removeEventListener('dealershipChanged', handleDealershipChange)
     }
-  }, [])
+  }, [fetchDashboardData])
 
   if (loading && !dashboardData) {
     return (
@@ -319,12 +305,8 @@ export default function DashboardPage() {
                 <Button 
                   onClick={() => {
                     setLoading(true)
-                    setTimeout(() => {
-                      setDashboardData(mockDashboardData)
-                      setRecentActivity(mockRecentActivity)
-                      setLoading(false)
-                      setError(null)
-                    }, 500)
+                    setError(null)
+                    fetchDashboardData()
                   }} 
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={loading}
@@ -367,18 +349,53 @@ export default function DashboardPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* New StatCards for GA4 and Search Console */}
+          <StatCard
+            title="GA4 Sessions"
+            value={dashboardData?.gaAnalyticsData?.[0]?.rows?.[0]?.metricValues?.[0] || 'N/A'}
+            subtitle="Last 30 days"
+            icon={BarChart}
+            color="purple"
+            loading={loading}
+          />
+          <StatCard
+            title="GA4 Users"
+            value={dashboardData?.gaAnalyticsData?.[0]?.rows?.[0]?.metricValues?.[1] || 'N/A'}
+            subtitle="Last 30 days"
+            icon={Users}
+            color="orange"
+            loading={loading}
+          />
+          <StatCard
+            title="SC Clicks"
+            value={dashboardData?.searchConsoleData?.dimensionHeaderEntries?.[0]?.dimensionNames?.includes('clicks') ? dashboardData?.searchConsoleData?.rows?.reduce((sum: any, row: any) => sum + (row.cells?.[0] || 0), 0) : 'N/A'}
+            subtitle={`Last 30 days`}
+            icon={TrendingUp}
+            color="blue"
+            loading={loading}
+          />
+          <StatCard
+            title="SC Impressions"
+            value={dashboardData?.searchConsoleData?.dimensionHeaderEntries?.[0]?.dimensionNames?.includes('impressions') ? dashboardData?.searchConsoleData?.rows?.reduce((sum: any, row: any) => sum + (row.cells?.[1] || 0), 0) : 'N/A'}
+            subtitle={`Last 30 days`}
+            icon={Star}
+            color="red"
+            loading={loading}
+          />
+
+          {/* Existing StatCards */}
           <StatCard
             title="Active Requests"
-            value={mockDashboardData.activeRequests}
+            value={dashboardData?.activeRequests ?? '-'}
             subtitle="Currently in progress"
             icon={Activity}
             color="blue"
             loading={loading}
-            trend={{ value: 12, positive: true }}
+            trend={dashboardData ? { value: 12, positive: true } : undefined}
           />
           <StatCard
             title="Total Requests"
-            value={mockDashboardData.totalRequests}
+            value={dashboardData?.totalRequests ?? '-'}
             subtitle="All time requests"
             icon={FileText}
             color="green"
@@ -386,19 +403,27 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Tasks Completed"
-            value={mockDashboardData.tasksCompletedThisMonth}
-            subtitle={mockDashboardData.tasksSubtitle}
+            value={dashboardData?.tasksCompletedThisMonth ?? '-'}
+            subtitle={dashboardData?.tasksSubtitle ?? 'tasks completed this month'}
             icon={CheckCircle}
             color="purple"
             loading={loading}
-            trend={{ value: 8, positive: true }}
+            trend={dashboardData ? { value: 8, positive: true } : undefined}
           />
           <StatCard
-            title="GA Connected"
-            value={mockDashboardData.gaConnected ? 'Yes' : 'No'}
+            title="GA4 Connected"
+            value={dashboardData?.gaConnected ? 'Yes' : 'No'}
             subtitle="Analytics status"
             icon={BarChart}
-            color={mockDashboardData.gaConnected ? "green" : "orange"}
+            color={dashboardData?.gaConnected ? "green" : "orange"}
+            loading={loading}
+          />
+          <StatCard
+            title="Search Console Connected"
+            value={dashboardData?.searchConsoleConnected ? 'Yes' : 'No'}
+            subtitle="Search data status"
+            icon={TrendingUp}
+            color={dashboardData?.searchConsoleConnected ? "green" : "orange"}
             loading={loading}
           />
         </div>
@@ -415,40 +440,42 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {mockDashboardData.packageProgress ? (
+                {loading ? (
+                  <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
+                ) : dashboardData?.packageProgress ? (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-semibold text-gray-900">
-                        {mockDashboardData.packageProgress.packageType || 'Current Package'}
+                        {dashboardData.packageProgress.packageType || 'Current Package'}
                       </h3>
                       <Badge variant="outline" className="text-blue-600 border-blue-200">
-                        {mockDashboardData.packageProgress.totalTasks.completed} / {mockDashboardData.packageProgress.totalTasks.total} Complete
+                        {dashboardData.packageProgress.totalTasks.completed} / {dashboardData.packageProgress.totalTasks.total} Complete
                       </Badge>
                     </div>
                     
                     <div className="space-y-4">
                       <ProgressBar
                         label="Pages"
-                        used={mockDashboardData.packageProgress.pages.used}
-                        limit={mockDashboardData.packageProgress.pages.limit}
+                        used={dashboardData.packageProgress.pages.used}
+                        limit={dashboardData.packageProgress.pages.limit}
                         color="blue"
                       />
                       <ProgressBar
                         label="Blog Posts"
-                        used={mockDashboardData.packageProgress.blogs.used}
-                        limit={mockDashboardData.packageProgress.blogs.limit}
+                        used={dashboardData.packageProgress.blogs.used}
+                        limit={dashboardData.packageProgress.blogs.limit}
                         color="green"
                       />
                       <ProgressBar
                         label="GBP Posts"
-                        used={mockDashboardData.packageProgress.gbpPosts.used}
-                        limit={mockDashboardData.packageProgress.gbpPosts.limit}
+                        used={dashboardData.packageProgress.gbpPosts.used}
+                        limit={dashboardData.packageProgress.gbpPosts.limit}
                         color="purple"
                       />
                       <ProgressBar
                         label="Improvements"
-                        used={mockDashboardData.packageProgress.improvements.used}
-                        limit={mockDashboardData.packageProgress.improvements.limit}
+                        used={dashboardData.packageProgress.improvements.used}
+                        limit={dashboardData.packageProgress.improvements.limit}
                         color="orange"
                       />
                     </div>
@@ -478,8 +505,10 @@ export default function DashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {mockRecentActivity.length > 0 ? (
-                  <RecentActivityTimeline activities={mockRecentActivity} />
+                {loading ? (
+                  <div className="h-48 bg-gray-200 rounded animate-pulse"></div>
+                ) : recentActivity.length > 0 ? (
+                  <RecentActivityTimeline activities={recentActivity} />
                 ) : (
                   <div className="text-center py-8">
                     <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />

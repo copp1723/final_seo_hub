@@ -14,7 +14,7 @@ export async function GET() {
     
     // Get sample data
     const sampleDealerships = await prisma.dealerships.findMany({
-      select: { id: true, name: true, agencyId: true },
+      select: { id: true, name: true, agencyId: true, clientId: true },
       take: 3
     })
     

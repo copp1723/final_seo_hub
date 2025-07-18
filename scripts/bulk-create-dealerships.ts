@@ -1,13 +1,6 @@
 import { prisma } from '../lib/prisma'
+import { DealershipData } from '../lib/dealership'
 
-interface DealershipData {
-  name: string
-  website?: string
-  ga4PropertyId?: string
-  searchConsoleUrl?: string
-}
-
-// Replace this array with your 24 dealerships data
 const dealerships: DealershipData[] = [
   {
     name: "Example Dealership 1",

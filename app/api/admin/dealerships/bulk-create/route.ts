@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import crypto from 'crypto'
+import { DealershipData } from '@/lib/dealership'
 
 export async function POST(request: NextRequest) {
   const session = await auth()
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    const { dealership } = await request.json()
+    const { dealership }: { dealership: DealershipData } = await request.json()
     
     if (!dealership?.name) {
       return NextResponse.json({ error: 'Dealership name is required' }, { status: 400 })

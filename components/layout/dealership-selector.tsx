@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown, Building2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+// NOTE: This local DealershipData interface is specific to the selector UI and should NOT be replaced with the shared lib/dealership.ts type, as its shape is different and required for UI logic.
 interface Dealership {
   id: string
   name: string

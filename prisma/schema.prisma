@@ -552,10 +552,12 @@ model tasks {
   priority     RequestPriority @default(MEDIUM)
   targetUrl    String?
   keywords     Json?
+  requestId    String? // Link to the request this task belongs to
   completedAt  DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   users        users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
 
   @@index([userId, status])
   @@index([agencyId, status])

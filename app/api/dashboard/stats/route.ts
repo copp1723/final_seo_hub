@@ -5,10 +5,19 @@ import { getDealershipPackageProgress } from '@/lib/package-utils'
 import { withApiMonitoring } from '@/lib/api-wrapper'
 import { createCachedFunction, CACHE_TAGS, revalidateCache } from '@/lib/cache'
 import { CACHE_TTL } from '@/lib/constants'
+import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
+import { GA4Service } from '@/lib/google/ga4Service'
 
 // Cached function for fetching dealership stats
 const getCachedDealershipStats = createCachedFunction(
   async (dealershipId: string) => {
+    // Get users associated with the dealership to pass to GA4 and Search Console services
+    const dealershipUsers = await prisma.users.findMany({
+      where: { dealershipId },
+      select: { id: true }
+    })
+    const firstUserId = dealershipUsers[0]?.id; // Use the first user's ID for service initialization
+
     // Try both approaches: requests by dealershipId and by userId
     const [statusCountsByDealership, statusCountsByUserId, completedThisMonth, latestRequest] = await Promise.all([
       // Direct dealership requests
@@ -22,25 +31,14 @@ const getCachedDealershipStats = createCachedFunction(
       
       // User-based requests (fallback)
       (async () => {
-        try {
-          const dealershipUsers = await prisma.users.findMany({
-            where: { dealershipId },
-            select: { id: true }
-          })
-          const userIds = dealershipUsers.map(u => u.id)
-          
-          if (userIds.length === 0) return []
-          
-          return prisma.requests.groupBy({
-            by: ['status'],
-            where: { 
-              userId: { in: userIds }
-            },
-            _count: true
-          })
-        } catch (error) {
-          return []
-        }
+        if (!firstUserId) return [];
+        return prisma.requests.groupBy({
+          by: ['status'],
+          where: { 
+            userId: firstUserId
+          },
+          _count: true
+        })
       })(),
       
       // Completed this month - try both approaches
@@ -60,17 +58,10 @@ const getCachedDealershipStats = createCachedFunction(
           if (byDealership > 0) return byDealership
           
           // Fallback to user-based
-          const dealershipUsers = await prisma.users.findMany({
-            where: { dealershipId },
-            select: { id: true }
-          })
-          const userIds = dealershipUsers.map(u => u.id)
-          
-          if (userIds.length === 0) return 0
-          
+          if (!firstUserId) return 0;
           return prisma.requests.count({
             where: {
-              userId: { in: userIds },
+              userId: firstUserId,
               status: 'COMPLETED',
               completedAt: {
                 gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -104,17 +95,10 @@ const getCachedDealershipStats = createCachedFunction(
           if (byDealership) return byDealership
           
           // Fallback to user-based
-          const dealershipUsers = await prisma.users.findMany({
-            where: { dealershipId },
-            select: { id: true }
-          })
-          const userIds = dealershipUsers.map(u => u.id)
-          
-          if (userIds.length === 0) return null
-          
+          if (!firstUserId) return null;
           return prisma.requests.findFirst({
             where: {
-              userId: { in: userIds },
+              userId: firstUserId,
               packageType: { not: null }
             },
             orderBy: { createdAt: 'desc' },
@@ -153,19 +137,50 @@ const getCachedDealershipStats = createCachedFunction(
       console.error("API Dashboard: Failed to get dealership package progress", error)
     }
 
-    // Check GA4 connection by dealershipId
+    // Check GA4 connection by dealershipId and fetch data
     let gaConnected = false
+    let gaAnalyticsData = null
     try {
       const gaConnection = await prisma.ga4_connections.findFirst({
         where: { dealershipId },
         select: { propertyId: true, propertyName: true }
       })
       
-      if (gaConnection?.propertyId) {
+      if (gaConnection?.propertyId && firstUserId) {
         gaConnected = true
+        const ga4Service = new GA4Service(firstUserId) // Initialize GA4Service with a user ID
+        gaAnalyticsData = await ga4Service.batchRunReports(gaConnection.propertyId, [
+          {
+            dateRanges: [{ startDate: '30daysAgo', endDate: 'today' }],
+            metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'newUsers' }],
+          },
+          // Add more GA4 reports here as needed for the dashboard
+        ])
       }
     } catch (error) {
-      console.error("API Dashboard: Failed to check GA4 connection", error)
+      console.error("API Dashboard: Failed to check GA4 connection or fetch data", error)
+    }
+
+    // Check Search Console connection and fetch performance data
+    let searchConsoleConnected = false
+    let searchConsoleData = null
+    try {
+      const scConnection = await prisma.search_console_connections.findFirst({
+        where: { dealershipId },
+        select: { siteUrl: true }
+      })
+
+      if (scConnection?.siteUrl && firstUserId) {
+        searchConsoleConnected = true
+        const searchConsoleService = await getSearchConsoleService(firstUserId); // Initialize with user ID
+        searchConsoleData = await searchConsoleService.getSearchAnalytics(scConnection.siteUrl, {
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0],
+          dimensions: ['date']
+        })
+      }
+    } catch (error) {
+      console.error("API Dashboard: Failed to check Search Console connection or fetch data", error)
     }
 
     return {
@@ -173,7 +188,10 @@ const getCachedDealershipStats = createCachedFunction(
       completedThisMonth,
       latestRequest,
       packageProgress,
-      gaConnected
+      gaConnected,
+      gaAnalyticsData,
+      searchConsoleConnected,
+      searchConsoleData
     }
   },
   {
@@ -181,6 +199,7 @@ const getCachedDealershipStats = createCachedFunction(
     tags: (dealershipId: string) => [
       CACHE_TAGS.REQUESTS(dealershipId),
       CACHE_TAGS.GA4(dealershipId),
+      CACHE_TAGS.SEARCH_CONSOLE(dealershipId),
       `dealership-stats-${dealershipId}`
     ],
     revalidate: CACHE_TTL.ANALYTICS / 1000, // 5 minutes
@@ -198,64 +217,10 @@ async function handleGET(request: NextRequest) {
       )
     }
 
-    const { searchParams } = new URL(request.url)
-    const dealershipId = searchParams.get('dealershipId')
+    let targetDealershipId: string
+    const url = new URL(request.url)
+    const queryDealershipId = url.searchParams.get('dealershipId')
 
-          // Handle super admin user  
-      if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
-
-      // For super admin, return basic stats from first available dealership or empty stats
-      const firstDealership = await prisma.dealerships.findFirst()
-      if (!firstDealership) {
-        return NextResponse.json({
-          success: true,
-          data: {
-            activeRequests: 0,
-            totalRequests: 0,
-            tasksCompletedThisMonth: 0,
-            tasksSubtitle: "No dealerships available",
-            gaConnected: false,
-            packageProgress: null,
-            latestRequest: null,
-            dealershipId: null
-          }
-        })
-      }
-
-      const targetDealershipId = dealershipId || firstDealership.id
-      const cachedStats = await getCachedDealershipStats(targetDealershipId)
-      const { statusCounts, completedThisMonth, latestRequest, packageProgress, gaConnected } = cachedStats
-
-      const statusCountsMap = statusCounts.reduce((acc: Record<string, number>, item: any) => {
-        acc[item.status] = item._count
-        return acc
-      }, {})
-
-      const activeRequests = statusCountsMap['IN_PROGRESS'] || 0
-      const totalRequests = Object.values(statusCountsMap).reduce((sum: number, count: any) => sum + (count as number), 0)
-      
-      const tasksCompletedThisMonth = packageProgress ? packageProgress.totalTasks.completed : completedThisMonth
-      const tasksTotalThisMonth = packageProgress ? packageProgress.totalTasks.total : 0
-      const tasksSubtitle = packageProgress
-        ? `${tasksCompletedThisMonth} of ${tasksTotalThisMonth} used this month`
-        : totalRequests > 0 ? `${completedThisMonth} requests completed this month` : "No active package"
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          activeRequests,
-          totalRequests,
-          tasksCompletedThisMonth,
-          tasksSubtitle,
-          gaConnected,
-          packageProgress,
-          latestRequest,
-          dealershipId: targetDealershipId
-        }
-      })
-    }
-
-    // Get user's information and verify access
     const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       include: {
@@ -275,47 +240,67 @@ async function handleGET(request: NextRequest) {
       )
     }
 
-    // Determine which dealership to get stats for
-    let targetDealershipId: string
-
-    if (dealershipId) {
-      // Verify user has access to the requested dealership
-      if (user.agencies) {
-        // Agency user - check if dealership belongs to their agency
-        const hasAccess = user.agencies.dealerships.some(d => d.id === dealershipId)
-        if (!hasAccess) {
-          return NextResponse.json(
-            { error: 'Access denied to this dealership' },
-            { status: 403 }
-          )
+    if (user.role === 'SUPER_ADMIN') {
+        if (queryDealershipId) {
+            targetDealershipId = queryDealershipId
+        } else {
+            const firstDealership = await prisma.dealerships.findFirst();
+            if (!firstDealership) {
+                return NextResponse.json({
+                    success: true,
+                    data: {
+                        activeRequests: 0, totalRequests: 0, tasksCompletedThisMonth: 0,
+                        tasksSubtitle: "No dealerships available", gaConnected: false,
+                        packageProgress: null, latestRequest: null, dealershipId: null,
+                        gaAnalyticsData: null, searchConsoleConnected: false, searchConsoleData: null
+                    }
+                });
+            }
+            targetDealershipId = firstDealership.id;
         }
-        targetDealershipId = dealershipId
-      } else {
-        // Non-agency user - can only access their own dealership
-        if (user.dealerships?.id !== dealershipId) {
-          return NextResponse.json(
-            { error: 'Access denied to this dealership' },
-            { status: 403 }
-          )
-        }
-        targetDealershipId = dealershipId
-      }
     } else {
-      // No specific dealership requested - use user's assigned dealership
-      if (!user.dealerships?.id) {
-        return NextResponse.json(
-          { error: 'User is not assigned to a dealership' },
-          { status: 400 }
-        )
-      }
-      targetDealershipId = user.dealerships?.id
+        if (queryDealershipId) {
+            if (user.agencies) {
+                const hasAccess = user.agencies.dealerships.some(d => d.id === queryDealershipId);
+                if (!hasAccess) {
+                    return NextResponse.json(
+                        { error: 'Access denied to this dealership' },
+                        { status: 403 }
+                    );
+                }
+                targetDealershipId = queryDealershipId;
+            } else {
+                if (user.dealerships?.id !== queryDealershipId) {
+                    return NextResponse.json(
+                        { error: 'Access denied to this dealership' },
+                        { status: 403 }
+                    );
+                }
+                targetDealershipId = queryDealershipId;
+            }
+        } else {
+            if (!user.dealerships?.id) {
+                return NextResponse.json(
+                    { error: 'User is not assigned to a dealership' },
+                    { status: 400 }
+                );
+            }
+            targetDealershipId = user.dealerships?.id;
+        }
     }
 
-    // Use cached function to get dealership stats
     const cachedStats = await getCachedDealershipStats(targetDealershipId)
-    const { statusCounts, completedThisMonth, latestRequest, packageProgress, gaConnected } = cachedStats
+    const { 
+      statusCounts, 
+      completedThisMonth, 
+      latestRequest, 
+      packageProgress, 
+      gaConnected, 
+      gaAnalyticsData,
+      searchConsoleConnected,
+      searchConsoleData
+    } = cachedStats
 
-    // Calculate stats with null safety
     const statusCountsMap = statusCounts.reduce((acc: Record<string, number>, item: any) => {
       acc[item.status] = item._count
       return acc
@@ -324,7 +309,6 @@ async function handleGET(request: NextRequest) {
     const activeRequests = statusCountsMap['IN_PROGRESS'] || 0
     const totalRequests = Object.values(statusCountsMap).reduce((sum: number, count: any) => sum + (count as number), 0)
     
-    // Use packageProgress for "Tasks Completed" card
     const tasksCompletedThisMonth = packageProgress ? packageProgress.totalTasks.completed : completedThisMonth
     const tasksTotalThisMonth = packageProgress ? packageProgress.totalTasks.total : 0
     const tasksSubtitle = packageProgress
@@ -339,6 +323,9 @@ async function handleGET(request: NextRequest) {
         tasksCompletedThisMonth,
         tasksSubtitle,
         gaConnected,
+        gaAnalyticsData,
+        searchConsoleConnected,
+        searchConsoleData,
         packageProgress,
         latestRequest,
         dealershipId: targetDealershipId

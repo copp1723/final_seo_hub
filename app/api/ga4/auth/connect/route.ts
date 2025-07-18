@@ -2,15 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 
 export async function GET(request: NextRequest) {
-  // EMERGENCY DEMO FIX: Hardcode session for OAuth
-  const session = {
-    user: {
-      id: 'user-super-admin-001',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN'
-    }
+  const session = await SimpleAuth.getSessionFromRequest(request)
+
+  if (!session?.user?.id) {
+    console.warn('[GA4 CONNECT] Unauthorized attempt - No user ID in session')
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  console.log('[GA4 CONNECT] Using hardcoded session for demo')
 
   const SCOPES = [
     'https://www.googleapis.com/auth/analytics.readonly',

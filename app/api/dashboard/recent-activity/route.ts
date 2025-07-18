@@ -19,76 +19,56 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dealershipId = searchParams.get('dealershipId')
 
-    // Handle hardcoded admin user
     let targetDealershipId: string
     
-    if (session.user.id === 'hardcoded-super-admin') {
-      // Super admin can view any dealership
+    // Get user's information and verify access
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      include: {
+        agencies: {
+          include: {
+            dealerships: true
+          }
+        },
+        dealerships: true
+      }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    // Determine which dealership to get activity for
+    if (user.role === 'SUPER_ADMIN') {
       if (dealershipId) {
         targetDealershipId = dealershipId
       } else {
-        // Default to first available dealership
         const firstDealership = await prisma.dealerships.findFirst()
         if (!firstDealership) {
           return NextResponse.json({ success: true, data: [] })
         }
         targetDealershipId = firstDealership.id
       }
-    } else {
-      // Get user's information and verify access
-      const user = await prisma.users.findUnique({
-        where: { id: session.user.id },
-        include: {
-          agencies: {
-            include: {
-              dealerships: true
-            }
-          },
-          dealerships: true
-        }
-      })
-
-      if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        )
-      }
-
-      // Determine which dealership to get activity for
-      if (user.role === 'SUPER_ADMIN') {
-        // Super admin can view any dealership
-        if (dealershipId) {
-          targetDealershipId = dealershipId
-        } else {
-          // Default to first available dealership
-          const firstDealership = await prisma.dealerships.findFirst()
-          if (!firstDealership) {
-            return NextResponse.json({ success: true, data: [] })
-          }
-          targetDealershipId = firstDealership.id
-        }
-      } else if (user.role === 'AGENCY_ADMIN' && user.agencies?.id) {
-        // Agency admin can view dealerships in their agency
-        if (dealershipId && user.agencies?.dealerships.some(d => d.id === dealershipId)) {
-          targetDealershipId = dealershipId
-        } else {
-          // Default to first dealership in agency
-          const firstDealership = user.agencies?.dealerships[0]
-          if (!firstDealership) {
-            return NextResponse.json({ success: true, data: [] })
-          }
-          targetDealershipId = firstDealership.id
-        }
-      } else if (user.dealerships?.id) {
-        // Regular user can only view their own dealership
-        targetDealershipId = user.dealerships?.id
+    } else if (user.role === 'AGENCY_ADMIN' && user.agencies?.id) {
+      if (dealershipId && user.agencies?.dealerships.some(d => d.id === dealershipId)) {
+        targetDealershipId = dealershipId
       } else {
-        return NextResponse.json(
-          { error: 'No dealership access' },
-          { status: 403 }
-        )
+        const firstDealership = user.agencies?.dealerships[0]
+        if (!firstDealership) {
+          return NextResponse.json({ success: true, data: [] })
+        }
+        targetDealershipId = firstDealership.id
       }
+    } else if (user.dealerships?.id) {
+      targetDealershipId = user.dealerships?.id
+    } else {
+      return NextResponse.json(
+        { error: 'No dealership access' },
+        { status: 403 }
+      )
     }
 
     // Get users for this dealership

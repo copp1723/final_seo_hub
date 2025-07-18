@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
-import { RequestStatus, Prisma, UserRole } from '@prisma/client'
+import { RequestStatus, Prisma, UserRole, TaskType, TaskStatus } from '@prisma/client'
 import { validateRequest, createRequestSchema } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
@@ -233,19 +233,47 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       type: newRequest.type
     })
     
-    // Send focus request to SEOWorks
+    // Create associated tasks
     try {
-      // Skip SEOWorks integration for now - it's causing issues
-      // This can be triggered manually from the UI if needed
-      logger.info('Request created - SEOWorks integration can be triggered separately', {
+      let tasksToCreate = [];
+      // Example: Create a single task based on the request type
+      tasksToCreate.push({
+        userId: newRequest.userId,
+        // Using dealershipId from newRequest if available; otherwise null.
+        // It's crucial that newRequest.dealershipId is populated or null.
+        dealershipId: (newRequest as any).dealershipId || null,
+        agencyId: newRequest.agencyId || null,
+        type: newRequest.type.toUpperCase() as TaskType, // Directly cast to TaskType assuming enum matches string values
+        title: newRequest.title,
+        description: newRequest.description || '',
+        priority: newRequest.priority,
+        targetUrl: newRequest.targetUrl || null,
+        // Explicitly handle Prisma.JsonNull for empty arrays in JSON fields
+        keywords: Array.isArray(newRequest.keywords) && newRequest.keywords.length > 0 ? (newRequest.keywords as Prisma.InputJsonValue) : Prisma.JsonNull,
+        requestId: newRequest.id, // Link to the newly created request
+        status: TaskStatus.PENDING, // Default status for new tasks
+        targetCities: Array.isArray(newRequest.targetCities) && newRequest.targetCities.length > 0 ? (newRequest.targetCities as Prisma.InputJsonValue) : Prisma.JsonNull,
+        targetModels: Array.isArray(newRequest.targetModels) && newRequest.targetModels.length > 0 ? (newRequest.targetModels as Prisma.InputJsonValue) : Prisma.JsonNull,
+      });
+
+      // You can add more complex logic here to create multiple tasks
+      // For example, if request.type is 'SEO_AUDIT', create multiple sub-tasks (e.g., 'TECHNICAL_AUDIT_TASK', 'CONTENT_AUDIT_TASK')
+
+      if (tasksToCreate.length > 0) {
+        await prisma.tasks.createMany({
+          data: tasksToCreate
+        });
+        logger.info(`${tasksToCreate.length} tasks created for request`, {
+          requestId: newRequest.id,
+          taskTypes: tasksToCreate.map(t => t.type)
+        });
+      }
+    } catch (taskCreationError) {
+      logger.error('Error creating tasks for request', taskCreationError, {
         requestId: newRequest.id,
-        type: data.type
-      })
-    } catch (seoworksError) {
-      logger.error('Error with SEOWorks integration', seoworksError, {
-        requestId: newRequest.id
-      })
-      // Don't fail the request creation if SEOWorks integration fails
+        requestType: newRequest.type
+      });
+      // Do not block initial request creation if task creation fails
     }
     
     // Send request created email notification

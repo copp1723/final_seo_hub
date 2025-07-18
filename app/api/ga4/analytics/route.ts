@@ -23,12 +23,11 @@ function getCacheKey(userId: string, params: any): string {
 
 export async function POST(request: NextRequest) {
   try {
-    // EMERGENCY DEMO FIX: Hardcode session
-    const session = {
-      user: {
-        id: 'user-super-admin-001',
-        email: 'josh.copp@onekeel.ai'
-      }
+    const session = await auth()
+    
+    if (!session?.user?.id) {
+      logger.warn('GA4 Analytics: Unauthorized attempt - No user ID in session')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Parse and validate request body
@@ -64,8 +63,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: cachedData.data, cached: true })
     }
 
-    // EMERGENCY DEMO FIX: Skip dealership check
-    const targetDealershipId = 'demo-dealership'
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: {
+        dealershipId: true
+      }
+    })
+
+    if (!user || !user.dealershipId) {
+      logger.warn('GA4 Analytics: User has no active dealership selected', {
+        userId: session.user.id
+      })
+      return NextResponse.json(
+        { error: 'No active dealership selected. Please select a dealership to view analytics.' },
+        { status: 400 }
+      )
+    }
+
+    const targetDealershipId = user.dealershipId
 
     // Check if user has GA4 connection
     const ga4Connection = await prisma.ga4_connections.findUnique({

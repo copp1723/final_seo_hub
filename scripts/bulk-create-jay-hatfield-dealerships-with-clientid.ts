@@ -1,47 +1,7 @@
 import { PrismaClient } from '@prisma/client'
+import { DealershipData, generateClientId } from '../lib/dealership'
 
 const prisma = new PrismaClient()
-
-// Function to generate clientId from business name and location
-function generateClientId(businessName: string, website: string): string {
-  // Extract location from business name or website
-  let location = 'main'
-  
-  // Extract location from business name
-  const locationMatches = businessName.match(/of\s+(\w+)|@\s+(\w+)|-\s+(\w+)/)
-  if (locationMatches) {
-    location = (locationMatches[1] || locationMatches[2] || locationMatches[3]).toLowerCase()
-  } else {
-    // Try to extract from website
-    const websiteMatches = website.match(/\/\/.*?(\w+)\.(com|net|ai|co)/)
-    if (websiteMatches) {
-      location = websiteMatches[1].toLowerCase()
-    }
-  }
-  
-  // Simplify business name
-  let simplifiedName = businessName
-    .toLowerCase()
-    .replace(/jay hatfield /g, 'jayhatfield')
-    .replace(/chevrolet/g, 'chevy')
-    .replace(/motorsports/g, 'motors')
-    .replace(/powerhouse/g, '')
-    .replace(/auto group/g, 'autogroup')
-    .replace(/premier/g, 'premier')
-    .replace(/hatchett/g, 'hatchett')
-    .replace(/\s+/g, '')
-    .replace(/[^a-z0-9]/g, '')
-  
-  return `user_${simplifiedName}_${location}_2024`
-}
-
-interface DealershipData {
-  name: string
-  website: string
-  ga4PropertyId?: string
-  ga4MeasurementId?: string
-  clientEmail?: string
-}
 
 // All 22 dealerships with complete data
 const dealerships: DealershipData[] = [
@@ -209,7 +169,7 @@ async function createDealershipsWithClientIds() {
     for (const dealershipData of dealerships) {
       try {
         // Generate unique clientId
-        const clientId = generateClientId(dealershipData.name, dealershipData.website)
+        const clientId = generateClientId(dealershipData.name, dealershipData.website || '')
         
         console.log(`\n🏢 Processing: ${dealershipData.name}`)
         console.log(`   Client ID: ${clientId}`)
@@ -335,4 +295,4 @@ createDealershipsWithClientIds()
   })
   .catch(console.error)
 
-export default createDealershipsWithClientIds 
+export default createDealershipsWithClientIds

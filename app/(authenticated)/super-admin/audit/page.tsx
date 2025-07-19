@@ -59,10 +59,10 @@ export default function SuperAdminAuditPage() {
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
-  const [actionFilter, setActionFilter] = useState('')
+  const [actionFilter, setActionFilter] = useState('all')
   const [userFilter, setUserFilter] = useState('')
   const [dateFilter, setDateFilter] = useState('')
-  const [resourceFilter, setResourceFilter] = useState('')
+  const [resourceFilter, setResourceFilter] = useState('all')
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -83,10 +83,10 @@ export default function SuperAdminAuditPage() {
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
         ...(searchTerm && { search: searchTerm }),
-        ...(actionFilter && { action: actionFilter }),
+        ...(actionFilter && actionFilter !== 'all' && { action: actionFilter }),
         ...(userFilter && { userId: userFilter }),
         ...(dateFilter && { date: dateFilter }),
-        ...(resourceFilter && { resource: resourceFilter })
+        ...(resourceFilter && resourceFilter !== 'all' && { resource: resourceFilter })
       })
 
       const response = await fetch(`/api/super-admin/audit?${params}`)
@@ -128,10 +128,10 @@ export default function SuperAdminAuditPage() {
     try {
       const params = new URLSearchParams({
         ...(searchTerm && { search: searchTerm }),
-        ...(actionFilter && { action: actionFilter }),
+        ...(actionFilter && actionFilter !== 'all' && { action: actionFilter }),
         ...(userFilter && { userId: userFilter }),
         ...(dateFilter && { date: dateFilter }),
-       ...(resourceFilter && { resource: resourceFilter }),
+       ...(resourceFilter && resourceFilter !== 'all' && { resource: resourceFilter }),
         format: 'csv'
       })
 
@@ -189,10 +189,10 @@ export default function SuperAdminAuditPage() {
 
   const clearFilters = () => {
     setSearchTerm('')
-    setActionFilter('')
+    setActionFilter('all')
     setUserFilter('')
     setDateFilter('')
-    setResourceFilter('')
+    setResourceFilter('all')
     setCurrentPage(1)
   }
 
@@ -297,7 +297,7 @@ export default function SuperAdminAuditPage() {
                   <SelectValue placeholder="Action" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Actions</SelectItem>
+                  <SelectItem value="all">All Actions</SelectItem>
                   <SelectItem value="USER_LOGIN">User Login</SelectItem>
                   <SelectItem value="USER_LOGOUT">User Logout</SelectItem>
                   <SelectItem value="USER_CREATE">User Create</SelectItem>
@@ -316,7 +316,7 @@ export default function SuperAdminAuditPage() {
                   <SelectValue placeholder="Resource" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Resources</SelectItem>
+                  <SelectItem value="all">All Resources</SelectItem>
                   <SelectItem value="User">Users</SelectItem>
                   <SelectItem value="Agency">Agencies</SelectItem>
                   <SelectItem value="Request">Requests</SelectItem>

@@ -240,7 +240,7 @@ export function IntegrationPropertyManager() {
                         </td>
                         <td className="p-4">
                           <Select
-                            value={selectedMappings[dealership.dealershipId]?.ga4 || ''}
+                            value={selectedMappings[dealership.dealershipId]?.ga4 || undefined}
                             onValueChange={(value) => handlePropertyChange(dealership.dealershipId, 'ga4', value)}
                           >
                             <SelectTrigger className="w-[300px]">
@@ -314,7 +314,7 @@ export function IntegrationPropertyManager() {
                         </td>
                         <td className="p-4">
                           <Select
-                            value={selectedMappings[dealership.dealershipId]?.searchConsole || ''}
+                            value={selectedMappings[dealership.dealershipId]?.searchConsole || undefined}
                             onValueChange={(value) => handlePropertyChange(dealership.dealershipId, 'searchConsole', value)}
                           >
                             <SelectTrigger className="w-[300px]">

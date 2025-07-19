@@ -14,14 +14,16 @@ export async function GET(request: NextRequest) {
     // Step 1: Create or update the user to be SUPER_ADMIN
     const user = await prisma.users.upsert({
       where: { email },
-      update: { 
+      update: {
         role: 'SUPER_ADMIN',
+        isSuperAdmin: true,
         name: 'Josh Copp'
       },
       create: {
         id: crypto.randomUUID(),
         email,
         role: 'SUPER_ADMIN',
+        isSuperAdmin: true,
         name: 'Josh Copp',
         createdAt: new Date(),
         updatedAt: new Date()

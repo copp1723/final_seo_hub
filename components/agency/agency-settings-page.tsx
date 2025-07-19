@@ -428,8 +428,8 @@ export function AgencySettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="businessType">Business Type</Label>
-                  <Select 
-                    value={agency.businessType || ''} 
+                  <Select
+                    value={agency.businessType || undefined}
                     onValueChange={(value) => handleFieldChange('businessType', value)}
                   >
                     <SelectTrigger>
@@ -445,8 +445,8 @@ export function AgencySettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="industry">Industry</Label>
-                  <Select 
-                    value={agency.industry || ''} 
+                  <Select
+                    value={agency.industry || undefined}
                     onValueChange={(value) => handleFieldChange('industry', value)}
                   >
                     <SelectTrigger>

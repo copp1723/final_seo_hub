@@ -475,7 +475,7 @@ export default function DashboardPage() {
             icon={Activity}
             color="blue"
             loading={loading}
-            trend={dashboardData ? { value: 12, positive: true } : undefined}
+            trend={undefined}
           />
           <StatCard
             title="Total Requests"
@@ -492,7 +492,7 @@ export default function DashboardPage() {
             icon={CheckCircle}
             color="purple"
             loading={loading}
-            trend={dashboardData ? { value: 8, positive: true } : undefined}
+            trend={undefined}
           />
           <StatCard
             title="GA4 Connected"

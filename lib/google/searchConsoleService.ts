@@ -248,4 +248,5 @@ export async function getSearchConsoleService(userId: string) {
     
     // Return a mock service that will use mock data
     return new SearchConsoleServiceMock();
+  }
 }

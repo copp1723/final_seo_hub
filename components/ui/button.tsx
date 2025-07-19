@@ -12,12 +12,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', disabled, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : 'button'
     const variants = {
-      default: 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm shadow-blue-600/25 hover:shadow-md hover:shadow-blue-600/30 hover:from-blue-600 hover:to-blue-700 border border-blue-600/20',
-      primary: 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-sm shadow-blue-600/25 hover:shadow-md hover:shadow-blue-600/30 hover:from-blue-600 hover:to-blue-700 border border-blue-600/20',
-      secondary: 'bg-gradient-to-b from-white to-gray-50 text-gray-700 shadow-sm border border-gray-200/80 hover:shadow-md hover:from-gray-50 hover:to-gray-100 hover:border-gray-300/80',
-      ghost: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50/80',
-      outline: 'border border-gray-200/80 bg-white/80 text-gray-700 shadow-sm hover:bg-gray-50/80 hover:border-gray-300/80 hover:shadow-md backdrop-blur-sm',
-      destructive: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-sm shadow-red-600/25 hover:shadow-md hover:shadow-red-600/30 hover:from-red-600 hover:to-red-700 border border-red-600/20'
+      default: 'bg-gradient-to-b from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-600/25 hover:shadow-xl hover:shadow-violet-600/30 hover:from-violet-600 hover:to-violet-700 border border-violet-600/20 hover:-translate-y-0.5',
+      primary: 'bg-gradient-to-b from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-600/25 hover:shadow-xl hover:shadow-violet-600/30 hover:from-violet-600 hover:to-violet-700 border border-violet-600/20 hover:-translate-y-0.5',
+      secondary: 'bg-gradient-to-b from-white to-gray-50 text-gray-700 shadow-md border border-gray-200/80 hover:shadow-lg hover:from-gray-50 hover:to-gray-100 hover:border-gray-300/80 hover:-translate-y-0.5',
+      ghost: 'text-gray-600 hover:text-gray-800 hover:bg-gray-100/80 rounded-lg',
+      outline: 'border border-gray-300/80 bg-white/90 text-gray-700 shadow-md hover:bg-gray-50/90 hover:border-gray-400/80 hover:shadow-lg backdrop-blur-sm hover:-translate-y-0.5',
+      destructive: 'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-lg shadow-red-600/25 hover:shadow-xl hover:shadow-red-600/30 hover:from-red-600 hover:to-red-700 border border-red-600/20 hover:-translate-y-0.5'
     }
     
     const sizes = {
@@ -30,9 +30,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 ease-in-out',
-          'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:ring-offset-2',
+          'inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-300 ease-out',
+          'disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/20 focus-visible:ring-offset-2',
           variants[variant],
           sizes[size],
           className

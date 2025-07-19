@@ -325,12 +325,12 @@ export default function SettingsPage() {
           {message.text}
         </div>
       )}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="usage">Monthly Usage</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <TabsList className="grid grid-cols-4 w-full bg-gray-100/80 p-1 rounded-xl">
+          <TabsTrigger value="integrations" className="rounded-lg font-medium">Integrations</TabsTrigger>
+          <TabsTrigger value="profile" className="rounded-lg font-medium">Profile</TabsTrigger>
+          <TabsTrigger value="usage" className="rounded-lg font-medium">Usage</TabsTrigger>
+          <TabsTrigger value="notifications" className="rounded-lg font-medium">Notifications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">

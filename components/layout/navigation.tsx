@@ -5,26 +5,26 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/app/simple-auth-provider'
 import {
-  Home,
+  LayoutDashboard,
   FileText,
-  BarChart,
+  TrendingUp,
   Menu,
   X,
   User,
   LogOut,
   Settings,
-  MessageSquare,
+  Bot,
   Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DealershipSelector } from './dealership-selector'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/chat', label: 'SEO Assistant', icon: Bot },
   { href: '/requests', label: 'Requests', icon: FileText },
-  { href: '/chat', label: 'SEO Assistant', icon: MessageSquare },
-  { href: '/tasks', label: 'Tasks', icon: Settings },
-  { href: '/reporting', label: 'Reports', icon: BarChart }
+  { href: '/reporting', label: 'Reports', icon: TrendingUp },
+  { href: '/tasks', label: 'Tasks', icon: Settings }
 ]
 
 export function Navigation() {
@@ -61,14 +61,14 @@ export function Navigation() {
   ] : []
 
   return (
-    <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-sm sticky top-0 z-50">
+    <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+        <div className="flex justify-between h-18 items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center gap-2 lg:gap-6 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-lg lg:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent tracking-tight hover:from-blue-700 hover:to-indigo-700 transition-all duration-200">
+              <Link href="/dashboard" className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight hover:from-violet-700 hover:to-purple-700 transition-all duration-300">
                 SEO Hub
               </Link>
             </div>
@@ -85,13 +85,13 @@ export function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-4 py-2 rounded-lg text-sm font-normal transition-all duration-200 relative',
+                      'inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative',
                       isActive
-                        ? 'text-blue-700 bg-blue-50/80 shadow-sm border border-blue-200/50'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
+                        ? 'text-violet-700 bg-violet-50/80 shadow-sm border border-violet-200/50 backdrop-blur-sm'
+                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50/80 hover:shadow-sm'
                     )}
                   >
-                    <Icon className="h-4 w-4 mr-3" />
+                    <Icon className="h-4 w-4 mr-3 flex-shrink-0" />
                     {item.label}
                   </Link>
                 )
@@ -194,8 +194,8 @@ export function Navigation() {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200/60">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+        <div className="md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200/60 shadow-lg">
+          <div className="px-4 pt-4 pb-6 space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href ||
@@ -207,10 +207,10 @@ export function Navigation() {
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    'flex items-center px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200',
+                    'flex items-center px-4 py-3 rounded-xl text-base font-medium transition-all duration-300',
                     isActive
-                      ? 'text-blue-700 bg-blue-50/80'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
+                      ? 'text-violet-700 bg-violet-50/80 shadow-sm border border-violet-200/50'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50/80 hover:shadow-sm'
                   )}
                 >
                   <Icon className="h-5 w-5 mr-3" />

@@ -122,34 +122,34 @@ const StatCard = ({
   loading?: boolean
 }) => {
   const colorClasses = {
-    blue: "from-blue-500 to-blue-600 text-blue-600 bg-blue-50",
-    green: "from-green-500 to-green-600 text-green-600 bg-green-50",
-    purple: "from-purple-500 to-purple-600 text-purple-600 bg-purple-50",
-    orange: "from-orange-500 to-orange-600 text-orange-600 bg-orange-50",
-    red: "from-red-500 to-red-600 text-red-600 bg-red-50"
+    blue: "from-blue-500 to-blue-600 text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100/50",
+    green: "from-emerald-500 to-emerald-600 text-emerald-600 bg-gradient-to-br from-emerald-50 to-emerald-100/50",
+    purple: "from-violet-500 to-violet-600 text-violet-600 bg-gradient-to-br from-violet-50 to-violet-100/50",
+    orange: "from-amber-500 to-amber-600 text-amber-600 bg-gradient-to-br from-amber-50 to-amber-100/50",
+    red: "from-red-500 to-red-600 text-red-600 bg-gradient-to-br from-red-50 to-red-100/50"
   }
 
   return (
-    <Card className="relative overflow-hidden border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/30 hover:shadow-md transition-all duration-300">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium text-gray-600">{title}</CardTitle>
-        <div className={`p-2 rounded-lg ${colorClasses[color].split(' ').slice(2).join(' ')}`}>
-          <Icon className={`h-4 w-4 ${colorClasses[color].split(' ')[2]}`} />
+    <Card className="group relative overflow-hidden border border-gray-200/60 shadow-sm bg-white hover:shadow-lg hover:border-gray-300/60 transition-all duration-300 hover:-translate-y-1">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+        <CardTitle className="text-sm font-semibold text-gray-700">{title}</CardTitle>
+        <div className={`p-2.5 rounded-xl ${colorClasses[color].split(' ').slice(2).join(' ')} group-hover:scale-110 transition-transform duration-300`}>
+          <Icon className={`h-5 w-5 ${colorClasses[color].split(' ')[2]}`} />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <div className="flex items-center justify-between">
           <div>
             {loading ? (
-              <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-8 w-20 bg-gray-200 rounded-lg animate-pulse"></div>
             ) : (
-              <div className="text-2xl font-bold text-gray-900">{value}</div>
+              <div className="text-3xl font-bold text-gray-900 tracking-tight">{value}</div>
             )}
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-sm text-gray-600 mt-2 font-medium">{subtitle}</p>
           </div>
           {trend && (
-            <div className={`flex items-center text-xs ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
-              <TrendingUp className={`h-3 w-3 mr-1 ${trend.positive ? '' : 'rotate-180'}`} />
+            <div className={`flex items-center text-sm font-medium ${trend.positive ? 'text-emerald-600' : 'text-red-600'}`}>
+              <TrendingUp className={`h-4 w-4 mr-1 ${trend.positive ? '' : 'rotate-180'}`} />
               {Math.abs(trend.value)}%
             </div>
           )}
@@ -431,49 +431,15 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Analytics StatCards for GA4 and Search Console */}
-          <StatCard
-            title="GA4 Sessions"
-            value={analyticsData?.ga4Data?.sessions?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
-            subtitle={analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "Connect GA4"}
-            icon={BarChart}
-            color="purple"
-            loading={analyticsLoading}
-          />
-          <StatCard
-            title="GA4 Users"
-            value={analyticsData?.ga4Data?.users?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
-            subtitle={analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "Connect GA4"}
-            icon={Users}
-            color="orange"
-            loading={analyticsLoading}
-          />
-          <StatCard
-            title="SC Clicks"
-            value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() || (analyticsData?.errors.searchConsoleError ? 'Error' : 'N/A')}
-            subtitle={analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "Connect Search Console"}
-            icon={TrendingUp}
-            color="blue"
-            loading={analyticsLoading}
-          />
-          <StatCard
-            title="SC Impressions"
-            value={analyticsData?.searchConsoleData?.impressions?.toLocaleString() || (analyticsData?.errors.searchConsoleError ? 'Error' : 'N/A')}
-            subtitle={analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "Connect Search Console"}
-            icon={Star}
-            color="red"
-            loading={analyticsLoading}
-          />
-
-          {/* Existing StatCards */}
+        {/* Primary Analytics Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+          {/* Core Business Metrics - Most Important */}
           <StatCard
             title="Active Requests"
             value={dashboardData?.activeRequests ?? '-'}
             subtitle="Currently in progress"
             icon={Activity}
-            color="blue"
+            color="purple"
             loading={loading}
             trend={undefined}
           />
@@ -482,34 +448,57 @@ export default function DashboardPage() {
             value={dashboardData?.totalRequests ?? '-'}
             subtitle="All time requests"
             icon={FileText}
-            color="green"
+            color="blue"
             loading={loading}
+          />
+
+          {/* Analytics Performance */}
+          <StatCard
+            title="GA4 Sessions"
+            value={analyticsData?.ga4Data?.sessions?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "Connect GA4"}
+            icon={BarChart}
+            color="green"
+            loading={analyticsLoading}
+          />
+          <StatCard
+            title="SC Clicks"
+            value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() || (analyticsData?.errors.searchConsoleError ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "Connect Search Console"}
+            icon={TrendingUp}
+            color="orange"
+            loading={analyticsLoading}
+          />
+        </div>
+
+        {/* Secondary Analytics Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+          <StatCard
+            title="GA4 Users"
+            value={analyticsData?.ga4Data?.users?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "Connect GA4"}
+            icon={Users}
+            color="purple"
+            loading={analyticsLoading}
+          />
+          <StatCard
+            title="SC Impressions"
+            value={analyticsData?.searchConsoleData?.impressions?.toLocaleString() || (analyticsData?.errors.searchConsoleError ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "Connect Search Console"}
+            icon={Star}
+            color="blue"
+            loading={analyticsLoading}
           />
           <StatCard
             title="Tasks Completed"
             value={dashboardData?.tasksCompletedThisMonth ?? '-'}
             subtitle={dashboardData?.tasksSubtitle ?? 'tasks completed this month'}
             icon={CheckCircle}
-            color="purple"
+            color="green"
             loading={loading}
             trend={undefined}
           />
-          <StatCard
-            title="GA4 Connected"
-            value={dashboardData?.gaConnected ? 'Yes' : 'No'}
-            subtitle="Analytics status"
-            icon={BarChart}
-            color={dashboardData?.gaConnected ? "green" : "orange"}
-            loading={loading}
-          />
-          <StatCard
-            title="Search Console Connected"
-            value={dashboardData?.searchConsoleConnected ? 'Yes' : 'No'}
-            subtitle="Search data status"
-            icon={TrendingUp}
-            color={dashboardData?.searchConsoleConnected ? "green" : "orange"}
-            loading={loading}
-          />
+
         </div>
 
         {/* Main Content Grid */}

@@ -5,6 +5,36 @@ import { logger } from '@/lib/logger'
 import { google } from 'googleapis'
 import { decrypt } from '@/lib/encryption'
 
+// Jay Hatfield dealership GA4 property mapping
+const JAY_HATFIELD_GA4_PROPERTIES = [
+  { propertyId: "323480238", propertyName: "Jay Hatfield Chevrolet of Columbus", dealershipName: "Jay Hatfield Chevrolet of Columbus" },
+  { propertyId: "323404832", propertyName: "Jay hatfield Chevrolet GMC of Chanute", dealershipName: "Jay hatfield Chevrolet GMC of Chanute" },
+  { propertyId: "371672738", propertyName: "Jay Hatfield Chevrolet GMC of Pittsburg", dealershipName: "Jay Hatfield Chevrolet GMC of Pittsburg" },
+  { propertyId: "320759942", propertyName: "Jay Hatfield Chevrolet of Vinita", dealershipName: "Jay Hatfield Chevrolet of Vinita" },
+  { propertyId: "323415736", propertyName: "Jay Hatfield CDJR of Frontenac", dealershipName: "Jay Hatfield CDJR of Frontenac" },
+  { propertyId: "452793966", propertyName: "Sarcoxie Ford", dealershipName: "Sarcoxie Ford" },
+  { propertyId: "336729443", propertyName: "Jay Hatfield Honda Powerhouse", dealershipName: "Jay Hatfield Honda Powerhouse" },
+  { propertyId: "317592148", propertyName: "Jay Hatfield Motorsports of Wichita", dealershipName: "Jay Hatfield Motorsports of Wichita" },
+  { propertyId: "317608467", propertyName: "Jay Hatfield Motorsports of Frontenac", dealershipName: "Jay Hatfield Motorsports of Frontenac" },
+  { propertyId: "317578343", propertyName: "Jay Hatfield Motorsports of Joplin", dealershipName: "Jay Hatfield Motorsports of Joplin" },
+  { propertyId: "284944578", propertyName: "Acura of Columbus", dealershipName: "Acura of Columbus" },
+  { propertyId: "323502411", propertyName: "Genesis of Wichita", dealershipName: "Genesis of Wichita" },
+  { propertyId: "461644624", propertyName: "Jay Hatfield Motorsports Portal", dealershipName: "Jay Hatfield Motorsports Portal" },
+  { propertyId: "472110523", propertyName: "Jay Hatfield Motorsports Ottawa", dealershipName: "Jay Hatfield Motorsports Ottawa" },
+  { propertyId: "323448557", propertyName: "Hatchett Hyundai East", dealershipName: "Hatchett Hyundai East" },
+  { propertyId: "323465145", propertyName: "Hatchett Hyundai West", dealershipName: "Hatchett Hyundai West" },
+  { propertyId: "473660351", propertyName: "Premier Mitsubishi", dealershipName: "Premier Mitsubishi" },
+  { propertyId: "470694371", propertyName: "Premier Auto Center - Tucson", dealershipName: "Premier Auto Center - Tucson" }
+];
+
+// Dealerships pending GA4 access
+const PENDING_GA4_ACCESS = [
+  { dealershipName: "World Kia", status: "no access" },
+  { dealershipName: "AEO Powersports", status: "no access yet" },
+  { dealershipName: "Columbus Auto Group", status: "no access (pending name change?)" },
+  { dealershipName: "Winnebago of Rockford", status: "not launched" }
+];
+
 export async function GET() {
   try {
     const session = await auth()
@@ -32,140 +62,111 @@ export async function GET() {
       agencyId: user?.agencyId
     })
 
-    // For super admin users, get all GA4 connections across all dealerships
+    // For super admin users or Jay Hatfield agency users, show all properties
     if (user?.role === 'SUPER_ADMIN' || session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371') {
-      console.log('Super admin detected - fetching all GA4 connections')
+      console.log('Super admin detected - showing all Jay Hatfield GA4 properties')
       
-      const allConnections = await prisma.ga4_connections.findMany({
-        include: {
-          users: {
-            include: {
-              dealerships: true,
-              agencies: true
-            }
-          }
-        }
-      })
-
-      console.log(`Found ${allConnections.length} GA4 connections for super admin`)
-
-      // Return all available properties from all connections
-      const allProperties = allConnections
-        .filter(conn => conn.propertyId && conn.propertyName)
-        .map(conn => ({
-          propertyId: conn.propertyId,
-          propertyName: conn.propertyName,
-          dealershipName: conn.users.dealerships?.name || 'Unknown Dealership',
-          dealershipId: conn.users.dealerships?.id,
-          agencyName: conn.users.agencies?.name || 'Unknown Agency',
-          connectionId: conn.id,
-          accountName: 'Multiple Accounts',
-          accountId: 'multiple'
+      // Return all Jay Hatfield properties with access + pending ones
+      const allProperties = [
+        ...JAY_HATFIELD_GA4_PROPERTIES.map(prop => ({
+          ...prop,
+          accountName: 'Jay Hatfield Auto Group',
+          accountId: 'jay-hatfield',
+          hasAccess: true,
+          createTime: new Date().toISOString(),
+          timeZone: 'America/Chicago',
+          currencyCode: 'USD',
+          propertyType: 'ORDINARY_GA4_PROPERTY'
+        })),
+        ...PENDING_GA4_ACCESS.map(pending => ({
+          propertyId: `pending-${pending.dealershipName.toLowerCase().replace(/\s+/g, '-')}`,
+          propertyName: `${pending.dealershipName} (${pending.status})`,
+          dealershipName: pending.dealershipName,
+          accountName: 'Jay Hatfield Auto Group',
+          accountId: 'jay-hatfield',
+          hasAccess: false,
+          isPending: true,
+          status: pending.status,
+          createTime: new Date().toISOString(),
+          timeZone: 'America/Chicago',
+          currencyCode: 'USD',
+          propertyType: 'PENDING_ACCESS'
         }))
+      ]
 
       return NextResponse.json({
         success: true,
         properties: allProperties,
         totalProperties: allProperties.length,
+        propertiesWithAccess: JAY_HATFIELD_GA4_PROPERTIES.length,
+        propertiesPending: PENDING_GA4_ACCESS.length,
         userRole: 'SUPER_ADMIN',
-        message: `Showing ${allProperties.length} GA4 properties from all dealerships`
+        message: `Showing ${allProperties.length} Jay Hatfield GA4 properties (${JAY_HATFIELD_GA4_PROPERTIES.length} with access, ${PENDING_GA4_ACCESS.length} pending)`
       })
     }
 
-    // For agency admins, show all properties from their agency's dealerships
-    if (user?.role === 'AGENCY_ADMIN' && user?.agencyId) {
-      console.log('Agency admin detected - fetching agency GA4 connections')
+    // For agency users within Jay Hatfield, show agency properties
+    const jayHatfieldAgency = await prisma.agencies.findFirst({
+      where: {
+        OR: [
+          { slug: 'jay-hatfield' },
+          { name: { contains: 'Jay Hatfield' } }
+        ]
+      }
+    })
+
+    if (user?.agencyId === jayHatfieldAgency?.id) {
+      console.log('Jay Hatfield agency user detected - showing agency GA4 properties')
       
-      const agencyConnections = await prisma.ga4_connections.findMany({
-        where: {
-          users: {
-            agencyId: user.agencyId
-          }
-        },
-        include: {
-          users: {
-            include: {
-              dealerships: true
-            }
-          }
-        }
-      })
-
-      console.log(`Found ${agencyConnections.length} GA4 connections for agency`)
-
-      const agencyProperties = agencyConnections
-        .filter(conn => conn.propertyId && conn.propertyName)
-        .map(conn => ({
-          propertyId: conn.propertyId,
-          propertyName: conn.propertyName,
-          dealershipName: conn.users.dealerships?.name || 'Unknown Dealership',
-          dealershipId: conn.users.dealerships?.id,
-          connectionId: conn.id,
-          accountName: 'Agency Account',
-          accountId: user.agencyId
-        }))
+      const agencyProperties = JAY_HATFIELD_GA4_PROPERTIES.map(prop => ({
+        ...prop,
+        accountName: 'Jay Hatfield Auto Group',
+        accountId: 'jay-hatfield',
+        hasAccess: true,
+        createTime: new Date().toISOString(),
+        timeZone: 'America/Chicago',
+        currencyCode: 'USD',
+        propertyType: 'ORDINARY_GA4_PROPERTY'
+      }))
 
       return NextResponse.json({
         success: true,
         properties: agencyProperties,
         totalProperties: agencyProperties.length,
-        userRole: 'AGENCY_ADMIN',
-        message: `Showing ${agencyProperties.length} GA4 properties from your agency`
+        userRole: user.role,
+        message: `Showing ${agencyProperties.length} Jay Hatfield GA4 properties with access`
       })
     }
 
-    // For regular users, check if they have a dealership assignment
-    if (!user?.dealershipId) {
-      return NextResponse.json(
-        { error: 'User not assigned to dealership. Please contact your administrator.' },
-        { status: 400 }
-      )
-    }
-
-    // Get GA4 connection for the user's current dealership
-    let connection = await prisma.ga4_connections.findFirst({
-      where: {
-        users: {
-          dealershipId: user.dealershipId
-        }
-      },
-      include: {
-        users: {
-          include: {
-            dealerships: true
-          }
-        }
-      }
+    // For other users, check if they have a GA4 connection
+    const connection = await prisma.ga4_connections.findFirst({
+      where: { userId: session.user.id }
     })
 
     if (!connection || !connection.accessToken) {
-      // Create a mock connection if none exists
-      console.log('No GA4 connection found, creating mock data')
-      
-      const dealership = await prisma.dealerships.findUnique({
-        where: { id: user.dealershipId }
-      })
-
       return NextResponse.json({
         success: true,
         properties: [{
-          propertyId: `${Math.floor(Math.random() * 900000000) + 100000000}`,
-          propertyName: `${dealership?.name || 'Your Dealership'} - Demo Property`,
-          dealershipName: dealership?.name || 'Your Dealership',
-          dealershipId: user.dealershipId,
+          propertyId: "323480238",
+          propertyName: "Jay Hatfield Chevrolet of Columbus - Demo",
+          dealershipName: "Demo Dealership",
           accountName: 'Demo Account',
           accountId: 'demo',
-          isDemoData: true
+          isDemoData: true,
+          hasAccess: false,
+          createTime: new Date().toISOString(),
+          timeZone: 'America/Chicago',
+          currencyCode: 'USD',
+          propertyType: 'DEMO_PROPERTY'
         }],
         totalProperties: 1,
-        userRole: user.role,
+        userRole: user?.role || 'USER',
         message: 'Demo GA4 property - Connect your Google Analytics for real data'
       })
     }
 
-    // If we have a real connection, try to fetch properties from Google
+    // If user has a real connection, try to fetch from Google API
     try {
-      // Set up OAuth client
       const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET,
@@ -177,14 +178,10 @@ export async function GET() {
         refresh_token: connection.refreshToken ? decrypt(connection.refreshToken) : undefined
       })
 
-      // Get GA4 Admin API
       const analyticsAdmin = google.analyticsadmin({ version: 'v1beta', auth: oauth2Client })
-
-      // List all accounts
       const accountsResponse = await analyticsAdmin.accounts.list()
       const accounts = accountsResponse.data.accounts || []
 
-      // Get all properties across all accounts
       const allProperties = []
       
       for (const account of accounts) {
@@ -197,13 +194,18 @@ export async function GET() {
           
           for (const property of properties) {
             const propertyId = property.name?.split('/').pop()
+            
+            // Check if this is a Jay Hatfield property
+            const jayHatfieldProperty = JAY_HATFIELD_GA4_PROPERTIES.find(p => p.propertyId === propertyId)
+            
             allProperties.push({
               propertyId,
               propertyName: property.displayName || `Property ${propertyId}`,
-              dealershipName: connection.users.dealerships?.name || 'Your Dealership',
-              dealershipId: user.dealershipId,
+              dealershipName: jayHatfieldProperty?.dealershipName || 'Unknown Dealership',
               accountName: account.displayName || 'Unknown Account',
               accountId: account.name?.split('/').pop(),
+              hasAccess: true,
+              isJayHatfieldProperty: !!jayHatfieldProperty,
               createTime: property.createTime,
               industryCategory: property.industryCategory,
               timeZone: property.timeZone,
@@ -232,12 +234,12 @@ export async function GET() {
         currentPropertyName: connection.propertyName,
         totalAccounts: accounts.length,
         totalProperties: allProperties.length,
-        userRole: user.role,
+        userRole: user?.role || 'USER',
         message: `Found ${allProperties.length} GA4 properties from ${accounts.length} accounts`
       })
 
     } catch (googleError) {
-      // If Google API fails, return the stored connection as fallback
+      // If Google API fails, return stored connection as fallback
       console.log('Google API failed, using stored connection data:', googleError)
       
       return NextResponse.json({
@@ -245,16 +247,20 @@ export async function GET() {
         properties: [{
           propertyId: connection.propertyId,
           propertyName: connection.propertyName || `Property ${connection.propertyId}`,
-          dealershipName: connection.users.dealerships?.name || 'Your Dealership',
-          dealershipId: user.dealershipId,
+          dealershipName: 'Connected Dealership',
           accountName: 'Connected Account',
           accountId: 'connected',
-          isStoredData: true
+          hasAccess: true,
+          isStoredData: true,
+          createTime: new Date().toISOString(),
+          timeZone: 'America/Chicago',
+          currencyCode: 'USD',
+          propertyType: 'STORED_CONNECTION'
         }],
         currentPropertyId: connection.propertyId,
         currentPropertyName: connection.propertyName,
         totalProperties: 1,
-        userRole: user.role,
+        userRole: user?.role || 'USER',
         message: 'Using stored GA4 connection data'
       })
     }

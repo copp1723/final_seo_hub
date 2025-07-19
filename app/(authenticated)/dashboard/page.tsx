@@ -11,22 +11,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { 
-  FileText, 
-  CheckCircle, 
-  Clock, 
-  ArrowRight, 
-  AlertCircle, 
-  Activity, 
-  Loader2, 
-  Plus, 
+import {
+  FileText,
+  CheckCircle,
+  Clock,
+  ArrowRight,
+  AlertCircle,
+  Activity,
+  Loader2,
+  Plus,
   BarChart,
   TrendingUp,
   Target,
   Calendar,
   Users,
   Zap,
-  Star
+  Star,
+  RefreshCw
 } from 'lucide-react'
 
 import ErrorBoundary from '@/components/error-boundary'
@@ -64,13 +65,43 @@ interface DashboardData {
   tasksCompletedThisMonth: number
   tasksSubtitle: string
   gaConnected: boolean
-  gaAnalyticsData?: any // Add GA4 analytics data
   searchConsoleConnected: boolean
-  searchConsoleData?: any // Add Search Console data
   packageProgress: PackageProgress | null
   latestRequest: LatestRequest | null
   dealershipId: string | null
   recentActivity?: Activity[]
+}
+
+interface AnalyticsData {
+  ga4Data?: {
+    sessions: number
+    users: number
+    pageviews: number
+  }
+  searchConsoleData?: {
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+  }
+  combinedMetrics: {
+    totalSessions: number
+    totalUsers: number
+    totalClicks: number
+    totalImpressions: number
+    avgCTR: number
+    avgPosition: number
+  }
+  errors: {
+    ga4Error: string | null
+    searchConsoleError: string | null
+  }
+  metadata: {
+    dateRange: { startDate: string; endDate: string }
+    fetchedAt: string
+    hasGA4Connection: boolean
+    hasSearchConsoleConnection: boolean
+  }
 }
 
 const StatCard = ({ 
@@ -166,10 +197,12 @@ const ProgressBar = ({
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
   const { toast } = useToast()
-  
+
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const [recentActivity, setRecentActivity] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [mounted, setMounted] = useState(false)
@@ -178,6 +211,34 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Fetch analytics data separately
+  const fetchAnalyticsData = useCallback(async () => {
+    if (!user?.id || !mounted) return
+
+    setAnalyticsLoading(true)
+    try {
+      const response = await fetch('/api/dashboard/analytics', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setAnalyticsData(result.data)
+
+        if (result.cached) {
+          console.log('Using cached analytics data')
+        }
+      } else {
+        console.error('Failed to fetch analytics data:', response.status)
+      }
+    } catch (error) {
+      console.error('Analytics fetch error:', error)
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }, [user?.id, mounted])
   
   const fetchDashboardData = useCallback(async () => {
     if (!user?.id || !mounted) return
@@ -240,8 +301,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (mounted && user?.id) {
       fetchDashboardData()
+      fetchAnalyticsData()
     }
-  }, [user?.id, mounted, fetchDashboardData])
+  }, [user?.id, mounted, fetchDashboardData, fetchAnalyticsData])
 
   useEffect(() => {
     const handleDealershipChange = () => {
@@ -336,50 +398,73 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-gray-600 mt-1">Welcome back, {user?.name || 'User'}</p>
+              {analyticsData && (
+                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                  <span className={`flex items-center gap-1 ${analyticsData.metadata.hasGA4Connection ? 'text-green-600' : 'text-orange-600'}`}>
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-orange-500'}`} />
+                    GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : 'Not Connected'}
+                  </span>
+                  <span className={`flex items-center gap-1 ${analyticsData.metadata.hasSearchConsoleConnection ? 'text-green-600' : 'text-orange-600'}`}>
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-orange-500'}`} />
+                    Search Console {analyticsData.metadata.hasSearchConsoleConnection ? 'Connected' : 'Not Connected'}
+                  </span>
+                </div>
+              )}
             </div>
-            <Link href="/requests/new">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                New Request
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={fetchAnalyticsData}
+                disabled={analyticsLoading}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                Refresh Analytics
               </Button>
-            </Link>
+              <Link href="/requests/new">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Request
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* New StatCards for GA4 and Search Console */}
+          {/* Analytics StatCards for GA4 and Search Console */}
           <StatCard
             title="GA4 Sessions"
-            value={dashboardData?.gaAnalyticsData?.[0]?.rows?.[0]?.metricValues?.[0] || 'N/A'}
-            subtitle="Last 30 days"
+            value={analyticsData?.ga4Data?.sessions?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "Connect GA4"}
             icon={BarChart}
             color="purple"
-            loading={loading}
+            loading={analyticsLoading}
           />
           <StatCard
             title="GA4 Users"
-            value={dashboardData?.gaAnalyticsData?.[0]?.rows?.[0]?.metricValues?.[1] || 'N/A'}
-            subtitle="Last 30 days"
+            value={analyticsData?.ga4Data?.users?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "Connect GA4"}
             icon={Users}
             color="orange"
-            loading={loading}
+            loading={analyticsLoading}
           />
           <StatCard
             title="SC Clicks"
-            value={dashboardData?.searchConsoleData?.dimensionHeaderEntries?.[0]?.dimensionNames?.includes('clicks') ? dashboardData?.searchConsoleData?.rows?.reduce((sum: any, row: any) => sum + (row.cells?.[0] || 0), 0) : 'N/A'}
-            subtitle={`Last 30 days`}
+            value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() || (analyticsData?.errors.searchConsoleError ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "Connect Search Console"}
             icon={TrendingUp}
             color="blue"
-            loading={loading}
+            loading={analyticsLoading}
           />
           <StatCard
             title="SC Impressions"
-            value={dashboardData?.searchConsoleData?.dimensionHeaderEntries?.[0]?.dimensionNames?.includes('impressions') ? dashboardData?.searchConsoleData?.rows?.reduce((sum: any, row: any) => sum + (row.cells?.[1] || 0), 0) : 'N/A'}
-            subtitle={`Last 30 days`}
+            value={analyticsData?.searchConsoleData?.impressions?.toLocaleString() || (analyticsData?.errors.searchConsoleError ? 'Error' : 'N/A')}
+            subtitle={analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "Connect Search Console"}
             icon={Star}
             color="red"
-            loading={loading}
+            loading={analyticsLoading}
           />
 
           {/* Existing StatCards */}

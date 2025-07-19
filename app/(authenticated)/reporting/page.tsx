@@ -191,8 +191,225 @@ export default function ReportingPage() {
   const [savingGA4, setSavingGA4] = useState(false)
   const [savingSC, setSavingSC] = useState(false)
   const [isSearchConsoleAutoSynced, setIsSearchConsoleAutoSynced] = useState(true) // Default to auto-synced
-  
+
   const { toast } = useToast()
+
+  // Data persistence helpers
+  const getCacheKey = (type: 'ga4' | 'sc', range: string, property?: string) => {
+    return `analytics_${type}_${range}_${property || 'default'}_${new Date().toDateString()}`
+  }
+
+  const getCachedData = (key: string) => {
+    try {
+      const cached = localStorage.getItem(key)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        // Check if cache is less than 5 minutes old
+        if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+          return parsed.data
+        }
+      }
+    } catch (error) {
+      console.error('Error reading cache:', error)
+    }
+    return null
+  }
+
+  const setCachedData = (key: string, data: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }))
+    } catch (error) {
+      console.error('Error setting cache:', error)
+    }
+  }
+
+  const clearRelatedCache = (type?: 'ga4' | 'sc' | 'all') => {
+    try {
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => {
+        if (key.startsWith('analytics_')) {
+          if (!type || type === 'all' || key.includes(`analytics_${type}_`)) {
+            localStorage.removeItem(key)
+          }
+        }
+      })
+    } catch (error) {
+      console.error('Error clearing cache:', error)
+    }
+  }
+
+  // Real data fetching functions with caching
+  const fetchGA4Data = async (dateRange: { startDate: string; endDate: string }): Promise<AnalyticsData> => {
+    const cacheKey = getCacheKey('ga4', selectedRange, currentGA4Property)
+
+    // Check cache first
+    const cachedData = getCachedData(cacheKey)
+    if (cachedData) {
+      console.log('Using cached GA4 data')
+      return cachedData
+    }
+
+    const response = await fetch('/api/ga4/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        metrics: ['sessions', 'totalUsers', 'eventCount'],
+        dimensions: ['date']
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to fetch GA4 data')
+    }
+
+    const result = await response.json()
+
+    // Transform GA4 API response to match our AnalyticsData interface
+    const transformedData = transformGA4Response(result.data, dateRange)
+
+    // Cache the result
+    setCachedData(cacheKey, transformedData)
+
+    return transformedData
+  }
+
+  const fetchSearchConsoleData = async (dateRange: { startDate: string; endDate: string }): Promise<SearchConsoleData> => {
+    const cacheKey = getCacheKey('sc', selectedRange, currentSearchConsoleSite)
+
+    // Check cache first
+    const cachedData = getCachedData(cacheKey)
+    if (cachedData) {
+      console.log('Using cached Search Console data')
+      return cachedData
+    }
+
+    const response = await fetch('/api/search-console/performance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        dimensions: ['date', 'query', 'page'],
+        searchType: 'web',
+        rowLimit: 1000
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to fetch Search Console data')
+    }
+
+    const result = await response.json()
+
+    // Transform Search Console API response to match our SearchConsoleData interface
+    const transformedData = transformSearchConsoleResponse(result.data, dateRange)
+
+    // Cache the result
+    setCachedData(cacheKey, transformedData)
+
+    return transformedData
+  }
+
+  // Transform functions to convert API responses to our data structures
+  const transformGA4Response = (apiData: any, dateRange: { startDate: string; endDate: string }): AnalyticsData => {
+    // Extract overview metrics from GA4 response
+    const overview = apiData.overview || {}
+    const topPages = apiData.topPages || []
+    const trafficSources = apiData.trafficSources || []
+
+    // Generate date array for the range
+    const dates = generateDateArray(dateRange.startDate, dateRange.endDate)
+
+    return {
+      overview: {
+        dates,
+        metrics: {
+          sessions: overview.sessions || dates.map(() => 0),
+          totalUsers: overview.totalUsers || dates.map(() => 0),
+          eventCount: overview.eventCount || dates.map(() => 0),
+          organicSessions: overview.organicSessions || dates.map(() => 0)
+        }
+      },
+      topPages: topPages.map((page: any) => ({
+        page: page.page || page.pagePath || 'Unknown',
+        sessions: page.sessions || 0,
+        eventCount: page.eventCount || page.pageviews || 0
+      })),
+      trafficSources: trafficSources.map((source: any) => ({
+        source: source.source || source.sessionDefaultChannelGrouping || 'Unknown',
+        sessions: source.sessions || 0
+      })),
+      metadata: {
+        propertyId: currentGA4Property,
+        propertyName: mockGA4Properties.find(p => p.propertyId === currentGA4Property)?.propertyName || '',
+        dateRange
+      }
+    }
+  }
+
+  const transformSearchConsoleResponse = (apiData: any, dateRange: { startDate: string; endDate: string }): SearchConsoleData => {
+    // Extract data from Search Console response
+    const overview = apiData.overview || {}
+    const topQueries = apiData.topQueries || []
+    const topPages = apiData.topPages || []
+    const performanceByDate = apiData.performanceByDate || []
+
+    return {
+      overview: {
+        clicks: overview.clicks || 0,
+        impressions: overview.impressions || 0,
+        ctr: overview.ctr || 0,
+        position: overview.position || 0
+      },
+      topQueries: topQueries.map((query: any) => ({
+        query: query.keys?.[0] || query.query || 'Unknown',
+        clicks: query.clicks || 0,
+        impressions: query.impressions || 0,
+        ctr: query.ctr || 0,
+        position: query.position || 0
+      })),
+      topPages: topPages.map((page: any) => ({
+        page: page.keys?.[0] || page.page || 'Unknown',
+        clicks: page.clicks || 0,
+        impressions: page.impressions || 0,
+        ctr: page.ctr || 0,
+        position: page.position || 0
+      })),
+      performanceByDate: performanceByDate.map((item: any) => ({
+        date: item.keys?.[0] || item.date || '',
+        clicks: item.clicks || 0,
+        impressions: item.impressions || 0,
+        ctr: item.ctr || 0,
+        position: item.position || 0
+      })),
+      metadata: {
+        siteUrl: currentSearchConsoleSite,
+        siteName: mockSearchConsoleSites.find(s => s.siteUrl === currentSearchConsoleSite)?.siteName || '',
+        dateRange
+      }
+    }
+  }
+
+  // Helper function to generate date array
+  const generateDateArray = (startDate: string, endDate: string): string[] => {
+    const dates = []
+    const current = new Date(startDate)
+    const end = new Date(endDate)
+
+    while (current <= end) {
+      dates.push(current.toISOString().split('T')[0])
+      current.setDate(current.getDate() + 1)
+    }
+
+    return dates
+  }
 
   // Mock data for connected integrations
   const mockGA4Properties: GA4Property[] = [
@@ -252,14 +469,17 @@ export default function ReportingPage() {
   const updateGA4Property = async (propertyId: string) => {
     setSavingGA4(true)
     try {
+      // Clear GA4 cache when property changes
+      clearRelatedCache('ga4')
+
       const property = mockGA4Properties.find(p => p.propertyId === propertyId)
-      
+
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 800))
-      
+
       setCurrentGA4Property(propertyId)
       toast('GA4 property updated successfully', 'success')
-      
+
       // Auto-sync Search Console site based on GA4 property name
       if (property?.propertyName) {
         // Simple matching logic for demo
@@ -269,14 +489,14 @@ export default function ReportingPage() {
         } else if (property.propertyName.toLowerCase().includes('acura')) {
           matchingSite = mockSearchConsoleSites.find(site => site.siteUrl.includes('acura'))
         }
-        
+
         if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
           // Auto-update Search Console site
           await updateSearchConsoleSite(matchingSite.siteUrl)
           toast('Search Console site automatically matched to GA4 property', 'info')
         }
       }
-      
+
       // Refresh analytics data
       fetchAllData()
     } catch (error) {
@@ -290,12 +510,15 @@ export default function ReportingPage() {
   const updateSearchConsoleSite = async (siteUrl: string) => {
     setSavingSC(true)
     try {
+      // Clear Search Console cache when site changes
+      clearRelatedCache('sc')
+
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 600))
-      
+
       setCurrentSearchConsoleSite(siteUrl)
       toast('Search Console site updated successfully', 'success')
-      
+
       // Refresh analytics data
       fetchAllData()
     } catch (error) {
@@ -411,7 +634,7 @@ export default function ReportingPage() {
       setLoading(true)
       setGaError(null)
       setScError(null)
-      
+
       if (showLoadingToast) {
         toast('Refreshing data...', 'info', {
           description: 'Loading latest analytics'
@@ -421,15 +644,38 @@ export default function ReportingPage() {
       const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
       if (!dateRange) return
 
-      // Simulate API delay for realism
-      await new Promise(resolve => setTimeout(resolve, 1200))
-      
-      // Generate realistic mock data
-      const { mockGA4Data, mockSCData } = generateMockAnalyticsData(dateRange)
-      
-      // Set the data
-      setGaData(mockGA4Data)
-      setScData(mockSCData)
+      // Fetch real GA4 data
+      const ga4Promise = fetchGA4Data(dateRange)
+
+      // Fetch real Search Console data
+      const scPromise = fetchSearchConsoleData(dateRange)
+
+      // Execute both requests in parallel
+      const [ga4Result, scResult] = await Promise.allSettled([ga4Promise, scPromise])
+
+      // Handle GA4 results
+      if (ga4Result.status === 'fulfilled') {
+        setGaData(ga4Result.value)
+        setGaError(null)
+      } else {
+        console.error('GA4 fetch failed:', ga4Result.reason)
+        setGaError(ga4Result.reason?.message || 'Failed to load GA4 data')
+        // Fallback to mock data for GA4
+        const { mockGA4Data } = generateMockAnalyticsData(dateRange)
+        setGaData(mockGA4Data)
+      }
+
+      // Handle Search Console results
+      if (scResult.status === 'fulfilled') {
+        setScData(scResult.value)
+        setScError(null)
+      } else {
+        console.error('Search Console fetch failed:', scResult.reason)
+        setScError(scResult.reason?.message || 'Failed to load Search Console data')
+        // Fallback to mock data for Search Console
+        const { mockSCData } = generateMockAnalyticsData(dateRange)
+        setScData(mockSCData)
+      }
 
       if (showLoadingToast) {
         toast('Data refreshed successfully', 'success', {
@@ -442,6 +688,14 @@ export default function ReportingPage() {
       toast('Error loading analytics', 'error', {
         description: errorMessage
       })
+
+      // Fallback to mock data on complete failure
+      const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
+      if (dateRange) {
+        const { mockGA4Data, mockSCData } = generateMockAnalyticsData(dateRange)
+        setGaData(mockGA4Data)
+        setScData(mockSCData)
+      }
     } finally {
       setLoading(false)
       setIsRefreshing(false)
@@ -450,6 +704,8 @@ export default function ReportingPage() {
 
   // Initial load and when date range changes
   useEffect(() => {
+    // Clear cache when date range changes to ensure fresh data
+    clearRelatedCache('all')
     fetchAllData()
     fetchProperties()
   }, [selectedRange])

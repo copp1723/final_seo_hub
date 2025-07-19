@@ -12,16 +12,12 @@ import {
   X,
   User,
   LogOut,
-  ChevronDown,
   Settings,
-  PlusCircle,
   MessageSquare,
   Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useBranding } from '@/hooks/use-branding'
-import { Badge } from '@/components/ui/badge'
-
+import { DealershipSelector } from './dealership-selector'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -34,7 +30,6 @@ const navItems = [
 export function Navigation() {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
-  const branding = useBranding()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
@@ -60,10 +55,9 @@ export function Navigation() {
     }
   }, [isUserMenuOpen])
 
-  // Admin navigation items - simplified
+  // Admin navigation items
   const adminNavItems = user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? [
-    { href: user?.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin', label: 'Admin', icon: Shield },
-    ...(user?.role === 'AGENCY_ADMIN' ? [{ href: '/agency/dashboard', label: 'Analytics', icon: BarChart }] : [])
+    { href: user?.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin', label: 'Admin', icon: Shield }
   ] : []
 
   return (
@@ -75,7 +69,7 @@ export function Navigation() {
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
               <Link href="/dashboard" className="text-lg lg:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent tracking-tight hover:from-blue-700 hover:to-indigo-700 transition-all duration-200">
-                {branding.companyName}
+                SEO Hub
               </Link>
             </div>
 
@@ -102,18 +96,19 @@ export function Navigation() {
                   </Link>
                 )
               })}
-              {/* Admin Link */}
+              
+              {/* Admin Links */}
               {adminNavItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname?.startsWith('/admin') || pathname?.startsWith('/super-admin')
+                const isActive = pathname === item.href
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-4 py-2 rounded-lg text-sm font-normal transition-all duration-200',
+                      'inline-flex items-center px-4 py-2 rounded-lg text-sm font-normal transition-all duration-200 relative',
                       isActive
-                        ? 'text-blue-700 bg-blue-50/80 shadow-sm border border-blue-200/50'
+                        ? 'text-purple-700 bg-purple-50/80 shadow-sm border border-purple-200/50'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
                     )}
                   >
@@ -125,135 +120,126 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Right side: User menu */}
-          <div className="flex items-center gap-3 lg:gap-6">
+          {/* Dealership Selector and User Menu */}
+          <div className="flex items-center gap-2 lg:gap-4">
+            {/* Dealership Selector */}
+            <DealershipSelector />
+            
+            {/* User Menu */}
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2"
               >
-                <div className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center ring-2 ring-white shadow-sm">
-                    <User className="h-4 w-4 text-blue-600" />
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center ring-2 ring-white shadow-sm">
+                  <User className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="hidden lg:block text-left">
+                  <div className="text-sm font-medium text-gray-700">
+                    {user?.name || 'User'}
                   </div>
-                  <div className="hidden lg:block">
-                    <span className="text-sm text-gray-700 max-w-[150px] truncate font-medium">
-                      {user?.name || 'User'}
-                    </span>
-                    {user?.role && (
-                      <Badge variant="secondary" className="ml-2 text-xs">
-                        {user.role.replace('_', ' ')}
-                      </Badge>
-                    )}
+                  <div className="text-xs text-gray-500">
+                    {user?.role || 'USER'}
                   </div>
-                  <ChevronDown className="h-3 w-3 text-gray-400" />
                 </div>
               </button>
 
               {/* User Dropdown Menu */}
               {isUserMenuOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                  <div className="px-4 py-3 border-b border-gray-200">
-                    <p className="text-sm text-gray-700">{user?.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-xl shadow-lg py-1 bg-white backdrop-blur-md ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200/60" style={{ zIndex: 9999 }}>
+                  <div className="px-4 py-3 border-b border-gray-200/60">
+                    <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
+                    <p className="text-xs text-gray-500">{user?.email}</p>
                   </div>
+                  
                   <Link
                     href="/settings"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsUserMenuOpen(false)}
+                    className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 transition-colors duration-200"
                   >
-                    <Settings className="h-4 w-4 inline mr-2" />
+                    <Settings className="h-4 w-4 mr-3 text-gray-400" />
                     Settings
                   </Link>
+                  
                   <button
-                    onClick={handleSignOut}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => {
+                      setIsUserMenuOpen(false)
+                      handleSignOut()
+                    }}
+                    className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50/80 transition-colors duration-200"
                   >
-                    <LogOut className="h-4 w-4 inline mr-2" />
+                    <LogOut className="h-4 w-4 mr-3 text-gray-400" />
                     Sign out
                   </button>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Mobile menu button */}
-          <div className="flex items-center md:hidden">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-            >
-              {isMobileMenuOpen ? (
-                <X className="block h-6 w-6" />
-              ) : (
-                <Menu className="block h-6 w-6" />
-              )}
-            </button>
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50/80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 transition-colors duration-200"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="sm:hidden">
-          <div className="pt-2 pb-3 space-y-1">
+        <div className="md:hidden bg-white/95 backdrop-blur-md border-t border-gray-200/60">
+          <div className="px-2 pt-2 pb-3 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || 
+              const isActive = pathname === item.href ||
                 (item.href === '/requests' && (pathname?.startsWith('/requests/') || pathname?.startsWith('/focus-request'))) ||
                 (item.href === '/chat' && pathname?.startsWith('/chat'))
-              
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={cn(
-                    'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
-                    isActive
-                      ? 'bg-blue-50 border-blue-500 text-blue-700'
-                      : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                  )}
                   onClick={() => setIsMobileMenuOpen(false)}
+                  className={cn(
+                    'flex items-center px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200',
+                    isActive
+                      ? 'text-blue-700 bg-blue-50/80'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
+                  )}
                 >
-                  <div className="flex items-center">
-                    <Icon className="h-5 w-5 mr-3" />
-                    {item.label}
-                  </div>
+                  <Icon className="h-5 w-5 mr-3" />
+                  {item.label}
                 </Link>
               )
             })}
-            {/* Admin Links (Mobile) */}
-            {adminNavItems.length > 0 && (
-              <>
-                <div className="pt-2 pb-1">
-                  <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Administration
-                  </h3>
-                </div>
-                {adminNavItems.map(item => {
-                  const Icon = item.icon
-                  const isActive = pathname?.startsWith('/admin') || pathname?.startsWith('/super-admin')
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
-                        isActive
-                          ? 'bg-blue-50 border-blue-500 text-blue-700'
-                          : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                      )}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <div className="flex items-center">
-                        <Icon className="h-5 w-5 mr-3" />
-                        {item.label}
-                      </div>
-                    </Link>
-                  )
-                })}
-              </>
-            )}
+            
+            {/* Mobile Admin Links */}
+            {adminNavItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={cn(
+                    'flex items-center px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200',
+                    isActive
+                      ? 'text-purple-700 bg-purple-50/80'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
+                  )}
+                >
+                  <Icon className="h-5 w-5 mr-3" />
+                  {item.label}
+                </Link>
+              )
+            })}
           </div>
           
           {/* Mobile User Info */}

@@ -1,8 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
-const fs = require('fs');
-const Papa = require('papaparse');
+// Removed papaparse dependency - not needed for this script
 
-// Real dealership data from CSV
+// Real dealership data from CSV (hardcoded)
 const dealershipData = [
   { dealer: "Jay Hatfield Chevrolet of Columbus", ga4PropertyId: "323480238", website: "https://www.jayhatfieldchevy.net/" },
   { dealer: "Jay hatfield Chevrolet GMC of Chanute", ga4PropertyId: "323404832", website: "https://www.jayhatfieldchanute.com/" },

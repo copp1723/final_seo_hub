@@ -14,7 +14,11 @@ async function validateFixes() {
     
     const totalDealerships = await prisma.dealerships.count();
     const dealershipsWithAgencies = await prisma.dealerships.count({
-      where: { agencyId: { not: null } }
+      where: { 
+        agencyId: { 
+          not: null 
+        } 
+      }
     });
     
     console.log(`📊 Total dealerships: ${totalDealerships}`);

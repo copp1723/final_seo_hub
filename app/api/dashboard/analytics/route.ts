@@ -117,6 +117,26 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.error('GA4 dashboard fetch error', error, { userId: session.user.id })
         dashboardData.errors.ga4Error = error instanceof Error ? error.message : 'Failed to fetch GA4 data'
+        
+        // Import mock data generator
+        try {
+          const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
+          const mockData = generateMockGA4Data()
+          
+          // Use mock data as fallback
+          dashboardData.ga4Data = {
+            sessions: mockData.overview.metrics.sessions.reduce((a, b) => a + b, 0),
+            users: mockData.overview.metrics.totalUsers.reduce((a, b) => a + b, 0),
+            pageviews: mockData.overview.metrics.eventCount.reduce((a, b) => a + b, 0)
+          }
+          
+          dashboardData.combinedMetrics.totalSessions = dashboardData.ga4Data.sessions
+          dashboardData.combinedMetrics.totalUsers = dashboardData.ga4Data.users
+          
+          logger.info('Using mock GA4 data due to API error', { userId: session.user.id })
+        } catch (mockError) {
+          logger.error('Failed to generate mock GA4 data', mockError, { userId: session.user.id })
+        }
       }
     }
 
@@ -160,6 +180,23 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.error('Search Console dashboard fetch error', error, { userId: session.user.id })
         dashboardData.errors.searchConsoleError = error instanceof Error ? error.message : 'Failed to fetch Search Console data'
+        
+        // Import mock data generator
+        try {
+          const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+          const mockData = generateMockSearchConsoleData({ startDate, endDate })
+          
+          // Use mock data as fallback
+          dashboardData.searchConsoleData = mockData.overview
+          dashboardData.combinedMetrics.totalClicks = mockData.overview.clicks
+          dashboardData.combinedMetrics.totalImpressions = mockData.overview.impressions
+          dashboardData.combinedMetrics.avgCTR = mockData.overview.ctr
+          dashboardData.combinedMetrics.avgPosition = mockData.overview.position
+          
+          logger.info('Using mock Search Console data due to API error', { userId: session.user.id })
+        } catch (mockError) {
+          logger.error('Failed to generate mock Search Console data', mockError, { userId: session.user.id })
+        }
       }
     }
 

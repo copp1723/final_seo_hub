@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,11 +14,11 @@ import {
   Eye,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Loader2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import dynamic from 'next/dynamic'
-import { Loader2 } from 'lucide-react'
 
 const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { 
   loading: () => <Loader2 className="h-6 w-6 animate-spin" />,
@@ -34,6 +34,20 @@ interface SearchTabProps {
 export default function SearchTab({ scData, scError, chartOptions }: SearchTabProps) {
   const [sortField, setSortField] = useState<'clicks' | 'impressions' | 'ctr' | 'position'>('clicks')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  
+  // Ensure we have default data if scData is incomplete
+  const safeScData = useMemo(() => {
+    if (!scData) return null;
+    
+    return {
+      ...scData,
+      overview: scData.overview || { clicks: 0, impressions: 0, ctr: 0, position: 0 },
+      topQueries: scData.topQueries || [],
+      topPages: scData.topPages || [],
+      performanceByDate: scData.performanceByDate || { dates: [], metrics: { clicks: [], impressions: [], ctr: [], position: [] } },
+      top10AveragePosition: scData.top10AveragePosition || { position: 0 }
+    };
+  }, [scData])
 
   const handleSort = (field: 'clicks' | 'impressions' | 'ctr' | 'position') => {
     if (sortField === field) {
@@ -49,11 +63,21 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
     return sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
   }
 
-  const sortedQueries = scData?.topQueries ? [...scData.topQueries].sort((a: any, b: any) => {
-    const aValue = a[sortField]
-    const bValue = b[sortField]
+  const sortedQueries = safeScData?.topQueries ? [...safeScData.topQueries].sort((a: any, b: any) => {
+    const aValue = a[sortField] || 0
+    const bValue = b[sortField] || 0
     return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
   }) : []
+  if (!scData && !scError) {
+    return (
+      <Card className="p-8 text-center">
+        <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
+        <h3 className="text-lg font-semibold mb-2">Loading search data</h3>
+        <p className="text-gray-600 mb-4">Please wait while we fetch your search performance data</p>
+      </Card>
+    )
+  }
+  
   if (scError) {
     return (
       <Card className="p-8 text-center">
@@ -80,12 +104,39 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
     return format(date, 'MMM d')
   }
 
+  // Safely access nested properties with fallbacks
+  const getDates = () => {
+    if (!safeScData?.performanceByDate?.dates) {
+      // Generate fallback dates for the last 30 days
+      const dates = [];
+      const endDate = new Date();
+      for (let i = 30; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(endDate.getDate() - i);
+        dates.push(formatDate(date.toISOString().split('T')[0]));
+      }
+      return dates;
+    }
+    return safeScData.performanceByDate.dates
+      .map((date: string) => formatDate(date))
+      .filter((label: string) => label !== 'Invalid');
+  };
+
+  const getMetrics = (metricName: string) => {
+    if (!safeScData?.performanceByDate?.metrics?.[metricName]) {
+      // Generate fallback metrics
+      const dates = getDates();
+      return dates.map(() => 0);
+    }
+    return safeScData.performanceByDate.metrics[metricName];
+  };
+
   const performanceChartData = {
-    labels: scData?.performanceByDate.dates?.map((date: string) => formatDate(date)).filter((label: string) => label !== 'Invalid') || [],
+    labels: getDates(),
     datasets: [
       {
         label: 'Clicks',
-        data: scData?.performanceByDate.metrics.clicks || [],
+        data: getMetrics('clicks'),
         borderColor: 'rgb(168, 85, 247)',
         backgroundColor: 'rgba(168, 85, 247, 0.1)',
         fill: true,
@@ -94,7 +145,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
       },
       {
         label: 'Impressions (÷100)',
-        data: scData?.performanceByDate.metrics.impressions.map((v: number) => v / 100) || [],
+        data: getMetrics('impressions').map((v: number) => v / 100),
         borderColor: 'rgb(251, 146, 60)',
         backgroundColor: 'rgba(251, 146, 60, 0.1)',
         fill: false,
@@ -106,11 +157,11 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
   }
 
   const ctrChartData = {
-    labels: scData?.performanceByDate.dates?.map((date: string) => formatDate(date)).filter((label: string) => label !== 'Invalid') || [],
+    labels: getDates(),
     datasets: [
       {
         label: 'CTR (%)',
-        data: scData?.performanceByDate.metrics.ctr.map((v: number) => v * 100) || [],
+        data: getMetrics('ctr').map((v: number) => v * 100),
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         fill: true,
@@ -130,7 +181,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {scData?.overview?.clicks?.toLocaleString() || '0'}
+              {safeScData?.overview?.clicks?.toLocaleString() || '0'}
             </p>
             <p className="text-xs text-gray-500 mt-1">From search results</p>
           </CardContent>
@@ -143,7 +194,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {scData?.overview?.impressions?.toLocaleString() || '0'}
+              {safeScData?.overview?.impressions?.toLocaleString() || '0'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Times shown in search</p>
           </CardContent>
@@ -156,7 +207,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {scData?.overview?.ctr ? `${(scData.overview.ctr * 100).toFixed(1)}%` : '0%'}
+              {safeScData?.overview?.ctr ? `${(safeScData.overview.ctr * 100).toFixed(1)}%` : '0%'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Click-through rate</p>
           </CardContent>
@@ -169,7 +220,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {scData?.top10AveragePosition?.position ? scData.top10AveragePosition.position.toFixed(1) : '-'}
+              {safeScData?.top10AveragePosition?.position ? safeScData.top10AveragePosition.position.toFixed(1) : '-'}
             </p>
             <p className="text-xs text-gray-500 mt-1">Top performing queries</p>
           </CardContent>
@@ -291,7 +342,7 @@ export default function SearchTab({ scData, scError, chartOptions }: SearchTabPr
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {scData?.topPages?.map((page: any, index: number) => (
+            {safeScData?.topPages?.map((page: any, index: number) => (
               <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">

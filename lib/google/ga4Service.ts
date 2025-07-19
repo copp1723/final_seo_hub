@@ -21,7 +21,7 @@ export class GA4Service {
     this.userId = userId;
   }
 
-  private async initialize() {
+  async initialize() {
     // Refresh token if needed
     await refreshGA4TokenIfNeeded(this.userId);
 
@@ -60,8 +60,13 @@ export class GA4Service {
   }
 
   async runReport(options: RunReportOptions) {
-    if (!this.analyticsData) {
-      await this.initialize();
+    try {
+      if (!this.analyticsData) {
+        await this.initialize();
+      }
+    } catch (error) {
+      console.error('Failed to initialize GA4 analytics:', error);
+      throw new Error('Failed to initialize GA4 analytics');
     }
 
     const { propertyId, metrics, dimensions, startDate, endDate, limit, orderBys } = options;

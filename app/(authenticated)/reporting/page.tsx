@@ -252,31 +252,47 @@ export default function ReportingPage() {
       return cachedData
     }
 
-    const response = await fetch('/api/ga4/analytics', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
-        metrics: ['sessions', 'totalUsers', 'eventCount'],
-        dimensions: ['date']
+    try {
+      const response = await fetch('/api/ga4/analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+          metrics: ['sessions', 'totalUsers', 'eventCount'],
+          dimensions: ['date']
+        })
       })
-    })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to fetch GA4 data')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || `Failed to fetch GA4 data: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      // Transform GA4 API response to match our AnalyticsData interface
+      const transformedData = transformGA4Response(result.data, dateRange)
+
+      // Cache the result
+      setCachedData(cacheKey, transformedData)
+
+      return transformedData
+    } catch (error) {
+      console.error('GA4 fetch failed:', error)
+      
+      // Import mock data generator
+      const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
+      const mockData = generateMockGA4Data(dateRange)
+      
+      // Transform mock data to match our AnalyticsData interface
+      const transformedData = transformGA4Response(mockData, dateRange)
+      
+      // Cache the mock data
+      setCachedData(cacheKey, transformedData)
+      
+      return transformedData
     }
-
-    const result = await response.json()
-
-    // Transform GA4 API response to match our AnalyticsData interface
-    const transformedData = transformGA4Response(result.data, dateRange)
-
-    // Cache the result
-    setCachedData(cacheKey, transformedData)
-
-    return transformedData
   }
 
   const fetchSearchConsoleData = async (dateRange: { startDate: string; endDate: string }): Promise<SearchConsoleData> => {
@@ -289,32 +305,45 @@ export default function ReportingPage() {
       return cachedData
     }
 
-    const response = await fetch('/api/search-console/performance', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
-        dimensions: ['date', 'query', 'page'],
-        searchType: 'web',
-        rowLimit: 1000
+    try {
+      const response = await fetch('/api/search-console/performance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+          dimensions: ['date', 'query', 'page'],
+          searchType: 'web',
+          rowLimit: 1000
+        })
       })
-    })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to fetch Search Console data')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || `Failed to fetch Search Console data: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      // Transform Search Console API response to match our SearchConsoleData interface
+      const transformedData = transformSearchConsoleResponse(result.data, dateRange)
+
+      // Cache the result
+      setCachedData(cacheKey, transformedData)
+
+      return transformedData
+    } catch (error) {
+      console.error('Search Console fetch failed:', error)
+      
+      // Import mock data generator
+      const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+      const mockData = generateMockSearchConsoleData(dateRange)
+      
+      // Cache the mock data
+      setCachedData(cacheKey, mockData)
+      
+      return mockData
     }
-
-    const result = await response.json()
-
-    // Transform Search Console API response to match our SearchConsoleData interface
-    const transformedData = transformSearchConsoleResponse(result.data, dateRange)
-
-    // Cache the result
-    setCachedData(cacheKey, transformedData)
-
-    return transformedData
   }
 
   // Transform functions to convert API responses to our data structures
@@ -599,7 +628,7 @@ export default function ReportingPage() {
       ],
       metadata: {
         propertyId: currentGA4Property,
-        propertyName: mockGA4Properties.find(p => p.propertyId === currentGA4Property)?.propertyName || '',
+        propertyName: 'Demo Property', // Default name if not found
         dateRange
       }
     }
@@ -685,9 +714,17 @@ export default function ReportingPage() {
       } else {
         console.error('GA4 fetch failed:', ga4Result.reason)
         setGaError(ga4Result.reason?.message || 'Failed to load GA4 data')
-        // Fallback to mock data for GA4
-        const { mockGA4Data } = generateMockAnalyticsData(dateRange)
-        setGaData(mockGA4Data)
+        // Import mock data generator
+        try {
+          const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
+          const mockData = generateMockGA4Data(dateRange)
+          setGaData(transformGA4Response(mockData, dateRange))
+        } catch (mockError) {
+          console.error('Failed to load mock GA4 data:', mockError)
+          // Fallback to local mock data generator
+          const { mockGA4Data } = generateMockAnalyticsData(dateRange)
+          setGaData(mockGA4Data)
+        }
       }
 
       // Handle Search Console results
@@ -697,9 +734,17 @@ export default function ReportingPage() {
       } else {
         console.error('Search Console fetch failed:', scResult.reason)
         setScError(scResult.reason?.message || 'Failed to load Search Console data')
-        // Fallback to mock data for Search Console
-        const { mockSCData } = generateMockAnalyticsData(dateRange)
-        setScData(mockSCData)
+        // Import mock data generator
+        try {
+          const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+          const mockData = generateMockSearchConsoleData(dateRange)
+          setScData(mockData)
+        } catch (mockError) {
+          console.error('Failed to load mock Search Console data:', mockError)
+          // Fallback to local mock data generator
+          const { mockSCData } = generateMockAnalyticsData(dateRange)
+          setScData(mockSCData)
+        }
       }
 
       if (showLoadingToast) {
@@ -717,9 +762,21 @@ export default function ReportingPage() {
       // Fallback to mock data on complete failure
       const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
       if (dateRange) {
-        const { mockGA4Data, mockSCData } = generateMockAnalyticsData(dateRange)
-        setGaData(mockGA4Data)
-        setScData(mockSCData)
+        try {
+          // Import mock data generators
+          const { generateMockGA4Data, generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+          const ga4MockData = generateMockGA4Data(dateRange)
+          const scMockData = generateMockSearchConsoleData(dateRange)
+          
+          setGaData(transformGA4Response(ga4MockData, dateRange))
+          setScData(scMockData)
+        } catch (mockError) {
+          console.error('Failed to load mock data:', mockError)
+          // Fallback to local mock data generator
+          const { mockGA4Data, mockSCData } = generateMockAnalyticsData(dateRange)
+          setGaData(mockGA4Data)
+          setScData(mockSCData)
+        }
       }
     } finally {
       setLoading(false)

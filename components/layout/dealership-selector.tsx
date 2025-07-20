@@ -49,6 +49,7 @@ export function DealershipSelector() {
         }
 
         const data: DealershipData = await response.json()
+        console.log('Received data from /api/dealerships/switch:', JSON.stringify(data, null, 2));
 
         // Handle empty dealership arrays gracefully
         if (!data.availableDealerships?.length) {

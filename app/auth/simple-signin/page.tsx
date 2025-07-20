@@ -25,8 +25,8 @@ export default function SimpleSignIn() {
     setError('')
 
     try {
-      // Redirect to Google OAuth
-      window.location.href = '/api/auth/google/signin'
+      // Redirect to simple signin API
+      window.location.href = '/api/auth/simple-signin'
     } catch (err) {
       setError('Sign in failed. Please try again.')
       setIsLoading(false)

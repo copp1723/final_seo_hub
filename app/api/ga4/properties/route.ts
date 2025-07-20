@@ -12,43 +12,49 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user has GA4 connection
-    const ga4Connection = await prisma.ga4_connections.findUnique({
-      where: { userId: session.user.id }
+    // Get optional dealership filter
+    const { searchParams } = new URL(request.url)
+    const dealershipId = searchParams.get('dealershipId')
+
+    // Fetch all GA4 connections for this user (and dealership if specified)
+    const connections = await prisma.ga4_connections.findMany({
+      where: {
+        userId: session.user.id,
+        ...(dealershipId ? { dealershipId } : {})
+      }
     })
 
-    if (!ga4Connection) {
+    if (connections.length === 0) {
       return NextResponse.json({
         properties: [],
-        message: 'No GA4 connection found. Please connect your Google Analytics account.'
+        message: 'No GA4 connections found. Please connect GA4 for your dealership.'
       })
     }
 
     try {
-      // Initialize GA4 service and fetch properties
-      const ga4Service = new GA4Service(session.user.id)
-      await ga4Service.initialize()
-
-      // For now, return the connected property
-      // In a full implementation, you'd call the GA4 Management API to list all properties
-      const properties = [
-        {
-          propertyId: ga4Connection.propertyId,
-          propertyName: ga4Connection.propertyName || `Property ${ga4Connection.propertyId}`,
-          accountName: 'Connected Account',
-          accountId: 'connected-account'
-        }
-      ]
+      // Map connections to properties list
+      const properties = connections.map(conn => ({
+        propertyId: conn.propertyId || '',
+        propertyName: conn.propertyName || `Property ${conn.propertyId}`,
+        accountName: 'Connected Account',
+        accountId: 'connected-account',
+        dealershipId: conn.dealershipId
+      }))
 
       logger.info('GA4 properties fetched successfully', {
         userId: session.user.id,
-        propertyCount: properties.length
+        propertyCount: properties.length,
+        dealershipId
       })
 
+      // Determine current property selection
+      const currentPropertyId = dealershipId
+        ? connections.find(c => c.dealershipId === dealershipId)?.propertyId
+        : connections[0].propertyId
       return NextResponse.json({
         properties,
-        currentPropertyId: ga4Connection.propertyId,
-        message: `Found ${properties.length} GA4 property`
+        currentPropertyId,
+        message: `Found ${properties.length} GA4 properties`
       })
 
     } catch (error) {
@@ -57,16 +63,17 @@ export async function GET(request: NextRequest) {
       })
 
       // Return fallback data if API fails
+      // Map connections to fallback properties
+      const fallbackProperties = connections.map(conn => ({
+        propertyId: conn.propertyId || '',
+        propertyName: conn.propertyName || `Property ${conn.propertyId}`,
+        accountName: 'Connected Account',
+        accountId: 'fallback-account',
+        dealershipId: conn.dealershipId
+      }))
       return NextResponse.json({
-        properties: [
-          {
-            propertyId: ga4Connection.propertyId,
-            propertyName: ga4Connection.propertyName || 'Connected Property',
-            accountName: 'Connected Account',
-            accountId: 'fallback-account'
-          }
-        ],
-        currentPropertyId: ga4Connection.propertyId,
+        properties: fallbackProperties,
+        currentPropertyId: connections[0].propertyId,
         message: 'Using cached property information'
       })
     }

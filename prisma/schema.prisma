@@ -361,13 +361,13 @@ model users {
   audit_logs                 audit_logs[]
   conversations              conversations[]
   escalations                escalations[]
-  ga4_connections            ga4_connections?
+  ga4_connections            ga4_connections[]
   messages                   messages[]
   monthly_usage              monthly_usage[]
   orders                     orders[]
   report_schedules           report_schedules[]
   requests                   requests[]
-  search_console_connections search_console_connections?
+  search_console_connections search_console_connections[]
   sessions                   sessions[]
   tasks                      tasks[]
   user_ga4_tokens            user_ga4_tokens?
@@ -452,7 +452,7 @@ model requests {
 
 model ga4_connections {
   id           String    @id @default(cuid())
-  userId       String    @unique
+  userId       String
   dealershipId String?
   accessToken  String
   refreshToken String?
@@ -465,12 +465,13 @@ model ga4_connections {
   dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@unique([userId, dealershipId])
   @@index([dealershipId])
 }
 
 model search_console_connections {
   id           String    @id @default(cuid())
-  userId       String    @unique
+  userId       String
   dealershipId String?
   accessToken  String
   refreshToken String?
@@ -483,6 +484,7 @@ model search_console_connections {
   dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@unique([userId, dealershipId])
   @@index([dealershipId])
 }
 

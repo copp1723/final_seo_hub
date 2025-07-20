@@ -24,10 +24,29 @@ export async function GET() {
       }
     })
 
-    // Check if user has a GA4 connection
-    const connection = await prisma.ga4_connections.findFirst({
-      where: { userId: session.user.id }
-    })
+    // For agency users, check for any GA4 connection in the agency
+    let connection
+    if (user?.agencyId) {
+      // Find any GA4 connection in the agency
+      const agencyConnection = await prisma.ga4_connections.findFirst({
+        where: {
+          users: {
+            agencyId: user.agencyId
+          }
+        }
+      })
+      
+      if (agencyConnection) {
+        connection = agencyConnection
+      }
+    }
+    
+    // Fallback to user's own connection
+    if (!connection) {
+      connection = await prisma.ga4_connections.findFirst({
+        where: { userId: session.user.id }
+      })
+    }
 
     if (!connection || !connection.accessToken) {
       return NextResponse.json({
@@ -113,7 +132,7 @@ export async function GET() {
         userRole: user?.role || 'USER'
       })
 
-    } catch (googleError) {
+    } catch (googleError: any) {
       logger.error('Google API error', googleError)
       
       // If token is expired, indicate that re-authentication is needed

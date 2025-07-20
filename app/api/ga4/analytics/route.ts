@@ -66,7 +66,8 @@ export async function POST(request: NextRequest) {
     const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: {
-        dealershipId: true
+        dealershipId: true,
+        agencyId: true
       }
     })
 
@@ -82,18 +83,29 @@ export async function POST(request: NextRequest) {
 
     const targetDealershipId = user.dealershipId
 
-    // Check if user has GA4 connection
-    const ga4Connection = await prisma.ga4_connections.findUnique({
-      where: { userId: session.user.id }
+    // Check for GA4 connection - try agency first, then user
+    let ga4Connection = await prisma.ga4_connections.findFirst({
+      where: {
+        users: {
+          agencyId: user.agencyId
+        }
+      }
     })
+
+    if (!ga4Connection) {
+      ga4Connection = await prisma.ga4_connections.findUnique({
+        where: { userId: session.user.id }
+      })
+    }
 
     if (!ga4Connection || !ga4Connection.propertyId) {
       logger.warn('No GA4 connection found', {
         userId: session.user.id,
-        dealershipId: targetDealershipId
+        dealershipId: targetDealershipId,
+        agencyId: user.agencyId
       })
       return NextResponse.json(
-        { error: 'GA4 not connected.Please connect your Google Analytics account in settings.' },
+        { error: 'GA4 not connected. Please connect your Google Analytics account in settings.' },
         { status: 404 }
       )
     }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { GA4Service } from '@/lib/google/ga4Service'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -23,7 +23,7 @@ function getCacheKey(userId: string, params: any): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user?.id) {
       logger.warn('GA4 Analytics: Unauthorized attempt - No user ID in session')
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: processedData, cached: false })
 
   } catch (error) {
-    const session = await auth()
+    const session = await SimpleAuth.getSessionFromRequest(request)
     logger.error('GA4 analytics API error', error, {
       userId: session?.user.id,
       path: '/api/ga4/analytics',

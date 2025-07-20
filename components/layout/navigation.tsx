@@ -31,6 +31,13 @@ export function Navigation() {
   const { user, signOut, isLoading } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  const handleSignOut = async () => {
+    if (signOut) {
+      await signOut()
+    }
+  }
 
   // Don't render navigation while auth is loading
   if (isLoading) {
@@ -52,14 +59,6 @@ export function Navigation() {
         </div>
       </nav>
     )
-  }
-
-  const userMenuRef = useRef<HTMLDivElement>(null)
-
-  const handleSignOut = async () => {
-    if (signOut) {
-      await signOut()
-    }
   }
 
   // Handle click outside to close dropdown

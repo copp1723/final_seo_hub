@@ -17,7 +17,6 @@ import {
   Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { DealershipSelector } from './dealership-selector'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -120,11 +119,8 @@ export function Navigation() {
             </div>
           </div>
 
-          {/* Dealership Selector and User Menu */}
+          {/* User Menu */}
           <div className="flex items-center gap-2 lg:gap-4">
-            {/* Dealership Selector - Only show on dashboard */}
-            {pathname === '/dashboard' && <DealershipSelector showOnAllPages={false} />}
-            
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>
               <button

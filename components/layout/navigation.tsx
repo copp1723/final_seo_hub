@@ -28,14 +28,38 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
+  const { user, signOut, isLoading } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+
+  // Don't render navigation while auth is loading
+  if (isLoading) {
+    return (
+      <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-18 items-center">
+            <div className="flex items-center gap-2 lg:gap-6 flex-1">
+              <div className="flex-shrink-0 flex items-center">
+                <div className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
+                  SEO Hub
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 lg:gap-4">
+              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    )
+  }
 
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   const handleSignOut = async () => {
-    await signOut()
+    if (signOut) {
+      await signOut()
+    }
   }
 
   // Handle click outside to close dropdown

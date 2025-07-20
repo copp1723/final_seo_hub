@@ -219,10 +219,11 @@ export default function DashboardPage() {
 
     setAnalyticsLoading(true)
     try {
-      const response = await fetch('/api/dashboard/analytics', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      })
+      // Determine selected dealership for context
+      const currentDealershipId = localStorage.getItem('selectedDealershipId')
+      // Build analytics-v2 endpoint with dateRange and optional dealershipId
+      const endpoint = `/api/dashboard/analytics-v2?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
+      const response = await fetch(endpoint)
 
       if (response.ok) {
         const result = await response.json()

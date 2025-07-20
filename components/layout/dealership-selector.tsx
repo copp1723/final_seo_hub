@@ -17,7 +17,11 @@ interface DealershipData {
   availableDealerships: Dealership[]
 }
 
-export function DealershipSelector() {
+interface DealershipSelectorProps {
+  showOnAllPages?: boolean
+}
+
+export function DealershipSelector({ showOnAllPages = false }: DealershipSelectorProps) {
   const { user, refreshSession } = useAuth()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
@@ -217,7 +221,7 @@ export function DealershipSelector() {
 
       {/* Dropdown Menu - Fixed positioning and z-index */}
       {isOpen && (
-        <div className="origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-lg py-1 bg-white backdrop-blur-md ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200/60" style={{ zIndex: 9999 }}>
+        <div className="origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-lg py-1 bg-white backdrop-blur-md ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200/60" style={{ zIndex: 100 }}>
           <div className="px-4 py-3 border-b border-gray-200/60">
             <p className="text-sm font-normal text-gray-600">Select Dealership</p>
             <p className="text-xs text-gray-400">{availableDealerships.length} available</p>

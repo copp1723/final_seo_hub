@@ -222,11 +222,19 @@ export async function GET(request: NextRequest) {
 
     console.log('DEBUG: Found dealerships:', dealerships.length, dealerships.map(d => ({ id: d.id, name: d.name })));
 
-    // Map dealerships to the expected format
-    const availableDealerships = dealerships.map(dealership => ({
-      id: dealership.id,
-      name: dealership.name
-    }))
+    // Map dealerships to the expected format and deduplicate by name
+    const dealershipMap = new Map()
+    dealerships.forEach(dealership => {
+      // Use name as key to prevent duplicates, but keep the first occurrence
+      if (!dealershipMap.has(dealership.name)) {
+        dealershipMap.set(dealership.name, {
+          id: dealership.id,
+          name: dealership.name
+        })
+      }
+    })
+    
+    const availableDealerships = Array.from(dealershipMap.values())
 
     // Determine current dealership - either from user's dealershipId or first available
     let currentDealership = null

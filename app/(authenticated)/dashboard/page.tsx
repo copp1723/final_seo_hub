@@ -33,6 +33,7 @@ import {
 import ErrorBoundary from '@/components/error-boundary'
 import { useToast } from '@/hooks/use-toast'
 import { RecentActivityTimeline } from '@/components/dashboard/RecentActivityTimeline'
+import { DealershipSelector } from '@/components/layout/dealership-selector'
 
 interface PackageProgress {
   packageType: string | null
@@ -412,6 +413,9 @@ export default function DashboardPage() {
               )}
             </div>
             <div className="flex items-center gap-3">
+              {/* Dealership Selector - Only on dashboard */}
+              <DealershipSelector showOnAllPages={false} />
+              
               <Button
                 onClick={fetchAnalyticsData}
                 disabled={analyticsLoading}

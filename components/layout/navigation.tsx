@@ -122,8 +122,8 @@ export function Navigation() {
 
           {/* Dealership Selector and User Menu */}
           <div className="flex items-center gap-2 lg:gap-4">
-            {/* Dealership Selector */}
-            <DealershipSelector />
+            {/* Dealership Selector - Only show on dashboard */}
+            {pathname === '/dashboard' && <DealershipSelector showOnAllPages={false} />}
             
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>

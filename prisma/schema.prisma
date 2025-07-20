@@ -409,6 +409,8 @@ model dealerships {
   agencies                   agencies        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   monthly_usage              monthly_usage[]
   users_dealerships          users[]         @relation("UserDealership")
+  ga4_connections            ga4_connections[]
+  search_console_connections search_console_connections[]
 
   @@index([agencyId])
 }
@@ -460,8 +462,10 @@ model ga4_connections {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   users        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([dealershipId])
 }
 
 model search_console_connections {
@@ -476,8 +480,10 @@ model search_console_connections {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   users        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([dealershipId])
 }
 
 model user_preferences {

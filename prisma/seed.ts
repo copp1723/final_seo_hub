@@ -184,6 +184,60 @@ async function main() {
   })
   console.log('✅ System settings initialized')
 
+  // Upsert SEOWORKS agency
+  const seoworksAgency = await prisma.agencies.upsert({
+    where: { id: 'agency-seoworks' },
+    update: { updatedAt: new Date() },
+    create: {
+      id: 'agency-seoworks',
+      name: 'SEOWORKS',
+      slug: 'seoworks',
+      updatedAt: new Date()
+    }
+  });
+  console.log('✅ SEOWORKS agency created:', seoworksAgency.name);
+
+  // Upsert dealerships under SEOWORKS agency
+  const seoworksDealerships = [
+    { id: 'dealer-jhc-columbus', name: 'Jay Hatfield Chevrolet of Columbus', website: 'https://www.jayhatfieldchevy.net/' },
+    { id: 'dealer-jhc-chanute', name: 'Jay Hatfield Chevrolet GMC of Chanute', website: 'https://www.jayhatfieldchanute.com/' },
+    { id: 'dealer-jhc-pittsburg', name: 'Jay Hatfield Chevrolet GMC of Pittsburg', website: 'https://www.jayhatfieldchevroletgmc.com/' },
+    { id: 'dealer-jhc-vinita', name: 'Jay Hatfield Chevrolet of Vinita', website: 'https://www.jayhatfieldchevroletvinita.com/' },
+    { id: 'dealer-jhdjr-frontenac', name: 'Jay Hatfield CDJR of Frontenac', website: 'https://www.jayhatfieldchryslerdodgejeepram.com/' },
+    { id: 'dealer-sarcoxie-ford', name: 'Sarcoxie Ford', website: 'https://www.sarcoxieford.com' },
+    { id: 'dealer-jhhp-wichita', name: 'Jay Hatfield Honda Powerhouse', website: 'https://www.jayhatfieldhondawichita.com/' },
+    { id: 'dealer-jhm-wichita', name: 'Jay Hatfield Motorsports of Wichita', website: 'https://www.kansasmotorsports.com/' },
+    { id: 'dealer-jhm-frontenac', name: 'Jay Hatfield Motorsports of Frontenac', website: 'https://www.jayhatfieldkawasaki.com/' },
+    { id: 'dealer-jhm-joplin', name: 'Jay Hatfield Motorsports of Joplin', website: 'https://www.jhmofjoplin.com/' },
+    { id: 'dealer-acura-columbus', name: 'Acura of Columbus', website: 'https://www.acuracolumbus.com/' },
+    { id: 'dealer-genesis-wichita', name: 'Genesis of Wichita', website: 'https://www.genesisofwichita.com/' },
+    { id: 'dealer-jhm-portal', name: 'Jay Hatfield Motorsports Portal', website: 'http://jayhatfieldmotorsports.com/' },
+    { id: 'dealer-jhm-ottawa', name: 'Jay Hatfield Motorsports Ottawa', website: 'https://www.jayhatfieldottawa.com/' },
+    { id: 'dealer-hatchett-hyundai-east', name: 'Hatchett Hyundai East', website: 'https://www.hatchetthyundaieast.com/' },
+    { id: 'dealer-hatchett-hyundai-west', name: 'Hatchett Hyundai West', website: 'https://www.hatchetthyundaiwest.com/' },
+    { id: 'dealer-premier-mitsubishi', name: 'Premier Mitsubishi', website: 'https://premiermitsubishi.com/' },
+    { id: 'dealer-premier-auto-tucson', name: 'Premier Auto Center - Tucson', website: 'https://scottsaysyes.com/' },
+    { id: 'dealer-world-kia', name: 'World Kia', website: 'https://www.worldkiajoliet.com/' },
+    { id: 'dealer-aeo-powersports', name: 'AEO Powersports', website: 'https://aeopowersports.com/' },
+    { id: 'dealer-columbus-auto-group', name: 'Columbus Auto Group', website: 'https://columbusautogroup.com/' },
+    { id: 'dealer-winnebago-rockford', name: 'Winnebago of Rockford', website: 'https://www.winnebagomotorhomes.com/' }
+  ];
+
+  for (const d of seoworksDealerships) {
+    const dealer = await prisma.dealerships.upsert({
+      where: { id: d.id },
+      update: {},
+      create: {
+        id: d.id,
+        name: d.name,
+        agencyId: seoworksAgency.id,
+        website: d.website
+      }
+    });
+    console.log('✅ Dealership created:', dealer.name);
+  }
+  console.log('✅ All SEOWORKS dealerships seeded.');
+
   console.log('🎉 Database seed completed successfully!')
   console.log(`\n📧 Super Admin Login: josh.copp@onekeel.ai`)
   console.log(`🏢 Sample Agency: ${sampleAgency.name}`)

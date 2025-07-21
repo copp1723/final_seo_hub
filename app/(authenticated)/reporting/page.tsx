@@ -150,6 +150,7 @@ interface SearchConsoleData {
   }
   metadata: {
     siteUrl: string
+    siteName?: string
     dateRange: {
       startDate: string
       endDate: string
@@ -280,18 +281,15 @@ export default function ReportingPage() {
       return transformedData
     } catch (error) {
       console.error('GA4 fetch failed:', error)
-      
-      // Import mock data generator
-      const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
-      const mockData = generateMockGA4Data(dateRange)
-      
-      // Transform mock data to match our AnalyticsData interface
-      const transformedData = transformGA4Response(mockData, dateRange)
-      
-      // Cache the mock data
-      setCachedData(cacheKey, transformedData)
-      
-      return transformedData
+      if (process.env.NODE_ENV !== 'production') {
+        // Import mock data generator only in development
+        const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
+        const mockData = generateMockGA4Data(dateRange)
+        const transformedData = transformGA4Response(mockData, dateRange)
+        setCachedData(cacheKey, transformedData)
+        return transformedData
+      }
+      throw error      
     }
   }
 
@@ -334,15 +332,13 @@ export default function ReportingPage() {
       return transformedData
     } catch (error) {
       console.error('Search Console fetch failed:', error)
-      
-      // Import mock data generator
-      const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
-      const mockData = generateMockSearchConsoleData(dateRange)
-      
-      // Cache the mock data
-      setCachedData(cacheKey, mockData)
-      
-      return mockData
+      if (process.env.NODE_ENV !== 'production') {
+        const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+        const mockData = generateMockSearchConsoleData(dateRange)
+        setCachedData(cacheKey, mockData)
+        return mockData
+      }
+      throw error
     }
   }
 
@@ -714,16 +710,14 @@ export default function ReportingPage() {
       } else {
         console.error('GA4 fetch failed:', ga4Result.reason)
         setGaError(ga4Result.reason?.message || 'Failed to load GA4 data')
-        // Import mock data generator
-        try {
-          const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
-          const mockData = generateMockGA4Data(dateRange)
-          setGaData(transformGA4Response(mockData, dateRange))
-        } catch (mockError) {
-          console.error('Failed to load mock GA4 data:', mockError)
-          // Fallback to local mock data generator
-          const { mockGA4Data } = generateMockAnalyticsData(dateRange)
-          setGaData(mockGA4Data)
+        if (process.env.NODE_ENV !== 'production') {
+          try {
+            const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
+            const mockData = generateMockGA4Data(dateRange)
+            setGaData(transformGA4Response(mockData, dateRange))
+          } catch (mockError) {
+            console.error('Failed to load mock GA4 data:', mockError)
+          }
         }
       }
 
@@ -734,16 +728,14 @@ export default function ReportingPage() {
       } else {
         console.error('Search Console fetch failed:', scResult.reason)
         setScError(scResult.reason?.message || 'Failed to load Search Console data')
-        // Import mock data generator
-        try {
-          const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
-          const mockData = generateMockSearchConsoleData(dateRange)
-          setScData(mockData)
-        } catch (mockError) {
-          console.error('Failed to load mock Search Console data:', mockError)
-          // Fallback to local mock data generator
-          const { mockSCData } = generateMockAnalyticsData(dateRange)
-          setScData(mockSCData)
+        if (process.env.NODE_ENV !== 'production') {
+          try {
+            const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+            const mockData = generateMockSearchConsoleData(dateRange)
+            setScData(mockData)
+          } catch (mockError) {
+            console.error('Failed to load mock Search Console data:', mockError)
+          }
         }
       }
 
@@ -760,22 +752,18 @@ export default function ReportingPage() {
       })
 
       // Fallback to mock data on complete failure
-      const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
-      if (dateRange) {
-        try {
-          // Import mock data generators
-          const { generateMockGA4Data, generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
-          const ga4MockData = generateMockGA4Data(dateRange)
-          const scMockData = generateMockSearchConsoleData(dateRange)
-          
-          setGaData(transformGA4Response(ga4MockData, dateRange))
-          setScData(scMockData)
-        } catch (mockError) {
-          console.error('Failed to load mock data:', mockError)
-          // Fallback to local mock data generator
-          const { mockGA4Data, mockSCData } = generateMockAnalyticsData(dateRange)
-          setGaData(mockGA4Data)
-          setScData(mockSCData)
+      if (process.env.NODE_ENV !== 'production') {
+        const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
+        if (dateRange) {
+          try {
+            const { generateMockGA4Data, generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+            const ga4MockData = generateMockGA4Data(dateRange)
+            const scMockData = generateMockSearchConsoleData(dateRange)
+            setGaData(transformGA4Response(ga4MockData, dateRange))
+            setScData(scMockData)
+          } catch (mockError) {
+            console.error('Failed to load mock data:', mockError)
+          }
         }
       }
     } finally {

@@ -6,29 +6,33 @@ const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
-    // For now, let's create a simple signin that works with the existing system
-    // This will be a temporary solution until Google OAuth is properly configured
+    // Get email from query parameter
+    const { searchParams } = new URL(request.url)
+    const email = searchParams.get('email')
     
-    const email = 'josh.copp@onekeel.ai';
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Email parameter is required' },
+        { status: 400 }
+      )
+    }
     
-    // Find or create user
+    console.log('Simple signin attempt for:', email)
+    
+    // Find existing user
     let user = await prisma.users.findUnique({
       where: { email: email.toLowerCase() }
     });
     
     if (!user) {
-      // Create a new user with SUPER_ADMIN role
-      user = await prisma.users.create({
-        data: {
-          id: crypto.randomUUID(),
-          email: email.toLowerCase(),
-          role: 'SUPER_ADMIN',
-          name: 'Super Admin',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      });
+      console.log('User not found:', email)
+      return NextResponse.json(
+        { error: 'User not found. Please contact an administrator.' },
+        { status: 404 }
+      )
     }
+    
+    console.log('User found:', { id: user.id, email: user.email, role: user.role })
     
     // Create session
     const sessionToken = await SimpleAuth.createSession({
@@ -42,7 +46,16 @@ export async function GET(request: NextRequest) {
 
     // Create response with session cookie
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com';
-    const response = NextResponse.redirect(new URL('/dashboard', baseUrl));
+    
+    // Redirect based on role
+    let redirectPath = '/dashboard'
+    if (user.role === 'SUPER_ADMIN') {
+      redirectPath = '/super-admin'
+    } else if (user.role === 'AGENCY_ADMIN') {
+      redirectPath = '/dashboard'
+    }
+    
+    const response = NextResponse.redirect(new URL(redirectPath, baseUrl));
     
     response.cookies.set(SimpleAuth.COOKIE_NAME, sessionToken, {
       httpOnly: true,
@@ -52,6 +65,7 @@ export async function GET(request: NextRequest) {
       path: '/',
     });
 
+    console.log('Session created, redirecting to:', redirectPath)
     return response;
   } catch (error) {
     console.error('Simple signin error:', error);

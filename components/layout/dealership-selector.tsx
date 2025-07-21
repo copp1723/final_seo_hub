@@ -193,7 +193,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
         onClick={() => setIsOpen(!isOpen)}
         disabled={isSwitching}
         className={cn(
-          "flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
+          "flex items-center space-x-2 px-2 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
           isSwitching && "opacity-50 cursor-not-allowed"
         )}
       >
@@ -202,12 +202,9 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
         ) : (
           <Building2 className="h-4 w-4 text-blue-500" />
         )}
-        <div className="flex flex-col items-start min-w-0">
-          <span className="text-xs font-normal text-gray-400 uppercase tracking-wide">
-            SELECT DEALERSHIP
-          </span>
-          <span className="text-sm text-gray-600 max-w-[120px] lg:max-w-[200px] truncate font-normal">
-            {currentDealership?.name || `${availableDealerships.length} Available`}
+        <div className="flex items-center min-w-0">
+          <span className="text-sm text-gray-600 max-w-[100px] lg:max-w-[150px] truncate font-normal">
+            {currentDealership?.name || 'Select Dealership'}
           </span>
         </div>
         

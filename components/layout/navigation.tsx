@@ -144,7 +144,7 @@ export function Navigation() {
           </div>
 
           {/* User Menu */}
-          <div className="flex items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-1 lg:gap-3">
             {/* Dealership Selector */}
             <DealershipSelector />
             

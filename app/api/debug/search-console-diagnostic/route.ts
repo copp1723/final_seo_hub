@@ -1,21 +1,20 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { decrypt } from '@/lib/encryption'
 import { google } from 'googleapis'
 import { logger } from '@/lib/logger'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    
-    if (!session?.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireAuth(request)
+    if (!authResult.authenticated) {
+      return authResult.response
     }
 
     const diagnostic = {
       timestamp: new Date().toISOString(),
-      userId: session.user.id,
+      userId: authResult.user.id,
       environmentChecks: {} as any,
       databaseChecks: {} as any,
       tokenChecks: {} as any,
@@ -39,7 +38,7 @@ export async function GET() {
 
       // Get user's dealership
       const user = await prisma.users.findUnique({
-        where: { id: session.user.id },
+        where: { id: authResult.user.id },
         include: { dealerships: true }
       })
 
@@ -48,7 +47,7 @@ export async function GET() {
         return NextResponse.json(diagnostic, { status: 200 })
       }
 
-      diagnostic.databaseChecks.dealerships.id = user.dealerships.id
+      diagnostic.databaseChecks.dealershipId = user.dealerships.id
       
       // Check if searchConsoleConnection record exists
       const connection = await prisma.search_console_connections.findUnique({

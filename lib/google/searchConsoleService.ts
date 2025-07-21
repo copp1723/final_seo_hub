@@ -2,6 +2,7 @@ import { google } from 'googleapis'
 import { decrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { refreshSearchConsoleToken } from '@/lib/search-console-token-refresh'
 
 interface SearchAnalyticsOptions {
   startDate: string
@@ -234,6 +235,21 @@ export async function getSearchConsoleService(userId: string) {
       logger.warn('Access token is null or undefined in SearchConsoleService', { userId });
       usingMockData = true;
       return new SearchConsoleServiceMock();
+    }
+    
+    // Check if token is expired and try to refresh
+    if (token.expiresAt && new Date() > token.expiresAt && token.refreshToken) {
+      logger.info('Search Console token expired, attempting refresh', { userId });
+      const newAccessToken = await refreshSearchConsoleToken(userId);
+      
+      if (newAccessToken) {
+        const refreshToken = token.refreshToken ? decrypt(token.refreshToken) : undefined;
+        return new SearchConsoleService(newAccessToken, refreshToken);
+      } else {
+        logger.warn('Failed to refresh Search Console token', { userId });
+        usingMockData = true;
+        return new SearchConsoleServiceMock();
+      }
     }
     
     const accessToken = decrypt(token.accessToken);

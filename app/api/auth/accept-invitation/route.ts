@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { signIn } from '@/lib/auth'
 import crypto from 'crypto'
+import { SimpleAuth } from '@/lib/auth-simple'
 
 export async function GET(request: NextRequest) {
   console.log('🎯 Accept Invitation GET endpoint hit!')
@@ -114,6 +115,23 @@ export async function GET(request: NextRequest) {
       secure: useSecureCookies,
       sameSite: 'lax',
       path: '/'
+    })
+
+    // Create and set SimpleAuth session cookie for front-end compatibility
+    const seoHubToken = await SimpleAuth.createSession({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      agencyId: user.agencyId,
+      dealershipId: user.dealershipId,
+      name: user.name
+    })
+    response.cookies.set(SimpleAuth.COOKIE_NAME, seoHubToken, {
+      httpOnly: true,
+      secure: useSecureCookies,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 // 30 days
     })
     
     console.log('✅ NextAuth session cookie set: next-auth.session-token')

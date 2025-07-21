@@ -132,7 +132,7 @@ export default function SettingsPage() {
       try {
         switch (activeTab) {
           case 'profile':
-            const profileRes = await fetch('/api/settings/profile')
+            const profileRes = await fetch('/api/settings/profile', { credentials: 'include' })
             if (profileRes.ok) {
               const data = await profileRes.json()
               // Fix: Extract user from the correct API response structure
@@ -144,7 +144,7 @@ export default function SettingsPage() {
             break
             
           case 'notifications':
-            const notifRes = await fetch('/api/settings/notifications')
+            const notifRes = await fetch('/api/settings/notifications', { credentials: 'include' })
             
             if (notifRes.ok) {
               const data = await notifRes.json()
@@ -159,7 +159,7 @@ export default function SettingsPage() {
             
             
           case 'integrations':
-            const intRes = await fetch('/api/settings/integrations')
+            const intRes = await fetch('/api/settings/integrations', { credentials: 'include' })
             if (intRes.ok) {
               const data = await intRes.json()
               console.log('Integrations API response:', data)
@@ -171,7 +171,7 @@ export default function SettingsPage() {
             
           case 'usage':
             try {
-              const usageRes = await fetch('/api/settings/usage')
+              const usageRes = await fetch('/api/settings/usage', { credentials: 'include' })
               if (usageRes.ok) {
                 const data = await usageRes.json()
                 console.log('Usage API response:', data)

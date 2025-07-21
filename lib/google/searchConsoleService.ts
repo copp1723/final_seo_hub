@@ -1,6 +1,7 @@
 import { google } from 'googleapis'
 import { decrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
+import { getValidSearchConsoleToken } from '@/lib/search-console-token-refresh'
 
 interface SearchAnalyticsOptions {
   startDate: string
@@ -101,21 +102,22 @@ export class SearchConsoleService {
 
 // Helper to get service instance for a dealership
 export async function getSearchConsoleService(dealershipId: string) {
-  const token = await prisma.search_console_connections.findUnique({
+  const connection = await prisma.search_console_connections.findUnique({
     where: { userId: dealershipId }
   })
 
-  if (!token) {
-    throw new Error('No Search Console token found for dealership')
+  if (!connection) {
+    throw new Error('No Search Console connection found for dealership')
   }
 
-  console.log('DEBUG: SearchConsole token.accessToken type:', typeof token.accessToken, 'value:', token.accessToken)
-  if (!token.accessToken) {
-    throw new Error('Access token is null or undefined in SearchConsoleService')
+  // Get a valid access token (refreshes if needed)
+  const accessToken = await getValidSearchConsoleToken(dealershipId)
+  if (!accessToken) {
+    throw new Error('Failed to get valid Search Console access token')
   }
-  const accessToken = decrypt(token.accessToken)
-  const refreshToken = token.refreshToken
-    ? decrypt(token.refreshToken)
+
+  const refreshToken = connection.refreshToken
+    ? decrypt(connection.refreshToken)
     : undefined
 
   return new SearchConsoleService(accessToken, refreshToken)

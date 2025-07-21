@@ -1,13 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { decrypt } from '@/lib/encryption'
 import { google } from 'googleapis'
 import { logger } from '@/lib/logger'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
+    const authResult = await requireAuth(request)
+    if (!authResult.authenticated) return authResult.response
+    const session = { user: authResult.user }
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

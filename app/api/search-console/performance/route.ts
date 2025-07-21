@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       dealershipId: targetDealershipId
     })
 
-    searchConsoleConnection = await prisma.search_console_connections.findUnique({
+    searchConsoleConnection = await prisma.search_console_connections.findFirst({
       where: { userId: session.user.id }
     })
 

@@ -41,7 +41,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Create response with session cookie
-    const response = NextResponse.redirect(new URL('/dashboard', request.url));
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com';
+    const response = NextResponse.redirect(new URL('/dashboard', baseUrl));
     
     response.cookies.set(SimpleAuth.COOKIE_NAME, sessionToken, {
       httpOnly: true,

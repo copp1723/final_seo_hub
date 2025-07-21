@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { NextResponse, NextRequest } from 'next/server'
+import { requireAuth } from '@/lib/api-auth'
 import { google } from 'googleapis'
 import { logger } from '@/lib/logger'
 
-export async function GET(req: Request) {
-  const session = await auth()
-  if (!session?.user) {
+export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request)
+  if (!authResult.authenticated || !authResult.user) {
     logger.error('Search Console connect: No session found')
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.redirect('/auth/signin')
   }
 
   try {
@@ -24,18 +24,18 @@ export async function GET(req: Request) {
         'https://www.googleapis.com/auth/siteverification.verify_only'
       ],
       prompt: 'consent',
-      state: session.user.id, // Pass user ID for security
+      state: authResult.user.id, // Pass user ID for security
     })
 
     logger.info('Search Console OAuth initiated', { 
-      userId: session.user.id,
+      userId: authResult.user.id,
       callbackUrl: `${process.env.NEXTAUTH_URL}/api/search-console/callback`
     })
 
     return NextResponse.redirect(authUrl)
   } catch (error) {
     logger.error('Search Console connect error', error, { 
-      userId: session.user.id,
+      userId: authResult.user.id,
       errorMessage: error instanceof Error ? error.message : 'Unknown error'
     })
     

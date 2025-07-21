@@ -2,16 +2,96 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getDealershipPackageProgress } from '@/lib/package-utils'
-import { withApiMonitoring } from '@/lib/api-wrapper'
-import { createCachedFunction, CACHE_TAGS, revalidateCache } from '@/lib/cache'
-import { CACHE_TTL } from '@/lib/constants'
 
-// Cached function for fetching dealership stats
-const getCachedDealershipStats = createCachedFunction(
-  async (dealershipId: string) => {
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth()
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const dealershipId = searchParams.get('dealershipId')
+
+    // Get user's information and verify access
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      include: {
+        agencies: {
+          include: {
+            dealerships: true
+          }
+        },
+        dealerships: true
+      }
+    })
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      )
+    }
+
+    // Determine which dealership to get stats for
+    let targetDealershipId: string
+
+    if (dealershipId) {
+      // Verify user has access to the requested dealership
+      if (user.agencies) {
+        // Agency user - check if dealership belongs to their agency
+        const hasAccess = user.agencies.dealerships.some((d: any) => d.id === dealershipId)
+        if (!hasAccess) {
+          return NextResponse.json(
+            { error: 'Access denied to this dealership' },
+            { status: 403 }
+          )
+        }
+        targetDealershipId = dealershipId
+      } else {
+        // Non-agency user - can only access their own dealership
+        if (user.dealershipId !== dealershipId) {
+          return NextResponse.json(
+            { error: 'Access denied to this dealership' },
+            { status: 403 }
+          )
+        }
+        targetDealershipId = dealershipId
+      }
+    } else {
+      // No specific dealership requested - use user's assigned dealership
+      if (!user.dealershipId) {
+        // If super-admin, return zeroed-out stats instead of error
+        if (session.user.role === 'SUPER_ADMIN') {
+          return NextResponse.json({
+            success: true,
+            data: {
+              activeRequests: 0,
+              totalRequests: 0,
+              tasksCompletedThisMonth: 0,
+              tasksSubtitle: 'No dealerships',
+              gaConnected: false,
+              packageProgress: null,
+              latestRequest: null,
+              dealershipId: null
+            }
+          })
+        }
+        return NextResponse.json(
+          { error: 'User is not assigned to a dealership' },
+          { status: 400 }
+        )
+      }
+      targetDealershipId = user.dealershipId
+    }
+
     // Get all users from this dealership for request statistics
     const dealershipUsers = await prisma.users.findMany({
-      where: { dealershipId },
+      where: { dealershipId: targetDealershipId },
       select: { id: true }
     })
 
@@ -54,7 +134,7 @@ const getCachedDealershipStats = createCachedFunction(
     // Get package progress for the dealership
     let packageProgress = null
     try {
-      packageProgress = await getDealershipPackageProgress(dealershipId)
+      packageProgress = await getDealershipPackageProgress(targetDealershipId)
     } catch (error) {
       console.error("API Dashboard: Failed to get dealership package progress", error)
     }
@@ -63,7 +143,7 @@ const getCachedDealershipStats = createCachedFunction(
     let gaConnected = false
     try {
       const gaConnection = await prisma.ga4_connections.findFirst({
-        where: { dealershipId },
+        where: { dealershipId: targetDealershipId },
         select: { propertyId: true, propertyName: true }
       })
       
@@ -73,99 +153,6 @@ const getCachedDealershipStats = createCachedFunction(
     } catch (error) {
       console.error("API Dashboard: Failed to check GA4 connection", error)
     }
-
-    return {
-      statusCounts,
-      completedThisMonth,
-      latestRequest,
-      packageProgress,
-      gaConnected
-    }
-  },
-  {
-    name: 'getDealershipStats',
-    tags: (dealershipId: string) => [
-      CACHE_TAGS.REQUESTS(dealershipId),
-      CACHE_TAGS.GA4(dealershipId),
-      `dealership-stats-${dealershipId}`
-    ],
-    revalidate: CACHE_TTL.ANALYTICS / 1000, // 5 minutes
-  }
-)
-
-async function handleGET(request: NextRequest) {
-  try {
-    const session = await auth()
-    
-    if (!session?.user.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const { searchParams } = new URL(request.url)
-    const dealershipId = searchParams.get('dealershipId')
-
-    // Get user's information and verify access
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      include: {
-        agencies: {
-          include: {
-            dealerships: true
-          }
-        },
-        dealerships: true
-      }
-    })
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    // Determine which dealership to get stats for
-    let targetDealershipId: string
-
-    if (dealershipId) {
-      // Verify user has access to the requested dealership
-      if (user.agencies) {
-        // Agency user - check if dealership belongs to their agency
-        const hasAccess = user.agencies.dealerships.some(d => d.id === dealershipId)
-        if (!hasAccess) {
-          return NextResponse.json(
-            { error: 'Access denied to this dealership' },
-            { status: 403 }
-          )
-        }
-        targetDealershipId = dealershipId
-      } else {
-        // Non-agency user - can only access their own dealership
-        if (user.dealerships?.id !== dealershipId) {
-          return NextResponse.json(
-            { error: 'Access denied to this dealership' },
-            { status: 403 }
-          )
-        }
-        targetDealershipId = dealershipId
-      }
-    } else {
-      // No specific dealership requested - use user's assigned dealership
-      if (!user.dealerships?.id) {
-        return NextResponse.json(
-          { error: 'User is not assigned to a dealership' },
-          { status: 400 }
-        )
-      }
-      targetDealershipId = user.dealerships?.id
-    }
-
-    // Use cached function to get dealership stats
-    const cachedStats = await getCachedDealershipStats(targetDealershipId)
-    const { statusCounts, completedThisMonth, latestRequest, packageProgress, gaConnected } = cachedStats
 
     // Calculate stats with null safety
     const statusCountsMap = statusCounts.reduce((acc: Record<string, number>, item: any) => {
@@ -205,5 +192,3 @@ async function handleGET(request: NextRequest) {
     )
   }
 }
-
-export const GET = withApiMonitoring(handleGET)

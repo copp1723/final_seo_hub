@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { google } from 'googleapis'
 import { encrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
 export async function GET(req: Request) {
-  const session = await auth()
+  const authResult = await requireAuth(req)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
   if (!session?.user) {
     logger.error('Search Console callback: No session found')
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
@@ -7,7 +7,9 @@ export async function GET(request: NextRequest) {
   
   try {
     // Check NextAuth session
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     console.log('NextAuth session:', session)
     
     // Check cookies

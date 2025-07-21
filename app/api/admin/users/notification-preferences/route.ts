@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger'
 
 // GET all users with their notification preferences
 export async function GET(request: NextRequest) {
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   // Check if user has admin privileges

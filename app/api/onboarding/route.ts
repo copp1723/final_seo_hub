@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { PackageType, Prisma } from '@prisma/client'
@@ -131,7 +131,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

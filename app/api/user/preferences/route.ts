@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const rateLimitResponse = await rateLimits.api(request)
   if (rateLimitResponse) return rateLimitResponse
   
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   try {
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest) {
   const rateLimitResponse = await rateLimits.api(request)
   if (rateLimitResponse) return rateLimitResponse
   
-  const authResult = await requireAuth()
+  const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) return authResult.response
   
   // Validate request body

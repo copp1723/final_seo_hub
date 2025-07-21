@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { GA4Service } from '@/lib/google/ga4Service'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -23,7 +23,9 @@ function getCacheKey(userId: string, params: any): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -209,7 +211,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: processedData, cached: false })
 
   } catch (error) {
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     logger.error('GA4 analytics API error', error, {
       userId: session?.user.id,
       path: '/api/ga4/analytics',

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 
 // TEMPORARY ENDPOINT - REMOVE AFTER INITIAL SETUP
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     if (!session?.user.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }

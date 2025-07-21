@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import crypto from 'crypto'
@@ -12,7 +12,9 @@ const impersonateSchema = z.object({
 // Start impersonation
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -169,7 +171,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get current session to log who was being impersonated
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     const impersonatedUserId = session?.user.id
 
     // Create a new session for the original user
@@ -260,7 +264,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ impersonating: false })
     }
 
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     if (!session?.user) {
       return NextResponse.json({ impersonating: false })
     }

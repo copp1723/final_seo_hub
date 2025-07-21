@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -30,7 +30,9 @@ export async function POST(request: NextRequest) {
       method: 'POST'
     })
 
-    const session = await auth()
+    const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
     
     if (!session?.user.id) {
       logger.warn('Search Console performance request unauthorized', {

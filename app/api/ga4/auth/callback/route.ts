@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { requireAuth } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify user is authenticated
+    const authResult = await requireAuth(request)
+    if (!authResult.authenticated) {
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/signin?error=Please sign in to connect GA4`)
+    }
+    
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
-    const state = searchParams.get('state') // This is the userId
+    const state = searchParams.get('state')
     const error = searchParams.get('error')
 
     if (error) {
@@ -40,19 +47,24 @@ export async function GET(request: NextRequest) {
     // Import encryption function
     const { encrypt } = await import('@/lib/encryption')
 
-    // Get user's dealership ID
-    const user = await prisma.users.findUnique({
-      where: { id: state },
-      select: { dealershipId: true }
-    })
-
-    if (!user?.dealershipId) {
+    // Verify state matches authenticated user
+    if (state !== authResult.user.id) {
+      logger.error('GA4 callback state mismatch', { 
+        state, 
+        userId: authResult.user.id 
+      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=Invalid state parameter`)
+    }
+    
+    // Use authenticated user's dealership ID
+    const dealershipId = authResult.user.dealershipId
+    if (!dealershipId) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings/ga4?status=error&error=User not assigned to dealership`)
     }
 
     // Check if dealership already has a property selected
     const existingConnection = await prisma.ga4_connections.findUnique({
-      where: { userId: user.dealershipId }
+      where: { userId: dealershipId }
     })
     
     // Try to fetch property info from Google Analytics
@@ -86,17 +98,17 @@ export async function GET(request: NextRequest) {
       }
     } else {
       logger.info('Preserving existing property selection', {
-        userId: state,
-        dealershipId: user.dealershipId,
+        userId: authResult.user.id,
+        dealershipId,
         propertyId,
         propertyName
       })
     }
 
     await prisma.ga4_connections.upsert({
-      where: { userId: user.dealershipId },
+      where: { userId: dealershipId },
       create: {
-        users: { connect: { id: user.dealershipId } },
+        users: { connect: { id: dealershipId } },
         accessToken: encrypt(tokens.access_token),
         refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,

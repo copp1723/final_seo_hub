@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { SimpleAuth } from '@/lib/auth-simple'
 import crypto from 'crypto'
 import { logger } from '@/lib/logger'
@@ -29,14 +28,9 @@ export function successResponse<T>(data?: T, message?: string): NextResponse {
   })
 }
 
-// Reusable auth check for API routes
-export async function requireAuth(request?: NextRequest) {
-  let session
-  if (request) {
-    session = await SimpleAuth.getSessionFromRequest(request)
-  } else {
-    session = await auth()
-  }
+// Reusable auth check for API routes - ALWAYS uses SimpleAuth
+export async function requireAuth(request: NextRequest) {
+  const session = await SimpleAuth.getSessionFromRequest(request)
   
   if (!session?.user?.id) {
     return { 
@@ -49,6 +43,12 @@ export async function requireAuth(request?: NextRequest) {
     authenticated: true, 
     user: session.user
   }
+}
+
+// Legacy support - redirects to new requireAuth
+export async function auth() {
+  const session = await SimpleAuth.getSession()
+  return session
 }
 
 // Timing-safe API key validation

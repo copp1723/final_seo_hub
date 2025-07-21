@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { getOrCreateCSRFToken } from '@/lib/csrf'
 
 export async function GET(request: NextRequest) {
-  const session = await auth()
+  const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
   
   if (!session?.user.id) {
     return NextResponse.json(

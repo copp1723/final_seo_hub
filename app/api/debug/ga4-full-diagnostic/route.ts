@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/api-auth'
 import { GA4Service } from '@/lib/google/ga4Service'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { format, subDays } from 'date-fns'
 
 export async function GET(request: NextRequest) {
-  const session = await auth()
+  const authResult = await requireAuth(request)
+  if (!authResult.authenticated) return authResult.response
+  const session = { user: authResult.user }
   
   if (!session?.user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

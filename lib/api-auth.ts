@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { SimpleAuth } from '@/lib/auth-simple'
 import crypto from 'crypto'
 import { logger } from '@/lib/logger'
 
@@ -29,10 +30,15 @@ export function successResponse<T>(data?: T, message?: string): NextResponse {
 }
 
 // Reusable auth check for API routes
-export async function requireAuth() {
-  const session = await auth()
+export async function requireAuth(request?: NextRequest) {
+  let session
+  if (request) {
+    session = await SimpleAuth.getSessionFromRequest(request)
+  } else {
+    session = await auth()
+  }
   
-  if (!session?.user.id) {
+  if (!session?.user?.id) {
     return { 
       authenticated: false, 
       response: errorResponse('Unauthorized', 401) 

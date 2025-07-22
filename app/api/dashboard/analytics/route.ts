@@ -61,16 +61,39 @@ export async function POST(request: NextRequest) {
     }
 
     // Check GA4 connection
-    const ga4Connection = await prisma.ga4_connections.findUnique({
-      where: { userId: session.user.id }
+    // Get user's current dealership
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { dealershipId: true, agencyId: true, role: true }
     })
+    
+    // Find GA4 connection (dealership-level or user-level)
+    let ga4Connection = null
+    if (user?.dealershipId) {
+      ga4Connection = await prisma.ga4_connections.findFirst({
+        where: { dealershipId: user.dealershipId }
+      })
+    }
+    if (!ga4Connection) {
+      ga4Connection = await prisma.ga4_connections.findFirst({
+        where: { userId: session.user.id }
+      })
+    }
 
     dashboardData.metadata.hasGA4Connection = !!ga4Connection
 
     // Check Search Console connection
-    const searchConsoleConnection = await prisma.search_console_connections.findUnique({
-      where: { userId: session.user.id }
-    })
+    let searchConsoleConnection = null
+    if (user?.dealershipId) {
+      searchConsoleConnection = await prisma.search_console_connections.findFirst({
+        where: { dealershipId: user.dealershipId }
+      })
+    }
+    if (!searchConsoleConnection) {
+      searchConsoleConnection = await prisma.search_console_connections.findFirst({
+        where: { userId: session.user.id }
+      })
+    }
 
     dashboardData.metadata.hasSearchConsoleConnection = !!searchConsoleConnection
 

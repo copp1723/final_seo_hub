@@ -34,6 +34,7 @@ import { Loader2 } from 'lucide-react'
 import OverviewTab from './components/OverviewTab'
 import TrafficTab from './components/TrafficTab'
 import SearchTab from './components/SearchTab'
+import { DealershipSelector } from '@/components/layout/dealership-selector'
 
 // Lazy load charts
 const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { 
@@ -669,6 +670,7 @@ export default function ReportingPage() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <DealershipSelector />
               <Select value={selectedRange} onValueChange={setSelectedRange}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Select date range" />

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/app/simple-auth-provider'
-import { DealershipSelector } from '@/components/layout/dealership-selector'
 import {
   LayoutDashboard,
   FileText,
@@ -145,8 +144,6 @@ export function Navigation() {
 
           {/* User Menu */}
           <div className="flex items-center gap-1 lg:gap-2">
-            {/* Dealership Selector */}
-            <DealershipSelector />
             
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>
@@ -241,11 +238,6 @@ export function Navigation() {
                 </Link>
               )
             })}
-            
-            {/* Mobile Dealership Selector */}
-            <div className="px-4 py-2">
-              <DealershipSelector />
-            </div>
             
             {/* Mobile Admin Links */}
             {adminNavItems.map((item) => {

@@ -1,24 +1,18 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
-import { logger } from '@/lib/logger'
+import { NextRequest, NextResponse } from 'next/server'
+import { withAuth, successResponse } from '@/lib/api/route-utils'
+import { SearchConsoleAPI } from '@/lib/api/search-console-api'
 
-export async function GET(req: Request) {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic'
 
-  try {
-    const service = await getSearchConsoleService(session.user.id)
-    const sites = await service.listSites()
+export async function GET(req: NextRequest) {
+  return withAuth(req, async (session) => {
+    const result = await SearchConsoleAPI.listSites(session.user.id)
     
-    return NextResponse.json({ sites })
-  } catch (error) {
-    logger.error('Search Console error', error, { userId: session.user.id })
-    return NextResponse.json(
-      { error: 'Failed to fetch sites' },
-      { status: 500 }
-    )
-  }
+    if (!result.success) {
+      return NextResponse.json(result, { status: result.needsReconnection ? 401 : 500 })
+    }
+    
+    return successResponse(result)
+  })
 }

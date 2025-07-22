@@ -1,49 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SimpleAuth } from '@/lib/auth-simple'
-import { prisma } from '@/lib/prisma'
+import { withAuth, successResponse } from '@/lib/api/route-utils'
+import { SearchConsoleAPI } from '@/lib/api/search-console-api'
 import { logger } from '@/lib/logger'
 
+// Force dynamic rendering since we use cookies
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
-  const session = await SimpleAuth.getSessionFromRequest(request)
-  
-  try {
-    if (!session?.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  return withAuth(request, async (session) => {
+    try {
+      const connection = await SearchConsoleAPI.getConnection(session.user.id)
 
-    const connection = await prisma.search_console_connections.findUnique({
-      where: { userId: session.user.id }
-    })
+      if (!connection) {
+        return successResponse({
+          connected: false,
+          debug: 'No connection found in database'
+        })
+      }
 
-    if (!connection) {
-      return NextResponse.json({
+      // Debug information
+      const debugInfo = process.env.NODE_ENV === 'development' ? {
+        hasAccessToken: !!connection.accessToken,
+        hasRefreshToken: !!connection.refreshToken,
+        expiresAt: connection.expiresAt,
+        createdAt: connection.createdAt,
+        updatedAt: connection.updatedAt
+      } : undefined
+
+      return successResponse({
+        connected: true,
+        siteUrl: connection.siteUrl,
+        siteName: connection.siteName,
+        debug: debugInfo
+      })
+    } catch (error) {
+      logger.error('Search Console status error', error, { userId: session.user.id })
+      return successResponse({
         connected: false,
-        debug: 'No connection found in database'
+        debug: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       })
     }
-
-    // Debug information
-    const debugInfo = {
-      hasAccessToken: !!connection.accessToken,
-      hasRefreshToken: !!connection.refreshToken,
-      siteUrl: connection.siteUrl,
-      siteName: connection.siteName,
-      expiresAt: connection.expiresAt,
-      createdAt: connection.createdAt,
-      updatedAt: connection.updatedAt
-    }
-
-    return NextResponse.json({
-      connected: true,
-      siteUrl: connection.siteUrl,
-      siteName: connection.siteName,
-      debug: debugInfo
-    })
-  } catch (error) {
-    logger.error('Search Console status error', error, { userId: session?.user.id })
-    return NextResponse.json({
-      connected: false,
-      debug: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    })
-  }
+  })
 }

@@ -1,0 +1,374 @@
+middleware.ts:1 - middleware
+middleware.ts:1 - config
+next.config.ts:154 - default
+tailwind.config.ts:56 - default
+app/error-dev.tsx:6 - default
+app/error.tsx:6 - default
+app/global-error.tsx:10 - default
+app/layout.tsx:11 - default
+app/layout.tsx:9 - metadata
+app/loading.tsx:1 - default
+app/not-found.tsx:9 - default
+app/page.tsx:4 - default
+components/icons.tsx:1 - GoogleIcon
+components/lazy-components.tsx:14 - LazyChart
+components/lazy-components.tsx:22 - LazyLineChart
+components/lazy-components.tsx:30 - LazyBarChart
+components/lazy-components.tsx:38 - LazyDoughnutChart
+components/lazy-components.tsx:47 - LazySEOChat
+components/lazy-components.tsx:56 - LazyEscalationModal
+constants/terminology.ts:2 - TERMINOLOGY
+hooks/index.ts:1 - useDebounce
+hooks/index.ts:2 - useAsync
+hooks/index.ts:3 - useLocalStorage
+hooks/index.ts:4 - useToast
+hooks/index.ts:5 - useAnalytics
+hooks/use-branding.ts:29 - getServerBranding
+hooks/useCSRF.ts:3 - useCSRF
+lib/api-auth.ts:57 - validateApiKey
+lib/api-middleware.ts:16 - createApiHandler (used in module)
+lib/api-middleware.ts:8 - ApiMiddlewareOptions (used in module)
+lib/api-middleware.ts:89 - createPutHandler
+lib/api-middleware.ts:98 - createDeleteHandler
+lib/auth-simple.ts:4 - SimpleUser (used in module)
+lib/auth-simple.ts:13 - SimpleSession (used in module)
+lib/auth.ts:4 - getServerSession (used in module)
+lib/auth.ts:4 - requireAuth (used in module)
+lib/auth.ts:4 - requireRole (used in module)
+lib/auth.ts:4 - SimpleAuth (used in module)
+lib/auth.ts:9 - signOut
+lib/auth.ts:10 - handlers
+lib/cache.ts:50 - cachedQueries
+lib/cache.ts:226 - memoryCache (used in module)
+lib/constants.ts:36 - HTTP_STATUS
+lib/constants.ts:52 - CHAR_LIMITS
+lib/constants.ts:70 - EMAIL_TYPES
+lib/csrf.ts:104 - generateCSRFToken (used in module)
+lib/csrf.ts:116 - validateCSRFToken (used in module)
+lib/csrf.ts:148 - csrfProtection
+lib/csrf.ts:190 - addCSRFTokenToResponse
+lib/db-utils.ts:9 - batchOperations
+lib/db-utils.ts:48 - optimizedQueries
+lib/db-utils.ts:214 - connectionHealth
+lib/encryption.ts:80 - generateSecureKey (used in module)
+lib/encryption.ts:87 - generateAllKeys
+lib/features.ts:31 - getUserFeatures
+lib/features.ts:38 - isInTestGroup
+lib/features.ts:47 - useFeature
+lib/features.ts:53 - checkFeature
+lib/features.ts:7 - features (used in module)
+lib/features.ts:58 - isDevelopment (used in module)
+lib/features.ts:59 - isStaging
+lib/features.ts:60 - isProduction
+lib/logger.ts:3 - LogContext (used in module)
+lib/logger.ts:10 - Logger (used in module)
+lib/openrouter.ts:24 - getConversation (used in module)
+lib/openrouter.ts:28 - createConversation (used in module)
+lib/openrouter.ts:40 - updateConversation (used in module)
+lib/openrouter.ts:4 - openrouter (used in module)
+lib/openrouter.ts:9 - ChatMessage (used in module)
+lib/openrouter.ts:14 - ConversationContext (used in module)
+lib/package-utils.ts:15 - getPackageLimits (used in module)
+lib/package-utils.ts:66 - getPackageTotalTasks
+lib/package-utils.ts:75 - ensureDealershipBillingPeriodAndRollover (used in module)
+lib/package-utils.ts:123 - ensureUserBillingPeriodAndRollover
+lib/package-utils.ts:141 - incrementDealershipUsage (used in module)
+lib/package-utils.ts:271 - getUserPackageProgress
+lib/package-utils.ts:6 - PackageProgress (used in module)
+lib/rate-limit-redis.ts:9 - createRedisRateLimit (used in module)
+lib/rate-limit-redis.ts:79 - enhancedRateLimits
+lib/redis.ts:4 - RedisClient (used in module)
+lib/redis.ts:110 - default
+lib/seo-packages.ts:46 - calculatePackageProgress
+lib/seo-packages.ts:32 - PackageType (used in module)
+lib/seo-packages.ts:34 - PackageProgress (used in module)
+middleware/compression.ts:9 - compressionMiddleware
+middleware/cors.ts:15 - corsMiddleware
+middleware/simple-middleware.ts:22 - middleware
+middleware/simple-middleware.ts:60 - config
+scripts/bulk-create-jay-hatfield-dealerships-with-clientid.ts:338 - default
+scripts/test-csv-processing.ts:84 - testCsvProcessing (used in module)
+app/(authenticated)/layout.tsx:6 - default
+app/lib/features.ts:30 - getUserFeatures
+app/lib/features.ts:37 - isInTestGroup
+app/lib/features.ts:46 - useFeature
+app/lib/features.ts:52 - checkFeature
+app/lib/features.ts:7 - features (used in module)
+app/lib/features.ts:57 - isDevelopment (used in module)
+app/lib/features.ts:58 - isStaging
+app/lib/features.ts:59 - isProduction
+app/onboarding/page.tsx:19 - default
+app/privacy/page.tsx:1 - default
+app/terms/page.tsx:1 - default
+components/admin/enhanced-agency-form.tsx:18 - EnhancedAgencyForm
+components/admin/user-impersonation.tsx:30 - UserImpersonation
+components/analytics/analytics-error.tsx:10 - AnalyticsError
+components/analytics/date-range-selector.tsx:18 - DateRangeSelector
+components/analytics/date-range-selector.tsx:4 - DateRange (used in module)
+components/analytics/metrics-card.tsx:16 - MetricsCard
+components/dashboard/PackageUsageProgress.tsx:80 - default
+components/dashboard/RecentActivityTimeline.tsx:55 - default
+components/dashboard/StatusDistributionChart.tsx:26 - StatusDistributionChart (used in module)
+components/dashboard/StatusDistributionChart.tsx:94 - default
+components/dashboard/task-widget.tsx:72 - TaskWidget
+components/dashboard/UpcomingTasks.tsx:25 - UpcomingTasks (used in module)
+components/dashboard/UpcomingTasks.tsx:69 - default
+components/demo/notification-system-demo.tsx:21 - NotificationSystemDemo
+components/layout/auth-layout.tsx:9 - AuthLayout
+components/layout/authenticated-layout.tsx:13 - AuthenticatedLayout
+components/onboarding/business-information-step.tsx:8 - default
+components/onboarding/package-selection-step.tsx:31 - default
+components/onboarding/target-information-step.tsx:9 - default
+components/requests/completion-modal.tsx:88 - default
+components/requests/enhanced-request-card.tsx:124 - EnhancedRequestCard
+components/requests/infinite-scroll-requests.tsx:40 - InfiniteScrollRequests
+components/requests/status-updater.tsx:33 - default
+components/ui/badge.tsx:4 - BadgeProps (used in module)
+components/ui/card.tsx:4 - CardProps (used in module)
+components/ui/card.tsx:60 - CardFooter (used in module)
+components/ui/dialog.tsx:110 - DialogPortal (used in module)
+components/ui/dialog.tsx:111 - DialogOverlay (used in module)
+components/ui/dropdown-menu.tsx:188 - DropdownMenuCheckboxItem (used in module)
+components/ui/dropdown-menu.tsx:189 - DropdownMenuRadioItem (used in module)
+components/ui/dropdown-menu.tsx:190 - DropdownMenuLabel (used in module)
+components/ui/dropdown-menu.tsx:191 - DropdownMenuSeparator (used in module)
+components/ui/dropdown-menu.tsx:192 - DropdownMenuShortcut (used in module)
+components/ui/dropdown-menu.tsx:193 - DropdownMenuGroup (used in module)
+components/ui/dropdown-menu.tsx:194 - DropdownMenuPortal (used in module)
+components/ui/dropdown-menu.tsx:195 - DropdownMenuSub (used in module)
+components/ui/dropdown-menu.tsx:196 - DropdownMenuSubContent (used in module)
+components/ui/dropdown-menu.tsx:197 - DropdownMenuSubTrigger (used in module)
+components/ui/dropdown-menu.tsx:198 - DropdownMenuRadioGroup (used in module)
+components/ui/dropdown.tsx:11 - Dropdown
+components/ui/input.tsx:4 - InputProps (used in module)
+components/ui/lazy-image.tsx:12 - LazyImage
+components/ui/select.tsx:153 - SelectGroup (used in module)
+components/ui/select.tsx:157 - SelectLabel (used in module)
+components/ui/select.tsx:159 - SelectSeparator (used in module)
+components/ui/select.tsx:160 - SelectScrollUpButton (used in module)
+components/ui/select.tsx:161 - SelectScrollDownButton (used in module)
+components/ui/table.tsx:111 - TableFooter (used in module)
+components/ui/table.tsx:115 - TableCaption (used in module)
+components/ui/textarea.tsx:5 - TextareaProps (used in module)
+components/ui/toast.tsx:129 - ToastAction (used in module)
+components/ui/tooltip.tsx:25 - TooltipProvider
+components/ui/tooltip.tsx:29 - TooltipTrigger
+components/ui/tooltip.tsx:33 - TooltipContent
+components/ui/tooltip.tsx:56 - Tooltip (used in module)
+components/ui/tooltip.tsx:106 - default
+components/ui/use-toast.ts:76 - reducer (used in module)
+components/ui/use-toast.ts:185 - toast (used in module)
+lib/ai/task-context.ts:40 - getCompletedTasks
+lib/ai/task-context.ts:93 - searchTasksByQuery
+lib/ai/task-context.ts:166 - findTasksByTopic
+lib/ai/task-context.ts:199 - generateTaskContext
+lib/ai/task-context.ts:244 - detectTaskRelatedIntents
+lib/ai/task-context.ts:271 - getTaskStatistics
+lib/ai/task-context.ts:9 - TaskReference (used in module)
+lib/ai/task-context.ts:26 - TaskSearchOptions (used in module)
+lib/branding/config.ts:43 - getBrandingForAgency
+lib/branding/config.ts:71 - getBrandingForCurrentRequest
+lib/branding/config.ts:24 - AGENCY_BRANDINGS (used in module)
+lib/branding/metadata.ts:25 - generateDynamicMetadata
+lib/google/searchConsoleService.ts:14 - SearchConsoleService (used in module)
+lib/mailgun/client.ts:88 - isValidEmail
+lib/mailgun/invitation.ts:7 - InvitationEmailOptions (used in module)
+lib/mailgun/secure-tokens.ts:16 - generateUnsubscribeToken (used in module)
+lib/mailgun/secure-tokens.ts:78 - storeUnsubscribeToken
+lib/services/csv-dealership-processor.ts:7 - ProcessingResult (used in module)
+lib/services/csv-dealership-processor.ts:17 - ProcessingLogData
+lib/services/csv-security.ts:7 - SenderValidationResult (used in module)
+lib/services/csv-security.ts:14 - FileValidationResult (used in module)
+lib/utils/csv-parser.ts:6 - ParseOptions (used in module)
+lib/validations/dealership-csv.ts:12 - mailgunWebhookSchema (used in module)
+lib/validations/dealership-csv.ts:27 - MailgunWebhookPayload
+lib/validations/dealership-csv.ts:30 - CSV_TEMPLATE
+lib/validations/index.ts:43 - ValidationSuccess (used in module)
+lib/validations/index.ts:43 - ValidationError (used in module)
+lib/validations/index.ts:43 - ValidationResult (used in module)
+lib/validations/index.ts:56 - updateRequestSchema
+lib/validations/index.ts:59 - CreateRequestInput
+lib/validations/index.ts:60 - UpdateRequestInput
+lib/validations/index.ts:39 - SEOWorksWebhookPayload
+lib/validations/index.ts:4 - updateProfileSchema
+lib/validations/index.ts:25 - userPreferencesSchema
+lib/validations/index.ts:30 - UpdateProfileInput
+lib/validations/index.ts:31 - NotificationPreferencesInput
+lib/validations/index.ts:32 - UserPreferencesInput
+lib/validations/index.ts:3 - onboardingSchema
+lib/validations/index.ts:24 - OnboardingData
+app/(authenticated)/admin/page.tsx:11 - default
+app/(authenticated)/chat/page.tsx:9 - default
+app/(authenticated)/dashboard/loading.tsx:3 - default
+app/(authenticated)/dashboard/page.tsx:55 - default
+app/(authenticated)/dashboard/page.tsx:8 - dynamic
+app/(authenticated)/debug/page.tsx:5 - default
+app/(authenticated)/debug-auth/page.tsx:6 - default
+app/(authenticated)/debug-client/page.tsx:7 - default
+app/(authenticated)/debug-dealership/page.tsx:36 - default
+app/(authenticated)/debug-session/page.tsx:8 - default
+app/(authenticated)/focus-request/page.tsx:14 - default
+app/(authenticated)/reporting/loading.tsx:1 - default
+app/(authenticated)/reporting/page.tsx:171 - default
+app/(authenticated)/requests/loading.tsx:3 - default
+app/(authenticated)/requests/page.tsx:43 - default
+app/(authenticated)/settings/page.tsx:55 - default
+app/(authenticated)/super-admin/layout.tsx:8 - default
+app/(authenticated)/super-admin/page.tsx:36 - default
+app/(authenticated)/tasks/page.tsx:131 - default
+app/(authenticated)/tasks/page.tsx:37 - Task (used in module)
+app/api/chat/route 2.ts:20 - POST
+app/api/chat/route.ts:78 - POST
+app/api/csrf/route.ts:5 - GET
+app/api/health/route.ts:5 - GET
+app/api/invitation/route.ts:6 - GET
+app/api/invitation/route.ts:93 - POST
+app/api/onboarding/route.ts:31 - POST
+app/api/onboarding/route.ts:132 - GET
+app/api/requests/route.ts:302 - GET
+app/api/requests/route.ts:303 - POST
+app/api/test-auth/route.ts:4 - GET
+app/api/test-email/route.ts:4 - POST
+app/auth/signin/page.tsx:6 - default
+app/auth/simple-signin/page.tsx:7 - default
+app/debug/dealerships/page.tsx:6 - default
+app/lib/ai/automotive-seo-agent.ts:195 - enhanceAutomotiveContext
+app/lib/ai/automotive-seo-agent.ts:269 - enhanceResponse
+app/lib/ai/automotive-seo-agent.ts:299 - generateAnalyticsInsights
+app/lib/ai/enhanced-prompts.ts:6 - enhancedSEOAssistantPrompt (used in module)
+app/lib/ai/enhanced-prompts.ts:49 - automotiveSalesPrompt (used in module)
+app/lib/ai/enhanced-prompts.ts:71 - enhancedContextBuilder (used in module)
+app/lib/ai/enhanced-prompts.ts:89 - getSystemPrompt
+app/lib/cache/performance-cache.ts:18 - PerformanceCache (used in module)
+app/lib/cache/performance-cache.ts:224 - ChatResponseCache (used in module)
+app/lib/cache/performance-cache.ts:283 - ga4ReportCache
+app/lib/cache/performance-cache.ts:284 - chatCache
+app/(authenticated)/admin/bulk-create-dealerships/page.tsx:17 - default
+app/(authenticated)/admin/content-notifications/page.tsx:4 - default
+app/(authenticated)/agency/settings/page.tsx:4 - default
+app/(authenticated)/chat/automotive/page.tsx:6 - default
+app/(authenticated)/onboarding/seoworks/page.tsx:3 - default
+app/(authenticated)/onboarding/status/page.tsx:3 - default
+app/(authenticated)/requests/[id]/page.tsx:144 - default
+app/(authenticated)/requests/new/page.tsx:14 - default
+app/(authenticated)/settings/ga4/page.tsx:7 - default
+app/(authenticated)/super-admin/agencies/page.tsx:36 - default
+app/(authenticated)/super-admin/audit/page.tsx:54 - default
+app/(authenticated)/super-admin/system/page.tsx:62 - default
+app/(authenticated)/super-admin/users/page.tsx:47 - default
+app/api/admin/agencies/route.ts:13 - GET
+app/api/admin/agencies/route.ts:42 - POST
+app/api/admin/promote/route.ts:6 - POST
+app/api/agency/profile/route.ts:22 - GET
+app/api/agency/profile/route.ts:66 - PATCH
+app/api/auth/accept-invitation/route.ts:6 - GET
+app/api/auth/bootstrap/route.ts:8 - GET
+app/api/auth/emergency-invite/route.ts:9 - POST
+app/api/auth/fix-super-admin/route.ts:8 - POST
+app/api/auth/force-login/route.ts:9 - GET
+app/api/auth/request-access/route.ts:6 - POST
+app/api/auth/session/route.ts:8 - GET
+app/api/auth/simple-session/route.ts:4 - GET
+app/api/auth/simple-signin/route.ts:12 - POST
+app/api/auth/simple-signout/route.ts:4 - POST
+app/api/chat/automotive/route.ts:141 - POST
+app/api/cron/weekly-summary/route.ts:12 - GET (used in module)
+app/api/cron/weekly-summary/route.ts:154 - POST
+app/api/dashboard/recent-activity/route.ts:8 - GET
+app/api/dashboard/stats/route.ts:357 - GET
+app/api/dealerships/switch/route.ts:10 - POST
+app/api/dealerships/switch/route.ts:110 - GET
+app/api/debug/accounts/route.ts:5 - GET
+app/api/debug/add-tokens/route.ts:5 - POST
+app/api/debug/agency-profile/route.ts:6 - GET
+app/api/debug/auth-diagnostics/route.ts:5 - GET
+app/api/debug/auth-test/route.ts:3 - GET
+app/api/debug/check-invites/route.ts:6 - GET
+app/api/debug/db-test/route.ts:5 - GET
+app/api/debug/dealership-debug/route.ts:5 - GET
+app/api/debug/deployment-diagnostics/route.ts:4 - GET
+app/api/debug/env/route.ts:4 - GET
+app/api/debug/ga4-full-diagnostic/route.ts:8 - GET
+app/api/debug/generate-invitation/route.ts:6 - POST
+app/api/debug/search-console-diagnostic/route.ts:8 - GET
+app/api/debug/session-check/route.ts:5 - GET
+app/api/debug/setup-initial-users/route.ts:5 - POST
+app/api/debug/setup-test-dealerships/route.ts:5 - POST
+app/api/debug/user-check/route.ts:4 - GET
+app/api/debug/users/route.ts:4 - GET
+app/api/email/unsubscribe/route.ts:9 - GET
+app/api/ga4/analytics/route.ts:24 - POST
+app/api/ga4/list-properties/route.ts:8 - GET
+app/api/ga4/set-property/route.ts:6 - POST
+app/api/ga4/setup-property/route.ts:8 - POST
+app/api/ga4/status/route.ts:6 - GET
+app/api/health/email/route.ts:7 - GET
+app/api/mailgun/dealership-csv/route.ts:99 - POST
+app/api/mailgun/dealership-csv/route.ts:231 - GET
+app/api/requests/[id]/route.ts:18 - PUT
+app/api/requests/[id]/route.ts:115 - GET
+app/api/requests/count/route.ts:8 - GET
+app/api/requests/paginated/route.ts:15 - GET
+app/api/search-console/analytics/route.ts:6 - GET
+app/api/search-console/callback/route.ts:8 - GET
+app/api/search-console/connect/route.ts:6 - GET
+app/api/search-console/disconnect/route.ts:6 - POST
+app/api/search-console/list-sites/route.ts:8 - GET
+app/api/search-console/performance/route.ts:25 - POST
+app/api/search-console/primary-site/route.ts:6 - POST
+app/api/search-console/sites/route.ts:6 - GET
+app/api/search-console/status/route.ts:6 - GET
+app/api/seoworks/complete-onboarding/route.ts:102 - POST
+app/api/seoworks/mapping/route.ts:38 - POST
+app/api/seoworks/mapping/route.ts:127 - GET
+app/api/seoworks/onboard/route.ts:35 - POST
+app/api/seoworks/send-focus-request/route.ts:91 - POST
+app/api/seoworks/send-onboarding/route.ts:102 - POST
+app/api/seoworks/webhook/route.ts:35 - GET
+app/api/seoworks/webhook/route.ts:56 - POST
+app/api/settings/api-key/route.ts:16 - GET
+app/api/settings/api-key/route.ts:53 - POST
+app/api/settings/api-key/route.ts:94 - DELETE
+app/api/settings/integrations/route.ts:6 - GET
+app/api/settings/notifications/route.ts:8 - GET
+app/api/settings/notifications/route.ts:76 - PUT
+app/api/settings/profile/route.ts:5 - GET
+app/api/settings/profile/route.ts:82 - PUT
+app/api/settings/usage/route.ts:8 - GET
+app/api/super-admin/agencies/route.ts:12 - GET
+app/api/super-admin/agencies/route.ts:100 - POST
+app/api/super-admin/audit/route.ts:5 - GET
+app/api/super-admin/audit/route.ts:116 - POST
+app/api/super-admin/impersonate/route.ts:13 - POST
+app/api/super-admin/impersonate/route.ts:148 - DELETE
+app/api/super-admin/impersonate/route.ts:239 - GET
+app/api/super-admin/users/route.ts:25 - GET
+app/api/super-admin/users/route.ts:106 - POST
+app/api/super-admin/users/route.ts:215 - PUT
+app/api/super-admin/users/route.ts:280 - DELETE
+app/api/user/preferences/route.ts:22 - GET
+app/api/user/preferences/route.ts:63 - PATCH
+app/api/admin/dealerships/bulk-create/route.ts:7 - POST
+app/api/admin/users/notification-preferences/route.ts:7 - GET
+app/api/email/preview/content/route.ts:5 - POST
+app/api/email/preview/content/route.ts:74 - GET
+app/api/ga4/auth/callback/route.ts:6 - GET
+app/api/ga4/auth/connect/route.ts:4 - GET
+app/api/requests/[id]/status/route.ts:18 - PATCH
+app/api/super-admin/agencies/[id]/route.ts:11 - PUT
+app/api/super-admin/agencies/[id]/route.ts:121 - DELETE
+app/api/super-admin/agencies/[id]/route.ts:203 - GET
+app/api/super-admin/audit/stats/route.ts:5 - GET
+app/api/super-admin/system/health/route.ts:14 - GET
+app/api/super-admin/system/health/route.ts:138 - POST
+app/api/super-admin/system/settings/route-backup.ts:5 - POST
+app/api/super-admin/system/settings/route.ts:53 - GET
+app/api/super-admin/system/settings/route.ts:92 - PUT
+app/api/super-admin/system/stats/route.ts:5 - GET
+app/(authenticated)/admin/agencies/[agencyId]/requests/page.tsx:38 - default
+app/(authenticated)/admin/agencies/[agencyId]/users/page.tsx:31 - default
+app/api/admin/agencies/[agencyId]/requests/route.ts:7 - GET
+app/api/admin/agencies/[agencyId]/users/route.ts:24 - GET
+app/api/admin/agencies/[agencyId]/users/route.ts:48 - POST
+app/api/admin/agencies/[agencyId]/users/route.ts:155 - PUT
+app/api/admin/agencies/[agencyId]/users/route.ts:222 - DELETE

@@ -4,6 +4,9 @@ import { DealershipAnalyticsService } from '@/lib/google/dealership-analytics-se
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+// Force dynamic rendering since we use auth
+export const dynamic = 'force-dynamic'
+
 // In-memory cache for dashboard analytics
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes

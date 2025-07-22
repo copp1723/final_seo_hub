@@ -5,6 +5,9 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 
+// Force dynamic rendering since we use auth
+export const dynamic = 'force-dynamic'
+
 // Request validation schema
 const analyticsRequestSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),

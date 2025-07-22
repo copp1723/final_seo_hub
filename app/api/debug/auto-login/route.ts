@@ -1,18 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🔧 Debug auto-login endpoint')
     
+    // Find the super admin user
+    const superAdmin = await prisma.users.findFirst({
+      where: { 
+        email: 'josh.copp@onekeel.ai',
+        role: 'SUPER_ADMIN'
+      }
+    })
+
+    if (!superAdmin) {
+      return NextResponse.json(
+        { error: 'Super admin user not found' },
+        { status: 404 }
+      )
+    }
+
     // Create session for the super admin user
     const sessionToken = await SimpleAuth.createSession({
-      id: '3e50bcc8-cd3e-4773-a790-e0570de37371',
-      email: 'josh.copp@onekeel.ai',
-      role: 'SUPER_ADMIN',
-      agencyId: null,
-      dealershipId: null,
-      name: 'Josh Copp'
+      id: superAdmin.id,
+      email: superAdmin.email,
+      role: superAdmin.role,
+      agencyId: superAdmin.agencyId,
+      dealershipId: superAdmin.dealershipId,
+      name: superAdmin.name
     })
 
     // Create response with session cookie and redirect to dashboard
@@ -26,7 +42,7 @@ export async function GET(request: NextRequest) {
       path: '/',
     })
 
-    console.log('✅ Auto-login session created and cookie set')
+    console.log('✅ Auto-login session created for user:', superAdmin.id)
     return response
     
   } catch (error) {

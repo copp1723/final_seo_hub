@@ -193,7 +193,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
         onClick={() => setIsOpen(!isOpen)}
         disabled={isSwitching}
         className={cn(
-          "flex items-center space-x-2 px-2 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
+          "flex items-center space-x-1.5 px-2 py-1.5 rounded-lg hover:bg-gray-50/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2",
           isSwitching && "opacity-50 cursor-not-allowed"
         )}
       >
@@ -203,7 +203,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
           <Building2 className="h-4 w-4 text-blue-500" />
         )}
         <div className="flex items-center min-w-0">
-          <span className="text-sm text-gray-600 max-w-[100px] lg:max-w-[150px] truncate font-normal">
+          <span className="text-xs text-gray-600 max-w-[80px] lg:max-w-[120px] truncate font-normal">
             {currentDealership?.name || 'Select Dealership'}
           </span>
         </div>
@@ -219,12 +219,12 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
       {/* Dropdown Menu - Fixed positioning and z-index */}
       {isOpen && (
         <div className="origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-lg py-1 bg-white backdrop-blur-md ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200/60" style={{ zIndex: 100 }}>
-          <div className="px-4 py-3 border-b border-gray-200/60">
-            <p className="text-sm font-normal text-gray-600">Select Dealership</p>
-            <p className="text-xs text-gray-400">{availableDealerships.length} available</p>
-          </div>
+        <div className="px-3 py-2 border-b border-gray-200/60">
+          <p className="text-sm font-normal text-gray-600">Select Dealership</p>
+          <p className="text-xs text-gray-400">{availableDealerships.length} available</p>
+        </div>
           
-          <div className="max-h-64 overflow-y-auto">
+          <div className="max-h-48 overflow-y-auto">
             {availableDealerships.map((dealership) => {
               const isSelected = currentDealership?.id === dealership.id
               
@@ -234,19 +234,19 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
                   onClick={() => handleDealershipSwitch(dealership.id)}
                   disabled={isSwitching}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors duration-200",
+                    "w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors duration-200",
                     "hover:bg-gray-50/80 focus:outline-none focus:bg-gray-50/80",
                     isSelected && "bg-blue-50/80 text-blue-700",
                     isSwitching && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  <div className="flex items-center space-x-3 min-w-0 flex-1">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center ring-2 ring-white shadow-sm">
+                  <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center ring-1 ring-white shadow-sm">
                       <Building2 className="h-4 w-4 text-blue-600" />
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="font-normal text-gray-700 truncate">{dealership.name}</span>
-                      <span className="text-xs text-gray-400">Dealership ID: {dealership.id.slice(-8)}</span>
+                      <span className="text-xs text-gray-400">ID: {dealership.id.slice(-8)}</span>
                     </div>
                   </div>
                   

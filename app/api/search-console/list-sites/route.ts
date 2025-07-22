@@ -23,11 +23,25 @@ export async function GET() {
         email: true
       }
     })
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
 
-    // Check if user has a Search Console connection
-    const connection = await prisma.search_console_connections.findFirst({
-      where: { userId: session.user.id }
+    // Check if user has a Search Console connection (user-level or dealership-level)
+    let connection = await prisma.search_console_connections.findFirst({
+      where: {
+        OR: [
+          { userId: session.user.id },
+          { dealershipId: user.dealershipId }
+        ]
+      }
     })
+    // Agency admin: if still no connection, check any dealerships under this agency
+    if (!connection && user.agencyId && (user.role === 'AGENCY_ADMIN' || user.role === 'SUPER_ADMIN')) {
+      const agencyDealerships = await prisma.dealerships.findMany({ where: { agencyId: user.agencyId }, select: { id: true } })
+      const dealershipIds = agencyDealerships.map(d => d.id)
+      connection = await prisma.search_console_connections.findFirst({ where: { dealershipId: { in: dealershipIds } } })
+    }
 
     if (!connection || !connection.accessToken) {
       return NextResponse.json({
@@ -95,7 +109,7 @@ export async function GET() {
         userRole: user?.role || 'USER'
       })
 
-    } catch (googleError) {
+    } catch (googleError: any) {
       logger.error('Google API error', googleError)
       
       // If token is expired, indicate that re-authentication is needed
@@ -117,7 +131,7 @@ export async function GET() {
       })
     }
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Search Console list sites error', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to list sites' },

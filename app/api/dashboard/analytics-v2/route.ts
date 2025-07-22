@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { GA4Service } from '@/lib/google/ga4Service'
+import { SearchConsoleService } from '@/lib/google/search-console-service'
 
 // Force dynamic rendering since we use auth
 export const dynamic = 'force-dynamic'
@@ -11,7 +13,7 @@ const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 function getCacheKey(userId: string, dateRange: string, dealershipId?: string): string {
-  return `dashboard_analytics_${userId}_${dateRange}_${dealershipId || 'global'}_${new Date().toDateString()}`
+  return `dashboard_analytics_${userId}_${dateRange}_${dealershipId || 'none'}_${new Date().toDateString()}`
 }
 
 export async function POST(request: NextRequest) {
@@ -24,6 +26,36 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { startDate, endDate, dateRange = '30days', dealershipId } = body
+
+    // IMPORTANT: If no dealership is selected, return empty data
+    if (!dealershipId) {
+      return NextResponse.json({ 
+        data: {
+          ga4Data: undefined,
+          searchConsoleData: undefined,
+          errors: {
+            ga4Error: 'Please select a dealership to view analytics',
+            searchConsoleError: 'Please select a dealership to view search data'
+          },
+          metadata: {
+            hasGA4Connection: false,
+            hasSearchConsoleConnection: false,
+            dealershipId: '',
+            propertyId: undefined,
+            siteUrl: undefined
+          },
+          combinedMetrics: {
+            totalSessions: 0,
+            totalUsers: 0,
+            totalClicks: 0,
+            totalImpressions: 0,
+            avgCTR: 0,
+            avgPosition: 0
+          }
+        },
+        cached: false 
+      })
+    }
 
     // Check cache first
     const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId)
@@ -38,60 +70,128 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: cachedData.data, cached: true })
     }
 
-    // Check for GA4 and Search Console connections
-    const [ga4Token, searchConsoleToken, userDealership] = await Promise.all([
+    // Get dealership-specific configuration
+    const dealership = await prisma.dealerships.findUnique({
+      where: { id: dealershipId },
+      select: { 
+        id: true,
+        name: true,
+        ga4PropertyId: true,
+        ga4PropertyName: true,
+        siteUrl: true,
+        primaryDomain: true
+      }
+    })
+
+    if (!dealership) {
+      return NextResponse.json({ 
+        error: 'Dealership not found' 
+      }, { status: 404 })
+    }
+
+    // Check for user's GA4 and Search Console tokens
+    const [ga4Token, searchConsoleToken] = await Promise.all([
       prisma.user_ga4_tokens.findUnique({
         where: { userId: session.user.id }
       }),
       prisma.user_search_console_tokens.findUnique({
         where: { userId: session.user.id }
-      }),
-      dealershipId ? prisma.dealerships.findUnique({
-        where: { id: dealershipId },
-        select: { 
-          ga4PropertyId: true,
-          ga4PropertyName: true,
-          siteUrl: true
-        }
-      }) : null
+      })
     ])
 
-    // For now, return mock data with proper connection status
+    let ga4Data = undefined;
+    let ga4Error = null;
+    let searchConsoleData = undefined;
+    let searchConsoleError = null;
+
+    // Fetch GA4 data if connected AND dealership has GA4 property configured
+    if (ga4Token && dealership.ga4PropertyId) {
+      try {
+        const ga4Service = new GA4Service()
+        ga4Data = await ga4Service.getAnalyticsData({
+          propertyId: dealership.ga4PropertyId,
+          startDate,
+          endDate,
+          userId: session.user.id
+        })
+      } catch (error) {
+        logger.error('GA4 fetch error', error)
+        ga4Error = 'Failed to fetch GA4 data'
+      }
+    } else if (!ga4Token) {
+      ga4Error = 'Connect your Google Analytics account in Settings > Integrations'
+    } else if (!dealership.ga4PropertyId) {
+      ga4Error = `No GA4 property configured for ${dealership.name}`
+    }
+
+    // Fetch Search Console data if connected AND dealership has site URL configured
+    const dealershipUrl = dealership.siteUrl || dealership.primaryDomain
+    if (searchConsoleToken && dealershipUrl) {
+      try {
+        // Check if user has access to this specific site
+        const hasAccess = searchConsoleToken.verifiedSites?.includes(dealershipUrl) || 
+                         searchConsoleToken.primarySite === dealershipUrl
+
+        if (hasAccess) {
+          const scService = new SearchConsoleService()
+          searchConsoleData = await scService.getSearchData({
+            siteUrl: dealershipUrl,
+            startDate,
+            endDate,
+            userId: session.user.id
+          })
+        } else {
+          searchConsoleError = `No access to ${dealershipUrl}. Please verify site access.`
+        }
+      } catch (error) {
+        logger.error('Search Console fetch error', error)
+        searchConsoleError = 'Failed to fetch Search Console data'
+      }
+    } else if (!searchConsoleToken) {
+      searchConsoleError = 'Connect your Search Console account in Settings > Integrations'
+    } else if (!dealershipUrl) {
+      searchConsoleError = `No website URL configured for ${dealership.name}`
+    }
+
+    // Build response with dealership-specific data
     const dashboardData = {
-      ga4Data: ga4Token ? {
-        sessions: 0,
-        users: 0,
-        pageviews: 0
-      } : undefined,
-      searchConsoleData: searchConsoleToken ? {
-        clicks: 0,
-        impressions: 0,
-        ctr: 0,
-        position: 0
-      } : undefined,
+      ga4Data: ga4Data || undefined,
+      searchConsoleData: searchConsoleData || undefined,
       errors: {
-        ga4Error: !ga4Token ? 'No GA4 connection found. Please connect your Google Analytics account.' : null,
-        searchConsoleError: !searchConsoleToken ? 'No Search Console connection found. Please connect your Search Console account.' : null
+        ga4Error,
+        searchConsoleError
       },
       metadata: {
-        hasGA4Connection: !!ga4Token,
-        hasSearchConsoleConnection: !!searchConsoleToken,
-        dealershipId: dealershipId || '',
-        propertyId: userDealership?.ga4PropertyId,
-        siteUrl: userDealership?.siteUrl || searchConsoleToken?.primarySite
+        hasGA4Connection: !!ga4Token && !!dealership.ga4PropertyId,
+        hasSearchConsoleConnection: !!searchConsoleToken && !!dealershipUrl,
+        dealershipId: dealership.id,
+        dealershipName: dealership.name,
+        propertyId: dealership.ga4PropertyId,
+        siteUrl: dealershipUrl
       },
       combinedMetrics: {
-        totalSessions: 0,
-        totalUsers: 0,
-        totalClicks: 0,
-        totalImpressions: 0,
-        avgCTR: 0,
-        avgPosition: 0
+        totalSessions: ga4Data?.sessions || 0,
+        totalUsers: ga4Data?.users || 0,
+        totalClicks: searchConsoleData?.clicks || 0,
+        totalImpressions: searchConsoleData?.impressions || 0,
+        avgCTR: searchConsoleData?.ctr || 0,
+        avgPosition: searchConsoleData?.position || 0
       }
     }
 
     // Cache the result
     cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
+
+    // Clean up old cache entries
+    if (cache.size > 100) {
+      const sortedEntries = Array.from(cache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp)
+      
+      // Remove oldest 50 entries
+      for (let i = 0; i < 50; i++) {
+        cache.delete(sortedEntries[i][0])
+      }
+    }
 
     return NextResponse.json({ data: dashboardData, cached: false })
 

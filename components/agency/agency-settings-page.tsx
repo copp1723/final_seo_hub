@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Building, Globe, Phone, Mail, MapPin, Users, Settings, CreditCard, Shield, Store, PlusCircle, BarChart3, UserPlus, Crown } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { IntegrationPropertyManager } from './integration-property-manager'
+import { DealershipManagement } from './dealership-management'
 
 interface AgencyProfile {
   id: string
@@ -647,150 +648,7 @@ export function AgencySettingsPage() {
         </TabsContent>
 
         <TabsContent value="dealerships" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Dealership Management</CardTitle>
-                  <CardDescription>
-                    Manage dealerships under your agency
-                  </CardDescription>
-                </div>
-                <Dialog open={showCreateDealership} onOpenChange={setShowCreateDealership}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Dealership
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                      <DialogTitle>Create New Dealership</DialogTitle>
-                      <DialogDescription>
-                        Add a new dealership to your agency
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={createDealership} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="dealership-name">Dealership Name *</Label>
-                        <Input
-                          id="dealership-name"
-                          value={dealershipForm.name}
-                          onChange={(e) => setDealershipForm({ ...dealershipForm, name: e.target.value })}
-                          placeholder="e.g., Downtown Toyota"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dealership-website">Website</Label>
-                        <Input
-                          id="dealership-website"
-                          value={dealershipForm.website}
-                          onChange={(e) => setDealershipForm({ ...dealershipForm, website: e.target.value })}
-                          placeholder="https://example.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dealership-address">Address</Label>
-                        <Input
-                          id="dealership-address"
-                          value={dealershipForm.address}
-                          onChange={(e) => setDealershipForm({ ...dealershipForm, address: e.target.value })}
-                          placeholder="123 Main St, City, State"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dealership-phone">Phone</Label>
-                        <Input
-                          id="dealership-phone"
-                          value={dealershipForm.phone}
-                          onChange={(e) => setDealershipForm({ ...dealershipForm, phone: e.target.value })}
-                          placeholder="(555) 123-4567"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="package-type">Default Package</Label>
-                        <Select 
-                          value={dealershipForm.activePackageType} 
-                          onValueChange={(value) => setDealershipForm({ ...dealershipForm, activePackageType: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="SILVER">Silver Package</SelectItem>
-                            <SelectItem value="GOLD">Gold Package</SelectItem>
-                            <SelectItem value="PLATINUM">Platinum Package</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setShowCreateDealership(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit" disabled={creatingDealership}>
-                          {creatingDealership ? 'Creating...' : 'Create Dealership'}
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {dealerships.length === 0 ? (
-                <div className="text-center py-12">
-                  <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No Dealerships Yet</h3>
-                  <p className="text-gray-600 mb-4">
-                    Get started by adding your first dealership
-                  </p>
-                  <Button onClick={() => setShowCreateDealership(true)}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add First Dealership
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {dealerships.map((dealership) => (
-                    <Card key={dealership.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h4 className="font-medium">{dealership.name}</h4>
-                            {dealership.website && (
-                              <p className="text-sm text-muted-foreground">{dealership.website}</p>
-                            )}
-                            {dealership.address && (
-                              <p className="text-sm text-muted-foreground mt-1">{dealership.address}</p>
-                            )}
-                            {dealership.phone && (
-                              <p className="text-sm text-muted-foreground">{dealership.phone}</p>
-                            )}
-                          </div>
-                          {dealership.activePackageType && (
-                            <Badge variant="outline">
-                              {dealership.activePackageType}
-                            </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-              {dealerships.length > 0 && (
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">Quick Tips</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Each dealership can have its own GA4 and Search Console connections</li>
-                    <li>• Assign users to dealerships to give them access</li>
-                    <li>• Dealerships inherit your agency's branding by default</li>
-                  </ul>
-                </div>
-              )}
-          </CardContent>
-          </Card>
+          <DealershipManagement />
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-6">

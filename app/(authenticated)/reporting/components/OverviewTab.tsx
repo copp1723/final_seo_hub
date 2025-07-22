@@ -63,8 +63,17 @@ export default function OverviewTab({
             <Activity className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{gaMetrics.sessions.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-1">All traffic sources</p>
+            {gaError ? (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-gray-500">No GA4 connected</span>
+              </div>
+            ) : (
+              <>
+                <p className="text-2xl font-bold">{gaMetrics.sessions.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">All traffic sources</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -74,8 +83,17 @@ export default function OverviewTab({
             <Users className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{gaMetrics.users.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-1">Visitors to your site</p>
+            {gaError ? (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-gray-500">No GA4 connected</span>
+              </div>
+            ) : (
+              <>
+                <p className="text-2xl font-bold">{gaMetrics.users.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">Visitors to your site</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -86,12 +104,21 @@ export default function OverviewTab({
             <MousePointerClick className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {scData?.overview?.clicks?.toLocaleString() || '0'}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              {organicPercentage > 0 ? `${organicPercentage}% of total sessions` : 'From organic search'}
-            </p>
+            {scError ? (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-gray-500">No Search Console connected</span>
+              </div>
+            ) : (
+              <>
+                <p className="text-2xl font-bold">
+                  {scData?.overview?.clicks?.toLocaleString() || '0'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {organicPercentage > 0 ? `${organicPercentage}% of total sessions` : 'From organic search'}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -101,10 +128,19 @@ export default function OverviewTab({
             <Percent className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {scData?.overview?.ctr ? `${(scData.overview.ctr * 100).toFixed(1)}%` : '0%'}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Click-through rate</p>
+            {scError ? (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-gray-500">No Search Console connected</span>
+              </div>
+            ) : (
+              <>
+                <p className="text-2xl font-bold">
+                  {scData?.overview?.ctr ? `${(scData.overview.ctr * 100).toFixed(1)}%` : '0%'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Click-through rate</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -173,21 +173,15 @@ interface SearchConsoleSite {
 }
 
 export default function ReportingPage() {
-  const [activeTab, setActiveTab] = useState('overview')
-  const [loading, setLoading] = useState(false)
-  const [gaError, setGaError] = useState<string | null>(null)
-  const [scError, setScError] = useState<string | null>(null)
+  // Data states
   const [gaData, setGaData] = useState<AnalyticsData | null>(null)
   const [scData, setScData] = useState<SearchConsoleData | null>(null)
-  const [selectedRange, setSelectedRange] = useState('30days')
+  const [gaError, setGaError] = useState<string | null>(null)
+  const [scError, setScError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  
-  // Property selector states
-  const [ga4Properties, setGa4Properties] = useState<GA4Property[]>([])
-  const [searchConsoleSites, setSearchConsoleSites] = useState<SearchConsoleSite[]>([])
-  const [currentGA4Property, setCurrentGA4Property] = useState<string>('')
-  const [currentSearchConsoleSite, setCurrentSearchConsoleSite] = useState<string>('')
-  const [loadingProperties, setLoadingProperties] = useState(false)
+  const [selectedRange, setSelectedRange] = useState('30days')
+  const [activeTab, setActiveTab] = useState('overview')
   const [savingGA4, setSavingGA4] = useState(false)
   const [savingSC, setSavingSC] = useState(false)
   const [isSearchConsoleAutoSynced, setIsSearchConsoleAutoSynced] = useState(true) // Default to auto-synced
@@ -243,7 +237,7 @@ export default function ReportingPage() {
 
   // Real data fetching functions with caching
   const fetchGA4Data = async (dateRange: { startDate: string; endDate: string }): Promise<AnalyticsData> => {
-    const cacheKey = getCacheKey('ga4', selectedRange, currentGA4Property)
+    const cacheKey = getCacheKey('ga4', selectedRange, '')
 
     // Check cache first
     const cachedData = getCachedData(cacheKey)
@@ -296,7 +290,7 @@ export default function ReportingPage() {
   }
 
   const fetchSearchConsoleData = async (dateRange: { startDate: string; endDate: string }): Promise<SearchConsoleData> => {
-    const cacheKey = getCacheKey('sc', selectedRange, currentSearchConsoleSite)
+    const cacheKey = getCacheKey('sc', selectedRange, '')
 
     // Check cache first
     const cachedData = getCachedData(cacheKey)
@@ -376,8 +370,8 @@ export default function ReportingPage() {
         sessions: source.sessions || 0
       })),
       metadata: {
-        propertyId: currentGA4Property,
-        propertyName: ga4Properties.find(p => p.propertyId === currentGA4Property)?.propertyName || '',
+        propertyId: '',
+        propertyName: 'Current Dealership',
         dateRange
       }
     }
@@ -421,7 +415,7 @@ export default function ReportingPage() {
         }
       },
       metadata: {
-        siteUrl: currentSearchConsoleSite,
+        siteUrl: '',
         dateRange
       }
     }
@@ -487,31 +481,6 @@ export default function ReportingPage() {
     ]
   }
 
-  // Fetch available properties and sites
-  const fetchProperties = async () => {
-    setLoadingProperties(true)
-    try {
-      // Fetch real GA4 properties and Search Console sites in parallel
-      const [ga4Props, scSites] = await Promise.all([
-        fetchGA4Properties(),
-        fetchSearchConsoleSites()
-      ])
-
-      setGa4Properties(ga4Props)
-      
-      // Auto-select properties based on current dealership
-      await loadDealershipProperties()
-
-    } catch (error) {
-      console.error('Failed to fetch properties:', error)
-      // Set empty arrays on error
-      setGa4Properties([])
-      setSearchConsoleSites([])
-    } finally {
-      setLoadingProperties(false)
-    }
-  }
-
   // Load dealership-specific properties
   const loadDealershipProperties = async () => {
     try {
@@ -527,7 +496,7 @@ export default function ReportingPage() {
           if (ga4Response.ok) {
             const ga4Data = await ga4Response.json()
             if (ga4Data.properties?.length > 0) {
-              setCurrentGA4Property(ga4Data.properties[0].propertyId)
+              // setCurrentGA4Property(ga4Data.properties[0].propertyId) // This line was removed
             }
           }
           
@@ -536,7 +505,7 @@ export default function ReportingPage() {
           if (scResponse.ok) {
             const scData = await scResponse.json()
             if (scData.sites?.length > 0) {
-              setCurrentSearchConsoleSite(scData.sites[0].siteUrl)
+              // setCurrentSearchConsoleSite(scData.sites[0].siteUrl) // This line was removed
             }
           }
         }
@@ -548,8 +517,9 @@ export default function ReportingPage() {
 
   // Auto-load properties when dealership changes
   useEffect(() => {
-    loadDealershipProperties()
-  }, []) // Run once on mount
+    // Fetch data when component mounts
+    fetchAllData()
+  }, [])
 
   // Fetch both GA4 and Search Console data
   const fetchAllData = async (showLoadingToast = false) => {
@@ -616,16 +586,13 @@ export default function ReportingPage() {
     // Clear cache when date range changes to ensure fresh data
     clearRelatedCache('all')
     fetchAllData()
-    fetchProperties()
   }, [selectedRange])
 
   // Auto-sync Search Console when properties are loaded
   useEffect(() => {
     // Auto-load properties when dealership changes
-    if (currentGA4Property || currentSearchConsoleSite) {
-      fetchAllData()
-    }
-  }, [currentGA4Property, currentSearchConsoleSite])
+    fetchAllData()
+  }, [])
 
   // Calculate GA4 summary metrics
   const calculateGaMetrics = () => {
@@ -730,77 +697,7 @@ export default function ReportingPage() {
           </div>
         </div>
 
-        {/* Property Selectors */}
-        <div className="mb-6 p-4 bg-white rounded-lg border shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Data Sources</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open('/settings', '_blank')}
-              className="flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* GA4 Property Selector */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-blue-500" />
-                <label className="text-sm font-medium text-gray-700">GA4 Property</label>
-              </div>
-              <div className="w-full p-3 bg-gray-50 rounded-md border">
-                {loadingProperties ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-gray-600">Loading...</span>
-                  </div>
-                ) : currentGA4Property ? (
-                  <div className="flex flex-col">
-                    <span className="font-medium text-gray-900">{ga4Properties.find(p => p.propertyId === currentGA4Property)?.propertyName || 'Unknown Property'}</span>
-                    <span className="text-xs text-gray-500">
-                      Connected Account • ID: {currentGA4Property}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-gray-500">No GA4 property connected for this dealership</span>
-                )}
-              </div>
-            </div>
-
-            {/* Search Console Site Selector */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-green-500" />
-                <label className="text-sm font-medium text-gray-700">Search Console Site</label>
-              </div>
-              <div className="w-full p-3 bg-gray-50 rounded-md border">
-                {loadingProperties ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-gray-600">Loading...</span>
-                  </div>
-                ) : currentSearchConsoleSite ? (
-                  <div className="flex flex-col">
-                    <span className="font-medium text-gray-900">{searchConsoleSites.find(s => s.siteUrl === currentSearchConsoleSite)?.siteName || 'Unknown Site'}</span>
-                    <span className="text-xs text-gray-500">
-                      {currentSearchConsoleSite} • Full Access
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-gray-500">No Search Console site connected for this dealership</span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">
-                Connected properties are managed per dealership. Switch dealerships to view different data.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs Navigation */}
+        {/* Analytics Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="inline-flex w-auto">
             <TabsTrigger value="overview">GA4 Overview</TabsTrigger>

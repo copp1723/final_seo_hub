@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, CheckCircle, ExternalLink, Loader2 } from 'lucide-react'
@@ -16,24 +16,87 @@ export default function IntegrationsPage() {
     searchConsole: false
   })
 
-  const handleGA4Connect = () => {
-    setGA4Loading(true)
-    toast({
-      title: 'Coming Soon',
-      description: 'GA4 integration will be available soon. For now, analytics will show placeholder data.',
-      variant: 'default'
-    })
-    setTimeout(() => setGA4Loading(false), 1000)
+  // Check connection status on load
+  useEffect(() => {
+    checkConnectionStatus()
+  }, [])
+
+  const checkConnectionStatus = async () => {
+    try {
+      const response = await fetch('/api/integrations/status')
+      if (response.ok) {
+        const data = await response.json()
+        setConnections(data)
+      }
+    } catch (error) {
+      console.error('Failed to check connection status', error)
+    }
   }
 
-  const handleSearchConsoleConnect = () => {
+  const handleGA4Connect = async () => {
+    setGA4Loading(true)
+    try {
+      const response = await fetch('/api/integrations/mock-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'ga4' })
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'GA4 Connected',
+          description: 'Successfully connected Google Analytics 4',
+          variant: 'default'
+        })
+        setConnections(prev => ({ ...prev, ga4: true }))
+        
+        // Reload page to refresh dashboard
+        setTimeout(() => window.location.reload(), 1000)
+      } else {
+        throw new Error('Connection failed')
+      }
+    } catch (error) {
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to connect GA4. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setGA4Loading(false)
+    }
+  }
+
+  const handleSearchConsoleConnect = async () => {
     setSCLoading(true)
-    toast({
-      title: 'Coming Soon',
-      description: 'Search Console integration will be available soon. For now, search data will show placeholder values.',
-      variant: 'default'
-    })
-    setTimeout(() => setSCLoading(false), 1000)
+    try {
+      const response = await fetch('/api/integrations/mock-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'searchconsole' })
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Search Console Connected',
+          description: 'Successfully connected Google Search Console',
+          variant: 'default'
+        })
+        setConnections(prev => ({ ...prev, searchConsole: true }))
+        
+        // Reload page to refresh dashboard
+        setTimeout(() => window.location.reload(), 1000)
+      } else {
+        throw new Error('Connection failed')
+      }
+    } catch (error) {
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to connect Search Console. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setSCLoading(false)
+    }
   }
 
   return (
@@ -101,7 +164,7 @@ export default function IntegrationsPage() {
               {connections.ga4 && (
                 <div className="bg-green-50 p-3 rounded-lg">
                   <p className="text-sm text-green-800">
-                    Connected to property: <strong>example-property</strong>
+                    ✅ Connected successfully
                   </p>
                 </div>
               )}
@@ -166,7 +229,7 @@ export default function IntegrationsPage() {
               {connections.searchConsole && (
                 <div className="bg-green-50 p-3 rounded-lg">
                   <p className="text-sm text-green-800">
-                    Connected to site: <strong>example.com</strong>
+                    ✅ Connected successfully
                   </p>
                 </div>
               )}
@@ -181,11 +244,11 @@ export default function IntegrationsPage() {
           <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-blue-900">
-              Analytics Integration Status
+              Mock Data Mode
             </p>
             <p className="text-sm text-blue-700 mt-1">
-              Google Analytics and Search Console integrations are being configured. 
-              Dashboard will show sample data until connections are established.
+              The system is currently using mock data for demonstration. 
+              Real OAuth integration will be implemented in the next phase.
             </p>
           </div>
         </CardContent>

@@ -106,6 +106,14 @@ export async function POST(request: NextRequest) {
 
     console.log('DEBUG: POST - User switched to dealership:', dealership.name);
 
+    // Update the user's dealershipId in the database
+    await prisma.users.update({
+      where: { id: session.user.id },
+      data: { dealershipId: dealership.id }
+    })
+
+    console.log('DEBUG: POST - Updated user dealershipId to:', dealership.id);
+
     return NextResponse.json({
       success: true,
       dealership: {

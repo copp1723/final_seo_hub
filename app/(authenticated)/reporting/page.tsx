@@ -150,7 +150,6 @@ interface SearchConsoleData {
   }
   metadata: {
     siteUrl: string
-    siteName?: string
     dateRange: {
       startDate: string
       endDate: string
@@ -281,15 +280,18 @@ export default function ReportingPage() {
       return transformedData
     } catch (error) {
       console.error('GA4 fetch failed:', error)
-      if (process.env.NODE_ENV !== 'production') {
-        // Import mock data generator only in development
-        const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
-        const mockData = generateMockGA4Data(dateRange)
-        const transformedData = transformGA4Response(mockData, dateRange)
-        setCachedData(cacheKey, transformedData)
-        return transformedData
-      }
-      throw error      
+      
+      // Import mock data generator
+      const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
+      const mockData = generateMockGA4Data(dateRange)
+      
+      // Transform mock data to match our AnalyticsData interface
+      const transformedData = transformGA4Response(mockData, dateRange)
+      
+      // Cache the mock data
+      setCachedData(cacheKey, transformedData)
+      
+      return transformedData
     }
   }
 
@@ -332,13 +334,15 @@ export default function ReportingPage() {
       return transformedData
     } catch (error) {
       console.error('Search Console fetch failed:', error)
-      if (process.env.NODE_ENV !== 'production') {
-        const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
-        const mockData = generateMockSearchConsoleData(dateRange)
-        setCachedData(cacheKey, mockData)
-        return mockData
-      }
-      throw error
+      
+      // Import mock data generator
+      const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
+      const mockData = generateMockSearchConsoleData(dateRange)
+      
+      // Cache the mock data
+      setCachedData(cacheKey, mockData)
+      
+      return mockData
     }
   }
 
@@ -384,7 +388,7 @@ export default function ReportingPage() {
     const overview = apiData.overview || {}
     const topQueries = apiData.topQueries || []
     const topPages = apiData.topPages || []
-    const performanceByDate = apiData.performanceByDate || []
+    const performanceByDate = apiData.performanceByDate || { dates: [], metrics: { clicks: [], impressions: [], ctr: [], position: [] } }
 
     return {
       overview: {
@@ -407,16 +411,17 @@ export default function ReportingPage() {
         ctr: page.ctr || 0,
         position: page.position || 0
       })),
-      performanceByDate: performanceByDate.map((item: any) => ({
-        date: item.keys?.[0] || item.date || '',
-        clicks: item.clicks || 0,
-        impressions: item.impressions || 0,
-        ctr: item.ctr || 0,
-        position: item.position || 0
-      })),
+      performanceByDate: {
+        dates: performanceByDate.dates || [],
+        metrics: {
+          clicks: performanceByDate.metrics?.clicks || [],
+          impressions: performanceByDate.metrics?.impressions || [],
+          ctr: performanceByDate.metrics?.ctr || [],
+          position: performanceByDate.metrics?.position || []
+        }
+      },
       metadata: {
         siteUrl: currentSearchConsoleSite,
-        siteName: searchConsoleSites.find(s => s.siteUrl === currentSearchConsoleSite)?.siteName || '',
         dateRange
       }
     }
@@ -493,10 +498,9 @@ export default function ReportingPage() {
       ])
 
       setGa4Properties(ga4Props)
-      setCurrentGA4Property(ga4Props[0]?.propertyId || '')
-
-      setSearchConsoleSites(scSites)
-      setCurrentSearchConsoleSite(scSites[0]?.siteUrl || '')
+      
+      // Auto-select properties based on current dealership
+      await loadDealershipProperties()
 
     } catch (error) {
       console.error('Failed to fetch properties:', error)
@@ -508,177 +512,46 @@ export default function ReportingPage() {
     }
   }
 
-  // Update GA4 property (mock version)
-  const updateGA4Property = async (propertyId: string) => {
-    setSavingGA4(true)
+  // Load dealership-specific properties
+  const loadDealershipProperties = async () => {
     try {
-      // Clear GA4 cache when property changes
-      clearRelatedCache('ga4')
-
-      const property = ga4Properties.find(p => p.propertyId === propertyId)
-
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800))
-
-      setCurrentGA4Property(propertyId)
-      toast('GA4 property updated successfully', 'success')
-
-      // Auto-sync Search Console site based on GA4 property name
-      if (property?.propertyName && isSearchConsoleAutoSynced) {
-        // Simple matching logic - find site with similar domain/name
-        let matchingSite = null
-        const propertyName = property.propertyName.toLowerCase()
-
-        // Try to match by domain or dealership name
-        matchingSite = searchConsoleSites.find(site => {
-          const siteDomain = new URL(site.siteUrl).hostname.toLowerCase()
-          const siteName = site.siteName.toLowerCase()
-
-          // Check if property name contains keywords that match the site
-          return propertyName.includes(siteDomain.replace('www.', '').split('.')[0]) ||
-                 siteName.includes(propertyName.split(' ')[0]) ||
-                 propertyName.includes(siteName.split(' ')[0])
-        })
-
-        if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
-          // Auto-update Search Console site
-          await updateSearchConsoleSite(matchingSite.siteUrl)
-          toast('Search Console site automatically matched to GA4 property', 'info')
+      // Get current user's dealership
+      const response = await fetch('/api/dealerships/switch')
+      if (response.ok) {
+        const data = await response.json()
+        const currentDealership = data.currentDealership
+        
+        if (currentDealership) {
+          // Load GA4 property for this dealership
+          const ga4Response = await fetch(`/api/ga4/properties?dealershipId=${currentDealership.id}`)
+          if (ga4Response.ok) {
+            const ga4Data = await ga4Response.json()
+            if (ga4Data.properties?.length > 0) {
+              setCurrentGA4Property(ga4Data.properties[0].propertyId)
+            }
+          }
+          
+          // Load Search Console site for this dealership
+          const scResponse = await fetch(`/api/search-console/list-sites?dealershipId=${currentDealership.id}`)
+          if (scResponse.ok) {
+            const scData = await scResponse.json()
+            if (scData.sites?.length > 0) {
+              setCurrentSearchConsoleSite(scData.sites[0].siteUrl)
+            }
+          }
         }
       }
-
-      // Refresh analytics data
-      fetchAllData()
     } catch (error) {
-      toast('Failed to update GA4 property', 'error')
-    } finally {
-      setSavingGA4(false)
+      console.error('Failed to load dealership properties:', error)
     }
   }
 
-  // Update Search Console site (mock version)
-  const updateSearchConsoleSite = async (siteUrl: string) => {
-    setSavingSC(true)
-    try {
-      // Clear Search Console cache when site changes
-      clearRelatedCache('sc')
+  // Auto-load properties when dealership changes
+  useEffect(() => {
+    loadDealershipProperties()
+  }, []) // Run once on mount
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 600))
-
-      setCurrentSearchConsoleSite(siteUrl)
-      toast('Search Console site updated successfully', 'success')
-
-      // Refresh analytics data
-      fetchAllData()
-    } catch (error) {
-      toast('Failed to update Search Console site', 'error')
-    } finally {
-      setSavingSC(false)
-    }
-  }
-
-  // Generate realistic mock analytics data
-  const generateMockAnalyticsData = (dateRange: {startDate: string, endDate: string}) => {
-    // Generate realistic dates array
-    const dates = []
-    const startDate = new Date(dateRange.startDate)
-    const endDate = new Date(dateRange.endDate)
-    
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      dates.push(format(d, 'yyyy-MM-dd'))
-    }
-    
-    // Generate realistic daily metrics for a car dealership
-    const dailySessions = dates.map(() => Math.floor(Math.random() * 50) + 25) // 25-75 sessions/day
-    const dailyUsers = dailySessions.map(sessions => Math.floor(sessions * 0.85)) // ~85% unique users
-    const dailyPageviews = dailySessions.map(sessions => Math.floor(sessions * 2.3)) // ~2.3 pages per session
-    const dailyOrganicSessions = dailySessions.map(sessions => Math.floor(sessions * 0.45)) // ~45% organic
-    
-    // GA4 Mock Data
-    const mockGA4Data: AnalyticsData = {
-      overview: {
-        dates,
-        metrics: {
-          sessions: dailySessions,
-          totalUsers: dailyUsers,
-          eventCount: dailyPageviews,
-          organicSessions: dailyOrganicSessions // Add organic sessions
-        }
-      },
-      topPages: [
-        { page: '/new-vehicles', sessions: 245, eventCount: 578 },
-        { page: '/used-vehicles', sessions: 189, eventCount: 423 },
-        { page: '/service', sessions: 156, eventCount: 312 },
-        { page: '/parts', sessions: 134, eventCount: 267 },
-        { page: '/financing', sessions: 98, eventCount: 201 },
-        { page: '/contact', sessions: 87, eventCount: 174 },
-        { page: '/about', sessions: 65, eventCount: 130 }
-      ],
-      trafficSources: [
-        { source: 'google', sessions: 423 },
-        { source: 'direct', sessions: 298 },
-        { source: 'facebook', sessions: 145 },
-        { source: 'bing', sessions: 89 },
-        { source: 'referral', sessions: 67 }
-      ],
-      metadata: {
-        propertyId: currentGA4Property,
-        propertyName: 'Demo Property', // Default name if not found
-        dateRange
-      }
-    }
-    
-    // Search Console Mock Data - Realistic for car dealership
-    const mockSCData: SearchConsoleData = {
-      overview: {
-        clicks: 1247, // Total clicks
-        impressions: 34582, // Total impressions
-        ctr: 0.036, // 3.6% CTR (realistic for automotive)
-        position: 12.8 // Average position
-      },
-      topQueries: [
-        { query: 'used cars near me', clicks: 145, impressions: 4523, ctr: 0.032, position: 8.2 },
-        { query: 'ford dealership sarcoxie', clicks: 89, impressions: 1876, ctr: 0.047, position: 3.1 },
-        { query: 'jay hatfield ford', clicks: 78, impressions: 1234, ctr: 0.063, position: 2.4 },
-        { query: 'ford service sarcoxie missouri', clicks: 67, impressions: 2109, ctr: 0.032, position: 7.8 },
-        { query: 'new ford trucks', clicks: 54, impressions: 3456, ctr: 0.016, position: 18.2 },
-        { query: 'ford f-150 for sale', clicks: 49, impressions: 2876, ctr: 0.017, position: 15.6 },
-        { query: 'car financing missouri', clicks: 43, impressions: 1987, ctr: 0.022, position: 11.3 },
-        { query: 'ford parts sarcoxie', clicks: 38, impressions: 1456, ctr: 0.026, position: 9.8 },
-        { query: 'oil change sarcoxie', clicks: 35, impressions: 1678, ctr: 0.021, position: 13.5 },
-        { query: 'ford escape for sale', clicks: 32, impressions: 2345, ctr: 0.014, position: 19.7 }
-      ],
-      topPages: [
-        { page: '/new-vehicles/ford-f-150', clicks: 234, impressions: 5678, ctr: 0.041, position: 8.9 },
-        { page: '/used-vehicles', clicks: 189, impressions: 4532, ctr: 0.042, position: 9.1 },
-        { page: '/service', clicks: 156, impressions: 3987, ctr: 0.039, position: 10.3 },
-        { page: '/new-vehicles', clicks: 145, impressions: 4123, ctr: 0.035, position: 11.2 },
-        { page: '/financing', clicks: 98, impressions: 2876, ctr: 0.034, position: 12.8 },
-        { page: '/contact', clicks: 87, impressions: 2145, ctr: 0.041, position: 8.7 }
-      ],
-      performanceByDate: {
-        dates,
-        metrics: {
-          clicks: dates.map(() => Math.floor(Math.random() * 30) + 20), // 20-50 clicks/day
-          impressions: dates.map(() => Math.floor(Math.random() * 800) + 600), // 600-1400 impressions/day
-          ctr: dates.map(() => (Math.random() * 0.03) + 0.025), // 2.5-5.5% CTR
-          position: dates.map(() => (Math.random() * 8) + 8) // Position 8-16
-        }
-      },
-      top10AveragePosition: {
-        position: 8.7 // Good average position for top 10 queries
-      },
-      metadata: {
-        siteUrl: currentSearchConsoleSite,
-        dateRange
-      }
-    }
-    
-    return { mockGA4Data, mockSCData }
-  }
-
-  // Fetch both GA4 and Search Console data (mock version)
+  // Fetch both GA4 and Search Console data
   const fetchAllData = async (showLoadingToast = false) => {
     try {
       setLoading(true)
@@ -710,15 +583,6 @@ export default function ReportingPage() {
       } else {
         console.error('GA4 fetch failed:', ga4Result.reason)
         setGaError(ga4Result.reason?.message || 'Failed to load GA4 data')
-        if (process.env.NODE_ENV !== 'production') {
-          try {
-            const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
-            const mockData = generateMockGA4Data(dateRange)
-            setGaData(transformGA4Response(mockData, dateRange))
-          } catch (mockError) {
-            console.error('Failed to load mock GA4 data:', mockError)
-          }
-        }
       }
 
       // Handle Search Console results
@@ -728,15 +592,6 @@ export default function ReportingPage() {
       } else {
         console.error('Search Console fetch failed:', scResult.reason)
         setScError(scResult.reason?.message || 'Failed to load Search Console data')
-        if (process.env.NODE_ENV !== 'production') {
-          try {
-            const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
-            const mockData = generateMockSearchConsoleData(dateRange)
-            setScData(mockData)
-          } catch (mockError) {
-            console.error('Failed to load mock Search Console data:', mockError)
-          }
-        }
       }
 
       if (showLoadingToast) {
@@ -750,22 +605,6 @@ export default function ReportingPage() {
       toast('Error loading analytics', 'error', {
         description: errorMessage
       })
-
-      // Fallback to mock data on complete failure
-      if (process.env.NODE_ENV !== 'production') {
-        const dateRange = DATE_RANGES.find(r => r.value === selectedRange)?.getDates()
-        if (dateRange) {
-          try {
-            const { generateMockGA4Data, generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock')
-            const ga4MockData = generateMockGA4Data(dateRange)
-            const scMockData = generateMockSearchConsoleData(dateRange)
-            setGaData(transformGA4Response(ga4MockData, dateRange))
-            setScData(scMockData)
-          } catch (mockError) {
-            console.error('Failed to load mock data:', mockError)
-          }
-        }
-      }
     } finally {
       setLoading(false)
       setIsRefreshing(false)
@@ -782,30 +621,11 @@ export default function ReportingPage() {
 
   // Auto-sync Search Console when properties are loaded
   useEffect(() => {
-    if (isSearchConsoleAutoSynced && ga4Properties.length > 0 && searchConsoleSites.length > 0 && currentGA4Property) {
-      const property = ga4Properties.find(p => p.propertyId === currentGA4Property)
-      if (property?.propertyName) {
-        // Smart matching logic based on domain/name similarity
-        let matchingSite = null
-        const propertyName = property.propertyName.toLowerCase()
-
-        matchingSite = searchConsoleSites.find(site => {
-          const siteDomain = new URL(site.siteUrl).hostname.toLowerCase()
-          const siteName = site.siteName.toLowerCase()
-
-          // Check if property name contains keywords that match the site
-          return propertyName.includes(siteDomain.replace('www.', '').split('.')[0]) ||
-                 siteName.includes(propertyName.split(' ')[0]) ||
-                 propertyName.includes(siteName.split(' ')[0])
-        })
-
-        if (matchingSite && matchingSite.siteUrl !== currentSearchConsoleSite) {
-          // Auto-update Search Console site
-          updateSearchConsoleSite(matchingSite.siteUrl)
-        }
-      }
+    // Auto-load properties when dealership changes
+    if (currentGA4Property || currentSearchConsoleSite) {
+      fetchAllData()
     }
-  }, [currentGA4Property, isSearchConsoleAutoSynced, ga4Properties, searchConsoleSites])
+  }, [currentGA4Property, currentSearchConsoleSite])
 
   // Calculate GA4 summary metrics
   const calculateGaMetrics = () => {
@@ -931,87 +751,51 @@ export default function ReportingPage() {
                 <BarChart3 className="h-4 w-4 text-blue-500" />
                 <label className="text-sm font-medium text-gray-700">GA4 Property</label>
               </div>
-              <Select 
-                value={currentGA4Property} 
-                onValueChange={updateGA4Property}
-                disabled={loadingProperties || savingGA4}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={loadingProperties ? "Loading..." : "Select GA4 property"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {ga4Properties.map((property) => (
-                    <SelectItem key={property.propertyId} value={property.propertyId}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{property.propertyName}</span>
-                        <span className="text-xs text-gray-500">
-                          {property.accountName} • ID: {property.propertyId}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {savingGA4 && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Updating property..
-                </div>
-              )}
+              <div className="w-full p-3 bg-gray-50 rounded-md border">
+                {loadingProperties ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-gray-600">Loading...</span>
+                  </div>
+                ) : currentGA4Property ? (
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">{ga4Properties.find(p => p.propertyId === currentGA4Property)?.propertyName || 'Unknown Property'}</span>
+                    <span className="text-xs text-gray-500">
+                      Connected Account • ID: {currentGA4Property}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-gray-500">No GA4 property connected for this dealership</span>
+                )}
+              </div>
             </div>
 
             {/* Search Console Site Selector */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Search className="h-4 w-4 text-green-500" />
-                  <label className="text-sm font-medium text-gray-700">Search Console Site</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label htmlFor="auto-sync-switch" className="text-xs text-gray-500">Auto-sync</label>
-                  <Switch
-                    id="auto-sync-switch"
-                    checked={isSearchConsoleAutoSynced}
-                    onCheckedChange={(checked) => setIsSearchConsoleAutoSynced(checked)}
-                  />
-                </div>
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-green-500" />
+                <label className="text-sm font-medium text-gray-700">Search Console Site</label>
               </div>
-              <Select 
-                value={currentSearchConsoleSite} 
-                onValueChange={updateSearchConsoleSite}
-                disabled={loadingProperties || savingSC || isSearchConsoleAutoSynced}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={
-                    loadingProperties ? "Loading..." : 
-                    isSearchConsoleAutoSynced ? "Auto-synced with GA4 property" :
-                    "Select Search Console site"
-                  } />
-                </SelectTrigger>
-                <SelectContent>
-                  {searchConsoleSites.filter(site => site.canUseApi).map((site) => (
-                    <SelectItem key={site.siteUrl} value={site.siteUrl}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{site.siteName}</span>
-                        <span className="text-xs text-gray-500">
-                          {site.siteUrl} • {site.hasFullAccess ? 'Full Access' : 'Restricted'}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {savingSC && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Updating site..
-                </div>
-              )}
-              {isSearchConsoleAutoSynced && (
-                <p className="text-xs text-gray-500">
-                  Search Console site is automatically matched to the selected GA4 property
-                </p>
-              )}
+              <div className="w-full p-3 bg-gray-50 rounded-md border">
+                {loadingProperties ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-gray-600">Loading...</span>
+                  </div>
+                ) : currentSearchConsoleSite ? (
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">{searchConsoleSites.find(s => s.siteUrl === currentSearchConsoleSite)?.siteName || 'Unknown Site'}</span>
+                    <span className="text-xs text-gray-500">
+                      {currentSearchConsoleSite} • Full Access
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-gray-500">No Search Console site connected for this dealership</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Connected properties are managed per dealership. Switch dealerships to view different data.
+              </p>
             </div>
           </div>
         </div>

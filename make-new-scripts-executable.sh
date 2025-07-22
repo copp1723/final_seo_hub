@@ -1,0 +1,1 @@
+chmod +x test-all-routes.sh fix-super-admin-onboarding.js

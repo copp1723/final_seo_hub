@@ -342,7 +342,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <span className={`flex items-center gap-1 ${analyticsData.metadata.hasGA4Connection ? 'text-green-600' : 'text-orange-600'}`}>
                     <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-orange-500'}`} />
-                    GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : 'Not Connected'}
+                    GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : analyticsData.metadata.dealershipId ? 'Not Configured' : 'Select Dealership'}
                   </span>
                   <span className={`flex items-center gap-1 ${analyticsData.metadata.hasSearchConsoleConnection ? 'text-green-600' : 'text-orange-600'}`}>
                     <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-orange-500'}`} />
@@ -398,16 +398,16 @@ export default function DashboardPage() {
           {/* Analytics Performance */}
           <StatCard
             title="GA4 Sessions"
-            value={analyticsData?.ga4Data?.sessions?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
-            subtitle={analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "Connect GA4"}
+            value={!analyticsData?.metadata.dealershipId ? '-' : analyticsData?.ga4Data?.sessions?.toLocaleString() || '-'}
+            subtitle={!analyticsData?.metadata.dealershipId ? "Select dealership" : analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "No GA4 configured"}
             icon={BarChart}
             color="green"
             loading={analyticsLoading}
           />
           <StatCard
             title="SC Clicks"
-            value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() || (analyticsData?.errors.searchConsoleError ? 'Error' : 'N/A')}
-            subtitle={analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "Connect Search Console"}
+            value={!analyticsData?.metadata.dealershipId ? '-' : analyticsData?.searchConsoleData?.clicks?.toLocaleString() || '-'}
+            subtitle={!analyticsData?.metadata.dealershipId ? "Select dealership" : analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "No Search Console configured"}
             icon={TrendingUp}
             color="orange"
             loading={analyticsLoading}

@@ -1,0 +1,1 @@
+chmod +x check-deployment.sh diagnose-deployment.js

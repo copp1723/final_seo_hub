@@ -104,7 +104,6 @@ export async function PUT(
         completedAt: status === TaskStatus.COMPLETED ? new Date() : null,
         description: notes,
         updatedAt: new Date(),
-        // @ts-ignore - requestId will be present after schema migration
         requestId: requestId, // Update requestId from payload
         targetUrl: targetUrl, // Update targetUrl from payload
       },
@@ -132,7 +131,7 @@ export async function PUT(
       });
 
       if (associatedRequest) {
-        let updateData: { [key: string]: any } = {};
+        const updateData: { [key: string]: any } = {};
         switch (updatedTask.type) {
           case TaskType.PAGE:
             updateData.pagesCompleted = { increment: 1 };

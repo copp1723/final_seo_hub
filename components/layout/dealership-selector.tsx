@@ -5,6 +5,7 @@ import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
 import { ChevronDown, Building2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 
 // NOTE: This local DealershipData interface is specific to the selector UI and should NOT be replaced with the shared lib/dealership.ts type, as its shape is different and required for UI logic.
 interface Dealership {
@@ -70,7 +71,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
           console.log(`Found ${data.availableDealerships.length} dealerships`)
         }
       } catch (err) {
-        console.error('Error fetching dealerships:', err)
+        logger.error('Error fetching dealerships:', err)
         setError(err instanceof Error ? err.message : 'Failed to load dealerships')
 
         // Set empty dealership data to prevent null reference errors
@@ -143,7 +144,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
       router.refresh()
 
     } catch (err) {
-      console.error('Error switching dealership:', err)
+      logger.error('Error switching dealership:', err)
       setError(err instanceof Error ? err.message : 'Failed to switch dealership')
     } finally {
       setIsSwitching(false)

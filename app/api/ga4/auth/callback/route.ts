@@ -42,8 +42,8 @@ export async function GET(request: NextRequest) {
     // Set credentials and use default property (skip API calls that require additional permissions)
     oauth2Client.setCredentials(tokens)
     
-    let propertyId = '320759942' // Default to Jay Hatfield Chevrolet
-    let propertyName = 'Jay Hatfield Chevrolet'
+    const propertyId = '320759942' // Default to Jay Hatfield Chevrolet
+    const propertyName = 'Jay Hatfield Chevrolet'
     
     // For now, use default property but log the attempt to fetch from Google
     logger.info('Using default GA4 property (Google API fetch temporarily disabled for deployment)', {

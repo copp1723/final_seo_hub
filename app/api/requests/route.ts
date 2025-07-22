@@ -235,7 +235,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     // Create associated tasks
     try {
-      let tasksToCreate = [];
+      const tasksToCreate = [];
       // Example: Create a single task based on the request type
       tasksToCreate.push({
         userId: newRequest.userId,

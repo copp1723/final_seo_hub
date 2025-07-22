@@ -6,6 +6,7 @@ import { Home, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/branding/config'
+import { logger } from '@/lib/logger'
 
 export default function GlobalError({
   error,
@@ -32,7 +33,7 @@ export default function GlobalError({
   
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Global error:', error)
+    logger.error('Global error:', error)
   }, [error])
 
   return (

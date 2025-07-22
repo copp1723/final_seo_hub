@@ -12,7 +12,7 @@ export enum PrismaErrorCode {
   MissingRequiredValue = 'P2012',
   InvalidFieldValue = 'P2023',
   TooManyConnections = 'P2024',
-  TimedOut = 'P2024',
+  TimedOut = 'P2026',
   DatabaseAlreadyExists = 'P2009',
   AuthenticationFailed = 'P1000',
   CouldNotConnectToDatabase = 'P1001',

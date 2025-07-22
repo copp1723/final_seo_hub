@@ -296,7 +296,7 @@ export const POST = compose(
   requireApiKey('SEOWORKS_WEBHOOK_SECRET')
 )(async (request: NextRequest) => {
 
-  let payload: SeoworksWebhookPayload | undefined; // Initialize payload to undefined
+  let payload: SeoworksWebhookPayload | undefined; // Initialize payload to undefined and declare it outside the try block
 
   try {
     // Validate request body
@@ -308,7 +308,7 @@ export const POST = compose(
       return badRequestResponse('Invalid webhook payload', validation.error)
     }
 
-    payload = validation.data as SeoworksWebhookPayload;
+    payload = validation.data as SeoworksWebhookPayload; // Assign payload here
     const { eventType, data } = payload
 
     // Find the request by external ID - try multiple lookup strategies

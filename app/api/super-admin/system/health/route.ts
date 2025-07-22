@@ -95,8 +95,8 @@ export async function GET(request: NextRequest) {
     // Check storage health (file system or cloud storage)
     try {
       // Check if we can write to temp directory
-      const fs = require('fs').promises
-      const path = require('path')
+      const fs = await import('fs/promises')
+      const path = await import('path')
       const tempFile = path.join(process.cwd(), 'temp_health_check.txt')
       
       await fs.writeFile(tempFile, 'health check')

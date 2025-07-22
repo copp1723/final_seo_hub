@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SimpleAuth } from '@/lib/auth-simple';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     });
   } catch (error) {
-    console.error('Session check error:', error);
+    logger.error('Session check error:', error);
     return NextResponse.json({
       authenticated: false,
       user: null

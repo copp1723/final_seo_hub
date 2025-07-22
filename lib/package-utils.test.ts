@@ -1,5 +1,5 @@
-// @ts-nocheck - To allow for Jest global types if not fully configured
-import { users, PackageType, PrismaClient } from '@prisma/client'
+// import { users, PackageType, PrismaClient } from '@prisma/client'
+import { PackageType, Prisma } from '@prisma/client'
 import {
   ensureUserBillingPeriodAndRollover,
   incrementUsage,
@@ -9,23 +9,26 @@ import {
 import { SEO_KNOWLEDGE_BASE } from './seo-knowledge' // Assuming this is needed for getPackageLimits
 
 // Mock Prisma client
+import { prisma as actualPrisma } from './prisma'
+
+const mockPrisma = {
+  users: {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
+  monthlyUsage: {
+    create: jest.fn(),
+  },
+};
+
 jest.mock('./prisma', () => ({
   __esModule: true,
-  default: {
-    user: {
-      findUnique: jest.fn(),
-      update: jest.fn()
-    },
-    monthlyUsage: {
-      create: jest.fn()
-    }
-  }
-}))
+  prisma: mockPrisma,
+}));
 
 // Helper to get current month's start and end dates
-const { startOfMonth, endOfMonth, subMonths, addMonths, getMonth, getYear, startOfDay } = jest.requireActual('date-fns')
+import { startOfMonth, endOfMonth, subMonths, addMonths, getMonth, getYear, startOfDay } from 'date-fns'
 
-const mockPrisma = require('./prisma').default
 
 describe('Package Utils', () => {
   beforeEach(() => {
@@ -44,11 +47,47 @@ describe('Package Utils', () => {
 
   describe('ensureUserBillingPeriodAndRollover', () => {
     it('should do nothing if user has no active package', async () => {
-      const mockUser: Partial<typeof users> = {
+      const mockUser: any = {
         id: userId,
+        email: 'test@example.com',
+        role: 'USER',
+        agencyId: null,
+        dealershipId: null,
+        onboardingCompleted: true,
         activePackageType: null,
         currentBillingPeriodStart: null,
-        currentBillingPeriodEnd: null
+        currentBillingPeriodEnd: null,
+        pagesUsedThisPeriod: 0,
+        blogsUsedThisPeriod: 0,
+        gbpPostsUsedThisPeriod: 0,
+        improvementsUsedThisPeriod: 0,
+        createdAt: today,
+        updatedAt: today,
+        name: null,
+        emailVerified: null,
+        image: null,
+        theme: null,
+        invitationToken: null,
+        invitationTokenExpires: null,
+        apiKey: null,
+        apiKeyCreatedAt: null,
+        accounts: [],
+        audit_logs: [],
+        conversations: [],
+        escalations: [],
+        ga4_connections: [],
+        messages: [],
+        monthly_usage: [],
+        orders: [],
+        report_schedules: [],
+        requests: [],
+        search_console_connections: [],
+        sessions: [],
+        tasks: [],
+        user_ga4_tokens: null,
+        user_invites: [],
+        user_preferences: null,
+        user_search_console_tokens: null,
       }
       mockPrisma.users.findUnique.mockResolvedValue(mockUser)
 
@@ -57,15 +96,16 @@ describe('Package Utils', () => {
       expect(mockPrisma.users.findUnique).toHaveBeenCalledWith({ where: { id: userId } })
       expect(mockPrisma.monthlyUsage.create).not.toHaveBeenCalled()
       expect(mockPrisma.users.update).not.toHaveBeenCalled()
-      expect(user).toEqual(mockUser)
+      expect(user!).toEqual(mockUser)
     })
 
     it('should do nothing if billing period is current and no rollover needed', async () => {
-      const mockUser: users = {
+      const mockUser: any = {
         id: userId,
         email: 'test@example.com',
         role: 'USER',
         agencyId: null,
+        dealershipId: null,
         onboardingCompleted: true,
         activePackageType: PackageType.SILVER,
         currentBillingPeriodStart: currentMonthStart,
@@ -76,7 +116,31 @@ describe('Package Utils', () => {
         improvementsUsedThisPeriod: 1,
         createdAt: today,
         updatedAt: today,
-        monthlyUsageHistory: []
+        name: null,
+        emailVerified: null,
+        image: null,
+        theme: null,
+        invitationToken: null,
+        invitationTokenExpires: null,
+        apiKey: null,
+        apiKeyCreatedAt: null,
+        accounts: [],
+        audit_logs: [],
+        conversations: [],
+        escalations: [],
+        ga4_connections: [],
+        messages: [],
+        monthly_usage: [],
+        orders: [],
+        report_schedules: [],
+        requests: [],
+        search_console_connections: [],
+        sessions: [],
+        tasks: [],
+        user_ga4_tokens: null,
+        user_invites: [],
+        user_preferences: null,
+        user_search_console_tokens: null,
       }
       mockPrisma.users.findUnique.mockResolvedValue(mockUser)
 
@@ -84,15 +148,16 @@ describe('Package Utils', () => {
 
       expect(mockPrisma.monthlyUsage.create).not.toHaveBeenCalled()
       expect(mockPrisma.users.update).not.toHaveBeenCalled()
-      expect(user).toEqual(mockUser)
+      expect(user!).toEqual(mockUser)
     })
 
     it('should rollover usage if new month has started', async () => {
-      const userBeforeRollover: users = {
+      const userBeforeRollover: any = {
         id: userId,
         email: 'test@example.com',
         role: 'USER',
         agencyId: null,
+        dealershipId: null,
         onboardingCompleted: true,
         activePackageType: PackageType.SILVER,
         currentBillingPeriodStart: prevMonthStart, // Previous month
@@ -103,11 +168,35 @@ describe('Package Utils', () => {
         improvementsUsedThisPeriod: 0,
         createdAt: prevMonthStart,
         updatedAt: prevMonthStart,
-        monthlyUsageHistory: []
+        name: null,
+        emailVerified: null,
+        image: null,
+        theme: null,
+        invitationToken: null,
+        invitationTokenExpires: null,
+        apiKey: null,
+        apiKeyCreatedAt: null,
+        accounts: [],
+        audit_logs: [],
+        conversations: [],
+        escalations: [],
+        ga4_connections: [],
+        messages: [],
+        monthly_usage: [],
+        orders: [],
+        report_schedules: [],
+        requests: [],
+        search_console_connections: [],
+        sessions: [],
+        tasks: [],
+        user_ga4_tokens: null,
+        user_invites: [],
+        user_preferences: null,
+        user_search_console_tokens: null,
       }
       mockPrisma.users.findUnique.mockResolvedValue(userBeforeRollover)
 
-      const userAfterRollover: users = { ...users.eforeRollover,
+      const userAfterRollover: any = { ...userBeforeRollover,
         currentBillingPeriodStart: currentMonthStart,
         currentBillingPeriodEnd: currentMonthEnd,
         pagesUsedThisPeriod: 0,
@@ -142,16 +231,17 @@ describe('Package Utils', () => {
           currentBillingPeriodEnd: currentMonthEnd
         }
       })
-      expect(user).toEqual(userAfterRollover)
+      expect(user!).toEqual(userAfterRollover)
     })
   })
 
   describe('incrementUsage', () => {
-    const baseUser: users = {
+    const baseUser: any = {
       id: userId,
       email: 'test@example.com',
       role: 'USER',
       agencyId: null,
+      dealershipId: null,
       onboardingCompleted: true,
       activePackageType: PackageType.SILVER,
       currentBillingPeriodStart: currentMonthStart,
@@ -162,7 +252,31 @@ describe('Package Utils', () => {
       improvementsUsedThisPeriod: 0,
       createdAt: today,
       updatedAt: today,
-      monthlyUsageHistory: []
+      name: null,
+      emailVerified: null,
+      image: null,
+      theme: null,
+      invitationToken: null,
+      invitationTokenExpires: null,
+      apiKey: null,
+      apiKeyCreatedAt: null,
+      accounts: [],
+      audit_logs: [],
+      conversations: [],
+      escalations: [],
+      ga4_connections: [],
+      messages: [],
+      monthly_usage: [],
+      orders: [],
+      report_schedules: [],
+      requests: [],
+      search_console_connections: [],
+      sessions: [],
+      tasks: [],
+      user_ga4_tokens: null,
+      user_invites: [],
+      user_preferences: null,
+      user_search_console_tokens: null,
     }
 
     beforeEach(() => {
@@ -180,7 +294,7 @@ describe('Package Utils', () => {
         where: { id: userId },
         data: { pagesUsedThisPeriod: 1 }
       })
-      expect(user.pagesUsedThisPeriod).toBe(1)
+      expect(user!.pagesUsedThisPeriod).toBe(1)
     })
 
     it('should throw error if no active package', async () => {
@@ -202,7 +316,7 @@ describe('Package Utils', () => {
       const updatedUser = { ...baseUser, blogsUsedThisPeriod: 1 }
       mockPrisma.users.update.mockResolvedValue(updatedUser)
       const user = await incrementUsage(userId, 'blogs')
-      expect(user.blogsUsedThisPeriod).toBe(1)
+      expect(user!.blogsUsedThisPeriod).toBe(1)
     })
 
     it('should throw error if usage limit exceeded for blogs', async () => {
@@ -213,11 +327,12 @@ describe('Package Utils', () => {
   })
 
   describe('getUserPackageProgress', () => {
-    const baseUser: users = {
+    const baseUser: any = {
       id: userId,
       email: 'test@example.com',
       role: 'USER',
       agencyId: null,
+      dealershipId: null,
       onboardingCompleted: true,
       activePackageType: PackageType.SILVER,
       currentBillingPeriodStart: currentMonthStart,
@@ -228,7 +343,31 @@ describe('Package Utils', () => {
       improvementsUsedThisPeriod: 1,
       createdAt: today,
       updatedAt: today,
-      monthlyUsageHistory: []
+      name: null,
+      emailVerified: null,
+      image: null,
+      theme: null,
+      invitationToken: null,
+      invitationTokenExpires: null,
+      apiKey: null,
+      apiKeyCreatedAt: null,
+      accounts: [],
+      audit_logs: [],
+      conversations: [],
+      escalations: [],
+      ga4_connections: [],
+      messages: [],
+      monthly_usage: [],
+      orders: [],
+      report_schedules: [],
+      requests: [],
+      search_console_connections: [],
+      sessions: [],
+      tasks: [],
+      user_ga4_tokens: null,
+      user_invites: [],
+      user_preferences: null,
+      user_search_console_tokens: null,
     }
 
     it('should return correct progress for active package', async () => {

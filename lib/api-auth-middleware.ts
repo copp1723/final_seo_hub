@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth, SimpleSession } from './auth-simple'
 import { logger, getSafeErrorMessage } from './logger'
 import { apiMonitor } from './api-monitor'
+import { Buffer } from 'buffer'
 
 export interface AuthenticatedRequest extends NextRequest {
   user: SimpleSession['user']
@@ -168,7 +169,7 @@ export function requireApiKey(expectedKeyEnvVar: string) {
           })
           response = unauthorizedResponse('Invalid API key')
           statusCode = 401
-        } else if (!timingSafeCompare(apiKey, expectedKey)) {
+        } else if (!await timingSafeCompare(apiKey, expectedKey)) {
           logger.warn('API key authentication failed - invalid key', {
             envVar: expectedKeyEnvVar,
             path: req.nextUrl.pathname,
@@ -205,14 +206,14 @@ export function requireApiKey(expectedKeyEnvVar: string) {
 }
 
 // Timing-safe comparison for API keys
-function timingSafeCompare(a: string, b: string): boolean {
+async function timingSafeCompare(a: string, b: string): Promise<boolean> {
   if (a.length !== b.length) {
     return false
   }
   
   // Use crypto.timingSafeEqual if available, otherwise fallback
   try {
-    const crypto = require('crypto')
+    const crypto = await import('crypto')
     return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
   } catch {
     // Fallback for edge runtime

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { logger } from '@/lib/logger';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Session verification error:', error);
+    logger.error('Session verification error:', error);
     return NextResponse.json({ user: null });
   }
 }

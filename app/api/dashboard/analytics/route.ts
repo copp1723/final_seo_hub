@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
 
     // Initialize response data structure
     const dashboardData = {
-      ga4Data: null,
-      searchConsoleData: null,
+      ga4Data: null as { sessions: number; users: number; pageviews: number } | null,
+      searchConsoleData: null as { clicks: number; impressions: number; ctr: number; position: number } | null,
       combinedMetrics: {
         totalSessions: 0,
         totalUsers: 0,
@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
         avgPosition: 0
       },
       errors: {
-        ga4Error: null,
-        searchConsoleError: null
+        ga4Error: null as string | null,
+        searchConsoleError: null as string | null
       },
       metadata: {
         dateRange: { startDate, endDate },
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         const ga4Service = new GA4Service(session.user.id)
         await ga4Service.initialize()
 
-        const ga4Reports = await ga4Service.batchRunReports(ga4Connection.propertyId, [
+        const ga4Reports = await ga4Service.batchRunReports(ga4Connection.propertyId || '', [
           {
             dateRanges: [{ startDate, endDate }],
             metrics: [
@@ -140,26 +140,6 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.error('GA4 dashboard fetch error', error, { userId: session.user.id })
         dashboardData.errors.ga4Error = error instanceof Error ? error.message : 'Failed to fetch GA4 data'
-        
-        // Import mock data generator
-        try {
-          const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock')
-          const mockData = generateMockGA4Data()
-          
-          // Use mock data as fallback
-          dashboardData.ga4Data = {
-            sessions: mockData.overview.metrics.sessions.reduce((a, b) => a + b, 0),
-            users: mockData.overview.metrics.totalUsers.reduce((a, b) => a + b, 0),
-            pageviews: mockData.overview.metrics.eventCount.reduce((a, b) => a + b, 0)
-          }
-          
-          dashboardData.combinedMetrics.totalSessions = dashboardData.ga4Data.sessions
-          dashboardData.combinedMetrics.totalUsers = dashboardData.ga4Data.users
-          
-          logger.info('Using mock GA4 data due to API error', { userId: session.user.id })
-        } catch (mockError) {
-          logger.error('Failed to generate mock GA4 data', mockError, { userId: session.user.id })
-        }
       }
     }
 
@@ -169,7 +149,7 @@ export async function POST(request: NextRequest) {
         const searchConsoleService = await getSearchConsoleService(session.user.id)
         
         const searchConsoleData = await searchConsoleService.getSearchAnalytics(
-          searchConsoleConnection.siteUrl,
+          searchConsoleConnection.siteUrl || '',
           {
             startDate,
             endDate,

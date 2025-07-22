@@ -72,27 +72,36 @@ export async function GET(request: NextRequest) {
     const encryptedAccessToken = encrypt(tokens.access_token)
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
 
-    // Use upsert to update existing connection or create new one
-    const connection = await prisma.ga4_connections.upsert({
-      where: { userId: state },
-      update: {
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
-        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        propertyId,
-        propertyName,
-        updatedAt: new Date()
-      },
-      create: {
-        userId: state,
-        dealershipId,
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
-        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        propertyId,
-        propertyName
-      }
+    // Manually upsert to avoid composite key name issues
+    let connection = await prisma.ga4_connections.findFirst({
+      where: { userId: state, dealershipId }
     })
+
+    if (connection) {
+      connection = await prisma.ga4_connections.update({
+        where: { id: connection.id },
+        data: {
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
+          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          propertyId,
+          propertyName,
+          updatedAt: new Date()
+        }
+      })
+    } else {
+      connection = await prisma.ga4_connections.create({
+        data: {
+          userId: state,
+          dealershipId,
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
+          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          propertyId,
+          propertyName
+        }
+      })
+    }
 
     logger.info('GA4 connection updated successfully', {
       userId: state,

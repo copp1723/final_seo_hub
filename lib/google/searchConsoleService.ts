@@ -221,8 +221,9 @@ class SearchConsoleServiceMock {
 
 export async function getSearchConsoleService(userId: string) {
   try {
-    const token = await prisma.search_console_connections.findUnique({
-      where: { userId: userId }
+    const token = await prisma.search_console_connections.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' }
     })
 
     if (!token) {

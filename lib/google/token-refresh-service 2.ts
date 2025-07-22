@@ -56,11 +56,9 @@ export class TokenRefreshService {
 
   // Refresh GA4 token for specific user
   async refreshGA4Token(userId: string): Promise<boolean> {
-    let connection: any = null
     try {
-      connection = await prisma.ga4_connections.findFirst({
-        where: { userId },
-        orderBy: { updatedAt: 'desc' }
+      const connection = await prisma.ga4_connections.findUnique({
+        where: { userId }
       })
 
       if (!connection || !connection.refreshToken) {
@@ -85,7 +83,7 @@ export class TokenRefreshService {
 
       // Update the connection with new tokens
       await prisma.ga4_connections.update({
-        where: { id: connection.id },
+        where: { userId },
         data: {
           accessToken: encrypt(credentials.access_token),
           refreshToken: credentials.refresh_token ? encrypt(credentials.refresh_token) : connection.refreshToken,
@@ -104,15 +102,13 @@ export class TokenRefreshService {
       logger.error('Failed to refresh GA4 token', error, { userId })
       
       // If refresh fails, mark connection as expired
-      if (connection?.id) {
-        await prisma.ga4_connections.update({
-          where: { id: connection.id },
-          data: {
-            expiresAt: new Date(), // Mark as expired
-            updatedAt: new Date()
-          }
-        }).catch(() => {}) // Ignore update errors
-      }
+      await prisma.ga4_connections.update({
+        where: { userId },
+        data: {
+          expiresAt: new Date(), // Mark as expired
+          updatedAt: new Date()
+        }
+      }).catch(() => {}) // Ignore update errors
 
       return false
     }
@@ -158,11 +154,9 @@ export class TokenRefreshService {
 
   // Refresh Search Console token for specific user
   async refreshSearchConsoleToken(userId: string): Promise<boolean> {
-    let connection: any = null
     try {
-      connection = await prisma.search_console_connections.findFirst({
-        where: { userId },
-        orderBy: { updatedAt: 'desc' }
+      const connection = await prisma.search_console_connections.findUnique({
+        where: { userId }
       })
 
       if (!connection || !connection.refreshToken) {
@@ -183,7 +177,7 @@ export class TokenRefreshService {
       }
 
       await prisma.search_console_connections.update({
-        where: { id: connection.id },
+        where: { userId },
         data: {
           accessToken: encrypt(credentials.access_token),
           refreshToken: credentials.refresh_token ? encrypt(credentials.refresh_token) : connection.refreshToken,
@@ -201,15 +195,13 @@ export class TokenRefreshService {
     } catch (error) {
       logger.error('Failed to refresh Search Console token', error, { userId })
       
-      if (connection?.id) {
-        await prisma.search_console_connections.update({
-          where: { id: connection.id },
-          data: {
-            expiresAt: new Date(),
-            updatedAt: new Date()
-          }
-        }).catch(() => {})
-      }
+      await prisma.search_console_connections.update({
+        where: { userId },
+        data: {
+          expiresAt: new Date(),
+          updatedAt: new Date()
+        }
+      }).catch(() => {})
 
       return false
     }
@@ -221,8 +213,8 @@ export class TokenRefreshService {
     searchConsole: { connected: boolean; expired: boolean; expiresAt?: Date }
   }> {
     const [ga4Connection, scConnection] = await Promise.all([
-      prisma.ga4_connections.findFirst({ where: { userId }, orderBy: { updatedAt: 'desc' } }),
-      prisma.search_console_connections.findFirst({ where: { userId }, orderBy: { updatedAt: 'desc' } })
+      prisma.ga4_connections.findFirst({ where: { userId } }),
+      prisma.search_console_connections.findFirst({ where: { userId } })
     ])
 
     const now = new Date()

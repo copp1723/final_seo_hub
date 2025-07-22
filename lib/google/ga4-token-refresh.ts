@@ -5,8 +5,9 @@ import { logger } from '@/lib/logger'
 
 export async function refreshGA4TokenIfNeeded(userId: string): Promise<boolean> {
   try {
-    const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: userId }
+    const connection = await prisma.ga4_connections.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' }
     })
 
     if (!connection) {
@@ -24,7 +25,7 @@ export async function refreshGA4TokenIfNeeded(userId: string): Promise<boolean> 
 
     // Token needs refresh
     if (!connection.refreshToken) {
-      logger.error('No refresh token available for GA4 connection', undefined, { dealershipId })
+      logger.error('No refresh token available for GA4 connection', undefined, { userId })
       return false
     }
 

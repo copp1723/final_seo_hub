@@ -92,27 +92,36 @@ export async function GET(req: NextRequest) {
       siteName 
     })
 
-    // Use upsert to update existing connection or create new one
-    const connection = await prisma.search_console_connections.upsert({
-      where: { userId: session.user.id },
-      update: {
-        accessToken: encrypt(tokens.access_token),
-        refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        siteUrl,
-        siteName,
-        updatedAt: new Date()
-      },
-      create: {
-        userId: session.user.id,
-        dealershipId,
-        accessToken: encrypt(tokens.access_token),
-        refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        siteUrl,
-        siteName
-      }
+    // Manually upsert connection
+    let connection = await prisma.search_console_connections.findFirst({
+      where: { userId: session.user.id, dealershipId }
     })
+
+    if (connection) {
+      connection = await prisma.search_console_connections.update({
+        where: { id: connection.id },
+        data: {
+          accessToken: encrypt(tokens.access_token),
+          refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          siteUrl,
+          siteName,
+          updatedAt: new Date()
+        }
+      })
+    } else {
+      connection = await prisma.search_console_connections.create({
+        data: {
+          userId: session.user.id,
+          dealershipId,
+          accessToken: encrypt(tokens.access_token),
+          refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          siteUrl,
+          siteName
+        }
+      })
+    }
 
     logger.info('Search Console connection updated successfully', {
       userId: session.user.id,

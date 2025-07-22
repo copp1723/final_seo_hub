@@ -25,8 +25,11 @@ export class GA4Service {
     // Refresh token if needed
     await refreshGA4TokenIfNeeded(this.userId);
 
-    const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: this.userId }
+    // Use findFirst in case multiple dealership-level connections exist. We grab the most
+    // recently updated record for this user so that the newest credentials are used.
+    const connection = await prisma.ga4_connections.findFirst({
+      where: { userId: this.userId },
+      orderBy: { updatedAt: 'desc' }
     });
 
     if (!connection) {

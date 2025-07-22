@@ -93,8 +93,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (!ga4Connection) {
-      ga4Connection = await prisma.ga4_connections.findUnique({
-        where: { userId: session.user.id }
+      ga4Connection = await prisma.ga4_connections.findFirst({
+        where: { userId: session.user.id },
+        orderBy: { updatedAt: 'desc' }
       })
     }
 

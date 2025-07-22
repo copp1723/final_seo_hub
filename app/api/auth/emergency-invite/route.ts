@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
         email: invitation.email,
         token: invitation.token,
         expiresAt: invitation.expiresAt,
-        loginUrl: `${process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'}/auth/simple-signin`
+        // Direct link to accept-invitation endpoint with token
+        loginUrl: `${process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'}/api/auth/accept-invitation?token=${invitation.token}`
       }
     });
   } catch (error) {

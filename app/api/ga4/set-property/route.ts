@@ -58,8 +58,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the GA4 connection with the specified property
-    const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: targetDealershipId }
+    const connection = await prisma.ga4_connections.findFirst({
+      where: {
+        userId: session.user.id,
+        dealershipId: targetDealershipId
+      }
     })
 
     if (!connection) {

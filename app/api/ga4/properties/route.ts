@@ -16,13 +16,31 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dealershipId = searchParams.get('dealershipId')
 
-    // Fetch all GA4 connections for this user (and dealership if specified)
-    const connections = await prisma.ga4_connections.findMany({
-      where: {
-        userId: session.user.id,
-        ...(dealershipId ? { dealershipId } : {})
-      }
+    // Fetch user record for role and agency context
+    const userRecord = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { agencyId: true, role: true }
     })
+    
+    // Determine GA4 connections based on user, dealership, or agency
+    let connections;
+    if (userRecord?.agencyId && (userRecord.role === 'AGENCY_ADMIN' || userRecord.role === 'SUPER_ADMIN')) {
+      // Agency admin: fetch all connections for dealerships under this agency
+      const agencyDealerships = await prisma.dealerships.findMany({
+        where: { agencyId: userRecord.agencyId },
+        select: { id: true }
+      })
+      const dealershipIds = agencyDealerships.map(d => d.id)
+      connections = await prisma.ga4_connections.findMany({
+        where: { dealershipId: { in: dealershipIds } }
+      })
+    } else if (dealershipId) {
+      // Specific dealership context
+      connections = await prisma.ga4_connections.findMany({ where: { dealershipId } })
+    } else {
+      // Default to user-level connections
+      connections = await prisma.ga4_connections.findMany({ where: { userId: session.user.id } })
+    }
 
     if (connections.length === 0) {
       return NextResponse.json({

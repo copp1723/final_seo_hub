@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withValidation, errorResponse, successResponse } from '@/lib/api/route-utils'
+import { withAuth, errorResponse, successResponse } from '@/lib/api/route-utils'
 import { SearchConsoleAPI } from '@/lib/api/search-console-api'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
@@ -13,11 +13,23 @@ const setPrimarySiteSchema = z.object({
   dealershipId: z.string().optional()
 })
 
-export const POST = withValidation(setPrimarySiteSchema)(
-  async (data, session, request) => {
-    const { siteUrl, dealershipId } = data
-    
+export async function POST(request: NextRequest) {
+  return withAuth(request, async (session) => {
     try {
+      // Parse and validate request body
+      const body = await request.json()
+      const validationResult = setPrimarySiteSchema.safeParse(body)
+      
+      if (!validationResult.success) {
+        return errorResponse(
+          'Invalid request data',
+          400,
+          validationResult.error.errors
+        )
+      }
+      
+      const { siteUrl, dealershipId } = validationResult.data
+      
       // Get user's info
       const user = await prisma.users.findUnique({
         where: { id: session.user.id },
@@ -74,5 +86,5 @@ export const POST = withValidation(setPrimarySiteSchema)(
       logger.error('Failed to update primary site', error, { userId: session.user.id })
       return errorResponse('Failed to update primary site', 500, error)
     }
-  }
-)
+  })
+}

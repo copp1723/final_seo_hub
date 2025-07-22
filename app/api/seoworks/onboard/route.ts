@@ -5,6 +5,9 @@ import { errorResponse, successResponse } from '@/lib/api-auth'
 import { PackageType, UserRole } from '@prisma/client'
 import crypto from 'crypto'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // SEOWorks API key for authentication
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
 

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // THIS IS A TEMPORARY, INSECURE ENDPOINT FOR ONE-TIME USE
 export async function POST(request: NextRequest) {
   try {

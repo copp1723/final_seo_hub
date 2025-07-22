@@ -3,6 +3,9 @@ import { PrismaClient } from '@prisma/client';
 import { SimpleAuth } from '@/lib/auth-simple';
 import crypto from 'crypto';
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const prisma = new PrismaClient();
 
 // TEMPORARY FORCE LOGIN - REMOVE AFTER GETTING ACCESS

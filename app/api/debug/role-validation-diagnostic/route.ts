@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { getServerSession } from '@/lib/auth'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {

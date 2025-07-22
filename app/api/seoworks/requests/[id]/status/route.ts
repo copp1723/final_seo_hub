@@ -4,6 +4,9 @@ import { logger } from '@/lib/logger'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

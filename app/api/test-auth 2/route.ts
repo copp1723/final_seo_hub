@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SimpleAuth } from '@/lib/auth-simple';
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   console.log('🧪 TEST-AUTH: Starting authentication test...');
   

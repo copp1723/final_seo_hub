@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requests as PrismaRequest } from '@prisma/client';
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Assume db is an instance of your database client (e.g., Prisma, Sequelize)
 // and Request is your database model/schema for requests.
 // import db from '@/lib/db'; // Example import for database client

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/mailgun/client'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()

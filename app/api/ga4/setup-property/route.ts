@@ -5,6 +5,9 @@ import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { google } from 'googleapis'
 import { decrypt } from '@/lib/encryption'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function POST() {
   try {
     const session = await auth()

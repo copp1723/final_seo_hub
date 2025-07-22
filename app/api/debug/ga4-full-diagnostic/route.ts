@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { format, subDays } from 'date-fns'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const session = await auth()
   

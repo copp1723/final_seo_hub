@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const prisma = new PrismaClient();
 
 // This endpoint allows creating invitations using environment credentials

@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const updateAgencySchema = z.object({
   name: z.string().min(1, 'Agency name is required').max(100, 'Agency name must be less than 100 characters'),
   domain: z.string().optional().nullable()

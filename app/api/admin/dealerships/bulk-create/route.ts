@@ -5,6 +5,9 @@ import { logger } from '@/lib/logger'
 import crypto from 'crypto'
 import { DealershipData } from '@/lib/dealership'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   const session = await auth()
   

@@ -4,6 +4,9 @@ import { signIn } from '@/lib/auth'
 import crypto from 'crypto'
 import { SimpleAuth } from '@/lib/auth-simple'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   console.log('🎯 Accept Invitation GET endpoint hit!')
   console.log('Request URL:', request.url)

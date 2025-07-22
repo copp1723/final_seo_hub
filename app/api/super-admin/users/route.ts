@@ -7,6 +7,9 @@ import { sendInvitationEmail, createDefaultUserPreferences } from '@/lib/mailgun
 import { logger } from '@/lib/logger'
 import crypto from 'crypto'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Valid email is required'),

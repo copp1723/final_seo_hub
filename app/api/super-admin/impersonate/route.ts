@@ -5,6 +5,9 @@ import { z } from 'zod'
 import crypto from 'crypto'
 import { cookies } from 'next/headers'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const impersonateSchema = z.object({
   targetUserId: z.string().min(1, 'Target user ID is required')
 })

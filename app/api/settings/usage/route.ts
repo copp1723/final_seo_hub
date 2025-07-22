@@ -5,6 +5,9 @@ import { rateLimits } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 import { SEO_PACKAGES } from '@/lib/seo-packages'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   // Apply rate limiting
   const rateLimitResponse = await rateLimits.api(request)

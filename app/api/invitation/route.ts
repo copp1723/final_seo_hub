@@ -5,6 +5,9 @@ import crypto from 'crypto'
 import { logger } from '@/lib/logger'
 import { UserRole } from '@prisma/client'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   console.log('🎯 Invitation GET endpoint hit!')
   console.log('Request URL:', request.url)

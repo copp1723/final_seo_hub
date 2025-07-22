@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { sendInvitationEmail } from '@/lib/mailgun/invitation'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()

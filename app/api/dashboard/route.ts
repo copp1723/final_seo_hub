@@ -4,6 +4,9 @@ import { requireAuth, errorResponse } from '@/lib/api-auth'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { PackageType } from '@prisma/client'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Import package limits from central source
 import { getPackageLimits } from '@/lib/package-utils'
 

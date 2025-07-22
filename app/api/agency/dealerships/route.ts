@@ -7,6 +7,9 @@ import { validateRequest } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { PackageType } from '@prisma/client'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Schema for updating dealership settings
 const updateDealershipSettingsSchema = z.object({
   dealershipId: z.string().cuid(),

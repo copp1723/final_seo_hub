@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
 

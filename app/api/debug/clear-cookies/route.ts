@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   console.log('🧹 Clearing all cookies for testing')
   

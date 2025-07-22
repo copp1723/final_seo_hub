@@ -6,6 +6,9 @@ import { validateRequest, regenerateApiKeySchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import crypto from 'crypto'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Generate a secure API key
 function generateApiKey(): string {
   const prefix = 'sk_live_'

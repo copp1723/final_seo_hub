@@ -4,6 +4,9 @@ import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { UserRole, RequestStatus, Prisma } from '@prisma/client'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {

@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { DEFAULTS } from '@/lib/constants'
 import { z } from 'zod'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const querySchema = z.object({
   page: z.string().optional().transform(val => parseInt(val || '1')),
   pageSize: z.string().optional().transform(val => parseInt(val || String(DEFAULTS.PAGINATION.PAGE_SIZE))),

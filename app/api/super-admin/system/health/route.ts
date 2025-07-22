@@ -3,6 +3,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getMailgunClient } from '@/lib/mailgun/client'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 interface HealthStatus {
   database: 'healthy' | 'warning' | 'error'
   email: 'healthy' | 'warning' | 'error'

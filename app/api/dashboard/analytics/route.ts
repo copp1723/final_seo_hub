@@ -6,6 +6,9 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getCurrentISODate, getDateRange } from '@/lib/utils/date-formatter'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // In-memory cache for dashboard analytics
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes

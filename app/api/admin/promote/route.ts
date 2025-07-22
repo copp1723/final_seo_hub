@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // TEMPORARY ENDPOINT - REMOVE AFTER INITIAL SETUP
 export async function POST(request: NextRequest) {
   try {

@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { logger } from '@/lib/logger'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)

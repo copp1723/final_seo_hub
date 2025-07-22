@@ -4,6 +4,9 @@ import { requireAuth, errorResponse } from '@/lib/api-auth'
 import { UserRole } from '@prisma/client'
 import { startOfMonth, subDays, subMonths, startOfDay, endOfDay } from 'date-fns'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {

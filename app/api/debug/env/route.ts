@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // TEMPORARY DEBUG ENDPOINT - REMOVE AFTER TROUBLESHOOTING
 export async function GET() {
   return NextResponse.json({

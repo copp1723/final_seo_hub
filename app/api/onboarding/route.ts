@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { PackageType, Prisma } from '@prisma/client'
 import { startOfDay, endOfMonth } from 'date-fns'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Interface matching the exact format from the handoff document
 interface OnboardingPayload {
   timestamp: string

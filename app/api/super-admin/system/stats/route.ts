@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse } from '@/lib/api-auth'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
   if (!authResult.authenticated) return authResult.response || errorResponse('Unauthorized', 401)

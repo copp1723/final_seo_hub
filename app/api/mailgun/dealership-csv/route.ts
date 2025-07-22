@@ -5,6 +5,9 @@ import { logger } from '@/lib/logger'
 import { sendEmail } from '@/lib/mailgun/client'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 /**
  * Send error notification email to the sender
  */

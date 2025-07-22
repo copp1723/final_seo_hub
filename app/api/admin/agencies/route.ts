@@ -4,6 +4,9 @@ import { requireAuth, errorResponse } from '@/lib/api-auth'
 import { z } from 'zod'
 import crypto from 'crypto'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const createAgencySchema = z.object({
   name: z.string().min(1, 'Agency name is required'),
   domain: z.string().optional()

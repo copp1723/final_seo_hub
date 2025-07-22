@@ -16,6 +16,9 @@ import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 interface SeoworksDeliverable {
   type: string;
   title: string;

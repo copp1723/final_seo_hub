@@ -5,6 +5,9 @@ import { decrypt } from '@/lib/encryption'
 import { google } from 'googleapis'
 import { logger } from '@/lib/logger'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const authResult = await requireAuth(request)

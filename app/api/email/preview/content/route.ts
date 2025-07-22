@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { successResponse, errorResponse } from '@/lib/api-auth'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const { taskType, title, url } = await request.json()

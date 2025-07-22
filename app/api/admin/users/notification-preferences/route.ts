@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { logger } from '@/lib/logger'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // GET all users with their notification preferences
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)

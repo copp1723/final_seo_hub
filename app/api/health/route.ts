@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { validateEnvironment } from '@/lib/env-validation'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET() {
   const startTime = Date.now()
   

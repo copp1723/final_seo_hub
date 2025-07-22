@@ -9,6 +9,9 @@ import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/temp
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { withApiMonitoring } from '@/lib/api-wrapper'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 async function handleGET(request: NextRequest): Promise<NextResponse> {
   // Apply rate limiting
   const rateLimitResponse = await rateLimits.api(request)

@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import crypto from 'crypto'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const systemSettingsSchema = z.object({
   // Feature flags
   maintenanceMode: z.boolean(),

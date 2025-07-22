@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { TokenRefreshService } from '@/lib/google/token-refresh-service'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Comprehensive health check for alpha deployment monitoring
 export async function GET(request: NextRequest) {
   const startTime = Date.now()

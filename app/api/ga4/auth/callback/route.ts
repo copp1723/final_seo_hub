@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { encrypt } from '@/lib/encryption'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)

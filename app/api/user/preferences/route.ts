@@ -6,6 +6,9 @@ import { z } from 'zod'
 import { validateRequest } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Schema for updating preferences
 const updatePreferencesSchema = z.object({
   emailNotifications: z.boolean().optional(),

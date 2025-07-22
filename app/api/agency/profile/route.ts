@@ -4,6 +4,9 @@ import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 const updateAgencyProfileSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   domain: z.string().optional().nullable(),

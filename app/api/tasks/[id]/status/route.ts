@@ -7,6 +7,9 @@ import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate } from '@/lib/mailgun/templates'
 import { logger } from '@/lib/logger'
 
+
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic';
 // Schema for status update
 const updateStatusSchema = z.object({
   status: z.nativeEnum(TaskStatus),

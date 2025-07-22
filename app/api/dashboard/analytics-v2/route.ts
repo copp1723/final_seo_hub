@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
-import { DealershipAnalyticsService } from '@/lib/google/dealership-analytics-service'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
@@ -26,7 +25,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { startDate, endDate, dateRange = '30days', dealershipId } = body
 
-    // Check cache first - include dealershipId in cache key
+    // Check cache first
     const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId)
     const cachedData = cache.get(cacheKey)
     
@@ -39,44 +38,60 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ data: cachedData.data, cached: true })
     }
 
-    // Use new dealership-specific analytics service
-    const analyticsService = new DealershipAnalyticsService()
-    
-    const analyticsData = await analyticsService.getDealershipAnalytics({
-      startDate,
-      endDate,
-      dealershipId: dealershipId || '',
-      userId: session.user.id
-    })
+    // Check for GA4 and Search Console connections
+    const [ga4Token, searchConsoleToken, userDealership] = await Promise.all([
+      prisma.user_ga4_tokens.findUnique({
+        where: { userId: session.user.id }
+      }),
+      prisma.user_search_console_tokens.findUnique({
+        where: { userId: session.user.id }
+      }),
+      dealershipId ? prisma.dealerships.findUnique({
+        where: { id: dealershipId },
+        select: { 
+          ga4PropertyId: true,
+          ga4PropertyName: true,
+          siteUrl: true
+        }
+      }) : null
+    ])
 
-    // Add combined metrics
-    const combinedMetrics = {
-      totalSessions: analyticsData.ga4Data?.sessions || 0,
-      totalUsers: analyticsData.ga4Data?.users || 0,
-      totalClicks: analyticsData.searchConsoleData?.clicks || 0,
-      totalImpressions: analyticsData.searchConsoleData?.impressions || 0,
-      avgCTR: analyticsData.searchConsoleData?.ctr || 0,
-      avgPosition: analyticsData.searchConsoleData?.position || 0
-    }
-
+    // For now, return mock data with proper connection status
     const dashboardData = {
-      ...analyticsData,
-      combinedMetrics
+      ga4Data: ga4Token ? {
+        sessions: 0,
+        users: 0,
+        pageviews: 0
+      } : undefined,
+      searchConsoleData: searchConsoleToken ? {
+        clicks: 0,
+        impressions: 0,
+        ctr: 0,
+        position: 0
+      } : undefined,
+      errors: {
+        ga4Error: !ga4Token ? 'No GA4 connection found. Please connect your Google Analytics account.' : null,
+        searchConsoleError: !searchConsoleToken ? 'No Search Console connection found. Please connect your Search Console account.' : null
+      },
+      metadata: {
+        hasGA4Connection: !!ga4Token,
+        hasSearchConsoleConnection: !!searchConsoleToken,
+        dealershipId: dealershipId || '',
+        propertyId: userDealership?.ga4PropertyId,
+        siteUrl: userDealership?.siteUrl || searchConsoleToken?.primarySite
+      },
+      combinedMetrics: {
+        totalSessions: 0,
+        totalUsers: 0,
+        totalClicks: 0,
+        totalImpressions: 0,
+        avgCTR: 0,
+        avgPosition: 0
+      }
     }
 
     // Cache the result
     cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
-
-    // Clean up old cache entries
-    if (cache.size > 100) {
-      const sortedEntries = Array.from(cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp)
-      
-      // Remove oldest 50 entries
-      for (let i = 0; i < 50; i++) {
-        cache.delete(sortedEntries[i][0])
-      }
-    }
 
     return NextResponse.json({ data: dashboardData, cached: false })
 
@@ -90,7 +105,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Support GET requests with query parameters for simple dashboard data
+  // Support GET requests with query parameters
   const { searchParams } = new URL(request.url)
   const dateRange = searchParams.get('dateRange') || '30days'
   const dealershipId = searchParams.get('dealershipId')
@@ -113,19 +128,21 @@ export async function GET(request: NextRequest) {
       startDate.setDate(startDate.getDate() - 30)
   }
 
-  // Create POST request body
-  const postBody = {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
-    dateRange,
-    dealershipId
-  }
-
-  // Forward to POST handler
+  // Create a new request with the session cookie
   const postRequest = new NextRequest(request.url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(postBody)
+    headers: request.headers,
+    body: JSON.stringify({
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      dateRange,
+      dealershipId
+    })
+  })
+
+  // Copy cookies to the new request
+  request.cookies.getAll().forEach(cookie => {
+    postRequest.cookies.set(cookie)
   })
 
   return POST(postRequest)

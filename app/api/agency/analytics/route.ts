@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const dealerships = await prisma.dealerships.findMany({
       where: { agencyId },
       include: {
-        users_dealerships: true,
+        users: true,
         monthly_usage: {
           where: {
             archivedAt: { gte: startOfMonth(now) }

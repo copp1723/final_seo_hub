@@ -1,4 +1,4 @@
-import { contentAddedTemplate } from './content-notifications'
+import { contentAddedTemplate } from '../content-notifications'
 import { requests, users } from '@prisma/client'
 
 describe('contentAddedTemplate', () => {

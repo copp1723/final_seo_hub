@@ -1,6 +1,6 @@
-import { contentAddedTemplate } from './content-notifications'
+import { contentAddedTemplate } from '../content-notifications'
 import { requests, users, PackageType } from '@prisma/client'
-import { DEFAULT_BRANDING } from '././branding/config'
+import { DEFAULT_BRANDING } from '../../branding/config'
 
 describe('contentAddedTemplate - Comprehensive Testing', () => {
   const mockUser: users = {

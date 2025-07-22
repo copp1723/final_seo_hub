@@ -4,13 +4,14 @@ import { GA4Service } from '@/lib/google/ga4Service'
 import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { getCurrentISODate, getDateRange } from '@/lib/utils/date-formatter'
 
 // In-memory cache for dashboard analytics
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 function getCacheKey(userId: string, dateRange: string): string {
-  return `dashboard_analytics_${userId}_${dateRange}_${new Date().toDateString()}`
+  return `dashboard_analytics_${userId}_${dateRange}_${new Date().toISOString().split('T')[0]}`
 }
 
 export async function POST(request: NextRequest) {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       },
       metadata: {
         dateRange: { startDate, endDate },
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: getCurrentISODate(),
         hasGA4Connection: false,
         hasSearchConsoleConnection: false
       }
@@ -233,31 +234,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const dateRange = searchParams.get('dateRange') || '30days'
   
-  // Calculate date range
-  const endDate = new Date()
-  const startDate = new Date()
-  
-  switch (dateRange) {
-    case '7days':
-      startDate.setDate(startDate.getDate() - 7)
-      break
-    case '30days':
-      startDate.setDate(startDate.getDate() - 30)
-      break
-    case '90days':
-      startDate.setDate(startDate.getDate() - 90)
-      break
-    default:
-      startDate.setDate(startDate.getDate() - 30)
-  }
+  // Calculate date range using utility
+  const { startDate, endDate } = getDateRange(dateRange)
 
   // Create a new request with the calculated dates
   const mockRequest = new Request(request.url, {
     method: 'POST',
     headers: request.headers,
     body: JSON.stringify({
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
+      startDate,
+      endDate,
       dateRange
     })
   })

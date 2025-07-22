@@ -3,6 +3,7 @@ import { decrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { refreshGA4TokenIfNeeded } from './ga4-token-refresh'
+import { GA4Service } from './ga4Service'
 
 interface AnalyticsOptions {
   startDate: string

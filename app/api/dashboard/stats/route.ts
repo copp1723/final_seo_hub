@@ -65,19 +65,16 @@ async function handleGET(request: NextRequest) {
     ).length
 
     // Check GA4 connection
-    const ga4Connection = await prisma.ga4_connections.findUnique({
+    const ga4Connection = await prisma.ga4_connections.findFirst({
       where: { userId: session.user.id }
     })
 
-    // Get package progress
-    const packageLimits = {
-      SILVER: { pages: 3, blogs: 4, gbpPosts: 8, improvements: 2 },
-      GOLD: { pages: 6, blogs: 8, gbpPosts: 16, improvements: 4 },
-      PLATINUM: { pages: 9, blogs: 12, gbpPosts: 20, improvements: 6 }
-    }
-
-    const limits = packageLimits[dealership.activePackageType as keyof typeof packageLimits] ||
-                  { pages: 0, blogs: 0, gbpPosts: 0, improvements: 0 }
+    // Get package progress using centralized function
+    const { getPackageLimits } = await import('@/lib/package-utils')
+    const { PackageType } = await import('@prisma/client')
+    
+    const packageType = dealership.activePackageType || PackageType.SILVER
+    const limits = getPackageLimits(packageType)
 
     const packageProgress = {
       packageType: dealership.activePackageType || 'None',

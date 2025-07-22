@@ -78,7 +78,7 @@ class RedisManager {
       }
     }
 
-    return this.client as RedisClient
+    return this.client as unknown as RedisClient
   }
 
   async isAvailable(): Promise<boolean> {
@@ -96,7 +96,7 @@ class RedisManager {
 
   async disconnect(): Promise<void> {
     if (this.client) {
-      await this.client.quit()
+      await this.client.disconnect()
       this.client = null
       this.isConnected = false
     }

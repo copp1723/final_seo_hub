@@ -1,6 +1,10 @@
 // OpenRouter configuration
-const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
+
+if (!OPENROUTER_API_KEY) {
+  console.warn('WARNING: OPENROUTER_API_KEY is not set. AI chat features will not work.')
+}
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'

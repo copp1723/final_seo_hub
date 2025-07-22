@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const diagnostic = {
       timestamp: new Date().toISOString(),
-      userId: authResult.user.id,
+      userId: authResult.user!.id,
       environmentChecks: {} as any,
       databaseChecks: {} as any,
       tokenChecks: {} as any,
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
       // Get user's dealership
       const user = await prisma.users.findUnique({
-        where: { id: authResult.user.id },
+        where: { id: authResult.user!.id },
         include: { dealerships: true }
       })
 

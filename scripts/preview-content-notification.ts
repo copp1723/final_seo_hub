@@ -1,4 +1,4 @@
-import { contentAddedTemplate } from '../lib/mailgun/content-notifications.js'
+import { contentAddedTemplate } from '../lib/mailgun/content-notifications'
 import { requests, users } from '@prisma/client'
 import { writeFileSync } from 'fs'
 import { join } from 'path'

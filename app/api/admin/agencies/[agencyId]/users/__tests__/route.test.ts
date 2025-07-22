@@ -1,6 +1,7 @@
 // NOTE: This is a conceptual test structure.
 // Running these tests requires a Jest/testing setup configured for Next.js API routes,
-// with mocks for Prisma, NextAuth, etc.import { GET, POST, PUT, DELETE } from './route' // Adjust import path as needed
+// with mocks for Prisma, NextAuth, etc.
+import { GET, POST, PUT, DELETE } from '../route' // Adjust import path as needed
 import { prisma } from '@/lib/prisma' // Mock this
 import { auth } from '@/lib/auth' // Mock this for session
 import { UserRole } from '@prisma/client'

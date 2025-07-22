@@ -14,6 +14,13 @@ export interface SimpleSession {
   expires: Date;
 }
 
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key-change-this-in-production');
+
+// In a production environment, ensure JWT_SECRET is properly set
+if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET === 'your-secret-key-change-this-in-production') {
+  throw new Error('FATAL: JWT_SECRET environment variable must be set to a strong, unique value in production.');
+}
+
 export class SimpleAuth {
   public static readonly COOKIE_NAME = 'seo-hub-session';
   private static readonly JWT_SECRET = process.env.NEXTAUTH_SECRET!;

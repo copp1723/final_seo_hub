@@ -48,7 +48,7 @@ export class GA4Service {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.NEXTAUTH_URL + '/api/ga4/auth/callback'
+      `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL}/api/ga4/auth/callback`
     );
 
     oauth2Client.setCredentials({

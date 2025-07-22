@@ -17,7 +17,7 @@ import {
   Clock,
   ArrowRight,
   AlertCircle,
-  Activity,
+  Activity as ActivityIcon,
   Loader2,
   Plus,
   BarChart,
@@ -35,75 +35,13 @@ import { useToast } from '@/hooks/use-toast'
 import { RecentActivityTimeline } from '@/components/dashboard/RecentActivityTimeline'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
 
-interface PackageProgress {
-  packageType: string | null
-  pages: { completed: number; total: number; used: number; limit: number; percentage: number }
-  blogs: { completed: number; total: number; used: number; limit: number; percentage: number }
-  gbpPosts: { completed: number; total: number; used: number; limit: number; percentage: number }
-  improvements: { completed: number; total: number; used: number; limit: number; percentage: number }
-  totalTasks: { completed: number; total: number }
-}
-
-interface LatestRequest {
-  packageType: string | null
-  pagesCompleted: number
-  blogsCompleted: number
-  gbpPostsCompleted: number
-  improvementsCompleted: number
-}
-
-interface Activity {
-  id: string
-  description: string
-  time: string
-  type: string
-  metadata?: any
-}
-
-interface DashboardData {
-  activeRequests: number
-  totalRequests: number
-  tasksCompletedThisMonth: number
-  tasksSubtitle: string
-  gaConnected: boolean
-  searchConsoleConnected: boolean
-  packageProgress: PackageProgress | null
-  latestRequest: LatestRequest | null
-  dealershipId: string | null
-  recentActivity?: Activity[]
-}
-
-interface AnalyticsData {
-  ga4Data?: {
-    sessions: number
-    users: number
-    pageviews: number
-  }
-  searchConsoleData?: {
-    clicks: number
-    impressions: number
-    ctr: number
-    position: number
-  }
-  combinedMetrics: {
-    totalSessions: number
-    totalUsers: number
-    totalClicks: number
-    totalImpressions: number
-    avgCTR: number
-    avgPosition: number
-  }
-  errors: {
-    ga4Error: string | null
-    searchConsoleError: string | null
-  }
-  metadata: {
-    dateRange: { startDate: string; endDate: string }
-    fetchedAt: string
-    hasGA4Connection: boolean
-    hasSearchConsoleConnection: boolean
-  }
-}
+import type { 
+  DashboardData, 
+  DashboardAnalyticsData as AnalyticsData,
+  Activity as ActivityType,
+  PackageProgress,
+  RequestData 
+} from '@/types/api'
 
 const StatCard = ({ 
   title, 
@@ -201,7 +139,7 @@ export default function DashboardPage() {
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
-  const [recentActivity, setRecentActivity] = useState<Activity[]>([])
+  const [recentActivity, setRecentActivity] = useState<ActivityType[]>([])
   const [loading, setLoading] = useState(true)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -443,7 +381,7 @@ export default function DashboardPage() {
             title="Active Requests"
             value={dashboardData?.activeRequests ?? '-'}
             subtitle="Currently in progress"
-            icon={Activity}
+            icon={ActivityIcon}
             color="purple"
             loading={loading}
             trend={undefined}

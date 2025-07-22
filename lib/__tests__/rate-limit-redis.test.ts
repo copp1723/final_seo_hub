@@ -10,7 +10,7 @@ const mockLogger = {
   error: jest.fn()
 }
 
-jest.mock('./logger', () => ({
+jest.mock('../logger', () => ({
   logger: mockLogger
 }))
 
@@ -33,14 +33,14 @@ const mockRedisManager = {
   disconnect: jest.fn()
 }
 
-jest.mock('./redis', () => ({
+jest.mock('../redis', () => ({
   redisManager: mockRedisManager
 }))
 
 // Mock the in-memory rate limiter
 const mockMemoryRateLimit = jest.fn()
 
-jest.mock('./rate-limit', () => ({
+jest.mock('../rate-limit', () => ({
   createRateLimit: jest.fn(() => mockMemoryRateLimit)
 }))
 
@@ -75,7 +75,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should allow requests within rate limit', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000, // 1 minute
@@ -92,7 +92,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should block requests exceeding rate limit', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       mockRedisClient.incr.mockResolvedValue(6) // Exceeds limit of 5
 
@@ -113,7 +113,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should set expiry only on first request', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       mockRedisClient.incr.mockResolvedValueOnce(1) // First request
 
@@ -135,7 +135,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should use user ID for rate limiting when available', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000,
@@ -149,7 +149,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should include rate limit headers in response', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       mockRedisClient.incr.mockResolvedValue(6) // Exceeds limit
 
@@ -168,7 +168,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should handle different window sizes correctly', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 120000, // 2 minutes
@@ -189,8 +189,8 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should fallback to in-memory rate limiting', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
-      const { createRateLimit } = await import('./rate-limit')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
+      const { createRateLimit } = await import('../rate-limit')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000,
@@ -212,7 +212,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should enforce rate limits in memory fallback', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       // Mock memory rate limiter to block request
       const mockBlockResponse = {
@@ -235,7 +235,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should work without Redis URL configured', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       delete process.env.REDIS_URL
       
@@ -260,7 +260,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should fallback to in-memory when Redis incr fails', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       mockRedisClient.incr.mockRejectedValue(new Error('Redis connection lost'))
 
@@ -282,7 +282,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should fallback to in-memory when Redis expire fails', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       mockRedisClient.incr.mockResolvedValue(1)
       mockRedisClient.expire.mockRejectedValue(new Error('Redis connection lost'))
@@ -305,7 +305,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should fallback to in-memory when Redis ttl fails', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       mockRedisClient.incr.mockResolvedValue(2)
       mockRedisClient.ttl.mockRejectedValue(new Error('Redis connection lost'))
@@ -335,7 +335,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should prioritize user ID over IP address', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000,
@@ -349,7 +349,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should use IP from x-forwarded-for header', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000,
@@ -363,7 +363,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should use first IP from comma-separated forwarded header', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000,
@@ -381,7 +381,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should fallback to x-real-ip header', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000,
@@ -399,7 +399,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should use "unknown" when no IP headers present', async () => {
-      const { createRedisRateLimit } = await import('./rate-limit-redis')
+      const { createRedisRateLimit } = await import('../rate-limit-redis')
       
       const rateLimiter = createRedisRateLimit({
         windowMs: 60000,
@@ -424,7 +424,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should create AI rate limiter with correct config', async () => {
-      const { enhancedRateLimits } = await import('./rate-limit-redis')
+      const { enhancedRateLimits } = await import('../rate-limit-redis')
       
       const request = createMockRequest()
       await enhancedRateLimits.ai(request)
@@ -434,7 +434,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should create API rate limiter with correct config', async () => {
-      const { enhancedRateLimits } = await import('./rate-limit-redis')
+      const { enhancedRateLimits } = await import('../rate-limit-redis')
       
       const request = createMockRequest()
       await enhancedRateLimits.api(request)
@@ -443,7 +443,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should create webhook rate limiter with correct config', async () => {
-      const { enhancedRateLimits } = await import('./rate-limit-redis')
+      const { enhancedRateLimits } = await import('../rate-limit-redis')
       
       const request = createMockRequest()
       await enhancedRateLimits.webhook(request)
@@ -452,7 +452,7 @@ describe('Rate Limiting Redis Integration', () => {
     })
 
     test('should create auth rate limiter with correct config', async () => {
-      const { enhancedRateLimits } = await import('./rate-limit-redis')
+      const { enhancedRateLimits } = await import('../rate-limit-redis')
       
       const request = createMockRequest()
       await enhancedRateLimits.auth(request)

@@ -51,14 +51,14 @@ export async function GET(request: NextRequest) {
     const dealerships = await prisma.dealerships.findMany({
       where: { agencyId },
       include: {
-        users_dealerships: {
+        users: {
           include: {
             user_preferences: true
           }
         },
         _count: {
           select: {
-            users_dealerships: true
+            users: true
           }
         }
       },
@@ -79,10 +79,10 @@ export async function GET(request: NextRequest) {
       blogsUsedThisPeriod: dealership.blogsUsedThisPeriod,
       gbpPostsUsedThisPeriod: dealership.gbpPostsUsedThisPeriod,
       improvementsUsedThisPeriod: dealership.improvementsUsedThisPeriod,
-      userCount: dealership._count.users_dealerships,
+      userCount: dealership._count.users,
       createdAt: dealership.createdAt,
       // Aggregate notification preferences from all users
-      users: dealership.users_dealerships.map(user => ({
+      users: dealership.users.map(user => ({
         id: user.id,
         name: user.name,
         email: user.email,
@@ -134,7 +134,7 @@ export async function PATCH(request: NextRequest) {
     const dealership = await prisma.dealerships.findFirst({
       where: whereClause,
       include: {
-        users_dealerships: true
+        users: true
       }
     })
 
@@ -170,7 +170,7 @@ export async function PATCH(request: NextRequest) {
 
     // Update user preferences for all users in this dealership
     if (settings && Object.keys(settings).length > 0) {
-      const userIds = dealership.users_dealerships.map((user: any) => user.id)
+      const userIds = dealership.users.map((user: any) => user.id)
       
       if (userIds.length > 0) {
         // Use upsert for each user to ensure preferences exist
@@ -198,7 +198,7 @@ export async function PATCH(request: NextRequest) {
     const updatedDealership = await prisma.dealerships.findUnique({
       where: { id: dealershipId },
       include: {
-        users_dealerships: {
+        users: {
           include: {
             user_preferences: true
           }

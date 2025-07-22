@@ -1,9 +1,19 @@
+// Legacy API auth functions - use api-auth-middleware.ts for new endpoints
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import crypto from 'crypto'
 import { logger } from '@/lib/logger'
 
-// Standardized API response types
+// Re-export from the new middleware for backward compatibility
+export {
+  successResponse,
+  badRequestResponse as errorResponse,
+  unauthorizedResponse,
+  forbiddenResponse,
+  internalErrorResponse
+} from './api-auth-middleware'
+
+// Legacy API response type - kept for backward compatibility
 export interface ApiResponse<T = any> {
   success: boolean
   data?: T
@@ -11,16 +21,8 @@ export interface ApiResponse<T = any> {
   message?: string
 }
 
-// Create standardized error response
-export function errorResponse(error: string, status: number = 400): NextResponse {
-  return NextResponse.json<ApiResponse>({ 
-    success: false, 
-    error 
-  }, { status })
-}
-
-// Create standardized success response
-export function successResponse<T>(data?: T, message?: string): NextResponse {
+// Legacy success response - use successResponse from middleware instead
+export function legacySuccessResponse<T>(data?: T, message?: string): NextResponse {
   return NextResponse.json<ApiResponse<T>>({ 
     success: true, 
     data,
@@ -28,7 +30,15 @@ export function successResponse<T>(data?: T, message?: string): NextResponse {
   })
 }
 
-// Reusable auth check for API routes
+// Legacy error response - use standardized responses from middleware instead
+export function legacyErrorResponse(error: string, status: number = 400): NextResponse {
+  return NextResponse.json<ApiResponse>({ 
+    success: false, 
+    error 
+  }, { status })
+}
+
+// Legacy auth check - use requireAuth middleware instead
 export async function requireAuth(request?: NextRequest) {
   if (!request) {
     return {
@@ -55,7 +65,7 @@ export async function requireAuth(request?: NextRequest) {
   }
 }
 
-// Timing-safe API key validation
+// Legacy API key validation - use requireApiKey middleware instead
 export function validateApiKey(
   request: NextRequest, 
   envKey: string
@@ -66,7 +76,7 @@ export function validateApiKey(
   if (!apiKey || !expectedKey) {
     return { 
       valid: false, 
-      response: errorResponse('Unauthorized', 401) 
+      response: legacyErrorResponse('Unauthorized', 401) 
     }
   }
   
@@ -79,7 +89,7 @@ export function validateApiKey(
     logger.error('Failed API key validation', undefined, { envKey })
     return { 
       valid: false, 
-      response: errorResponse('Unauthorized', 401) 
+      response: legacyErrorResponse('Unauthorized', 401) 
     }
   }
   

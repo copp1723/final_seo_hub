@@ -4,12 +4,8 @@ import { requireAuth, errorResponse } from '@/lib/api-auth'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { PackageType } from '@prisma/client'
 
-// Package limits definition
-const PACKAGE_LIMITS = {
-  SILVER: { pages: 3, blogs: 4, gbpPosts: 8, improvements: 8 },
-  GOLD: { pages: 6, blogs: 8, gbpPosts: 16, improvements: 10 },
-  PLATINUM: { pages: 9, blogs: 12, gbpPosts: 20, improvements: 20 }
-}
+// Import package limits from central source
+import { getPackageLimits } from '@/lib/package-utils'
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
@@ -66,8 +62,8 @@ export async function GET(request: NextRequest) {
       }
 
       // Get package details
-      const packageType = dealership.activePackageType || 'SILVER'
-      const limits = PACKAGE_LIMITS[packageType as keyof typeof PACKAGE_LIMITS]
+      const packageType = dealership.activePackageType || PackageType.SILVER
+      const limits = getPackageLimits(packageType)
       
       // Calculate package progress
       const packageProgress = {

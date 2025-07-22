@@ -408,7 +408,7 @@ model dealerships {
   clientId                   String?         @unique
   agencies                   agencies        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   monthly_usage              monthly_usage[]
-  users_dealerships          users[]         @relation("UserDealership")
+  users                      users[]         @relation("UserDealership")
   ga4_connections            ga4_connections[]
   search_console_connections search_console_connections[]
 

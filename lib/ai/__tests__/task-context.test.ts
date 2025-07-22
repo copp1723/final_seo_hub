@@ -4,7 +4,7 @@ import {
   generateTaskContext, 
   detectTaskRelatedIntents,
   TaskReference 
-} from './task-context'
+} from '../task-context'
 import { TaskType } from '@prisma/client'
 
 // Mock task data for testing

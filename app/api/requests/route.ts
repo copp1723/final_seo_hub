@@ -243,7 +243,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         // It's crucial that newRequest.dealershipId is populated or null.
         dealershipId: (newRequest as any).dealershipId || null,
         agencyId: newRequest.agencyId || null,
-        type: newRequest.type.toUpperCase() as TaskType, // Directly cast to TaskType assuming enum matches string values
+        type: newRequest.type.toUpperCase() as TaskType, // Convert lowercase request type to uppercase TaskType enum
         title: newRequest.title,
         description: newRequest.description || '',
         priority: newRequest.priority,

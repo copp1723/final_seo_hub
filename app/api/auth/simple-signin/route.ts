@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     console.log('Simple signin attempt for:', email)
     
     // Find existing user
-    let user = await prisma.users.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email: email.toLowerCase() }
     });
     

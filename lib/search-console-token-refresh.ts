@@ -5,7 +5,7 @@ import { encrypt, decrypt } from '@/lib/encryption'
 
 export async function refreshSearchConsoleToken(dealershipId: string): Promise<string | null> {
   try {
-    const connection = await prisma.searchConsole_connections.findUnique({
+    const connection = await prisma.search_console_connections.findUnique({
       where: { userId: dealershipId }
     });
     
@@ -32,7 +32,7 @@ export async function refreshSearchConsoleToken(dealershipId: string): Promise<s
     }
     
     // Update the stored tokens
-    await prisma.searchConsole_connections.update({
+    await prisma.search_console_connections.update({
       where: { userId: dealershipId },
       data: {
         accessToken: encrypt(credentials.access_token),

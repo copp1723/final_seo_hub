@@ -36,40 +36,8 @@ import {
   Edit2
 } from 'lucide-react'
 
-interface DealershipUser {
-  id: string
-  name: string | null
-  email: string
-  role: string
-  preferences: {
-    emailNotifications: boolean
-    requestCreated: boolean
-    statusChanged: boolean
-    taskCompleted: boolean
-    weeklySummary: boolean
-    marketingEmails: boolean
-    timezone?: string
-    language?: string
-  } | null
-}
-
-interface DealershipData {
-  id: string
-  name: string
-  website?: string
-  address?: string
-  phone?: string
-  activePackageType?: 'SILVER' | 'GOLD' | 'PLATINUM' | null
-  currentBillingPeriodStart?: string | null
-  currentBillingPeriodEnd?: string | null
-  pagesUsedThisPeriod: number
-  blogsUsedThisPeriod: number
-  gbpPostsUsedThisPeriod: number
-  improvementsUsedThisPeriod: number
-  userCount: number
-  createdAt: string
-  users: DealershipUser[]
-}
+import type { DealershipData, DealershipUser, UserPreferences } from '@/types/api'
+import { PackageType } from '@prisma/client'
 
 interface PackageLimits {
   pages: number

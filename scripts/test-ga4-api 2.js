@@ -2,7 +2,7 @@
 
 const { PrismaClient } = require('@prisma/client')
 const { google } = require('googleapis')
-const { decrypt } = require('../lib/encryption.js')
+const { decrypt } = require('../lib/encryption')
 const prisma = new PrismaClient()
 
 async function testGA4API() {

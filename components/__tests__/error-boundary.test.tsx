@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ErrorBoundary from './error-boundary'; // Adjust path as needed
+import ErrorBoundary from '../error-boundary'; // Adjust path as needed
 import { logger } from '@/lib/logger'; // Adjust path as needed
 
 // Mock the logger

@@ -136,7 +136,7 @@ async function checkIntegrations(): Promise<any> {
     }
   } catch (error) {
     integrations.ga4.status = 'failed'
-    integrations.ga4.error = error instanceof Error ? error.message : 'Token check failed'
+    integrations.ga4.details = error instanceof Error ? error.message : 'Token check failed'
   }
   
   // Check SEOWorks configuration

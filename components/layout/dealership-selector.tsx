@@ -125,7 +125,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
       const result = await response.json()
 
       // Update local state
-      setDealershipData(prev => prev ? {
+      setDealershipData((prev: DealershipData | null) => prev ? {
        ...prev,
         currentDealership: result.dealership
       } : null)
@@ -153,9 +153,9 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   // Don't render until mounted to prevent hydration issues
   if (!mounted) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50/80 transition-colors duration-200">
+      <div>
         <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-        <span className="text-sm text-gray-500 font-normal">Loading...</span>
+        <span>Loading...</span>
       </div>
     )
   }
@@ -163,9 +163,9 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   // Show loading state
   if (isLoading) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50/80 transition-colors duration-200">
+      <div>
         <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-        <span className="text-sm text-gray-500 font-normal">Loading...</span>
+        <span>Loading...</span>
       </div>
     )
   }
@@ -173,9 +173,9 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   // Show error state
   if (error) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-red-50/80 text-red-600 border border-red-200/50">
+      <div>
         <Building2 className="h-4 w-4" />
-        <span className="text-sm font-normal">{error}</span>
+        <span>{error}</span>
       </div>
     )
   }
@@ -183,9 +183,9 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   // Don't render if no dealership data available
   if (!dealershipData?.availableDealerships?.length) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50/80">
+      <div>
         <Building2 className="h-4 w-4 text-gray-400" />
-        <span className="text-sm text-gray-400 font-normal">No dealerships</span>
+        <span>No dealerships</span>
       </div>
     )
   }
@@ -231,7 +231,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
         </div>
           
           <div className="max-h-48 overflow-y-auto">
-            {availableDealerships.map((dealership) => {
+            {availableDealerships.map((dealership: Dealership) => {
               const isSelected = currentDealership?.id === dealership.id
               
               return (

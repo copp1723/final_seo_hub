@@ -1,11 +1,11 @@
-import { POST } from './route'
-import { prisma } from './././././lib/prisma'
-import { queueEmailWithPreferences } from './././././lib/mailgun/queue'
-import { contentAddedTemplate } from './././././lib/mailgun/content-notifications'
+import { POST } from '../route'
+import { prisma } from '@/lib/prisma'
+import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
+import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { NextRequest } from 'next/server'
 
 // Mock dependencies
-jest.mock('./././././lib/prisma', () => ({
+jest.mock('@/lib/prisma', () => ({
   prisma: {
     request: {
       findFirst: jest.fn(),
@@ -18,11 +18,11 @@ jest.mock('./././././lib/prisma', () => ({
   }
 }))
 
-jest.mock('./././././lib/mailgun/queue', () => ({
+jest.mock('@/lib/mailgun/queue', () => ({
   queueEmailWithPreferences: jest.fn()
 }))
 
-jest.mock('./././././lib/mailgun/content-notifications', () => ({
+jest.mock('@/lib/mailgun/content-notifications', () => ({
   contentAddedTemplate: jest.fn()
 }))
 

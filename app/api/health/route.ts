@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
+import { validateEnvironment } from '@/lib/env-validation'
 
 export async function GET() {
   const startTime = Date.now()
   
   // Enhanced diagnostics for deployment debugging
+  const envValidation = validateEnvironment()
+  
   const diagnostics = {
     status: 'unknown',
     timestamp: new Date().toISOString(),
@@ -13,11 +16,26 @@ export async function GET() {
     responseTime: 0,
     environment: {
       NODE_ENV: process.env.NODE_ENV,
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'MISSING',
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'MISSING',
-      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
-      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'SET' : 'MISSING',
-      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'MISSING',
+      validation: {
+        isValid: envValidation.isValid,
+        errorCount: envValidation.errors.length,
+        warningCount: envValidation.warnings.length,
+        missingCount: envValidation.missing.length,
+        errors: envValidation.errors,
+        warnings: envValidation.warnings,
+        missing: envValidation.missing
+      },
+      variables: {
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'MISSING',
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? 'SET' : 'MISSING',
+        DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'MISSING',
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'SET' : 'MISSING',
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? 'SET' : 'MISSING',
+        ENCRYPTION_KEY: process.env.ENCRYPTION_KEY ? 'SET' : 'MISSING',
+        CSRF_SECRET: process.env.CSRF_SECRET ? 'SET' : 'MISSING',
+        MAILGUN_API_KEY: process.env.MAILGUN_API_KEY ? 'SET' : 'MISSING',
+        SEOWORKS_WEBHOOK_SECRET: process.env.SEOWORKS_WEBHOOK_SECRET ? 'SET' : 'MISSING',
+      }
     },
     database: {
       connection: 'UNKNOWN',
@@ -43,16 +61,18 @@ export async function GET() {
     console.log(`  ${key}: ${value}`)
   })
   
-  // Check for missing environment variables
-  const missingEnvVars = Object.entries(diagnostics.environment)
-    .filter(([key, value]) => value === 'MISSING')
-    .map(([key]) => key)
-  
-  if (missingEnvVars.length > 0) {
-    diagnostics.errors.push(`Missing environment variables: ${missingEnvVars.join(', ')}`)
-    console.error('❌ Missing environment variables:', missingEnvVars)
+  // Check environment validation results
+  if (!envValidation.isValid) {
+    diagnostics.errors.push(...envValidation.errors)
+    console.error('❌ Environment validation failed:')
+    envValidation.errors.forEach(error => console.error(`  - ${error}`))
   } else {
-    console.log('✅ All required environment variables are set')
+    console.log('✅ All environment variables are valid')
+  }
+  
+  if (envValidation.warnings.length > 0) {
+    console.warn('⚠️  Environment warnings:')
+    envValidation.warnings.forEach(warning => console.warn(`  - ${warning}`))
   }
   
   try {

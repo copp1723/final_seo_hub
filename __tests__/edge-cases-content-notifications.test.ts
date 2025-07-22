@@ -1,4 +1,4 @@
-import { contentAddedTemplate } from './lib/mailgun/content-notifications'
+import { contentAddedTemplate } from '../lib/mailgun/content-notifications'
 import { requests, users } from '@prisma/client'
 
 describe('Content Notifications Edge Cases', () => {

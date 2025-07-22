@@ -1,4 +1,4 @@
-import { POST } from './route'
+import { POST } from '../route'
 import { prisma } from '@/lib/prisma'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'

@@ -134,6 +134,12 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
 
       // Refresh the session and page to update all dealership-specific data
       await refreshSession()
+      
+      // Dispatch custom event for other components to listen to
+      window.dispatchEvent(new CustomEvent('dealershipChanged', {
+        detail: { dealership: result.dealership }
+      }))
+      
       router.refresh()
 
     } catch (err) {

@@ -522,6 +522,25 @@ export default function ReportingPage() {
     fetchAllData()
   }, [])
 
+  // Listen for dealership changes
+  useEffect(() => {
+    const handleDealershipChange = () => {
+      console.log('Dealership changed - refreshing data')
+      clearRelatedCache('all')
+      fetchAllData()
+    }
+
+    // Listen for custom dealership change event
+    window.addEventListener('dealershipChanged', handleDealershipChange)
+    
+    // Initial load
+    fetchAllData()
+
+    return () => {
+      window.removeEventListener('dealershipChanged', handleDealershipChange)
+    }
+  }, [])
+
   // Fetch both GA4 and Search Console data
   const fetchAllData = async (showLoadingToast = false) => {
     try {

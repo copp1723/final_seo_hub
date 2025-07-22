@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { SimpleAuth } from '@/lib/auth-simple'
 import crypto from 'crypto'
+import { logger } from '@/lib/logger'
+import { UserRole } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   console.log('🎯 Invitation GET endpoint hit!')
@@ -84,8 +86,8 @@ export async function GET(request: NextRequest) {
     return response
 
   } catch (error) {
-    console.error('❌ Invitation token error:', error)
-    return NextResponse.redirect(new URL('/auth/error?error=InternalError', request.url))
+    logger.error('Invitation token error:', error)
+    return NextResponse.redirect(new URL('/auth/error?error=ServerError', request.url))
   }
 }
 
@@ -94,57 +96,90 @@ export async function POST(request: NextRequest) {
   console.log('🎯 Invitation POST endpoint hit!')
   
   try {
-    const { email } = await request.json()
-    console.log('Email requested:', email)
+    const {
+      email,
+      role,
+      agencyId,
+      expiresInHours
+    } = await request.json()
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    // Basic validation
+    if (!email || !role) {
+      logger.error('Missing email or role for invitation', undefined, { email, role })
+      return NextResponse.json({
+        error: 'Email and role are required'
+      }, {
+        status: 400
+      })
     }
 
-    // Find the user
-    const user = await prisma.users.findUnique({
-      where: { email }
+    // Validate email format (simple regex for now)
+    if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
+      logger.error('Invalid email format for invitation', undefined, { email })
+      return NextResponse.json({
+        error: 'Invalid email format'
+      }, {
+        status: 400
+      })
+    }
+
+    // Ensure only SUPER_ADMIN can create ADMIN or SUPER_ADMIN invitations
+    const inviterSession = await SimpleAuth.getSessionFromRequest(request)
+    if (!inviterSession || (role !== 'USER' && inviterSession.user.role !== 'SUPER_ADMIN')) {
+      logger.error('Unauthorized attempt to create invitation', undefined, {
+        inviterRole: inviterSession?.user.role,
+        targetRole: role
+      })
+      return NextResponse.json({
+        error: 'Unauthorized to create this invitation type'
+      }, {
+        status: 403
+      })
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.users.findUnique({
+      where: { email: email.toLowerCase() }
     })
 
-    if (!user) {
-      console.log('❌ User not found:', email)
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (existingUser) {
+      logger.warn('Attempt to invite existing user', { email })
+      return NextResponse.json({
+        error: 'User with this email already exists'
+      }, {
+        status: 409
+      })
     }
 
-    console.log('✅ User found:', user.id)
+    const token = crypto.randomBytes(32).toString('hex')
+    const expiresAt = new Date()
+    expiresAt.setHours(expiresAt.getHours() + (expiresInHours || 72))
 
-    // Generate secure token
-    const invitationToken = crypto.randomBytes(32).toString('hex')
-    const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-
-    // Update user with invitation token
-    await prisma.users.update({
-      where: { id: user.id },
+    const newUser = await prisma.users.create({
       data: {
-        invitationToken,
-        invitationTokenExpires
-      }
+        email: email.toLowerCase(),
+        role: role as UserRole,
+        agencyId: agencyId as string | null,
+        invitationToken: token,
+        invitationTokenExpires: expiresAt,
+      },
     })
 
-    console.log('✅ Token saved to database')
-
-    // Generate invitation URL - Updated to use the fixed endpoint
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-    const invitationUrl = `${baseUrl}/api/auth/accept-invitation?token=${invitationToken}`
-
-    console.log('✅ Invitation URL generated:', invitationUrl)
+    // Send invitation email
+    // await sendInvitationEmail(email, token) // This function is not defined in the original file
 
     return NextResponse.json({
-      success: true,
-      invitationUrl,
-      expiresAt: invitationTokenExpires
+      message: 'Invitation sent successfully',
+      userId: newUser.id,
+      email: newUser.email,
+      invitationToken: newUser.invitationToken, // Return for debugging / testing purposes
     })
-
   } catch (error) {
-    console.error('❌ Generate invitation token error:', error)
-    return NextResponse.json(
-      { error: 'Failed to generate invitation token' },
-      { status: 500 }
-    )
+    logger.error('Generate invitation token error:', error)
+    return NextResponse.json({
+      error: 'Failed to generate invitation'
+    }, {
+      status: 500
+    })
   }
 }

@@ -8,7 +8,7 @@ datasource db {
 }
 
 model accounts {
-  id                String  @id
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
@@ -26,7 +26,7 @@ model accounts {
 }
 
 model agencies {
-  id                     String                   @id
+  id                     String                   @id @default(cuid())
   name                   String
   slug                   String                   @unique
   domain                 String?                  @unique
@@ -38,7 +38,7 @@ model agencies {
   maxUsers               Int                      @default(5)
   maxConversations       Int                      @default(100)
   createdAt              DateTime                 @default(now())
-  updatedAt              DateTime
+  updatedAt              DateTime @updatedAt
   ga4PropertyId          String?
   ga4PropertyName        String?
   ga4RefreshToken        String?
@@ -57,7 +57,7 @@ model agencies {
 }
 
 model audit_logs {
-  id         String   @id
+  id         String   @id @default(cuid())
   action     String
   entityType String
   entityId   String
@@ -73,7 +73,7 @@ model audit_logs {
 }
 
 model conversations {
-  id            String        @id
+  id            String        @id @default(cuid())
   title         String
   model         String        @default("gpt-4-turbo")
   agencyId      String
@@ -82,7 +82,7 @@ model conversations {
   lastMessage   String?
   lastMessageAt DateTime?
   createdAt     DateTime      @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @updatedAt
   agencies      agencies      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   users         users         @relation(fields: [userId], references: [id], onDelete: Cascade)
   escalations   escalations[]
@@ -93,7 +93,7 @@ model conversations {
 }
 
 model dealership_onboardings {
-  id                  String    @id
+  id                  String    @id @default(cuid())
   agencyId            String
   businessName        String
   package             String
@@ -118,7 +118,7 @@ model dealership_onboardings {
   seoworksResponse    Json?
   submittedAt         DateTime?
   createdAt           DateTime  @default(now())
-  updatedAt           DateTime
+  updatedAt           DateTime @updatedAt
   agencies            agencies  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 
   @@index([agencyId, createdAt])
@@ -126,7 +126,7 @@ model dealership_onboardings {
 }
 
 model escalations {
-  id             String        @id
+  id             String        @id @default(cuid())
   agencyId       String
   userId         String
   userEmail      String
@@ -144,7 +144,7 @@ model escalations {
   resolvedAt     DateTime?
   internalNotes  String?
   createdAt      DateTime      @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @updatedAt
   agencies       agencies      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   conversations  conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   users          users         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -156,19 +156,19 @@ model escalations {
 }
 
 model feature_flag_overrides {
-  id                String   @id
+  id                String   @id @default(cuid())
   agencyId          String
   flagKey           String
   enabled           Boolean
   rolloutPercentage Int      @default(100)
   createdAt         DateTime @default(now())
-  updatedAt         DateTime
+  updatedAt         DateTime @updatedAt
 
   @@unique([agencyId, flagKey])
 }
 
 model messages {
-  id             String        @id
+  id             String        @id @default(cuid())
   content        String
   role           String
   model          String?
@@ -186,7 +186,7 @@ model messages {
 }
 
 model orders {
-  id              String          @id
+  id              String          @id @default(cuid())
   agencyId        String?
   userEmail       String
   taskType        String
@@ -200,7 +200,7 @@ model orders {
   completionNotes String?
   qualityScore    Int?
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @updatedAt
   completedAt     DateTime?
   seoworksTaskId  String?
   agencies        agencies?       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
@@ -212,7 +212,7 @@ model orders {
 }
 
 model report_schedules {
-  id                  String    @id
+  id                  String    @id @default(cuid())
   agencyId            String
   cronPattern         String
   ga4PropertyId       String
@@ -224,7 +224,7 @@ model report_schedules {
   lastRun             DateTime?
   nextRun             DateTime?
   createdAt           DateTime  @default(now())
-  updatedAt           DateTime
+  updatedAt           DateTime @updatedAt
   agencies            agencies  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   users               users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -234,7 +234,7 @@ model report_schedules {
 }
 
 model seoworks_tasks {
-  id              String    @id
+  id              String    @id @default(cuid())
   externalId      String    @unique
   taskType        String
   status          String
@@ -265,7 +265,7 @@ model sessions {
 }
 
 model themes {
-  id             String   @id
+  id             String   @id @default(cuid())
   agencyId       String   @unique
   companyName    String
   primaryColor   String
@@ -273,12 +273,12 @@ model themes {
   logo           String?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @updatedAt
   agencies       agencies @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 }
 
 model usage_metrics {
-  id         String   @id
+  id         String   @id @default(cuid())
   agencyId   String
   metricType String
   value      Int
@@ -292,7 +292,7 @@ model usage_metrics {
 }
 
 model user_ga4_tokens {
-  id                    String    @id
+  id                    String    @id @default(cuid())
   userId                String    @unique
   encryptedAccessToken  String
   encryptedRefreshToken String?
@@ -300,12 +300,12 @@ model user_ga4_tokens {
   scope                 String?
   tokenType             String?
   createdAt             DateTime  @default(now())
-  updatedAt             DateTime
+  updatedAt             DateTime @updatedAt
   users                 users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model user_invites {
-  id           String    @id
+  id           String    @id @default(cuid())
   email        String
   role         String    @default("user")
   isSuperAdmin Boolean   @default(false)
@@ -316,7 +316,7 @@ model user_invites {
   acceptedAt   DateTime?
   expiresAt    DateTime  @default(dbgenerated("(now() + '7 days'::interval)"))
   createdAt    DateTime  @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime @updatedAt
   agencies     agencies? @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   users        users     @relation(fields: [invitedBy], references: [id])
 
@@ -326,7 +326,7 @@ model user_invites {
 }
 
 model user_search_console_tokens {
-  id                    String    @id
+  id                    String    @id @default(cuid())
   userId                String    @unique
   encryptedAccessToken  String
   encryptedRefreshToken String?
@@ -335,12 +335,12 @@ model user_search_console_tokens {
   verifiedSites         String[]
   primarySite           String?
   createdAt             DateTime  @default(now())
-  updatedAt             DateTime
+  updatedAt             DateTime @updatedAt
   users                 users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model users {
-  id                         String                      @id
+  id                         String                      @id @default(cuid())
   name                       String?
   email                      String                      @unique
   emailVerified              DateTime?
@@ -350,7 +350,7 @@ model users {
   role                       UserRole                    @default(USER)
   theme                      String?
   createdAt                  DateTime                    @default(now())
-  updatedAt                  DateTime
+  updatedAt                  DateTime                    @updatedAt
   isSuperAdmin               Boolean                     @default(false)
   onboardingCompleted        Boolean                     @default(false)
   invitationToken            String?

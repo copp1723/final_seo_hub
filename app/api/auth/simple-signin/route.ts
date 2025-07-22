@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { SimpleAuth } from '@/lib/auth-simple';
+import { logger } from '@/lib/logger';
 
 const prisma = new PrismaClient();
 
@@ -68,9 +69,9 @@ export async function GET(request: NextRequest) {
     console.log('Session created, redirecting to:', redirectPath)
     return response;
   } catch (error) {
-    console.error('Simple signin error:', error);
+    logger.error('Simple signin error:', error);
     return NextResponse.json(
-      { error: 'Failed to create session' },
+      { error: 'Authentication failed' }, // Generic message for security
       { status: 500 }
     );
   }

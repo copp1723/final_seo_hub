@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SimpleAuth } from '@/lib/auth-simple';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +15,10 @@ export async function POST(request: NextRequest) {
       path: '/'
     });
 
-    return response;
+    // Always redirect to signin page after signout
+    return NextResponse.redirect(new URL('/auth/simple-signin', request.url));
   } catch (error) {
-    console.error('Signout error:', error);
-    return NextResponse.json({ error: 'Signout failed' }, { status: 500 });
+    logger.error('Signout error:', error);
+    return NextResponse.json({ message: 'Signout failed' }, { status: 500 });
   }
 }

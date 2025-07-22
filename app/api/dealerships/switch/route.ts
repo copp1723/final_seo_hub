@@ -186,6 +186,8 @@ export async function GET(request: NextRequest) {
         name: dealership.name
       }))
 
+      // Super admins don't need to persist dealershipId; just return
+
       return NextResponse.json({
         currentDealership: availableDealerships.length > 0 ? availableDealerships[0] : null,
         availableDealerships
@@ -252,6 +254,14 @@ export async function GET(request: NextRequest) {
     // Fallback to first available dealership if no current one is set
     if (!currentDealership && availableDealerships.length > 0) {
       currentDealership = availableDealerships[0]
+    }
+
+    // If user currently has no dealershipId set, persist default
+    if (!currentUser?.dealershipId && currentDealership) {
+      await prisma.users.update({
+        where: { id: session.user.id },
+        data: { dealershipId: currentDealership.id }
+      })
     }
     
     console.log('DEBUG: Final response:', {

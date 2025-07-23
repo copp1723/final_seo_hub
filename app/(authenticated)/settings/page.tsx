@@ -68,9 +68,6 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState<NotificationPreferences | null>(null)
   const [integrations, setIntegrations] = useState<IntegrationStatus | null>(null)
   const [packageUsage, setPackageUsage] = useState<PackageUsage | null>(null)
-  const [showPropertySelector, setShowPropertySelector] = useState(false)
-  const [newPropertyId, setNewPropertyId] = useState('')
-  const [newPropertyName, setNewPropertyName] = useState('')
 
   // Handle URL parameters for success/error messages
   useEffect(() => {
@@ -261,49 +258,6 @@ export default function SettingsPage() {
   }
 
 
-  // Update GA4 property
-  const handleUpdateProperty = async () => {
-    if (!newPropertyId) return
-    
-    setSaving(true)
-    setMessage(null)
-    
-    try {
-      const res = await fetch('/api/ga4/set-property', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          propertyId: newPropertyId,
-          propertyName: newPropertyName || `Property ${newPropertyId}`
-        })
-      })
-      
-      const data = await res.json()
-      
-      if (res.ok) {
-        // Update the integrations state
-        setIntegrations(prev => prev ? {
-          ...prev,
-          ga4: {
-            ...prev.ga4,
-            propertyName: data.propertyName
-          }
-        } : null)
-        
-        setMessage({ type: 'success', text: 'GA4 property updated successfully' })
-        setShowPropertySelector(false)
-        setNewPropertyId('')
-        setNewPropertyName('')
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to update property' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update property' })
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never'
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -457,75 +411,15 @@ export default function SettingsPage() {
                             )}
                           </div>
                           <div className="flex gap-2">
-                            {integrations.ga4.connected && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowPropertySelector(!showPropertySelector)}
-                              >
-                                Change Property
-                              </Button>
-                            )}
-                            <Button
-                              variant={integrations.ga4.connected ? 'secondary' : 'primary'}
-                              size="sm"
-                              onClick={() => router.push('/api/ga4/auth/connect')}
-                            >
-                              {integrations.ga4.connected ? 'Reconnect' : 'Connect'}
-                            </Button>
+                             <Button
+                               variant={integrations.ga4.connected ? 'secondary' : 'primary'}
+                               size="sm"
+                               onClick={() => router.push('/api/ga4/auth/connect')}
+                             >
+                               {integrations.ga4.connected ? 'Reconnect' : 'Connect'}
+                             </Button>
                           </div>
                         </div>
-                        {/* Property Selector */}
-                        {integrations.ga4.connected && showPropertySelector && (
-                          <div className="mt-4 p-4 bg-gray-50 rounded border">
-                            <h5 className="font-medium mb-3">Select GA4 Property</h5>
-                            <div className="space-y-3">
-                              <div>
-                                <Label htmlFor="propertyId">Property ID</Label>
-                                <Input
-                                  id="propertyId"
-                                  type="text"
-                                  placeholder="e.g., 320759942"
-                                  value={newPropertyId}
-                                  onChange={(e) => setNewPropertyId(e.target.value)}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="propertyName">Property Name (Optional)</Label>
-                                <Input
-                                  id="propertyName"
-                                  type="text"
-                                  placeholder="e.g., Jay Hatfield Chevrolet"
-                                  value={newPropertyName}
-                                  onChange={(e) => setNewPropertyName(e.target.value)}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
-                                  onClick={handleUpdateProperty}
-                                  disabled={!newPropertyId || saving}
-                                >
-                                  {saving ? 'Updating...' : 'Update Property'}
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => setShowPropertySelector(false)}
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                <p className="font-medium mb-1">Available Properties:</p>
-                                <p>• Jay Hatfield Chevrolet: 320759942</p>
-                                <p>• Jay Hatfield Motorsports: 317592148</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                       <div className="p-4 border rounded-lg">
                         <div className="flex items-center justify-between">

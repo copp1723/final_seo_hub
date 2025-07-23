@@ -42,7 +42,6 @@
     "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.14",
-    "@sentry/nextjs": "8.55.0",
     "autoprefixer": "^10.4.21",
     "browserslist": "^4.25.1",
     "chart.js": "^4.5.0",

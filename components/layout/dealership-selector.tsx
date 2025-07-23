@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
+import { useSelectedDealership } from '@/app/context/SelectedDealershipContext'
 import { ChevronDown, Building2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logger } from '@/lib/logger'
@@ -28,6 +29,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)
+  const { selectedDealership, setSelectedDealership } = useSelectedDealership()
   const [dealershipData, setDealershipData] = useState<DealershipData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -105,44 +107,24 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
 
   const handleDealershipSwitch = async (dealershipId: string) => {
     if (isSwitching) return
-
     setIsSwitching(true)
     setError(null)
 
     try {
       const response = await fetch('/api/dealerships/switch', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dealershipId })
       })
-
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to switch dealership')
       }
-
       const result = await response.json()
-
-      // Update local state
-      setDealershipData((prev: DealershipData | null) => prev ? {
-       ...prev,
-        currentDealership: result.dealership
-      } : null)
-
+      // Update local state and context
+      setDealershipData(prev => prev ? { ...prev, currentDealership: result.dealership } : null)
+      setSelectedDealership(dealershipId)
       setIsOpen(false)
-
-      // Refresh the session and page to update all dealership-specific data
-      await refreshSession()
-      
-      // Dispatch custom event for other components to listen to
-      window.dispatchEvent(new CustomEvent('dealershipChanged', {
-        detail: { dealership: result.dealership }
-      }))
-      
-      router.refresh()
-
     } catch (err) {
       logger.error('Error switching dealership:', err)
       setError(err instanceof Error ? err.message : 'Failed to switch dealership')
@@ -191,8 +173,10 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
     )
   }
 
-  const currentDealership = dealershipData.currentDealership
   const availableDealerships = dealershipData.availableDealerships
+  const currentDealership =
+    availableDealerships.find(d => d.id === selectedDealership) ||
+    dealershipData.currentDealership
 
   return (
     <div className="relative" ref={dropdownRef}>

@@ -89,14 +89,33 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Check for user's GA4 and Search Console tokens
-    const [ga4Token, searchConsoleToken] = await Promise.all([
-      prisma.user_ga4_tokens.findUnique({
-        where: { userId: session.user.id }
-      }),
-      prisma.user_search_console_tokens.findUnique({
-        where: { userId: session.user.id }
-      })
+    // Check for user's GA4 and Search Console connections
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: { dealershipId: true }
+    })
+
+    // Find connections - check both user-level and dealership-level
+    const [ga4Connection, searchConsoleConnection] = await Promise.all([
+      // First try dealership-level, then user-level
+      user?.dealershipId ? 
+        prisma.ga4_connections.findFirst({
+          where: { dealershipId: user.dealershipId }
+        }).then(conn => conn || prisma.ga4_connections.findFirst({
+          where: { userId: session.user.id }
+        })) :
+        prisma.ga4_connections.findFirst({
+          where: { userId: session.user.id }
+        }),
+      user?.dealershipId ?
+        prisma.search_console_connections.findFirst({
+          where: { dealershipId: user.dealershipId }
+        }).then(conn => conn || prisma.search_console_connections.findFirst({
+          where: { userId: session.user.id }
+        })) :
+        prisma.search_console_connections.findFirst({
+          where: { userId: session.user.id }
+        })
     ])
 
     let ga4Data = undefined;
@@ -105,11 +124,12 @@ export async function POST(request: NextRequest) {
     let searchConsoleError = null;
 
     // Fetch GA4 data if connected AND dealership has GA4 property configured
-    if (ga4Token && dealership.ga4PropertyId) {
+    if (ga4Connection && (dealership.ga4PropertyId || ga4Connection.propertyId)) {
       try {
         const ga4Service = new GA4Service()
+        const propertyId = dealership.ga4PropertyId || ga4Connection.propertyId
         ga4Data = await ga4Service.getAnalyticsData({
-          propertyId: dealership.ga4PropertyId,
+          propertyId,
           startDate,
           endDate,
           userId: session.user.id
@@ -118,38 +138,31 @@ export async function POST(request: NextRequest) {
         logger.error('GA4 fetch error', error)
         ga4Error = 'Failed to fetch GA4 data'
       }
-    } else if (!ga4Token) {
+    } else if (!ga4Connection) {
       ga4Error = 'Connect your Google Analytics account in Settings > Integrations'
-    } else if (!dealership.ga4PropertyId) {
+    } else if (!dealership.ga4PropertyId && !ga4Connection.propertyId) {
       ga4Error = `No GA4 property configured for ${dealership.name}`
     }
 
     // Fetch Search Console data if connected AND dealership has site URL configured
     const dealershipUrl = dealership.siteUrl || dealership.primaryDomain
-    if (searchConsoleToken && dealershipUrl) {
+    if (searchConsoleConnection && (dealershipUrl || searchConsoleConnection.siteUrl)) {
       try {
-        // Check if user has access to this specific site
-        const hasAccess = searchConsoleToken.verifiedSites?.includes(dealershipUrl) || 
-                         searchConsoleToken.primarySite === dealershipUrl
-
-        if (hasAccess) {
-          const scService = new SearchConsoleService()
-          searchConsoleData = await scService.getSearchData({
-            siteUrl: dealershipUrl,
-            startDate,
-            endDate,
-            userId: session.user.id
-          })
-        } else {
-          searchConsoleError = `No access to ${dealershipUrl}. Please verify site access.`
-        }
+        const siteUrl = dealershipUrl || searchConsoleConnection.siteUrl
+        const scService = new SearchConsoleService()
+        searchConsoleData = await scService.getSearchData({
+          siteUrl,
+          startDate,
+          endDate,
+          userId: session.user.id
+        })
       } catch (error) {
         logger.error('Search Console fetch error', error)
         searchConsoleError = 'Failed to fetch Search Console data'
       }
-    } else if (!searchConsoleToken) {
+    } else if (!searchConsoleConnection) {
       searchConsoleError = 'Connect your Search Console account in Settings > Integrations'
-    } else if (!dealershipUrl) {
+    } else if (!dealershipUrl && !searchConsoleConnection.siteUrl) {
       searchConsoleError = `No website URL configured for ${dealership.name}`
     }
 
@@ -162,12 +175,12 @@ export async function POST(request: NextRequest) {
         searchConsoleError
       },
       metadata: {
-        hasGA4Connection: !!ga4Token && !!dealership.ga4PropertyId,
-        hasSearchConsoleConnection: !!searchConsoleToken && !!dealershipUrl,
+        hasGA4Connection: !!ga4Connection && !!(dealership.ga4PropertyId || ga4Connection.propertyId),
+        hasSearchConsoleConnection: !!searchConsoleConnection && !!(dealershipUrl || searchConsoleConnection.siteUrl),
         dealershipId: dealership.id,
         dealershipName: dealership.name,
-        propertyId: dealership.ga4PropertyId,
-        siteUrl: dealershipUrl
+        propertyId: dealership.ga4PropertyId || ga4Connection?.propertyId,
+        siteUrl: dealershipUrl || searchConsoleConnection?.siteUrl
       },
       combinedMetrics: {
         totalSessions: ga4Data?.sessions || 0,

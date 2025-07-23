@@ -1,6 +1,6 @@
+'use client'
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic'
-'use client'
 
 import { useAuth } from '@/app/simple-auth-provider'
 import { useState, useEffect } from 'react'

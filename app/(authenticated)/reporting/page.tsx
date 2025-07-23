@@ -1,3 +1,5 @@
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic'
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -27,7 +29,7 @@ import {
   Settings
 } from 'lucide-react'
 import { format, subDays, startOfMonth, endOfMonth, startOfYear } from 'date-fns'
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
 
 // Import tab components
@@ -37,13 +39,13 @@ import SearchTab from './components/SearchTab'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
 
 // Lazy load charts
-const Line = dynamic(() => import('react-chartjs-2').then(mod => mod.Line), { 
+const Line = nextDynamic(() => import('react-chartjs-2').then(mod => mod.Line), {
   loading: () => <Loader2 className="h-6 w-6 animate-spin" />,
-  ssr: false 
+  ssr: false
 })
-const Bar = dynamic(() => import('react-chartjs-2').then(mod => mod.Bar), { 
+const Bar = nextDynamic(() => import('react-chartjs-2').then(mod => mod.Bar), {
   loading: () => <Loader2 className="h-6 w-6 animate-spin" />,
-  ssr: false 
+  ssr: false
 })
 
 // Lazy load Chart.js registration

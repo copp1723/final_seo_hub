@@ -1,3 +1,5 @@
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic'
 import OnboardingStatus from '@/components/onboarding/onboarding-status'
 
 export default function OnboardingStatusPage() {

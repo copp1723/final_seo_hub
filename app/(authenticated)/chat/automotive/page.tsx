@@ -1,3 +1,5 @@
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic'
 import { AutomotiveSEOChat } from '@/components/chat/automotive-seo-chat'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

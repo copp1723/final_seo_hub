@@ -37,6 +37,7 @@ import OverviewTab from './components/OverviewTab'
 import TrafficTab from './components/TrafficTab'
 import SearchTab from './components/SearchTab'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
+import { useSelectedDealership } from '@/app/context/SelectedDealershipContext'
 
 // Lazy load charts
 const Line = nextDynamic(() => import('react-chartjs-2').then(mod => mod.Line), {
@@ -188,6 +189,7 @@ export default function ReportingPage() {
   const [savingGA4, setSavingGA4] = useState(false)
   const [savingSC, setSavingSC] = useState(false)
   const [isSearchConsoleAutoSynced, setIsSearchConsoleAutoSynced] = useState(true) // Default to auto-synced
+  const { selectedDealership } = useSelectedDealership()
 
   const { toast } = useToast()
 
@@ -484,64 +486,13 @@ export default function ReportingPage() {
     ]
   }
 
-  // Load dealership-specific properties
-  const loadDealershipProperties = async () => {
-    try {
-      // Get current user's dealership
-      const response = await fetch('/api/dealerships/switch')
-      if (response.ok) {
-        const data = await response.json()
-        const currentDealership = data.currentDealership
-        
-        if (currentDealership) {
-          // Load GA4 property for this dealership
-          const ga4Response = await fetch(`/api/ga4/properties?dealershipId=${currentDealership.id}`)
-          if (ga4Response.ok) {
-            const ga4Data = await ga4Response.json()
-            if (ga4Data.properties?.length > 0) {
-              // setCurrentGA4Property(ga4Data.properties[0].propertyId) // This line was removed
-            }
-          }
-          
-          // Load Search Console site for this dealership
-          const scResponse = await fetch(`/api/search-console/list-sites?dealershipId=${currentDealership.id}`)
-          if (scResponse.ok) {
-            const scData = await scResponse.json()
-            if (scData.sites?.length > 0) {
-              // setCurrentSearchConsoleSite(scData.sites[0].siteUrl) // This line was removed
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load dealership properties:', error)
-    }
-  }
-
-  // Auto-load properties when dealership changes
+  // Trigger data fetch when selectedDealership changes
   useEffect(() => {
-    // Fetch data when component mounts
-    fetchAllData()
-  }, [])
-
-  // Listen for dealership changes
-  useEffect(() => {
-    const handleDealershipChange = () => {
-      console.log('Dealership changed - refreshing data')
+    if (selectedDealership) {
       clearRelatedCache('all')
       fetchAllData()
     }
-
-    // Listen for custom dealership change event
-    window.addEventListener('dealershipChanged', handleDealershipChange)
-    
-    // Initial load
-    fetchAllData()
-
-    return () => {
-      window.removeEventListener('dealershipChanged', handleDealershipChange)
-    }
-  }, [])
+  }, [selectedDealership])
 
   // Fetch both GA4 and Search Console data
   const fetchAllData = async (showLoadingToast = false) => {
@@ -610,11 +561,7 @@ export default function ReportingPage() {
     fetchAllData()
   }, [selectedRange])
 
-  // Auto-sync Search Console when properties are loaded
-  useEffect(() => {
-    // Auto-load properties when dealership changes
-    fetchAllData()
-  }, [])
+  // Note: fetchAllData is now triggered by selectedDealership and selectedRange effects
 
   // Calculate GA4 summary metrics
   const calculateGaMetrics = () => {

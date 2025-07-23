@@ -43,8 +43,11 @@ export class GA4Service {
         expiry_date: userToken.expiryDate?.getTime()
       });
 
-      // Initialize Analytics Data API
-      this.analytics = google.analyticsdata('v1beta');
+      // Initialize Analytics Data API with auth
+      this.analytics = google.analyticsdata({
+        version: 'v1beta',
+        auth: this.oauth2Client
+      });
     } catch (error) {
       logger.error('GA4 Service initialization error', error);
       throw error;
@@ -58,7 +61,6 @@ export class GA4Service {
 
     try {
       const response = await this.analytics.properties.batchRunReports({
-        auth: this.oauth2Client,
         property: `properties/${propertyId}`,
         requestBody: {
           requests: requests
@@ -107,13 +109,15 @@ export class GA4Service {
         expiry_date: userToken.expiryDate?.getTime()
       });
 
-      // Initialize Analytics Data API
-      this.analytics = google.analyticsdata('v1beta');
+      // Initialize Analytics Data API with auth
+      this.analytics = google.analyticsdata({
+        version: 'v1beta',
+        auth: oauth2Client
+      });
 
       // Run report
       const response = await this.analytics.properties.runReport({
-        auth: oauth2Client,
-        property: options.propertyId,
+        property: `properties/${options.propertyId}`,
         requestBody: {
           dateRanges: [{
             startDate: options.startDate,

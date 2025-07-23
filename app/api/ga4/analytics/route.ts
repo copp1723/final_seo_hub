@@ -135,6 +135,7 @@ export async function POST(request: NextRequest) {
 
     // Initialize GA4 service
     const ga4Service = new GA4Service(session.user.id)
+    await ga4Service.initialize()
 
     // Prepare batch requests for different reports
     const batchRequests = [

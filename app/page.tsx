@@ -10,6 +10,6 @@ export default async function Home() {
     redirect('/dashboard')
   } else {
     // Redirect unauthenticated users to sign in
-    redirect('/auth/simple-signin')
+    redirect('/login')
   }
 }

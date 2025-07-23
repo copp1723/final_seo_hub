@@ -2,64 +2,96 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-async function fixGA4Tokens() {
+async function migrateGA4Tokens() {
   try {
-    console.log('🔧 FIXING GA4 TOKENS');
-    console.log('=====================\n');
-
-    // Find the super admin user
-    const superAdmin = await prisma.users.findFirst({
-      where: { 
-        email: 'josh.copp@onekeel.ai',
-        role: 'SUPER_ADMIN'
+    console.log('🔧 MIGRATING GA4 TOKENS');
+    console.log('=======================\n');
+    
+    // Get all GA4 connections
+    const ga4Connections = await prisma.ga4_connections.findMany({
+      where: {
+        accessToken: { not: null }
       }
     });
-
-    if (!superAdmin) {
-      console.log('❌ Super admin user not found!');
-      return;
+    
+    console.log(`Found ${ga4Connections.length} GA4 connections to migrate`);
+    
+    let migrated = 0;
+    let failed = 0;
+    let skipped = 0;
+    
+    for (const connection of ga4Connections) {
+      try {
+        // Skip placeholder tokens
+        if (connection.accessToken === 'placeholder-access-token' || 
+            connection.refreshToken === 'placeholder-refresh-token') {
+          console.log(`⚠️  Skipping placeholder tokens for user ${connection.userId}`);
+          skipped++;
+          continue;
+        }
+        
+        // Check if user already has tokens in user_ga4_tokens
+        const existingToken = await prisma.user_ga4_tokens.findUnique({
+          where: { userId: connection.userId }
+        });
+        
+        if (existingToken) {
+          console.log(`✅ User ${connection.userId} already has tokens in user_ga4_tokens, updating...`);
+          
+          // Update existing token with connection data
+          await prisma.user_ga4_tokens.update({
+            where: { userId: connection.userId },
+            data: {
+              encryptedAccessToken: connection.accessToken,
+              encryptedRefreshToken: connection.refreshToken,
+              expiryDate: connection.expiresAt,
+              scope: 'https://www.googleapis.com/auth/analytics.readonly',
+              tokenType: 'Bearer',
+              updatedAt: new Date()
+            }
+          });
+          
+          migrated++;
+          continue;
+        }
+        
+        // Create new token entry
+        await prisma.user_ga4_tokens.create({
+          data: {
+            userId: connection.userId,
+            encryptedAccessToken: connection.accessToken,
+            encryptedRefreshToken: connection.refreshToken,
+            expiryDate: connection.expiresAt,
+            scope: 'https://www.googleapis.com/auth/analytics.readonly',
+            tokenType: 'Bearer'
+          }
+        });
+        
+        console.log(`✓ Migrated tokens for user ${connection.userId}`);
+        migrated++;
+        
+      } catch (error) {
+        console.error(`✗ Failed to migrate tokens for user ${connection.userId}:`, error.message);
+        failed++;
+      }
     }
-
-    console.log(`✅ Found super admin: ${superAdmin.email} (${superAdmin.id})`);
-
-    // Find the GA4 connection
-    const ga4Connection = await prisma.ga4_connections.findFirst({
-      where: { userId: superAdmin.id }
-    });
-
-    if (!ga4Connection) {
-      console.log('❌ No GA4 connection found!');
-      return;
+    
+    console.log('\n=== Migration Summary ===');
+    console.log(`Total connections found: ${ga4Connections.length}`);
+    console.log(`Successfully migrated: ${migrated}`);
+    console.log(`Failed: ${failed}`);
+    console.log(`Skipped (placeholders): ${skipped}`);
+    
+    if (migrated > 0) {
+      console.log('\n✅ Migration completed! GA4Service should now find tokens.');
     }
-
-    console.log(`✅ Found GA4 connection: ${ga4Connection.propertyName} (${ga4Connection.propertyId})`);
-
-    // Check if tokens are placeholder values
-    if (ga4Connection.accessToken === 'placeholder-access-token' || 
-        ga4Connection.refreshToken === 'placeholder-refresh-token') {
-      
-      console.log('⚠️  Found placeholder tokens - removing connection');
-      
-      // Delete the placeholder connection
-      await prisma.ga4_connections.delete({
-        where: { id: ga4Connection.id }
-      });
-      
-      console.log('✅ Removed placeholder GA4 connection');
-      console.log('\n🎯 NEXT STEPS:');
-      console.log('   1. Go to the settings page');
-      console.log('   2. Click "Connect Google Analytics"');
-      console.log('   3. Complete the OAuth flow to get real tokens');
-      
-    } else {
-      console.log('✅ GA4 connection has real tokens');
-    }
-
+    
   } catch (error) {
-    console.error('❌ Error fixing GA4 tokens:', error);
+    console.error('❌ Migration failed:', error);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-fixGA4Tokens(); 
+// Run the migration
+migrateGA4Tokens(); 

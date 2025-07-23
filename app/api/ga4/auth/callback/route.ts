@@ -113,6 +113,29 @@ export async function GET(request: NextRequest) {
       propertyName: connection.propertyName
     })
 
+    // Also save to user_ga4_tokens table for GA4Service
+    await prisma.user_ga4_tokens.upsert({
+      where: { userId: state },
+      update: {
+        encryptedAccessToken: encryptedAccessToken,
+        encryptedRefreshToken: encryptedRefreshToken,
+        expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+        scope: tokens.scope || null,
+        tokenType: tokens.token_type || null,
+        updatedAt: new Date()
+      },
+      create: {
+        userId: state,
+        encryptedAccessToken: encryptedAccessToken,
+        encryptedRefreshToken: encryptedRefreshToken,
+        expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+        scope: tokens.scope || null,
+        tokenType: tokens.token_type || null
+      }
+    })
+
+    logger.info('GA4 tokens saved to user_ga4_tokens table', { userId: state })
+
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=success&service=ga4`)
 
   } catch (error) {

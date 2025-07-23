@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/app/simple-auth-provider'
 import { redirect } from 'next/navigation'
+import { useSelectedDealership } from '@/app/context/SelectedDealershipContext'
 
 // Force dynamic rendering - don't pre-render this page
 export const dynamic = 'force-dynamic'
@@ -145,6 +146,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [mounted, setMounted] = useState(false)
+  const { selectedDealership } = useSelectedDealership()
 
   // Set mounted state to prevent hydration issues
   useEffect(() => {
@@ -157,8 +159,8 @@ export default function DashboardPage() {
 
     setAnalyticsLoading(true)
     try {
-      // Determine selected dealership for context
-      const currentDealershipId = localStorage.getItem('selectedDealershipId')
+      // Determine selected dealership from context
+      const currentDealershipId = selectedDealership
       // Build analytics-v2 endpoint with dateRange and optional dealershipId
       const endpoint = `/api/dashboard/analytics-v2?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
       const response = await fetch(endpoint)
@@ -178,7 +180,7 @@ export default function DashboardPage() {
     } finally {
       setAnalyticsLoading(false)
     }
-  }, [user?.id, mounted])
+  }, [user?.id, mounted, selectedDealership])
   
   const fetchDashboardData = useCallback(async () => {
     if (!user?.id || !mounted) return
@@ -187,8 +189,8 @@ export default function DashboardPage() {
     setError(null)
 
     try {
-      // Pass the dealershipId if available from the session
-      const currentDealershipId = localStorage.getItem('selectedDealershipId');
+      // Pass the dealershipId if available from context
+      const currentDealershipId = selectedDealership
       const statsResponse = await fetch(`/api/dashboard/stats${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
       const recentActivityResponse = await fetch(`/api/dashboard/recent-activity${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
 
@@ -236,7 +238,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, mounted, toast])
+  }, [user?.id, mounted, toast, selectedDealership])
 
   useEffect(() => {
     if (mounted && user?.id) {
@@ -245,19 +247,7 @@ export default function DashboardPage() {
     }
   }, [user?.id, mounted, fetchDashboardData, fetchAnalyticsData])
 
-  useEffect(() => {
-    const handleDealershipChange = () => {
-      fetchDashboardData()
-    }
-
-    // Add event listener for custom dealership changed event
-    window.addEventListener('dealershipChanged', handleDealershipChange)
-
-    // Clean up the event listener
-    return () => {
-      window.removeEventListener('dealershipChanged', handleDealershipChange)
-    }
-  }, [fetchDashboardData])
+  // Removed event listener for dealershipChanged: context selection handles re-fetch
 
   // Handle authentication - moved after all hooks
   if (isLoading) {
@@ -342,7 +332,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                   <span className={`flex items-center gap-1 ${analyticsData.metadata.hasGA4Connection ? 'text-green-600' : 'text-orange-600'}`}>
                     <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-orange-500'}`} />
-                    GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : analyticsData.metadata.dealershipId ? 'Not Configured' : 'Select Dealership'}
+                    GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : selectedDealership ? 'Not Configured' : 'Select Dealership'}
                   </span>
                   <span className={`flex items-center gap-1 ${analyticsData.metadata.hasSearchConsoleConnection ? 'text-green-600' : 'text-orange-600'}`}>
                     <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-orange-500'}`} />
@@ -398,16 +388,16 @@ export default function DashboardPage() {
           {/* Analytics Performance */}
           <StatCard
             title="GA4 Sessions"
-            value={!analyticsData?.metadata.dealershipId ? '-' : analyticsData?.ga4Data?.sessions?.toLocaleString() || '-'}
-            subtitle={!analyticsData?.metadata.dealershipId ? "Select dealership" : analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "No GA4 configured"}
+            value={!selectedDealership ? '-' : analyticsData?.ga4Data?.sessions?.toLocaleString() || '-'}
+            subtitle={!selectedDealership ? "Select dealership" : analyticsData?.metadata.hasGA4Connection ? "Last 30 days" : "No GA4 configured"}
             icon={BarChart}
             color="green"
             loading={analyticsLoading}
           />
           <StatCard
             title="SC Clicks"
-            value={!analyticsData?.metadata.dealershipId ? '-' : analyticsData?.searchConsoleData?.clicks?.toLocaleString() || '-'}
-            subtitle={!analyticsData?.metadata.dealershipId ? "Select dealership" : analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "No Search Console configured"}
+            value={!selectedDealership ? '-' : analyticsData?.searchConsoleData?.clicks?.toLocaleString() || '-'}
+            subtitle={!selectedDealership ? "Select dealership" : analyticsData?.metadata.hasSearchConsoleConnection ? "Last 30 days" : "No Search Console configured"}
             icon={TrendingUp}
             color="orange"
             loading={analyticsLoading}

@@ -14,18 +14,41 @@ export interface SimpleSession {
   expires: Date;
 }
 
-// Use NEXTAUTH_SECRET as the primary secret for consistency
-// For demo purposes, we'll use a default secret if none is provided
-const JWT_SECRET_STRING = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'demo-secret-key-not-for-production-use';
+// JWT Secret handling - deferred to avoid build-time issues
+let JWT_SECRET_STRING: string | null = null;
 
-// Log a warning in production if using default secret
-if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET && !process.env.JWT_SECRET) {
-  console.warn('WARNING: Using default JWT secret in production. Set NEXTAUTH_SECRET or JWT_SECRET for security.');
-}
+const getJwtSecret = () => {
+  // Return cached value if already initialized
+  if (JWT_SECRET_STRING) return JWT_SECRET_STRING;
+  
+  // Get secret from environment
+  const secret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET;
+  
+  // In production, use the secret or a generated fallback
+  if (process.env.NODE_ENV === 'production') {
+    if (!secret) {
+      // Generate a consistent secret based on deployment
+      // This is not ideal but prevents crashes
+      JWT_SECRET_STRING = 'prod-fallback-' + (process.env.RENDER_SERVICE_NAME || 'default');
+      console.warn('WARNING: Using fallback JWT secret. Set NEXTAUTH_SECRET for security.');
+    } else {
+      JWT_SECRET_STRING = secret;
+    }
+  } else {
+    // In development, use secret or default
+    JWT_SECRET_STRING = secret || 'demo-secret-key-not-for-production-use';
+  }
+  
+  return JWT_SECRET_STRING;
+};
 
 export class SimpleAuth {
   public static readonly COOKIE_NAME = 'seo-hub-session';
-  private static readonly JWT_SECRET = JWT_SECRET_STRING;
+  
+  // Lazy getter for JWT secret
+  private static get JWT_SECRET() {
+    return getJwtSecret();
+  }
 
   // Web Crypto API for token generation (edge runtime compatible)
   private static async generateToken(payload: any): Promise<string> {

@@ -7,9 +7,10 @@ import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
-    const response = NextResponse.json({ success: true });
+    // Create redirect response
+    const response = NextResponse.redirect(new URL('/auth/simple-signin', request.url));
 
-    // Clear the session cookie
+    // Clear the session cookie on the redirect response
     response.cookies.set(SimpleAuth.COOKIE_NAME, '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -18,10 +19,35 @@ export async function POST(request: NextRequest) {
       path: '/'
     });
 
-    // Always redirect to signin page after signout
-    return NextResponse.redirect(new URL('/auth/simple-signin', request.url));
+    // Also try to clear any other auth cookies that might exist
+    response.cookies.set('next-auth.session-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/'
+    });
+    
+    response.cookies.set('__Secure-next-auth.session-token', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/'
+    });
+
+    return response;
   } catch (error) {
     logger.error('Signout error:', error);
-    return NextResponse.json({ message: 'Signout failed' }, { status: 500 });
+    // Still redirect even on error, but log it
+    const response = NextResponse.redirect(new URL('/auth/simple-signin', request.url));
+    response.cookies.set(SimpleAuth.COOKIE_NAME, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/'
+    });
+    return response;
   }
 }

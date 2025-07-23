@@ -1,6 +1,15 @@
 import { redirect } from 'next/navigation'
+import { SimpleAuth } from '@/lib/auth-simple'
 
 export default async function Home() {
-  // AUTO-LOGIN: Direct access to dashboard as super admin
-  redirect('/dashboard')
+  // Check if user is authenticated
+  const session = await SimpleAuth.getSession()
+  
+  if (session) {
+    // Redirect authenticated users to dashboard
+    redirect('/dashboard')
+  } else {
+    // Redirect unauthenticated users to sign in
+    redirect('/auth/simple-signin')
+  }
 }

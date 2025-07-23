@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { SimpleAuth } from '@/lib/auth-simple';
+import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 
 
@@ -8,17 +9,31 @@ import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 const prisma = new PrismaClient();
 
-// TEMPORARY FORCE LOGIN - REMOVE AFTER GETTING ACCESS
+// EMERGENCY ADMIN ACCESS - ONLY FOR RECOVERY PURPOSES
+// This endpoint should be disabled in production or protected by IP restrictions
 export async function GET(request: NextRequest) {
   try {
+    // Check if emergency access is enabled
+    if (process.env.DISABLE_EMERGENCY_ACCESS === 'true') {
+      return NextResponse.json({ error: 'Emergency access disabled' }, { status: 403 });
+    }
+
     // Only allow with correct secret
     const secret = request.nextUrl.searchParams.get('secret');
-    const expectedSecret = process.env.EMERGENCY_ADMIN_TOKEN || process.env.NEXTAUTH_SECRET?.substring(0, 10);
+    const expectedSecret = process.env.EMERGENCY_ADMIN_TOKEN;
     
-    if (!secret || secret !== expectedSecret) {
-      console.log('Force login denied - invalid secret');
+    // Require explicit EMERGENCY_ADMIN_TOKEN to be set
+    if (!expectedSecret || !secret || secret !== expectedSecret) {
+      console.log('Force login denied - invalid or missing secret');
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    
+    // Log the emergency access attempt
+    logger.warn('Emergency admin access used', {
+      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+      userAgent: request.headers.get('user-agent'),
+      timestamp: new Date().toISOString()
+    });
 
     const email = 'josh.copp@onekeel.ai';
     

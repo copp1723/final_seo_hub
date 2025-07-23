@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 async function createAgencyAdmin() {
   try {
     // Replace with your actual email
-    const email = 'your-email@example.com'
+    const email = 'access@seowerks.ai'
     
     // Check if user exists
     const existingUser = await prisma.users.findUnique({

@@ -3,6 +3,9 @@ import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { decrypt } from '@/lib/encryption'
 
+// Force dynamic rendering to prevent build-time errors
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)

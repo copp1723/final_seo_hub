@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
+import { features } from '@/app/lib/features'
+import { getDemoStats } from '@/lib/demo-data'
 
 // Force dynamic rendering since we use auth
 export const dynamic = 'force-dynamic'
@@ -11,6 +13,15 @@ async function handleGET(request: NextRequest) {
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Return demo data if demo mode is enabled
+    if (features.demoMode) {
+      console.log('🎭 Dashboard Stats: Returning demo data')
+      return NextResponse.json({
+        success: true,
+        data: getDemoStats()
+      })
     }
 
     const user = await prisma.users.findUnique({

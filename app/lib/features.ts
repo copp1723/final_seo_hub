@@ -5,6 +5,9 @@
 
 // Feature flag configuration
 export const features = {
+  // Demo Mode - Clean data for presentations
+  demoMode: process.env.NEXT_PUBLIC_DEMO_MODE === 'true' || process.env.DEMO_MODE === 'true',
+  
   // AI Enhancements
   enhancedPrompts: process.env.NEXT_PUBLIC_FEATURE_ENHANCED_PROMPTS === 'true',
   semanticChatCache: process.env.NEXT_PUBLIC_FEATURE_SEMANTIC_CACHE === 'true',
@@ -61,4 +64,7 @@ export const isProduction = process.env.NEXT_PUBLIC_ENVIRONMENT === 'production'
 // Log feature flag status on startup
 if (isDevelopment) {
   console.log('🚩 Feature Flags:', features);
+  if (features.demoMode) {
+    console.log('🎭 DEMO MODE ENABLED - Using mock data for presentations');
+  }
 }

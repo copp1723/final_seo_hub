@@ -35,6 +35,7 @@ import ErrorBoundary from '@/components/error-boundary'
 import { useToast } from '@/hooks/use-toast'
 import { RecentActivityTimeline } from '@/components/dashboard/RecentActivityTimeline'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
+import { features } from '@/app/lib/features'
 
 import type { 
   DashboardData, 
@@ -321,6 +322,21 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      {/* Demo Mode Banner */}
+      {features.demoMode && (
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-center">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                <span className="font-medium">DEMO MODE</span>
+                <span className="text-blue-100">|</span>
+                <span className="text-sm text-blue-100">Displaying sample data for presentation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">

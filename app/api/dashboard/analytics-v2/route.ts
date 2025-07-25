@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { GA4Service } from '@/lib/google/ga4Service'
 import { SearchConsoleService } from '@/lib/google/search-console-service'
+import { features } from '@/app/lib/features'
+import { getDemoAnalytics } from '@/lib/demo-data'
 
 // Force dynamic rendering since we use auth
 export const dynamic = 'force-dynamic'
@@ -22,6 +24,15 @@ export async function POST(request: NextRequest) {
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Return demo data if demo mode is enabled
+    if (features.demoMode) {
+      console.log('🎭 Dashboard Analytics: Returning demo data')
+      return NextResponse.json({ 
+        data: getDemoAnalytics(), 
+        cached: false 
+      })
     }
 
     const body = await request.json()
@@ -218,45 +229,65 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Support GET requests with query parameters
-  const { searchParams } = new URL(request.url)
-  const dateRange = searchParams.get('dateRange') || '30days'
-  const dealershipId = searchParams.get('dealershipId')
-  
-  // Calculate date range
-  const endDate = new Date()
-  const startDate = new Date()
-  
-  switch (dateRange) {
-    case '7days':
-      startDate.setDate(startDate.getDate() - 7)
-      break
-    case '30days':
-      startDate.setDate(startDate.getDate() - 30)
-      break
-    case '90days':
-      startDate.setDate(startDate.getDate() - 90)
-      break
-    default:
-      startDate.setDate(startDate.getDate() - 30)
-  }
+  try {
+    const session = await SimpleAuth.getSessionFromRequest(request)
+    
+    if (!session?.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-  // Create a new request with the session cookie
-  const postRequest = new NextRequest(request.url, {
-    method: 'POST',
-    headers: request.headers,
-    body: JSON.stringify({
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      dateRange,
-      dealershipId
+    // Return demo data if demo mode is enabled
+    if (features.demoMode) {
+      console.log('🎭 Dashboard Analytics GET: Returning demo data')
+      return NextResponse.json({ 
+        data: getDemoAnalytics(), 
+        cached: false 
+      })
+    }
+
+    // Support GET requests with query parameters
+    const { searchParams } = new URL(request.url)
+    const dateRange = searchParams.get('dateRange') || '30days'
+    const dealershipId = searchParams.get('dealershipId')
+    
+    // Calculate date range
+    const endDate = new Date()
+    const startDate = new Date()
+    
+    switch (dateRange) {
+      case '7days':
+        startDate.setDate(startDate.getDate() - 7)
+        break
+      case '30days':
+        startDate.setDate(startDate.getDate() - 30)
+        break
+      case '90days':
+        startDate.setDate(startDate.getDate() - 90)
+        break
+      default:
+        startDate.setDate(startDate.getDate() - 30)
+    }
+
+    // Create a new request with the session cookie
+    const postRequest = new NextRequest(request.url, {
+      method: 'POST',
+      headers: request.headers,
+      body: JSON.stringify({
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        dateRange,
+        dealershipId
+      })
     })
-  })
 
-  // Copy cookies to the new request
-  request.cookies.getAll().forEach(cookie => {
-    postRequest.cookies.set(cookie)
-  })
+    // Copy cookies to the new request
+    request.cookies.getAll().forEach(cookie => {
+      postRequest.cookies.set(cookie)
+    })
 
-  return POST(postRequest)
+    return POST(postRequest)
+  } catch (error) {
+    logger.error('Analytics GET error', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

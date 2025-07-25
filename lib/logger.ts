@@ -1,4 +1,17 @@
-import { sanitizeForLog } from './validations'
+// import { sanitizeForLog } from './validations'
+
+// Client-safe sanitize function to avoid server imports
+function sanitizeForLog(str: string, maxLength = 200): string {
+  // Remove potential API keys, tokens, passwords
+  const sanitized = str
+    .replace(/\b(api[_-]?key|token|password|secret|auth|bearer)\s*[:=]\s*['"]?[\w-]+['"]?/gi, '[REDACTED]')
+    .replace(/\b(sk-|pk-|api-|key-|token-|bearer\s+)[\w-]+/gi, '[REDACTED]')
+    
+  // Truncate if too long
+  return sanitized.length > maxLength 
+    ? sanitized.substring(0, maxLength) + '...' 
+    : sanitized
+}
 
 export interface LogContext {
   userId?: string

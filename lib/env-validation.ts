@@ -127,8 +127,9 @@ const ENV_CONFIG: EnvConfig[] = [
     required: true,
     description: 'Mailgun API key for email services',
     validator: (value) => {
-      if (!value.startsWith('key-')) {
-        return 'MAILGUN_API_KEY should start with "key-"'
+      // Modern Mailgun API keys are 32-character hex strings
+      if (value.length < 32) {
+        return 'MAILGUN_API_KEY should be at least 32 characters'
       }
       return true
     }

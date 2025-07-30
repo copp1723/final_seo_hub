@@ -16,6 +16,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
+    "db:migrate:fix": "node scripts/pre-deploy-fix.js",
+    "db:sync": "./scripts/bypass-migrations.sh",
     "db:migrate:dev": "prisma migrate dev",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",

@@ -1,0 +1,3 @@
+preDeployCommand: "npx prisma generate"
+buildCommand: "npm run build"
+startCommand: "npm start"

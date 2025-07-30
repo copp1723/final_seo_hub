@@ -106,7 +106,7 @@ export async function PUT(request: NextRequest) {
     })
     
     logger.info('Notification preferences updated', { userId: authResult.user.id })
-    return successResponse({ preferences }, 'Notification preferences updated successfully')
+    return successResponse({ preferences }, 200)
   } catch (error) {
     logger.error('Error updating notification preferences:', error, { userId: authResult.user.id })
     return errorResponse('Failed to update notification preferences', 500)

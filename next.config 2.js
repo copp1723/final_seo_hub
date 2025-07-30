@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -153,4 +155,27 @@ const nextConfig = {
   }
 }
 
-module.exports = nextConfig; 
+module.exports = withSentryConfig(nextConfig, {
+  // For all available options, see: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+
+  // Transpiles SDK to be compatible with IE11 (increases bundle size)
+  transpileClientSDK: true,
+
+  // Routes browser requests to an internal Sentry proxy API route
+  tunnelRoute: '/api/monitoring/sentry',
+
+  // Hides source maps from tree-shaking by Next.js in production builds
+  hideSourceMaps: true,
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+
+  // Automatically instrument your Next.js server calls with Sentry
+  autoInstrumentServerFunctions: true,
+
+  // Automatically instrument your Next.js client-side navigation with Sentry
+  autoInstrumentClientFunctions: true,
+}); 

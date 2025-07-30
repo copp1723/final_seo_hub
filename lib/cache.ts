@@ -140,10 +140,13 @@ export const cachedQueries = {
 
   // Search Console connection status with 5-minute cache
   getSearchConsoleStatus: createCachedFunction(
-    async (userId: string) => {
+    async (userId: string, dealershipId: string | null) => {
       const { prisma } = await import('./prisma')
-      return prisma.search_console_connections.findUnique({
-        where: { userId },
+      return prisma.search_console_connections.findFirst({
+        where: { 
+          userId,
+          dealershipId 
+        },
         select: {
           id: true,
           siteUrl: true,
@@ -160,10 +163,13 @@ export const cachedQueries = {
 
   // GA4 connection status with 5-minute cache
   getGA4Status: createCachedFunction(
-    async (userId: string) => {
+    async (userId: string, dealershipId: string | null) => {
       const { prisma } = await import('./prisma')
-      return prisma.ga4_connections.findUnique({
-        where: { userId },
+      return prisma.ga4_connections.findFirst({
+        where: { 
+          userId,
+          dealershipId 
+        },
         select: {
           id: true,
           propertyId: true,

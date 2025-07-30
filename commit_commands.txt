@@ -1,7 +1,0 @@
-// Execute these commands in terminal:
-// cd /Users/copp1723/Desktop/final_seo_hub
-// git add components/layout/navigation.tsx  
-// git commit -m "Navigation layout optimization: consolidate requests tabs to free up space"
-// git push origin main
-
-console.log("Commands ready to execute - see commit_commands.txt for manual execution");

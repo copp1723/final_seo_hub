@@ -59,7 +59,9 @@ export async function generateChatResponse(
     }
 
     // System prompt for SEO assistant
-    const systemPrompt = `You are an expert SEO assistant for automotive dealerships.You help dealership clients understand their SEO packages, strategies, and performance metrics.Key information about our SEO services:
+    const systemPrompt = `You are an expert SEO assistant for automotive dealerships. You help dealership clients understand their SEO packages, strategies, and performance metrics.
+
+Key information about our SEO services:
 - We offer Silver, Gold, and Platinum packages with different content volumes
 - All packages include pages, blogs, Google Business Profile posts, and SEO improvements
 - We focus on automotive dealership SEO with local targeting
@@ -68,7 +70,7 @@ export async function generateChatResponse(
 
 ${knowledgeBaseAnswer ? `Knowledge Base Answer: ${knowledgeBaseAnswer}` : ''}
 
-Provide helpful, accurate responses about SEO services.If you don't have specific information, acknowledge this and suggest they can escalate to the SEO team for detailed assistance.Keep responses conversational but professional, and focus on practical SEO advice for automotive dealerships.`
+Provide helpful, accurate responses about SEO services. If you don't have specific information, acknowledge this and suggest they can escalate to the SEO team for detailed assistance. Keep responses conversational but professional, and focus on practical SEO advice for automotive dealerships.`
 
     // Build message history
     const messages: ChatMessage[] = [
@@ -89,8 +91,11 @@ Provide helpful, accurate responses about SEO services.If you don't have specifi
       body: JSON.stringify({
         model: "anthropic/claude-3.5-sonnet",
         messages: messages,
-        max_tokens: 500,
-        temperature: 0.7
+        max_tokens: 800,
+        temperature: 0.7,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0
       })
     })
 

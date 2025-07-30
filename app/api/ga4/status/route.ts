@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const connection = await prisma.ga4_connections.findUnique({
+    const connection = await prisma.ga4_connections.findFirst({
       where: { userId: session.user.id },
       select: {
         id: true,

@@ -77,10 +77,8 @@ export function Navigation() {
     )
   }
 
-  // Admin navigation items
-  const adminNavItems = user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? [
-    { href: user?.role === 'SUPER_ADMIN' ? '/super-admin' : '/admin', label: 'Admin', icon: Shield }
-  ] : []
+  // Admin navigation items - removed for alpha deployment
+  const adminNavItems: any[] = []
 
   return (
     <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-lg sticky top-0 z-50">

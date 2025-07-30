@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     await prisma.ga4_connections.update({
-      where: { userId: targetDealershipId },
+      where: { id: connection.id },
       data: {
         propertyId,
         propertyName: propertyName || `Property ${propertyId}`,

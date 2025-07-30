@@ -1,35 +1,25 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useAuth } from '@/app/simple-auth-provider'
-import { useRouter } from 'next/navigation'
+import { useDealership, type Dealership } from '@/app/context/DealershipContext'
 import { ChevronDown, Building2, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { logger } from '@/lib/logger'
-
-// NOTE: This local DealershipData interface is specific to the selector UI and should NOT be replaced with the shared lib/dealership.ts type, as its shape is different and required for UI logic.
-interface Dealership {
-  id: string
-  name: string
-}
-
-interface DealershipData {
-  currentDealership: Dealership | null
-  availableDealerships: Dealership[]
-}
 
 interface DealershipSelectorProps {
   showOnAllPages?: boolean
 }
 
 export function DealershipSelector({ showOnAllPages = false }: DealershipSelectorProps) {
-  const { user, refreshSession } = useAuth()
-  const router = useRouter()
+  const {
+    currentDealership,
+    availableDealerships,
+    isLoading,
+    isSwitching,
+    error,
+    switchDealership
+  } = useDealership()
+  
   const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSwitching, setIsSwitching] = useState(false)
-  const [dealershipData, setDealershipData] = useState<DealershipData | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -37,55 +27,6 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  // Fetch dealerships on component mount - only after mounted
-  useEffect(() => {
-    const fetchDealerships = async () => {
-      if (!mounted || !user?.id) return
-
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const response = await fetch('/api/dealerships/switch')
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || `Failed to fetch dealerships (${response.status})`)
-        }
-
-        const data: DealershipData = await response.json()
-        console.log('Received data from /api/dealerships/switch:', JSON.stringify(data, null, 2));
-
-        // Handle empty dealership arrays gracefully
-        if (!data.availableDealerships?.length) {
-          // Only log once, not repeatedly
-          if (!dealershipData) {
-            console.warn('No dealerships found for user')
-          }
-          setDealershipData({
-            currentDealership: null,
-            availableDealerships: []
-          })
-        } else {
-          setDealershipData(data)
-          console.log(`Found ${data.availableDealerships.length} dealerships`)
-        }
-      } catch (err) {
-        logger.error('Error fetching dealerships:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load dealerships')
-
-        // Set empty dealership data to prevent null reference errors
-        setDealershipData({
-          currentDealership: null,
-          availableDealerships: []
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchDealerships()
-  }, [user?.id, mounted])
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -104,59 +45,18 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   }, [isOpen])
 
   const handleDealershipSwitch = async (dealershipId: string) => {
-    if (isSwitching) return
-
-    setIsSwitching(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/dealerships/switch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ dealershipId })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to switch dealership')
-      }
-
-      const result = await response.json()
-
-      // Update local state
-      setDealershipData((prev: DealershipData | null) => prev ? {
-       ...prev,
-        currentDealership: result.dealership
-      } : null)
-
+    const success = await switchDealership(dealershipId)
+    if (success) {
       setIsOpen(false)
-
-      // Refresh the session and page to update all dealership-specific data
-      await refreshSession()
-      
-      // Dispatch custom event for other components to listen to
-      window.dispatchEvent(new CustomEvent('dealershipChanged', {
-        detail: { dealership: result.dealership }
-      }))
-      
-      router.refresh()
-
-    } catch (err) {
-      logger.error('Error switching dealership:', err)
-      setError(err instanceof Error ? err.message : 'Failed to switch dealership')
-    } finally {
-      setIsSwitching(false)
     }
   }
 
   // Don't render until mounted to prevent hydration issues
   if (!mounted) {
     return (
-      <div>
+      <div className="flex items-center space-x-2">
         <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-        <span>Loading...</span>
+        <span className="text-sm text-gray-500">Loading...</span>
       </div>
     )
   }
@@ -164,9 +64,9 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   // Show loading state
   if (isLoading) {
     return (
-      <div>
+      <div className="flex items-center space-x-2">
         <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-        <span>Loading...</span>
+        <span className="text-sm text-gray-500">Loading...</span>
       </div>
     )
   }
@@ -174,25 +74,22 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
   // Show error state
   if (error) {
     return (
-      <div>
-        <Building2 className="h-4 w-4" />
-        <span>{error}</span>
+      <div className="flex items-center space-x-2">
+        <Building2 className="h-4 w-4 text-red-500" />
+        <span className="text-sm text-red-500">{error}</span>
       </div>
     )
   }
 
   // Don't render if no dealership data available
-  if (!dealershipData?.availableDealerships?.length) {
+  if (!availableDealerships?.length) {
     return (
-      <div>
+      <div className="flex items-center space-x-2">
         <Building2 className="h-4 w-4 text-gray-400" />
-        <span>No dealerships</span>
+        <span className="text-sm text-gray-500">No dealerships</span>
       </div>
     )
   }
-
-  const currentDealership = dealershipData.currentDealership
-  const availableDealerships = dealershipData.availableDealerships
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -215,7 +112,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
           </span>
         </div>
         
-        <ChevronDown 
+        <ChevronDown
           className={cn(
             "h-3 w-3 text-gray-400 transition-transform duration-200",
             isOpen && "rotate-180"
@@ -226,10 +123,10 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
       {/* Dropdown Menu - Fixed positioning and z-index */}
       {isOpen && (
         <div className="origin-top-right absolute right-0 mt-2 w-72 rounded-xl shadow-lg py-1 bg-white backdrop-blur-md ring-1 ring-black ring-opacity-5 focus:outline-none border border-gray-200/60" style={{ zIndex: 100 }}>
-        <div className="px-3 py-2 border-b border-gray-200/60">
-          <p className="text-sm font-normal text-gray-600">Select Dealership</p>
-          <p className="text-xs text-gray-400">{availableDealerships.length} available</p>
-        </div>
+          <div className="px-3 py-2 border-b border-gray-200/60">
+            <p className="text-sm font-normal text-gray-600">Select Dealership</p>
+            <p className="text-xs text-gray-400">{availableDealerships.length} available</p>
+          </div>
           
           <div className="max-h-48 overflow-y-auto">
             {availableDealerships.map((dealership: Dealership) => {

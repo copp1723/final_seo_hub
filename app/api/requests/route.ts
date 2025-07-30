@@ -311,7 +311,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       method: 'POST'
     })
     
-    return successResponse({ request: newRequest }, 'Request created successfully')
+    return successResponse({ request: newRequest }, 201)
   } catch (error) {
     logger.error('Error creating request', error, {
       userId: authResult.user.id,

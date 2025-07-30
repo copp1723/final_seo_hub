@@ -85,7 +85,7 @@ export class DealershipAnalyticsService {
 
       // Fallback to user-level connection
       if (!connection) {
-        connection = await prisma.ga4_connections.findUnique({
+        connection = await prisma.ga4_connections.findFirst({
           where: { userId }
         })
       }
@@ -168,7 +168,7 @@ export class DealershipAnalyticsService {
 
       // Fallback to user-level connection
       if (!connection) {
-        connection = await prisma.search_console_connections.findUnique({
+        connection = await prisma.search_console_connections.findFirst({
           where: { userId }
         })
       }
@@ -230,7 +230,7 @@ export class DealershipAnalyticsService {
   }
 
   private async getSearchConsoleService(userId: string) {
-    const token = await prisma.search_console_connections.findUnique({
+    const token = await prisma.search_console_connections.findFirst({
       where: { userId }
     })
 

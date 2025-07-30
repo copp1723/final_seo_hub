@@ -11,8 +11,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const connection = await prisma.search_console_connections.findUnique({
-      where: { userId: session.user.id }
+    const connection = await prisma.search_console_connections.findFirst({
+      where: { 
+        userId: session.user.id,
+        dealershipId: session.user.dealershipId 
+      }
     })
 
     if (!connection) {

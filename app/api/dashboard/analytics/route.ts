@@ -10,8 +10,8 @@ import { getCurrentISODate, getDateRange } from '@/lib/utils/date-formatter'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-function getCacheKey(userId: string, dateRange: string): string {
-  return `dashboard_analytics_${userId}_${dateRange}_${new Date().toISOString().split('T')[0]}`
+function getCacheKey(userId: string, dateRange: string, dealershipId?: string): string {
+  return `dashboard_analytics_${userId}_${dateRange}_${dealershipId || 'user-level'}_${new Date().toISOString().split('T')[0]}`
 }
 
 export async function POST(request: NextRequest) {
@@ -23,10 +23,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { startDate, endDate, dateRange = '30days' } = body
+    const { startDate, endDate, dateRange = '30days', dealershipId } = body
 
-    // Check cache first
-    const cacheKey = getCacheKey(session.user.id, dateRange)
+    // Check cache first - include dealershipId in cache key
+    const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId)
     const cachedData = cache.get(cacheKey)
     
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
@@ -61,18 +61,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check GA4 connection
-    // Get user's current dealership
+    // Get user info for fallback dealership
     const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: { dealershipId: true, agencyId: true, role: true }
     })
     
+    // Use dealershipId from request if provided, otherwise fall back to user's dealership
+    const targetDealershipId = dealershipId || user?.dealershipId
+    
     // Find GA4 connection (dealership-level or user-level)
     let ga4Connection = null
-    if (user?.dealershipId) {
+    if (targetDealershipId) {
       ga4Connection = await prisma.ga4_connections.findFirst({
-        where: { dealershipId: user.dealershipId }
+        where: { dealershipId: targetDealershipId }
       })
     }
     if (!ga4Connection) {
@@ -85,9 +87,9 @@ export async function POST(request: NextRequest) {
 
     // Check Search Console connection
     let searchConsoleConnection = null
-    if (user?.dealershipId) {
+    if (targetDealershipId) {
       searchConsoleConnection = await prisma.search_console_connections.findFirst({
-        where: { dealershipId: user.dealershipId }
+        where: { dealershipId: targetDealershipId }
       })
     }
     if (!searchConsoleConnection) {
@@ -233,18 +235,20 @@ export async function GET(request: NextRequest) {
   // Support GET requests with query parameters for simple dashboard data
   const { searchParams } = new URL(request.url)
   const dateRange = searchParams.get('dateRange') || '30days'
+  const dealershipId = searchParams.get('dealershipId')
   
   // Calculate date range using utility
   const { startDate, endDate } = getDateRange(dateRange)
 
-  // Create a new request with the calculated dates
+  // Create a new request with the calculated dates and dealershipId
   const mockRequest = new Request(request.url, {
     method: 'POST',
     headers: request.headers,
     body: JSON.stringify({
       startDate,
       endDate,
-      dateRange
+      dateRange,
+      dealershipId
     })
   })
 

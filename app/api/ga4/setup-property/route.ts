@@ -28,7 +28,12 @@ export async function POST() {
 
     // Get existing GA4 connection
     const connection = await prisma.ga4_connections.findUnique({
-      where: { userId: user.dealershipId }
+      where: {
+        userId_dealershipId: {
+          userId: session.user.id,
+          dealershipId: user.dealershipId
+        }
+      }
     })
 
     if (!connection) {
@@ -85,7 +90,12 @@ export async function POST() {
 
       // Update the connection with property info
       await prisma.ga4_connections.update({
-        where: { userId: user.dealershipId },
+        where: {
+          userId_dealershipId: {
+            userId: session.user.id,
+            dealershipId: user.dealershipId
+          }
+        },
         data: {
           propertyId,
           propertyName,

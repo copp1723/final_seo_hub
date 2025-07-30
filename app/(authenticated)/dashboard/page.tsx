@@ -159,8 +159,8 @@ export default function DashboardPage() {
     try {
       // Determine selected dealership for context
       const currentDealershipId = localStorage.getItem('selectedDealershipId')
-      // Build analytics-v2 endpoint with dateRange and optional dealershipId
-      const endpoint = `/api/dashboard/analytics-v2?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
+      // Build analytics endpoint with dateRange and optional dealershipId
+      const endpoint = `/api/dashboard/analytics?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
       const response = await fetch(endpoint)
 
       if (response.ok) {
@@ -247,7 +247,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const handleDealershipChange = () => {
+      // Refresh both dashboard stats AND analytics data when dealership changes
       fetchDashboardData()
+      fetchAnalyticsData()
     }
 
     // Add event listener for custom dealership changed event
@@ -257,7 +259,7 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener('dealershipChanged', handleDealershipChange)
     }
-  }, [fetchDashboardData])
+  }, [fetchDashboardData, fetchAnalyticsData])
 
   // Handle authentication - moved after all hooks
   if (isLoading) {

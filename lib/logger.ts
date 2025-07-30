@@ -1,4 +1,4 @@
-import { sanitizeForLog } from './validations'
+import { sanitizeForLog } from './validations/index'
 
 export interface LogContext {
   userId?: string

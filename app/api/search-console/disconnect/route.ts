@@ -24,9 +24,18 @@ export async function POST(req: Request) {
     }
 
     // Delete the Search Console token for the dealership
-    await prisma.search_console_connections.delete({
-      where: { userId: user.dealershipId }
+    const connection = await prisma.search_console_connections.findFirst({
+      where: { 
+        userId: session.user.id,
+        dealershipId: user.dealershipId 
+      }
     })
+
+    if (connection) {
+      await prisma.search_console_connections.delete({
+        where: { id: connection.id }
+      })
+    }
     
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -18,13 +18,23 @@ async function handleGET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Get user's dealership or first available dealership
-    const userDealership = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      include: { dealerships: true }
-    })
-
-    const dealership = userDealership?.dealerships || await prisma.dealerships.findFirst()
+    // Get dealershipId from query params or fall back to user's dealership
+    const { searchParams } = new URL(request.url)
+    const dealershipId = searchParams.get('dealershipId')
+    
+    let dealership
+    if (dealershipId) {
+      dealership = await prisma.dealerships.findUnique({
+        where: { id: dealershipId }
+      })
+    } else {
+      // Get user's dealership or first available dealership
+      const userDealership = await prisma.users.findUnique({
+        where: { id: session.user.id },
+        include: { dealerships: true }
+      })
+      dealership = userDealership?.dealerships || await prisma.dealerships.findFirst()
+    }
 
     if (!dealership) {
       return NextResponse.json({

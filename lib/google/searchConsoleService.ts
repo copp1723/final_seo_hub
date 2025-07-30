@@ -108,69 +108,14 @@ export class SearchConsoleService {
 // Mock implementation of Search Console Service
 class SearchConsoleServiceMock {
   async listSites() {
-    return [
-      {
-        siteUrl: 'https://example.com/',
-        permissionLevel: 'siteOwner'
-      }
-    ];
+    return [];
   }
 
   async getSearchAnalytics(siteUrl: string, options: SearchAnalyticsOptions) {
-    // Import dynamically to avoid circular dependencies
-    const { generateMockSearchConsoleData } = await import('@/lib/mock-data/search-console-mock');
-    
-    // Generate mock data based on the date range
-    const mockData = generateMockSearchConsoleData({
-      startDate: options.startDate,
-      endDate: options.endDate
-    });
-    
-    // Format the response to match the Google API structure
-    if (options.dimensions && options.dimensions.includes('date')) {
-      // Return daily data
-      return {
-        rows: mockData.performanceByDate.dates.map((date, i) => ({
-          keys: [date],
-          clicks: mockData.performanceByDate.metrics.clicks[i],
-          impressions: mockData.performanceByDate.metrics.impressions[i],
-          ctr: mockData.performanceByDate.metrics.ctr[i],
-          position: mockData.performanceByDate.metrics.position[i]
-        }))
-      };
-    } else if (options.dimensions && options.dimensions.includes('query')) {
-      // Return query data
-      return {
-        rows: mockData.topQueries.map(query => ({
-          keys: [query.query],
-          clicks: query.clicks,
-          impressions: query.impressions,
-          ctr: query.ctr,
-          position: query.position
-        }))
-      };
-    } else if (options.dimensions && options.dimensions.includes('page')) {
-      // Return page data
-      return {
-        rows: mockData.topPages.map(page => ({
-          keys: [page.page],
-          clicks: page.clicks,
-          impressions: page.impressions,
-          ctr: page.ctr,
-          position: page.position
-        }))
-      };
-    } else {
-      // Return overview data
-      return {
-        rows: [{
-          clicks: mockData.overview.clicks,
-          impressions: mockData.overview.impressions,
-          ctr: mockData.overview.ctr,
-          position: mockData.overview.position
-        }]
-      };
-    }
+    // Return empty data structure to avoid breaking the UI
+    return {
+      rows: []
+    };
   }
 
   async getTopQueries(siteUrl: string, days = 28) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/app/simple-auth-provider'
+import { useDealership } from '@/app/context/DealershipContext'
 import { redirect } from 'next/navigation'
 
 // Force dynamic rendering - don't pre-render this page
@@ -135,6 +136,7 @@ const ProgressBar = ({
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
+  const { currentDealership } = useDealership()
   const { toast } = useToast()
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
@@ -157,8 +159,8 @@ export default function DashboardPage() {
 
     setAnalyticsLoading(true)
     try {
-      // Determine selected dealership for context
-      const currentDealershipId = localStorage.getItem('selectedDealershipId')
+      // Use dealership from context
+      const currentDealershipId = currentDealership?.id
       // Build analytics endpoint with dateRange and optional dealershipId
       const endpoint = `/api/dashboard/analytics?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
       const response = await fetch(endpoint)
@@ -187,8 +189,8 @@ export default function DashboardPage() {
     setError(null)
 
     try {
-      // Pass the dealershipId if available from the session
-      const currentDealershipId = localStorage.getItem('selectedDealershipId');
+      // Use dealership from context
+      const currentDealershipId = currentDealership?.id;
       const statsResponse = await fetch(`/api/dashboard/stats${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
       const recentActivityResponse = await fetch(`/api/dashboard/recent-activity${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
 
@@ -236,30 +238,16 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, mounted, toast])
+  }, [user?.id, mounted, currentDealership?.id, toast])
 
   useEffect(() => {
     if (mounted && user?.id) {
       fetchDashboardData()
       fetchAnalyticsData()
     }
-  }, [user?.id, mounted, fetchDashboardData, fetchAnalyticsData])
+  }, [user?.id, mounted, currentDealership?.id, fetchDashboardData, fetchAnalyticsData])
 
-  useEffect(() => {
-    const handleDealershipChange = () => {
-      // Refresh both dashboard stats AND analytics data when dealership changes
-      fetchDashboardData()
-      fetchAnalyticsData()
-    }
-
-    // Add event listener for custom dealership changed event
-    window.addEventListener('dealershipChanged', handleDealershipChange)
-
-    // Clean up the event listener
-    return () => {
-      window.removeEventListener('dealershipChanged', handleDealershipChange)
-    }
-  }, [fetchDashboardData, fetchAnalyticsData])
+  // The effect above will handle dealership changes automatically since currentDealership?.id is in the dependency array
 
   // Handle authentication - moved after all hooks
   if (isLoading) {

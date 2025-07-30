@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/app/simple-auth-provider'
+import { useDealership } from '@/app/context/DealershipContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -54,87 +55,40 @@ export interface Task {
   completedAt?: string
 }
 
-// Mock data for demonstration
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Create landing page for Austin Ford dealership',
-    description: 'Design and implement a new landing page targeting Ford F-150 buyers in the Austin area',
-    type: 'PAGE' as const,
-    status: 'IN_PROGRESS' as const,
-    priority: 'HIGH' as const,
-    requestTitle: 'Q4 SEO Package - Austin',
-    requestId: 'req-1',
-    targetUrl: 'https://example.com/austin-ford',
-    targetCity: 'Austin, TX',
-    targetModel: 'Ford F-150',
-    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    startedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '2',
-    title: 'Write blog post about F-150 maintenance tips',
-    description: 'Create comprehensive guide covering oil changes, tire rotation, and seasonal maintenance',
-    type: 'BLOG' as const,
-    status: 'PENDING' as const,
-    priority: 'MEDIUM' as const,
-    requestTitle: 'Monthly Blog Content',
-    requestId: 'req-2',
-    targetCity: 'Houston, TX',
-    targetModel: 'Ford F-150',
-    dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '3',
-    title: 'Post Google Business Profile update for Dallas location',
-    description: 'Share recent customer testimonial and showcase new inventory',
-    type: 'GBP_POST' as const,
-    status: 'PENDING' as const,
-    priority: 'LOW' as const,
-    requestTitle: 'GBP Management - Dallas',
-    requestId: 'req-3',
-    targetCity: 'Dallas, TX',
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '4',
-    title: 'Optimize meta descriptions for Silverado pages',
-    description: 'Update meta descriptions to include local keywords and improve CTR',
-    type: 'IMPROVEMENT' as const,
-    status: 'COMPLETED' as const,
-    priority: 'MEDIUM' as const,
-    requestTitle: 'Technical SEO Improvements',
-    requestId: 'req-4',
-    targetModel: 'Chevrolet Silverado',
-    completedUrl: 'https://example.com/silverado-seo-report',
-    completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    id: '5',
-    title: 'Create San Antonio dealership service page',
-    description: 'Build dedicated page for service department with appointment scheduling',
-    type: 'PAGE' as const,
-    status: 'PENDING' as const,
-    priority: 'HIGH' as const,
-    requestTitle: 'Q4 SEO Package - San Antonio',
-    requestId: 'req-5',
-    targetCity: 'San Antonio, TX',
-    dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
-  }
-]
+// Tasks will be fetched from the API
 
 export default function TasksPage() {
   const { user, isLoading } = useAuth()
+  const { currentDealership } = useDealership()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('all')
-  const [tasks] = useState<Task[]>(mockTasks)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasksLoading, setTasksLoading] = useState(true)
 
-  if (isLoading) {
+  // Fetch tasks from API
+  useEffect(() => {
+    if (!user) return
+
+    const fetchTasks = async () => {
+      try {
+        setTasksLoading(true)
+        const endpoint = `/api/tasks${currentDealership?.id ? `?dealershipId=${currentDealership.id}` : ''}`
+        const response = await fetch(endpoint)
+        if (response.ok) {
+          const data = await response.json()
+          setTasks(data.tasks || [])
+        }
+      } catch (error) {
+        console.error('Error fetching tasks:', error)
+      } finally {
+        setTasksLoading(false)
+      }
+    }
+
+    fetchTasks()
+  }, [user, currentDealership?.id])
+
+  if (isLoading || tasksLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

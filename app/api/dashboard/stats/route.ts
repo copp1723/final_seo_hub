@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 async function handleGET(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)

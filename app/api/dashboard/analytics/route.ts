@@ -262,12 +262,25 @@ export async function GET(request: NextRequest) {
     const dateRange = searchParams.get('dateRange') || '30days'
     const dealershipId = searchParams.get('dealershipId')
 
+    logger.info('Dashboard analytics GET: Request details', {
+      userId: session.user.id,
+      dateRange,
+      dealershipId,
+      url: request.url
+    })
+
     // Calculate date range using utility
     const { startDate, endDate } = getDateRange(dateRange)
 
     // Check cache first - include dealershipId in cache key
-    const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId)
+    const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId || undefined)
     const cachedData = cache.get(cacheKey)
+
+    logger.info('Dashboard analytics GET: Cache check', {
+      cacheKey,
+      hasCachedData: !!cachedData,
+      cacheAge: cachedData ? Date.now() - cachedData.timestamp : 'N/A'
+    })
 
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
       logger.info('Returning cached dashboard analytics data (GET)', {
@@ -305,6 +318,13 @@ export async function GET(request: NextRequest) {
 
     // Use DealershipAnalyticsService to get comprehensive analytics data
     const analyticsService = new DealershipAnalyticsService()
+
+    logger.info('Dashboard analytics GET: Calling analytics service', {
+      startDate,
+      endDate,
+      userId: session.user.id,
+      dealershipId: dealershipId || null
+    })
 
     const analyticsData = await analyticsService.getDealershipAnalytics({
       startDate,

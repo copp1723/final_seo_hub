@@ -166,6 +166,13 @@ export default function DashboardPage() {
       const currentDealershipId = currentDealership?.id
       // Build analytics endpoint with dateRange and optional dealershipId
       const endpoint = `/api/dashboard/analytics?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
+
+      console.log('Dashboard: Fetching analytics data', {
+        currentDealershipId,
+        endpoint,
+        dealershipName: currentDealership?.name
+      })
+
       const response = await fetch(endpoint, {
         credentials: 'include'
       })
@@ -173,6 +180,13 @@ export default function DashboardPage() {
       if (response.ok) {
         const result = await response.json()
         setAnalyticsData(result.data)
+
+        console.log('Dashboard: Analytics data received', {
+          hasGA4Data: !!result.data.ga4Data,
+          hasSearchConsoleData: !!result.data.searchConsoleData,
+          dealershipId: result.data.metadata?.dealershipId,
+          cached: result.cached
+        })
 
         if (result.cached) {
           console.log('Using cached analytics data')
@@ -185,7 +199,7 @@ export default function DashboardPage() {
     } finally {
       setAnalyticsLoading(false)
     }
-  }, [user?.id, mounted])
+  }, [user?.id, mounted, currentDealership?.id, currentDealership?.name])
   
   const fetchDashboardData = useCallback(async () => {
     if (!user?.id || !mounted) return

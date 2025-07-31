@@ -183,21 +183,28 @@ export class SimpleAuth {
     try {
       let token: string | undefined;
 
+      // Enhanced logging for debugging
+      console.log('[AUTH DEBUG] Starting session extraction from request');
+      console.log('[AUTH DEBUG] Request URL:', request.url);
+      console.log('[AUTH DEBUG] Looking for cookie:', this.COOKIE_NAME);
+
       // Try multiple ways to get the cookie in production
       try {
         // Method 1: Direct cookie access
         if (request.cookies && typeof request.cookies.get === 'function') {
           token = request.cookies.get(this.COOKIE_NAME)?.value;
+          console.log('[AUTH DEBUG] Method 1 - Direct cookie access:', token ? 'found' : 'not found');
         }
       } catch (e) {
-        console.log('Method 1 failed, trying alternative cookie access');
+        console.log('[AUTH DEBUG] Method 1 failed, trying alternative cookie access:', e);
       }
 
       // Method 2: Parse from Cookie header if direct access fails
       if (!token) {
         try {
           const cookieHeader = request.headers.get('cookie');
-          console.log('Cookie header:', cookieHeader);
+          console.log('[AUTH DEBUG] Cookie header:', cookieHeader ? 'present' : 'missing');
+          console.log('[AUTH DEBUG] Cookie header content:', cookieHeader);
           if (cookieHeader) {
             const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
               const [key, value] = cookie.trim().split('=');
@@ -206,26 +213,48 @@ export class SimpleAuth {
               }
               return acc;
             }, {} as Record<string, string>);
-            console.log('Parsed cookies:', Object.keys(cookies));
-            console.log('Looking for cookie:', this.COOKIE_NAME);
+            console.log('[AUTH DEBUG] Parsed cookies:', Object.keys(cookies));
+            console.log('[AUTH DEBUG] Looking for cookie:', this.COOKIE_NAME);
             token = cookies[this.COOKIE_NAME];
             if (token) {
-              console.log('Found token via header parsing');
+              console.log('[AUTH DEBUG] Found token via header parsing');
+            } else {
+              console.log('[AUTH DEBUG] Token not found in parsed cookies');
             }
           }
         } catch (e) {
-          console.log('Method 2 failed, no valid session token found', e);
+          console.log('[AUTH DEBUG] Method 2 failed, no valid session token found', e);
         }
       }
 
       if (!token) {
+        console.log('[AUTH DEBUG] No token found, returning null');
         return null;
       }
       
+      console.log('[AUTH DEBUG] Token found, attempting verification');
       const payload = await this.verifyToken(token);
-      if (!payload || payload.exp < Math.floor(Date.now() / 1000)) {
+      
+      if (!payload) {
+        console.log('[AUTH DEBUG] Token verification failed - invalid token');
         return null;
       }
+      
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (payload.exp < currentTime) {
+        console.log('[AUTH DEBUG] Token expired', {
+          expiry: new Date(payload.exp * 1000).toISOString(),
+          current: new Date(currentTime * 1000).toISOString()
+        });
+        return null;
+      }
+      
+      console.log('[AUTH DEBUG] Token verification successful', {
+        userId: payload.userId,
+        email: payload.email,
+        role: payload.role,
+        expires: new Date(payload.exp * 1000).toISOString()
+      });
       
       return {
         user: {
@@ -239,7 +268,7 @@ export class SimpleAuth {
         expires: new Date(payload.exp * 1000)
       };
     } catch (error) {
-      console.error('Session retrieval error:', error);
+      console.error('[AUTH DEBUG] Session retrieval error:', error);
       return null;
     }
   }

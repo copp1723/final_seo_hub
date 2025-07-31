@@ -8,7 +8,7 @@ import { GA4Service } from './ga4Service'
 interface AnalyticsOptions {
   startDate: string
   endDate: string
-  dealershipId: string
+  dealershipId?: string | null
   userId: string
 }
 

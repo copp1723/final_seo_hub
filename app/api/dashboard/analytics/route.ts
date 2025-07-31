@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
-import { GA4Service } from '@/lib/google/ga4Service'
-import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
+import { DealershipAnalyticsService } from '@/lib/google/dealership-analytics-service'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getCurrentISODate, getDateRange } from '@/lib/utils/date-formatter'
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
 
 // In-memory cache for dashboard analytics
 const cache = new Map<string, { data: any; timestamp: number }>()
@@ -16,9 +18,31 @@ function getCacheKey(userId: string, dateRange: string, dealershipId?: string): 
 
 export async function POST(request: NextRequest) {
   try {
+    // Add diagnostic logging for authentication debugging
+    logger.info('Analytics POST request received', {
+      url: request.url,
+      headers: {
+        cookie: request.headers.get('cookie') ? 'present' : 'missing',
+        userAgent: request.headers.get('user-agent'),
+        referer: request.headers.get('referer')
+      }
+    })
+
     const session = await SimpleAuth.getSessionFromRequest(request)
     
+    logger.info('POST Session extraction result', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id || 'none',
+      expires: session?.expires?.toISOString() || 'none'
+    })
+    
     if (!session?.user.id) {
+      logger.warn('POST Authentication failed for analytics request', {
+        sessionExists: !!session,
+        cookieHeader: request.headers.get('cookie') ? 'present' : 'missing',
+        url: request.url
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -279,51 +303,32 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Try to get GA4 data
-    try {
-      const ga4Service = new GA4Service(session.user.id)
-      await ga4Service.initialize()
+    // Use DealershipAnalyticsService to get comprehensive analytics data
+    const analyticsService = new DealershipAnalyticsService()
 
-      const ga4Data = await ga4Service.getAnalyticsData({
-        startDate,
-        endDate,
-        dealershipId: dealershipId || undefined
-      })
+    const analyticsData = await analyticsService.getDealershipAnalytics({
+      startDate,
+      endDate,
+      userId: session.user.id,
+      dealershipId: dealershipId || null
+    })
 
-      if (ga4Data) {
-        dashboardData.ga4Data = ga4Data
-        dashboardData.metadata.hasGA4Connection = true
-        dashboardData.combinedMetrics.totalSessions = ga4Data.sessions
-        dashboardData.combinedMetrics.totalUsers = ga4Data.users
-      }
-    } catch (ga4Error) {
-      const errorMessage = ga4Error instanceof Error ? ga4Error.message : 'GA4 connection failed'
-      dashboardData.errors.ga4Error = errorMessage
-      logger.warn('GA4 data fetch failed in GET', { error: errorMessage, userId: session.user.id })
+    // Map the analytics data to dashboard format
+    dashboardData.ga4Data = analyticsData.ga4Data || null
+    dashboardData.searchConsoleData = analyticsData.searchConsoleData || null
+    dashboardData.metadata.hasGA4Connection = analyticsData.metadata.hasGA4Connection
+    dashboardData.metadata.hasSearchConsoleConnection = analyticsData.metadata.hasSearchConsoleConnection
+
+    if (analyticsData.ga4Data) {
+      dashboardData.combinedMetrics.totalSessions = analyticsData.ga4Data.sessions
+      dashboardData.combinedMetrics.totalUsers = analyticsData.ga4Data.users
     }
 
-    // Try to get Search Console data
-    try {
-      const searchConsoleService = await getSearchConsoleService(session.user.id)
-
-      const searchConsoleData = await searchConsoleService.getSearchAnalytics({
-        startDate,
-        endDate,
-        dealershipId: dealershipId || undefined
-      })
-
-      if (searchConsoleData) {
-        dashboardData.searchConsoleData = searchConsoleData
-        dashboardData.metadata.hasSearchConsoleConnection = true
-        dashboardData.combinedMetrics.totalClicks = searchConsoleData.clicks
-        dashboardData.combinedMetrics.totalImpressions = searchConsoleData.impressions
-        dashboardData.combinedMetrics.avgCTR = searchConsoleData.ctr
-        dashboardData.combinedMetrics.avgPosition = searchConsoleData.position
-      }
-    } catch (searchConsoleError) {
-      const errorMessage = searchConsoleError instanceof Error ? searchConsoleError.message : 'Search Console connection failed'
-      dashboardData.errors.searchConsoleError = errorMessage
-      logger.warn('Search Console data fetch failed in GET', { error: errorMessage, userId: session.user.id })
+    if (analyticsData.searchConsoleData) {
+      dashboardData.combinedMetrics.totalClicks = analyticsData.searchConsoleData.clicks
+      dashboardData.combinedMetrics.totalImpressions = analyticsData.searchConsoleData.impressions
+      dashboardData.combinedMetrics.avgCTR = analyticsData.searchConsoleData.ctr
+      dashboardData.combinedMetrics.avgPosition = analyticsData.searchConsoleData.position
     }
 
     // Cache the result

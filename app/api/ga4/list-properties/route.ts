@@ -5,6 +5,9 @@ import { logger } from '@/lib/logger'
 import { google } from 'googleapis'
 import { decrypt } from '@/lib/encryption'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)

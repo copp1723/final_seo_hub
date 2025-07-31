@@ -83,15 +83,25 @@ export default function ReportingPage() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true)
-      
+
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
+      console.log('📊 fetchAnalytics called', {
+        dealershipId,
+        dealershipName: currentDealership?.name,
+        dateRange,
+        localStorage: localStorage.getItem('selectedDealershipId')
+      })
+
       const params = new URLSearchParams({
         dateRange,
         clearCache: 'true', // Force cache clear for dealership switching
         ...(dealershipId && { dealershipId })
       })
 
-      const response = await fetch(`/api/dashboard/analytics?${params}`, {
+      const url = `/api/dashboard/analytics?${params}`
+      console.log('🌐 Making API call to:', url)
+
+      const response = await fetch(url, {
         credentials: 'include'
       })
 
@@ -114,6 +124,11 @@ export default function ReportingPage() {
   }
 
   useEffect(() => {
+    console.log('🔄 Reporting page useEffect triggered', {
+      dateRange,
+      dealershipId: currentDealership?.id,
+      dealershipName: currentDealership?.name
+    })
     fetchAnalytics()
   }, [dateRange, currentDealership?.id])
 

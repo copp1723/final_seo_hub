@@ -18,6 +18,16 @@ export interface SimpleSession {
 const JWT_SECRET_STRING = process.env.NEXTAUTH_SECRET || 'your-secret-key-change-this-in-production';
 const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
 
+// Debug logging for production issues
+if (process.env.NODE_ENV === 'production') {
+  console.log('NEXTAUTH_SECRET debug:', {
+    exists: !!process.env.NEXTAUTH_SECRET,
+    length: process.env.NEXTAUTH_SECRET?.length || 0,
+    firstChars: process.env.NEXTAUTH_SECRET?.substring(0, 10) || 'undefined',
+    isDefault: JWT_SECRET_STRING === 'your-secret-key-change-this-in-production'
+  });
+}
+
 // In a production environment, ensure NEXTAUTH_SECRET is properly set
 if (process.env.NODE_ENV === 'production' && JWT_SECRET_STRING === 'your-secret-key-change-this-in-production') {
   throw new Error('FATAL: NEXTAUTH_SECRET environment variable must be set to a strong, unique value in production.');

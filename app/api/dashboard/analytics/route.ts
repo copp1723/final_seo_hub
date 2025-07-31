@@ -340,72 +340,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // In demo mode, skip authentication entirely for testing
-    if (features.demoMode) {
-      logger.info('🎭 Demo mode: Skipping authentication for analytics endpoint')
-
-      const userId = 'demo-user'
-      const userRole = 'SUPER_ADMIN'
-
-      // Continue with demo mode logic
-      logger.info('Dashboard analytics GET: Demo mode session', {
-        userId: userId,
-        userRole: userRole,
-        demoMode: features.demoMode
-      })
-
-      // Support GET requests with query parameters for simple dashboard data
-      const { searchParams } = new URL(request.url)
-      const dateRange = searchParams.get('dateRange') || '30days'
-      const dealershipId = searchParams.get('dealershipId')
-      const clearCacheParam = searchParams.get('clearCache')
-
-      // Clear cache if requested (for debugging dealership switching)
-      if (clearCacheParam === 'true') {
-        clearCache()
-      }
-
-      logger.info('Dashboard analytics GET: Request details', {
-        userId: userId,
-        dateRange,
-        dealershipId,
-        url: request.url
-      })
-
-      // Calculate date range using utility
-      const { startDate, endDate } = getDateRange(dateRange)
-
-      // Use DealershipAnalyticsService to get comprehensive analytics data
-      const analyticsService = new DealershipAnalyticsService()
-
-      logger.info('Dashboard analytics GET: Calling analytics service', {
-        startDate,
-        endDate,
-        userId: userId,
-        dealershipId: dealershipId || null
-      })
-
-      const analyticsData = await analyticsService.getDealershipAnalytics({
-        startDate,
-        endDate,
-        userId: userId,
-        dealershipId: dealershipId || null
-      })
-
-      logger.info('Dashboard analytics GET completed', {
-        userId: userId,
-        hasGA4Data: !!analyticsData.ga4Data,
-        hasSearchConsoleData: !!analyticsData.searchConsoleData,
-        dealershipId
-      })
-
-      return NextResponse.json({ data: analyticsData })
-    }
-
-    // Normal authentication for non-demo mode
+    // Authenticate directly in GET method
     const session = await SimpleAuth.getSessionFromRequest(request)
 
-    if (!session?.user.id) {
+    // Allow demo mode without authentication for testing
+    if (!session?.user.id && !features.demoMode) {
       logger.warn('Dashboard analytics GET: No session found', {
         hasSession: !!session,
         hasUserId: !!session?.user?.id,
@@ -414,8 +353,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = session.user.id
-    const userRole = session.user.role
+    // In demo mode without session, use a default user
+    const userId = session?.user.id || (features.demoMode ? 'demo-user' : null)
+    const userRole = session?.user.role || (features.demoMode ? 'SUPER_ADMIN' : null)
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     logger.info('Dashboard analytics GET: Session found', {
       userId: userId,

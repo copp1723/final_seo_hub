@@ -222,3 +222,136 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
   }
 }
+
+// Update user (SUPER_ADMIN only)
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await SimpleAuth.getSessionFromRequest(request)
+
+    if (!session?.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const validation = updateUserSchema.safeParse(body)
+
+    if (!validation.success) {
+      return NextResponse.json({
+        error: 'Validation failed',
+        details: validation.error.issues
+      }, { status: 400 })
+    }
+
+    const { userId, name, role, agencyId } = validation.data
+
+    // Check if user exists
+    const existingUser = await prisma.users.findUnique({
+      where: { id: userId }
+    })
+
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Validate agency if provided
+    if (agencyId) {
+      const agency = await prisma.agencies.findUnique({
+        where: { id: agencyId }
+      })
+      if (!agency) {
+        return NextResponse.json({ error: 'Invalid agency ID' }, { status: 400 })
+      }
+    }
+
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
+      data: {
+        name,
+        role,
+        agencyId: agencyId || null,
+        updatedAt: new Date()
+      },
+      include: {
+        _count: {
+          select: { requests: true }
+        },
+        agencies: {
+          select: { name: true }
+        }
+      }
+    })
+
+    logger.info('User updated by Super Admin', {
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      agencyId: updatedUser.agencyId,
+      updatedBy: session.user.email
+    })
+
+    return NextResponse.json({
+      message: 'User updated successfully',
+      user: updatedUser
+    })
+  } catch (error) {
+    logger.error('Error updating user', error)
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
+  }
+}
+
+// Delete user (SUPER_ADMIN only)
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await SimpleAuth.getSessionFromRequest(request)
+
+    if (!session?.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { userId } = body
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
+    // Check if user exists
+    const existingUser = await prisma.users.findUnique({
+      where: { id: userId }
+    })
+
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Prevent deletion of the current super admin
+    if (existingUser.id === session.user.id) {
+      return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
+    }
+
+    await prisma.users.delete({
+      where: { id: userId }
+    })
+
+    logger.info('User deleted by Super Admin', {
+      deletedUserId: userId,
+      deletedUserEmail: existingUser.email,
+      deletedBy: session.user.email
+    })
+
+    return NextResponse.json({
+      message: 'User deleted successfully'
+    })
+  } catch (error) {
+    logger.error('Error deleting user', error)
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
+  }
+}

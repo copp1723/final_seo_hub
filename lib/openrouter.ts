@@ -1,3 +1,5 @@
+import { ENHANCED_AUTOMOTIVE_SEO_EXPERT_PROMPT, enhanceResponse } from './enhanced-automotive-seo-prompt'
+
 // OpenRouter configuration
 const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
@@ -58,19 +60,17 @@ export async function generateChatResponse(
       conversation = createConversation()
     }
 
-    // System prompt for SEO assistant
-    const systemPrompt = `You are an expert SEO assistant for automotive dealerships. You help dealership clients understand their SEO packages, strategies, and performance metrics.
+    // Enhanced automotive SEO expert system prompt
+    const systemPrompt = ENHANCED_AUTOMOTIVE_SEO_EXPERT_PROMPT + `
 
-Key information about our SEO services:
-- We offer Silver, Gold, and Platinum packages with different content volumes
-- All packages include pages, blogs, Google Business Profile posts, and SEO improvements
-- We focus on automotive dealership SEO with local targeting
-- We track KPIs like keyword rankings, organic traffic, search visibility, and conversions
-- SEO typically takes 3-6 months to show significant results
+Key information about our current SEO service packages:
+- Silver: 3 pages, 4 blogs, 8 GBP posts, 8 improvements monthly
+- Gold: 6 pages, 8 blogs, 16 GBP posts, 10 improvements monthly
+- Platinum: 9 pages, 12 blogs, 20 GBP posts, 20 improvements monthly
 
-${knowledgeBaseAnswer ? `Knowledge Base Answer: ${knowledgeBaseAnswer}` : ''}
+All content is high-quality, original, and targeted for the areas you serve and vehicles you sell.
 
-Provide helpful, accurate responses about SEO services. If you don't have specific information, acknowledge this and suggest they can escalate to the SEO team for detailed assistance. Keep responses conversational but professional, and focus on practical SEO advice for automotive dealerships.`
+${knowledgeBaseAnswer ? `Knowledge Base Answer: ${knowledgeBaseAnswer}` : ''}`
 
     // Build message history
     const messages: ChatMessage[] = [
@@ -104,19 +104,26 @@ Provide helpful, accurate responses about SEO services. If you don't have specif
     }
 
     const completion = await response.json()
-    const assistantResponse = completion.choices?.[0]?.message?.content || 
+    let assistantResponse = completion.choices?.[0]?.message?.content ||
       "I apologize, but I'm having trouble generating a response right now. Please try again or escalate to our SEO team."
+
+    // Enhance response with contextual intelligence
+    const enhancedResponse = enhanceResponse(assistantResponse, {
+      currentMonth: new Date().getMonth(),
+      userConcerns: extractConcerns(userMessage),
+      brand: extractBrand(userMessage)
+    })
 
     // Update conversation
     const updatedMessages: ChatMessage[] = [
      ...conversation.messages,
       { role: 'user' as const, content: userMessage },
-      { role: 'assistant' as const, content: assistantResponse }
+      { role: 'assistant' as const, content: enhancedResponse }
     ]
     updateConversation(conversation.id, updatedMessages)
 
     return {
-      content: assistantResponse,
+      content: enhancedResponse,
       conversationId: conversation.id
     }
   } catch (error) {
@@ -132,4 +139,43 @@ Provide helpful, accurate responses about SEO services. If you don't have specif
     
     throw new Error('Failed to generate response')
   }
+}
+
+// Helper functions to extract context from user messages
+function extractConcerns(message: string): string[] {
+  const concerns: string[] = []
+  const lowerMessage = message.toLowerCase()
+
+  if (lowerMessage.includes('inventory') || lowerMessage.includes('stock') || lowerMessage.includes('cars')) {
+    concerns.push('inventory')
+  }
+  if (lowerMessage.includes('compet') || lowerMessage.includes('rival') || lowerMessage.includes('other dealer')) {
+    concerns.push('competition')
+  }
+  if (lowerMessage.includes('traffic') || lowerMessage.includes('visitors') || lowerMessage.includes('leads')) {
+    concerns.push('performance')
+  }
+  if (lowerMessage.includes('rank') || lowerMessage.includes('position') || lowerMessage.includes('google')) {
+    concerns.push('rankings')
+  }
+
+  return concerns
+}
+
+function extractBrand(message: string): string | undefined {
+  const lowerMessage = message.toLowerCase()
+  const brands = ['honda', 'toyota', 'ford', 'chevrolet', 'chevy', 'bmw', 'mercedes', 'audi', 'lexus', 'acura', 'infiniti', 'cadillac']
+
+  for (const brand of brands) {
+    if (lowerMessage.includes(brand)) {
+      return brand === 'chevy' ? 'chevrolet' : brand
+    }
+  }
+
+  // Check for luxury indicators
+  if (lowerMessage.includes('luxury') || lowerMessage.includes('premium') || lowerMessage.includes('high-end')) {
+    return 'luxury'
+  }
+
+  return undefined
 }

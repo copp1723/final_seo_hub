@@ -86,6 +86,7 @@ export default function ReportingPage() {
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
         dateRange,
+        clearCache: 'true', // Force cache clear for dealership switching
         ...(dealershipId && { dealershipId })
       })
 

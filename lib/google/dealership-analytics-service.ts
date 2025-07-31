@@ -75,18 +75,23 @@ export class DealershipAnalyticsService {
     const { startDate, endDate, dealershipId, userId } = options
     
     try {
-      // Try dealership-specific connection first
-      let connection = await prisma.ga4_connections.findFirst({
-        where: { 
-          userId,
-          dealershipId
-        }
-      })
+      // Find connection for this dealership or user
+      let connection = null
+
+      if (dealershipId) {
+        // Try dealership-specific connection first
+        connection = await prisma.ga4_connections.findFirst({
+          where: { dealershipId }
+        })
+      }
 
       // Fallback to user-level connection
       if (!connection) {
         connection = await prisma.ga4_connections.findFirst({
-          where: { userId }
+          where: {
+            userId,
+            dealershipId: null
+          }
         })
       }
 
@@ -158,18 +163,23 @@ export class DealershipAnalyticsService {
     const { startDate, endDate, dealershipId, userId } = options
     
     try {
-      // Try dealership-specific connection first
-      let connection = await prisma.search_console_connections.findFirst({
-        where: { 
-          userId,
-          dealershipId
-        }
-      })
+      // Find connection for this dealership or user
+      let connection = null
+
+      if (dealershipId) {
+        // Try dealership-specific connection first
+        connection = await prisma.search_console_connections.findFirst({
+          where: { dealershipId }
+        })
+      }
 
       // Fallback to user-level connection
       if (!connection) {
         connection = await prisma.search_console_connections.findFirst({
-          where: { userId }
+          where: {
+            userId,
+            dealershipId: null
+          }
         })
       }
 

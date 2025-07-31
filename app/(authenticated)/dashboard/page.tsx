@@ -165,7 +165,7 @@ export default function DashboardPage() {
       // Use dealership from context
       const currentDealershipId = currentDealership?.id
       // Build analytics endpoint with dateRange and optional dealershipId
-      const endpoint = `/api/dashboard/analytics?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
+      const endpoint = `/api/dashboard/analytics?dateRange=30days&clearCache=true${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
 
       console.log('Dashboard: Fetching analytics data', {
         currentDealershipId,

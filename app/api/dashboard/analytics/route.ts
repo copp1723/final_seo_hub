@@ -12,6 +12,12 @@ export const dynamic = 'force-dynamic'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
+// Clear cache function for debugging
+function clearCache() {
+  cache.clear()
+  logger.info('Analytics cache cleared')
+}
+
 function getCacheKey(userId: string, dateRange: string, dealershipId?: string): string {
   return `dashboard_analytics_${userId}_${dateRange}_${dealershipId || 'user-level'}_${new Date().toISOString().split('T')[0]}`
 }
@@ -261,6 +267,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dateRange = searchParams.get('dateRange') || '30days'
     const dealershipId = searchParams.get('dealershipId')
+    const clearCacheParam = searchParams.get('clearCache')
+
+    // Clear cache if requested (for debugging dealership switching)
+    if (clearCacheParam === 'true') {
+      clearCache()
+    }
 
     logger.info('Dashboard analytics GET: Request details', {
       userId: session.user.id,

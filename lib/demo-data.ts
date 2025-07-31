@@ -212,4 +212,243 @@ export const getDemoDataVariant = (variant: 'growth' | 'stable' | 'premium' = 'g
         analytics: baseAnalytics
       }
   }
-} 
+}
+
+// Dealership-specific demo data generators
+export function getDemoGA4Analytics(startDate: string, endDate: string, dealershipId?: string) {
+  // Get dealership info to determine package type and traffic multiplier
+  const dealership = getDealershipInfo(dealershipId)
+  const packageMultiplier = getPackageMultiplier(dealership.package)
+
+  // Generate date range
+  const dates = generateDateRange(startDate, endDate)
+
+  // Generate realistic daily metrics
+  const dailyMetrics = dates.map(date => {
+    const isWeekend = new Date(date).getDay() === 0 || new Date(date).getDay() === 6
+    const baseTraffic = isWeekend ? 0.7 : 1.0 // 30% less traffic on weekends
+
+    const sessions = Math.floor((Math.random() * 50 + 100) * packageMultiplier * baseTraffic)
+    const users = Math.floor(sessions * 0.85) // ~85% unique users
+    const eventCount = Math.floor(sessions * 2.3) // ~2.3 events per session
+
+    return { date, sessions, users, eventCount }
+  })
+
+  // Calculate totals
+  const totalSessions = dailyMetrics.reduce((sum, day) => sum + day.sessions, 0)
+  const totalUsers = dailyMetrics.reduce((sum, day) => sum + day.users, 0)
+  const totalEvents = dailyMetrics.reduce((sum, day) => sum + day.eventCount, 0)
+
+  return {
+    overview: {
+      dates: dates,
+      metrics: {
+        sessions: dailyMetrics.map(d => d.sessions),
+        totalUsers: dailyMetrics.map(d => d.users),
+        eventCount: dailyMetrics.map(d => d.eventCount)
+      }
+    },
+    topPages: generateTopPages(dealership.package),
+    trafficSources: generateTrafficSources(dealership.package),
+    metadata: {
+      propertyId: `GA4-${dealership.id}`,
+      propertyName: `${dealership.name} - GA4 Property`,
+      dateRange: { startDate, endDate },
+      dealershipId: dealership.id,
+      hasGA4Connection: true
+    },
+    totals: {
+      sessions: totalSessions,
+      users: totalUsers,
+      eventCount: totalEvents
+    }
+  }
+}
+
+export function getDemoSearchConsoleData(startDate: string, endDate: string, dealershipId?: string) {
+  // Get dealership info to determine package type and performance
+  const dealership = getDealershipInfo(dealershipId)
+  const packageMultiplier = getPackageMultiplier(dealership.package)
+  const positionBonus = getPositionBonus(dealership.package)
+
+  // Generate date range
+  const dates = generateDateRange(startDate, endDate)
+
+  // Generate realistic daily metrics
+  const dailyMetrics = dates.map(date => {
+    const clicks = Math.floor((Math.random() * 20 + 30) * packageMultiplier)
+    const impressions = Math.floor(clicks * (15 + Math.random() * 10)) // 15-25x impressions
+    const ctr = clicks / impressions
+    const position = 15 - positionBonus + (Math.random() * 4 - 2) // Position varies around base
+
+    return { date, clicks, impressions, ctr, position }
+  })
+
+  // Calculate totals
+  const totalClicks = dailyMetrics.reduce((sum, day) => sum + day.clicks, 0)
+  const totalImpressions = dailyMetrics.reduce((sum, day) => sum + day.impressions, 0)
+  const avgCTR = totalClicks / totalImpressions
+  const avgPosition = dailyMetrics.reduce((sum, day) => sum + day.position, 0) / dailyMetrics.length
+
+  return {
+    overview: {
+      dates: dates,
+      metrics: {
+        clicks: dailyMetrics.map(d => d.clicks),
+        impressions: dailyMetrics.map(d => d.impressions),
+        ctr: dailyMetrics.map(d => d.ctr),
+        position: dailyMetrics.map(d => d.position)
+      }
+    },
+    topQueries: generateTopQueries(dealership.package),
+    topPages: generateTopSearchPages(dealership.package),
+    metadata: {
+      siteUrl: dealership.website,
+      dateRange: { startDate, endDate },
+      dealershipId: dealership.id,
+      hasSearchConsoleConnection: true
+    },
+    totals: {
+      clicks: totalClicks,
+      impressions: totalImpressions,
+      ctr: avgCTR,
+      position: avgPosition
+    }
+  }
+}
+
+// Helper functions
+function getDealershipInfo(dealershipId?: string) {
+  // Map real dealership IDs to demo info
+  const dealershipMap: Record<string, any> = {
+    'dealer-acura-columbus': {
+      id: 'dealer-acura-columbus',
+      name: 'Acura of Columbus',
+      package: 'SILVER',
+      website: 'https://acura-columbus-demo.com'
+    },
+    'dealer-jhc-columbus': {
+      id: 'dealer-jhc-columbus',
+      name: 'Jay Hatfield Chevrolet of Columbus',
+      package: 'SILVER',
+      website: 'https://jayhatfield-columbus-demo.com'
+    },
+    'dealer-jhm-portal': {
+      id: 'dealer-jhm-portal',
+      name: 'Jay Hatfield Motorsports Portal',
+      package: 'PLATINUM',
+      website: 'https://jhm-portal-demo.com'
+    }
+  }
+
+  return dealershipMap[dealershipId || ''] || {
+    id: dealershipId || 'demo-dealership-001',
+    name: 'Demo Dealership',
+    package: 'GOLD',
+    website: 'https://demo-dealership.com'
+  }
+}
+
+function getPackageMultiplier(packageType: string): number {
+  switch (packageType) {
+    case 'SILVER': return 1.0
+    case 'GOLD': return 2.5
+    case 'PLATINUM': return 5.0
+    default: return 2.5
+  }
+}
+
+function getPositionBonus(packageType: string): number {
+  switch (packageType) {
+    case 'SILVER': return 0 // Position ~15
+    case 'GOLD': return 5   // Position ~10
+    case 'PLATINUM': return 8 // Position ~7
+    default: return 5
+  }
+}
+
+function generateDateRange(startDate: string, endDate: string): string[] {
+  const dates: string[] = []
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    dates.push(d.toISOString().split('T')[0])
+  }
+
+  return dates
+}
+
+function generateTopPages(packageType: string) {
+  const basePages = [
+    { page: '/new-vehicles', sessions: 245, eventCount: 578 },
+    { page: '/used-vehicles', sessions: 189, eventCount: 423 },
+    { page: '/service', sessions: 156, eventCount: 312 },
+    { page: '/parts', sessions: 134, eventCount: 267 },
+    { page: '/financing', sessions: 98, eventCount: 201 }
+  ]
+
+  const multiplier = getPackageMultiplier(packageType)
+  return basePages.map(page => ({
+    ...page,
+    sessions: Math.floor(page.sessions * multiplier),
+    eventCount: Math.floor(page.eventCount * multiplier)
+  }))
+}
+
+function generateTrafficSources(packageType: string) {
+  const baseSources = [
+    { source: 'google', sessions: 450 },
+    { source: 'direct', sessions: 280 },
+    { source: 'facebook', sessions: 120 },
+    { source: 'bing', sessions: 80 },
+    { source: 'referral', sessions: 60 }
+  ]
+
+  const multiplier = getPackageMultiplier(packageType)
+  return baseSources.map(source => ({
+    ...source,
+    sessions: Math.floor(source.sessions * multiplier)
+  }))
+}
+
+function generateTopQueries(packageType: string) {
+  const baseQueries = [
+    { query: 'used cars near me', clicks: 145, impressions: 4523, ctr: 0.032, position: 8.2 },
+    { query: 'dealership near me', clicks: 89, impressions: 1876, ctr: 0.047, position: 3.1 },
+    { query: 'car service', clicks: 78, impressions: 1234, ctr: 0.063, position: 2.4 },
+    { query: 'new cars', clicks: 67, impressions: 2109, ctr: 0.032, position: 7.8 },
+    { query: 'car financing', clicks: 54, impressions: 3456, ctr: 0.016, position: 18.2 }
+  ]
+
+  const multiplier = getPackageMultiplier(packageType)
+  const positionBonus = getPositionBonus(packageType)
+
+  return baseQueries.map(query => ({
+    ...query,
+    clicks: Math.floor(query.clicks * multiplier),
+    impressions: Math.floor(query.impressions * multiplier),
+    position: Math.max(1, query.position - positionBonus)
+  }))
+}
+
+function generateTopSearchPages(packageType: string) {
+  const basePages = [
+    { page: '/new-vehicles', clicks: 89, impressions: 2341, ctr: 0.038, position: 6.2 },
+    { page: '/used-vehicles', clicks: 67, impressions: 1876, ctr: 0.036, position: 8.1 },
+    { page: '/service', clicks: 45, impressions: 1234, ctr: 0.036, position: 5.4 },
+    { page: '/parts', clicks: 34, impressions: 987, ctr: 0.034, position: 9.8 },
+    { page: '/financing', clicks: 23, impressions: 654, ctr: 0.035, position: 12.3 }
+  ]
+
+  const multiplier = getPackageMultiplier(packageType)
+  const positionBonus = getPositionBonus(packageType)
+
+  return basePages.map(page => ({
+    ...page,
+    clicks: Math.floor(page.clicks * multiplier),
+    impressions: Math.floor(page.impressions * multiplier),
+    position: Math.max(1, page.position - positionBonus)
+  }))
+}

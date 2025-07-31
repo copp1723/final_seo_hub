@@ -181,8 +181,15 @@ export class SimpleAuth {
 
   static async getSessionFromRequest(request: NextRequest): Promise<SimpleSession | null> {
     try {
-      const token = request.cookies.get(this.COOKIE_NAME)?.value;
-      
+      // Safely access cookies with null check
+      const cookies = request.cookies;
+      if (!cookies || typeof cookies.get !== 'function') {
+        console.error('Session retrieval error: cookies object is undefined or invalid');
+        return null;
+      }
+
+      const token = cookies.get(this.COOKIE_NAME)?.value;
+
       if (!token) {
         return null;
       }

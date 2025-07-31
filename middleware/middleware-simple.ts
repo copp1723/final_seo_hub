@@ -15,7 +15,9 @@ export async function middleware(request: NextRequest) {
 
   // For all other routes, add a simple session cookie if not present
   const response = NextResponse.next();
-  const hasCookie = request.cookies.has('seo-hub-session');
+  const hasCookie = request.cookies && typeof request.cookies.has === 'function'
+    ? request.cookies.has('seo-hub-session')
+    : false;
   
   // Remove auto-login for security - users must authenticate properly
   // This was a security vulnerability that automatically logged in as admin

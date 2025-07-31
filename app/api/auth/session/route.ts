@@ -8,8 +8,13 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
-    
+    let token: string | undefined;
+
+    // Safe cookie access
+    if (request.cookies && typeof request.cookies.get === 'function') {
+      token = request.cookies.get('auth-token')?.value;
+    }
+
     if (!token) {
       return NextResponse.json({ user: null });
     }

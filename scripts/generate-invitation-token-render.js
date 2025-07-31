@@ -15,7 +15,7 @@ async function generateInvitationToken() {
     console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL || 'Not set')
     
     // Find the user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email }
     })
     
@@ -24,7 +24,7 @@ async function generateInvitationToken() {
       
       // List available users for debugging
       console.log('\n📋 Available users:')
-      const users = await prisma.user.findMany({
+      const users = await prisma.users.findMany({
         select: { email: true, role: true }
       })
       users.forEach(u => console.log(`  - ${u.email} (${u.role})`))
@@ -38,7 +38,7 @@ async function generateInvitationToken() {
     const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     
     // Update user with invitation token
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         invitationToken,

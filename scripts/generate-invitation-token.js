@@ -10,7 +10,7 @@ async function generateInvitationToken() {
     console.log(`🔍 Generating invitation token for ${email}...`)
     
     // Find the user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email }
     })
     
@@ -26,7 +26,7 @@ async function generateInvitationToken() {
     const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     
     // Update user with invitation token
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: {
         invitationToken,

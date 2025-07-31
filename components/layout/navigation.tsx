@@ -26,6 +26,11 @@ const navItems = [
   { href: '/tasks', label: 'Tasks', icon: Settings }
 ]
 
+const adminNavItems = [
+  { href: '/admin', label: 'Admin', icon: Shield, roles: ['SUPER_ADMIN', 'AGENCY_ADMIN'] },
+  { href: '/super-admin', label: 'Super Admin', icon: Shield, roles: ['SUPER_ADMIN'] }
+]
+
 export function Navigation() {
   const pathname = usePathname()
   const { user, signOut, isLoading } = useAuth()
@@ -77,8 +82,10 @@ export function Navigation() {
     )
   }
 
-  // Admin navigation items - removed for alpha deployment
-  const adminNavItems: any[] = []
+  // Admin navigation items - show based on user role
+  const visibleAdminNavItems = adminNavItems.filter(item =>
+    item.roles.includes(user?.role)
+  )
 
   return (
     <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-lg sticky top-0 z-50">
@@ -118,7 +125,7 @@ export function Navigation() {
               })}
               
               {/* Admin Links */}
-              {adminNavItems.map((item) => {
+              {visibleAdminNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 return (
@@ -238,7 +245,7 @@ export function Navigation() {
             })}
             
             {/* Mobile Admin Links */}
-            {adminNavItems.map((item) => {
+            {visibleAdminNavItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
               return (

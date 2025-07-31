@@ -4,6 +4,17 @@ import { SimpleAuth } from '@/lib/auth-simple'
 import crypto from 'crypto'
 import { logger } from '@/lib/logger'
 import { UserRole } from '@prisma/client'
+import { sendInvitationEmail } from '@/lib/mailgun/invitation'
+import { rateLimits } from '@/lib/rate-limit'
+import { z } from 'zod'
+
+// Validation schema for invitation creation
+const createInvitationSchema = z.object({
+  email: z.string().email('Invalid email address').toLowerCase(),
+  role: z.nativeEnum(UserRole),
+  agencyId: z.string().optional(),
+  expiresInHours: z.number().min(1).max(168).optional() // Max 7 days
+})
 
 export async function GET(request: NextRequest) {
   console.log('🎯 Invitation GET endpoint hit!')
@@ -94,34 +105,30 @@ export async function GET(request: NextRequest) {
 // Generate invitation token for a user
 export async function POST(request: NextRequest) {
   console.log('🎯 Invitation POST endpoint hit!')
-  
+
+  // Apply rate limiting
+  const rateLimitResponse = await rateLimits.api(request)
+  if (rateLimitResponse) return rateLimitResponse
+
   try {
-    const {
-      email,
-      role,
-      agencyId,
-      expiresInHours
-    } = await request.json()
+    const body = await request.json()
 
-    // Basic validation
-    if (!email || !role) {
-      logger.error('Missing email or role for invitation', undefined, { email, role })
+    // Validate input using Zod schema
+    const validation = createInvitationSchema.safeParse(body)
+    if (!validation.success) {
+      logger.error('Invalid invitation data', undefined, {
+        errors: validation.error.issues,
+        body
+      })
       return NextResponse.json({
-        error: 'Email and role are required'
+        error: 'Invalid invitation data',
+        details: validation.error.issues
       }, {
         status: 400
       })
     }
 
-    // Validate email format (simple regex for now)
-    if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) {
-      logger.error('Invalid email format for invitation', undefined, { email })
-      return NextResponse.json({
-        error: 'Invalid email format'
-      }, {
-        status: 400
-      })
-    }
+    const { email, role, agencyId, expiresInHours } = validation.data
 
     // Ensure only SUPER_ADMIN can create ADMIN or SUPER_ADMIN invitations
     const inviterSession = await SimpleAuth.getSessionFromRequest(request)
@@ -139,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists
     const existingUser = await prisma.users.findUnique({
-      where: { email: email.toLowerCase() }
+      where: { email }
     })
 
     if (existingUser) {
@@ -157,22 +164,33 @@ export async function POST(request: NextRequest) {
 
     const newUser = await prisma.users.create({
       data: {
-        email: email.toLowerCase(),
-        role: role as UserRole,
-        agencyId: agencyId as string | null,
+        email,
+        role,
+        agencyId: agencyId || null,
         invitationToken: token,
         invitationTokenExpires: expiresAt,
       },
     })
 
-    // Send invitation email
-    // await sendInvitationEmail(email, token) // This function is not defined in the original file
+    // Generate the magic link URL
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const magicLinkUrl = `${baseUrl}/api/invitation?token=${token}`
+
+    // Send invitation email to the new user with magic link
+    const invitedBy = inviterSession.user.name || inviterSession.user.email || 'Administrator'
+    const invitationSent = await sendInvitationEmail({
+      user: newUser as any,
+      invitedBy,
+      loginUrl: magicLinkUrl,
+      skipPreferences: true
+    })
 
     return NextResponse.json({
-      message: 'Invitation sent successfully',
+      message: `Invitation ${invitationSent ? 'sent successfully' : 'created but email failed to send'}`,
       userId: newUser.id,
       email: newUser.email,
-      invitationToken: newUser.invitationToken, // Return for debugging / testing purposes
+      invitationSent,
+      // Note: invitationToken is not returned for security reasons
     })
   } catch (error) {
     logger.error('Generate invitation token error:', error)

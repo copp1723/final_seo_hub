@@ -2,14 +2,33 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { sendInvitationEmail } from '@/lib/mailgun/invitation'
+import { rateLimits } from '@/lib/rate-limit'
+import { z } from 'zod'
+
+// Validation schema for access requests
+const requestAccessSchema = z.object({
+  email: z.string().email('Invalid email address').toLowerCase(),
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long').optional()
+})
 
 export async function POST(request: NextRequest) {
-  try {
-    const { email } = await request.json()
+  // Apply rate limiting to prevent abuse
+  const rateLimitResponse = await rateLimits.api(request)
+  if (rateLimitResponse) return rateLimitResponse
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+  try {
+    const body = await request.json()
+
+    // Validate input using Zod schema
+    const validation = requestAccessSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json({
+        error: 'Invalid request data',
+        details: validation.error.issues
+      }, { status: 400 })
     }
+
+    const { email, name } = validation.data
 
     // Check if user exists in database
     const user = await prisma.users.findUnique({

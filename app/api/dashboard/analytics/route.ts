@@ -99,6 +99,13 @@ export async function POST(request: NextRequest) {
     
     // Use dealershipId from request if provided, otherwise fall back to user's dealership
     const targetDealershipId = dealershipId || user?.dealershipId
+
+    logger.info('Dashboard analytics: Dealership targeting', {
+      requestedDealershipId: dealershipId,
+      userDealershipId: user?.dealershipId,
+      targetDealershipId,
+      userId: session.user.id
+    })
     
     // Find GA4 connection (dealership-level or user-level)
     let ga4Connection = null
@@ -106,25 +113,83 @@ export async function POST(request: NextRequest) {
       ga4Connection = await prisma.ga4_connections.findFirst({
         where: { dealershipId: targetDealershipId }
       })
+      logger.info('GA4 connection search by dealership', {
+        targetDealershipId,
+        found: !!ga4Connection,
+        connectionId: ga4Connection?.id,
+        propertyId: ga4Connection?.propertyId
+      })
     }
     if (!ga4Connection) {
       ga4Connection = await prisma.ga4_connections.findFirst({
         where: { userId: session.user.id }
       })
+      logger.info('GA4 connection fallback to user', {
+        userId: session.user.id,
+        found: !!ga4Connection,
+        connectionId: ga4Connection?.id,
+        propertyId: ga4Connection?.propertyId
+      })
     }
 
     dashboardData.metadata.hasGA4Connection = !!ga4Connection
 
+    // CRITICAL: Use DealershipAnalyticsService instead of old logic
+    logger.info('POST method should use DealershipAnalyticsService - switching to new implementation')
+
+    const analyticsService = new DealershipAnalyticsService()
+    const analyticsData = await analyticsService.getDealershipAnalytics({
+      startDate,
+      endDate,
+      userId: session.user.id,
+      dealershipId: targetDealershipId
+    })
+
+    // Map the analytics data to dashboard format
+    dashboardData.ga4Data = analyticsData.ga4Data || null
+    dashboardData.searchConsoleData = analyticsData.searchConsoleData || null
+    dashboardData.errors = analyticsData.errors
+    dashboardData.metadata = {
+      ...dashboardData.metadata,
+      ...analyticsData.metadata
+    }
+
+    // Cache the result
+    cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
+
+    logger.info('Dashboard analytics POST completed using DealershipAnalyticsService', {
+      userId: session.user.id,
+      hasGA4Data: !!dashboardData.ga4Data,
+      hasSearchConsoleData: !!dashboardData.searchConsoleData,
+      dealershipId: targetDealershipId
+    })
+
+    return NextResponse.json({ data: dashboardData })
+
+    // OLD BROKEN CODE BELOW - REMOVE THIS SECTION
+    /*
     // Check Search Console connection
     let searchConsoleConnection = null
     if (targetDealershipId) {
       searchConsoleConnection = await prisma.search_console_connections.findFirst({
         where: { dealershipId: targetDealershipId }
       })
+      logger.info('Search Console connection search by dealership', {
+        targetDealershipId,
+        found: !!searchConsoleConnection,
+        connectionId: searchConsoleConnection?.id,
+        siteUrl: searchConsoleConnection?.siteUrl
+      })
     }
     if (!searchConsoleConnection) {
       searchConsoleConnection = await prisma.search_console_connections.findFirst({
         where: { userId: session.user.id }
+      })
+      logger.info('Search Console connection fallback to user', {
+        userId: session.user.id,
+        found: !!searchConsoleConnection,
+        connectionId: searchConsoleConnection?.id,
+        siteUrl: searchConsoleConnection?.siteUrl
       })
     }
 
@@ -234,6 +299,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ data: dashboardData, cached: false })
+    */
 
   } catch (error) {
     logger.error('Dashboard analytics API error', error)

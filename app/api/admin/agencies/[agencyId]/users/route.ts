@@ -22,9 +22,6 @@ const updateUserSchema = z.object({
   role: z.nativeEnum(UserRole).optional(),
 })
 
-// Force dynamic for authenticated routes
-export const dynamic = 'force-dynamic'
-
 export async function GET(request: NextRequest, context: { params: Promise<{ agencyId: string }> }) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)

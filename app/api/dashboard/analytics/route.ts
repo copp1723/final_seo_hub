@@ -216,12 +216,22 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate directly in GET method instead of delegating to POST
+    // Authenticate directly in GET method
     const session = await SimpleAuth.getSessionFromRequest(request)
 
     if (!session?.user.id) {
+      logger.warn('Dashboard analytics GET: No session found', {
+        hasSession: !!session,
+        hasUserId: !!session?.user?.id,
+        cookies: request.headers.get('cookie') ? 'present' : 'missing'
+      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    logger.info('Dashboard analytics GET: Session found', {
+      userId: session.user.id,
+      userRole: session.user.role
+    })
 
     // Support GET requests with query parameters for simple dashboard data
     const { searchParams } = new URL(request.url)
@@ -243,21 +253,90 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data: cachedData.data, cached: true })
     }
 
-    // Use the same logic as POST method but with GET parameters
-    const body = {
-      startDate,
-      endDate,
-      dateRange,
-      dealershipId
+    // Execute the analytics logic directly instead of delegating to POST
+    // Initialize response data structure
+    const dashboardData = {
+      ga4Data: null as { sessions: number; users: number; pageviews: number } | null,
+      searchConsoleData: null as { clicks: number; impressions: number; ctr: number; position: number } | null,
+      combinedMetrics: {
+        totalSessions: 0,
+        totalUsers: 0,
+        totalClicks: 0,
+        totalImpressions: 0,
+        avgCTR: 0,
+        avgPosition: 0
+      },
+      errors: {
+        ga4Error: null as string | null,
+        searchConsoleError: null as string | null
+      },
+      metadata: {
+        hasGA4Connection: false,
+        hasSearchConsoleConnection: false,
+        dealershipId: dealershipId || null,
+        propertyId: null as string | null,
+        siteUrl: null as string | null
+      }
     }
 
-    // Reuse the POST logic by creating a proper request body
-    const mockRequest = {
-      ...request,
-      json: async () => body
-    } as NextRequest
+    // Try to get GA4 data
+    try {
+      const ga4Service = new GA4Service(session.user.id)
+      await ga4Service.initialize()
 
-    return POST(mockRequest)
+      const ga4Data = await ga4Service.getAnalyticsData({
+        startDate,
+        endDate,
+        dealershipId: dealershipId || undefined
+      })
+
+      if (ga4Data) {
+        dashboardData.ga4Data = ga4Data
+        dashboardData.metadata.hasGA4Connection = true
+        dashboardData.combinedMetrics.totalSessions = ga4Data.sessions
+        dashboardData.combinedMetrics.totalUsers = ga4Data.users
+      }
+    } catch (ga4Error) {
+      const errorMessage = ga4Error instanceof Error ? ga4Error.message : 'GA4 connection failed'
+      dashboardData.errors.ga4Error = errorMessage
+      logger.warn('GA4 data fetch failed in GET', { error: errorMessage, userId: session.user.id })
+    }
+
+    // Try to get Search Console data
+    try {
+      const searchConsoleService = await getSearchConsoleService(session.user.id)
+
+      const searchConsoleData = await searchConsoleService.getSearchAnalytics({
+        startDate,
+        endDate,
+        dealershipId: dealershipId || undefined
+      })
+
+      if (searchConsoleData) {
+        dashboardData.searchConsoleData = searchConsoleData
+        dashboardData.metadata.hasSearchConsoleConnection = true
+        dashboardData.combinedMetrics.totalClicks = searchConsoleData.clicks
+        dashboardData.combinedMetrics.totalImpressions = searchConsoleData.impressions
+        dashboardData.combinedMetrics.avgCTR = searchConsoleData.ctr
+        dashboardData.combinedMetrics.avgPosition = searchConsoleData.position
+      }
+    } catch (searchConsoleError) {
+      const errorMessage = searchConsoleError instanceof Error ? searchConsoleError.message : 'Search Console connection failed'
+      dashboardData.errors.searchConsoleError = errorMessage
+      logger.warn('Search Console data fetch failed in GET', { error: errorMessage, userId: session.user.id })
+    }
+
+    // Cache the result
+    cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
+
+    logger.info('Dashboard analytics GET completed', {
+      userId: session.user.id,
+      hasGA4Data: !!dashboardData.ga4Data,
+      hasSearchConsoleData: !!dashboardData.searchConsoleData,
+      dealershipId
+    })
+
+    return NextResponse.json({ data: dashboardData })
   } catch (error) {
     logger.error('Dashboard analytics GET error:', error)
     return NextResponse.json(

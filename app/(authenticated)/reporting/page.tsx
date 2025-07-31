@@ -20,7 +20,7 @@ import {
 import { useDealership } from '@/app/context/DealershipContext'
 import { toast } from 'sonner'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { DealershipSelector } from '@/components/DealershipSelector'
+import { DealershipSelector } from '@/components/layout/dealership-selector'
 
 interface AnalyticsData {
   ga4Data?: {
@@ -179,7 +179,21 @@ export default function ReportingPage() {
             </div>
           </div>
           <div className="flex items-center gap-4 mt-4 sm:mt-0">
-            <DealershipSelector showOnAllPages={true} />
+            {/* Dealership Selector with error boundary */}
+            <div className="flex-shrink-0">
+              {(() => {
+                try {
+                  return <DealershipSelector showOnAllPages={true} />
+                } catch (error) {
+                  console.error('DealershipSelector error:', error)
+                  return (
+                    <div className="text-sm text-gray-500 px-2 py-1">
+                      Dealership selector unavailable
+                    </div>
+                  )
+                }
+              })()}
+            </div>
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}

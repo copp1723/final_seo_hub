@@ -80,7 +80,16 @@ export function SEOChat() {
         })
       })
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
       const result = await response.json()
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
       const data = result.data || result // Handle both new and old response formats
 
       // Update conversation ID if we got a new one
@@ -97,7 +106,16 @@ export function SEOChat() {
 
       setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
-      // Error handled silently on client-side
+      console.error('Chat API error:', error)
+
+      // Add error message to chat
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error processing your request. Please try again or contact support if the issue persists.',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setLoading(false)
     }

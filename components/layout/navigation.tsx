@@ -13,14 +13,14 @@ import {
   User,
   LogOut,
   Settings,
-  Bot,
+  MessageSquare,
   Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/chat', label: 'SEO Assistant', icon: Bot },
+  { href: '/chat', label: 'SEO Chat', icon: MessageSquare },
   { href: '/requests', label: 'Requests', icon: FileText },
   { href: '/reporting', label: 'Reports', icon: TrendingUp },
   { href: '/tasks', label: 'Tasks', icon: Settings }
@@ -28,7 +28,7 @@ const navItems = [
 
 const adminNavItems = [
   { href: '/admin', label: 'Admin', icon: Shield, roles: ['SUPER_ADMIN', 'AGENCY_ADMIN'] },
-  { href: '/super-admin', label: 'Super Admin', icon: Shield, roles: ['SUPER_ADMIN'] }
+  { href: '/super-admin', label: 'Super', icon: Shield, roles: ['SUPER_ADMIN'] }
 ]
 
 export function Navigation() {

@@ -71,7 +71,7 @@ const typeConfig = {
   GBP_POST: {
     icon: Globe,
     label: 'GBP Post',
-    color: 'bg-purple-400',
+    color: 'bg-purple-500',
     bgColor: 'bg-purple-50',
     textColor: 'text-purple-600'
   },

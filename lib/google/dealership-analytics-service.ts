@@ -230,9 +230,43 @@ export class DealershipAnalyticsService {
   }
 
   private async getSearchConsoleService(userId: string) {
-    const token = await prisma.search_console_connections.findFirst({
-      where: { userId }
-    })
+    // Get user info to check for agency/dealership associations
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { agencyId: true, dealershipId: true, role: true }
+    });
+
+    let token = null;
+
+    // For agency-level users, check agency dealerships first
+    if (user?.agencyId && (user.role === 'AGENCY_ADMIN' || user.role === 'SUPER_ADMIN')) {
+      const agencyDealerships = await prisma.dealerships.findMany({
+        where: { agencyId: user.agencyId },
+        select: { id: true }
+      });
+
+      if (agencyDealerships.length > 0) {
+        const dealershipIds = agencyDealerships.map(d => d.id);
+
+        token = await prisma.search_console_connections.findFirst({
+          where: { dealershipId: { in: dealershipIds } },
+          orderBy: { updatedAt: 'desc' }
+        });
+      }
+    }
+
+    // Fallback: check for direct user or dealership connection
+    if (!token) {
+      token = await prisma.search_console_connections.findFirst({
+        where: {
+          OR: [
+            { userId },
+            { dealershipId: user?.dealershipId }
+          ]
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+    }
 
     if (!token || !token.accessToken) {
       throw new Error('No Search Console token found for user')

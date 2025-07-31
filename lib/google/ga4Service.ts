@@ -25,12 +25,43 @@ export class GA4Service {
     // Refresh token if needed
     await refreshGA4TokenIfNeeded(this.userId);
 
-    // Use findFirst in case multiple dealership-level connections exist. We grab the most
-    // recently updated record for this user so that the newest credentials are used.
-    const connection = await prisma.ga4_connections.findFirst({
-      where: { userId: this.userId },
-      orderBy: { updatedAt: 'desc' }
+    // Get user info to check for agency/dealership associations
+    const user = await prisma.users.findUnique({
+      where: { id: this.userId },
+      select: { agencyId: true, dealershipId: true, role: true }
     });
+
+    let connection = null;
+
+    // For agency-level users, check agency dealerships first
+    if (user?.agencyId && (user.role === 'AGENCY_ADMIN' || user.role === 'SUPER_ADMIN')) {
+      const agencyDealerships = await prisma.dealerships.findMany({
+        where: { agencyId: user.agencyId },
+        select: { id: true }
+      });
+
+      if (agencyDealerships.length > 0) {
+        const dealershipIds = agencyDealerships.map(d => d.id);
+
+        connection = await prisma.ga4_connections.findFirst({
+          where: { dealershipId: { in: dealershipIds } },
+          orderBy: { updatedAt: 'desc' }
+        });
+      }
+    }
+
+    // Fallback: check for direct user or dealership connection
+    if (!connection) {
+      connection = await prisma.ga4_connections.findFirst({
+        where: {
+          OR: [
+            { userId: this.userId },
+            { dealershipId: user?.dealershipId }
+          ]
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+    }
 
     if (!connection) {
       throw new Error('No GA4 connection found for user');

@@ -70,7 +70,9 @@ export default function SuperAdminAgenciesPage() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/admin/agencies')
+      const response = await fetch('/api/admin/agencies', {
+        credentials: 'include'
+      })
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to fetch agencies')

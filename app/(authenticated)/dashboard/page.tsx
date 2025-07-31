@@ -166,7 +166,9 @@ export default function DashboardPage() {
       const currentDealershipId = currentDealership?.id
       // Build analytics endpoint with dateRange and optional dealershipId
       const endpoint = `/api/dashboard/analytics?dateRange=30days${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
-      const response = await fetch(endpoint)
+      const response = await fetch(endpoint, {
+        credentials: 'include'
+      })
 
       if (response.ok) {
         const result = await response.json()
@@ -194,8 +196,12 @@ export default function DashboardPage() {
     try {
       // Use dealership from context
       const currentDealershipId = currentDealership?.id;
-      const statsResponse = await fetch(`/api/dashboard/stats${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
-      const recentActivityResponse = await fetch(`/api/dashboard/recent-activity${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`);
+      const statsResponse = await fetch(`/api/dashboard/stats${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`, {
+        credentials: 'include'
+      });
+      const recentActivityResponse = await fetch(`/api/dashboard/recent-activity${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`, {
+        credentials: 'include'
+      });
 
       if (!statsResponse.ok) {
         let errorBody = await statsResponse.text()
@@ -224,7 +230,9 @@ export default function DashboardPage() {
 
       // Check emergency endpoint if main stats fail
       try {
-        const emergencyResponse = await fetch('/api/dashboard/emergency')
+        const emergencyResponse = await fetch('/api/dashboard/emergency', {
+          credentials: 'include'
+        })
         if (emergencyResponse.ok) {
           const emergencyData = await emergencyResponse.json()
           setDashboardData(emergencyData)

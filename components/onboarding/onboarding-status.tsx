@@ -28,7 +28,9 @@ export default function OnboardingStatus() {
 
   const fetchOnboardings = async () => {
     try {
-      const response = await fetch('/api/onboarding')
+      const response = await fetch('/api/onboarding', {
+        credentials: 'include'
+      })
       if (response.ok) {
         const data = await response.json()
         setOnboardings(data.onboardings)

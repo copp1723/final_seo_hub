@@ -20,6 +20,7 @@ import {
 import { useDealership } from '@/app/context/DealershipContext'
 import { toast } from 'sonner'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { DealershipSelector } from '@/components/DealershipSelector'
 
 interface AnalyticsData {
   ga4Data?: {
@@ -178,6 +179,7 @@ export default function ReportingPage() {
             </div>
           </div>
           <div className="flex items-center gap-4 mt-4 sm:mt-0">
+            <DealershipSelector showOnAllPages={true} />
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}

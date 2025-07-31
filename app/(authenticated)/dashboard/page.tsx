@@ -354,15 +354,15 @@ export default function DashboardPage() {
               <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
               <p className="text-gray-600 mt-1">Welcome back, {user?.name || 'User'}</p>
               {analyticsData && (
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                  <span className={`flex items-center gap-1 ${analyticsData.metadata.hasGA4Connection ? 'text-green-600' : 'text-orange-600'}`}>
-                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-orange-500'}`} />
-                    GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : 'Not Connected'}
-                  </span>
-                  <span className={`flex items-center gap-1 ${analyticsData.metadata.hasSearchConsoleConnection ? 'text-green-600' : 'text-orange-600'}`}>
-                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-orange-500'}`} />
-                    Search Console {analyticsData.metadata.hasSearchConsoleConnection ? 'Connected' : 'Not Connected'}
-                  </span>
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-1">
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-xs text-gray-500">GA4</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-xs text-gray-500">Search Console</span>
+                  </div>
                 </div>
               )}
             </div>

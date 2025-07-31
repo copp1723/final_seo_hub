@@ -215,25 +215,54 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  // Support GET requests with query parameters for simple dashboard data
-  const { searchParams } = new URL(request.url)
-  const dateRange = searchParams.get('dateRange') || '30days'
-  const dealershipId = searchParams.get('dealershipId')
-  
-  // Calculate date range using utility
-  const { startDate, endDate } = getDateRange(dateRange)
+  try {
+    // Authenticate directly in GET method instead of delegating to POST
+    const session = await SimpleAuth.getSessionFromRequest(request)
 
-  // Create a new request with the calculated dates and dealershipId
-  const mockRequest = new Request(request.url, {
-    method: 'POST',
-    headers: request.headers,
-    body: JSON.stringify({
+    if (!session?.user.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Support GET requests with query parameters for simple dashboard data
+    const { searchParams } = new URL(request.url)
+    const dateRange = searchParams.get('dateRange') || '30days'
+    const dealershipId = searchParams.get('dealershipId')
+
+    // Calculate date range using utility
+    const { startDate, endDate } = getDateRange(dateRange)
+
+    // Check cache first - include dealershipId in cache key
+    const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId)
+    const cachedData = cache.get(cacheKey)
+
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
+      logger.info('Returning cached dashboard analytics data (GET)', {
+        userId: session.user.id,
+        cacheAge: Date.now() - cachedData.timestamp
+      })
+      return NextResponse.json({ data: cachedData.data, cached: true })
+    }
+
+    // Use the same logic as POST method but with GET parameters
+    const body = {
       startDate,
       endDate,
       dateRange,
       dealershipId
-    })
-  })
+    }
 
-  return POST(mockRequest as NextRequest)
+    // Reuse the POST logic by creating a proper request body
+    const mockRequest = {
+      ...request,
+      json: async () => body
+    } as NextRequest
+
+    return POST(mockRequest)
+  } catch (error) {
+    logger.error('Dashboard analytics GET error:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch analytics data' },
+      { status: 500 }
+    )
+  }
 }

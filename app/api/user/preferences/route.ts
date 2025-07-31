@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { validateRequest } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic';
+
 // Schema for updating preferences
 const updatePreferencesSchema = z.object({
   emailNotifications: z.boolean().optional(),

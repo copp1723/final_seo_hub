@@ -5,6 +5,8 @@ import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic';
+
 // Validation schema for creating task mappings
 const createMappingSchema = z.object({
   requestId: z.string().min(1),

@@ -7,6 +7,8 @@ import { sendInvitationEmail } from '@/lib/mailgun/invitation'
 import { logger } from '@/lib/logger'
 import crypto from 'crypto'
 
+export const dynamic = 'force-dynamic';
+
 // Validation schema for creating a user
 const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),

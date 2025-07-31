@@ -7,9 +7,11 @@ import {
   successResponse, 
   internalErrorResponse,
   badRequestResponse,
-  compose 
+  compose
 } from '@/lib/api-auth-middleware'
 import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
+
+export const dynamic = 'force-dynamic';
 import { incrementUsage, TaskType } from '@/lib/package-utils'
 import { RequestStatus, PackageType } from '@prisma/client'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'

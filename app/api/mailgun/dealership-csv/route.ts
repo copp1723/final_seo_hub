@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger'
 import { sendEmail } from '@/lib/mailgun/client'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Send error notification email to the sender
  */

@@ -4,6 +4,8 @@ import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { PackageType } from '@prisma/client'
 
+export const dynamic = 'force-dynamic';
+
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
 

@@ -8,6 +8,8 @@ import { sendInvitationEmail } from '@/lib/mailgun/invitation'
 import { rateLimits } from '@/lib/rate-limit'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic';
+
 // Validation schema for invitation creation
 const createInvitationSchema = z.object({
   email: z.string().email('Invalid email address').toLowerCase(),

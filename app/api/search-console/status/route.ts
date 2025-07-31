@@ -3,6 +3,8 @@ import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const session = await SimpleAuth.getSessionFromRequest(request)
   

@@ -6,6 +6,8 @@ import { SEO_KNOWLEDGE_BASE } from '@/lib/seo-knowledge'
 import { generateChatResponse } from '@/lib/openrouter'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic';
+
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(1000),
   conversationId: z.string().optional(),

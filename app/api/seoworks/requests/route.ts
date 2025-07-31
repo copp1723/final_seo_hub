@@ -4,6 +4,8 @@ import { logger } from '@/lib/logger'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 
+export const dynamic = 'force-dynamic';
+
 // Submit new request to SEOWorks
 export async function POST(request: NextRequest) {
   try {

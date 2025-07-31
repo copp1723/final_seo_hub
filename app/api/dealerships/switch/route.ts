@@ -3,6 +3,8 @@ import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic';
+
 const switchDealershipSchema = z.object({
   dealershipId: z.string().min(1)
 })

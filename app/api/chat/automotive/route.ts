@@ -7,6 +7,8 @@ import { AUTOMOTIVE_KNOWLEDGE, AUTOMOTIVE_SEO_EXPERT_PROMPT } from '@/app/lib/ai
 import { generateChatResponse } from '@/lib/openrouter'
 import { z } from 'zod'
 
+export const dynamic = 'force-dynamic';
+
 const automotiveChatRequestSchema = z.object({
   message: z.string().min(1).max(1000),
   conversationId: z.string().optional(),

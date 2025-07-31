@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger'
 import { verifyUnsubscribeToken } from '@/lib/mailgun/secure-tokens'
 import { getBrandingFromRequest } from '@/lib/branding/config'
 
+export const dynamic = 'force-dynamic';
+
 // GET endpoint for unsubscribe link
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams

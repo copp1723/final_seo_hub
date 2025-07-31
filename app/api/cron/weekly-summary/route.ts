@@ -6,6 +6,8 @@ import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { weeklySummaryTemplate } from '@/lib/mailgun/templates'
 import { subDays } from 'date-fns'
 
+export const dynamic = 'force-dynamic';
+
 // This endpoint should be called by a cron job service (e.g., Render's cron jobs)
 // Recommended schedule: Every Monday at 9 AM
 

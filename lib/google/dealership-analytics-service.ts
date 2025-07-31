@@ -303,11 +303,25 @@ export class DealershipAnalyticsService {
   }
 
   private getDemoAnalytics(startDate: string, endDate: string, dealershipId?: string | null): DashboardAnalytics {
+    logger.info('🎭 Generating demo analytics for dealership', {
+      dealershipId,
+      startDate,
+      endDate
+    })
+
     // Get demo GA4 data
     const demoGA4 = getDemoGA4Analytics(startDate, endDate, dealershipId || undefined)
 
     // Get demo Search Console data
     const demoSC = getDemoSearchConsoleData(startDate, endDate, dealershipId || undefined)
+
+    logger.info('🎭 Demo data generated', {
+      dealershipId,
+      ga4Sessions: demoGA4.totals.sessions,
+      ga4Users: demoGA4.totals.users,
+      scClicks: demoSC.totals.clicks,
+      propertyId: demoGA4.metadata.propertyId
+    })
 
     return {
       ga4Data: {

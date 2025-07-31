@@ -223,12 +223,18 @@ export function getDemoGA4Analytics(startDate: string, endDate: string, dealersh
   // Generate date range
   const dates = generateDateRange(startDate, endDate)
 
-  // Generate realistic daily metrics
-  const dailyMetrics = dates.map(date => {
+  // Generate realistic daily metrics with dealership-specific seeding
+  const dealershipSeed = dealership.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
+  const dailyMetrics = dates.map((date, index) => {
     const isWeekend = new Date(date).getDay() === 0 || new Date(date).getDay() === 6
     const baseTraffic = isWeekend ? 0.7 : 1.0 // 30% less traffic on weekends
 
-    const sessions = Math.floor((Math.random() * 50 + 100) * packageMultiplier * baseTraffic)
+    // Use dealership-specific seed for consistent but different data per dealership
+    const dateSeed = dealershipSeed + index
+    const pseudoRandom = (dateSeed * 9301 + 49297) % 233280 / 233280
+
+    const sessions = Math.floor((pseudoRandom * 50 + 100) * packageMultiplier * baseTraffic)
     const users = Math.floor(sessions * 0.85) // ~85% unique users
     const eventCount = Math.floor(sessions * 2.3) // ~2.3 events per session
 
@@ -275,12 +281,20 @@ export function getDemoSearchConsoleData(startDate: string, endDate: string, dea
   // Generate date range
   const dates = generateDateRange(startDate, endDate)
 
-  // Generate realistic daily metrics
-  const dailyMetrics = dates.map(date => {
-    const clicks = Math.floor((Math.random() * 20 + 30) * packageMultiplier)
-    const impressions = Math.floor(clicks * (15 + Math.random() * 10)) // 15-25x impressions
+  // Generate realistic daily metrics with dealership-specific seeding
+  const dealershipSeed = dealership.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
+  const dailyMetrics = dates.map((date, index) => {
+    // Use dealership-specific seed for consistent but different data per dealership
+    const dateSeed = dealershipSeed + index
+    const pseudoRandom1 = (dateSeed * 9301 + 49297) % 233280 / 233280
+    const pseudoRandom2 = ((dateSeed + 1) * 9301 + 49297) % 233280 / 233280
+    const pseudoRandom3 = ((dateSeed + 2) * 9301 + 49297) % 233280 / 233280
+
+    const clicks = Math.floor((pseudoRandom1 * 20 + 30) * packageMultiplier)
+    const impressions = Math.floor(clicks * (15 + pseudoRandom2 * 10)) // 15-25x impressions
     const ctr = clicks / impressions
-    const position = 15 - positionBonus + (Math.random() * 4 - 2) // Position varies around base
+    const position = 15 - positionBonus + (pseudoRandom3 * 4 - 2) // Position varies around base
 
     return { date, clicks, impressions, ctr, position }
   })
@@ -339,6 +353,24 @@ function getDealershipInfo(dealershipId?: string) {
       name: 'Jay Hatfield Motorsports Portal',
       package: 'PLATINUM',
       website: 'https://jhm-portal-demo.com'
+    },
+    'dealer-genesis-wichita': {
+      id: 'dealer-genesis-wichita',
+      name: 'Genesis of Wichita',
+      package: 'PLATINUM',
+      website: 'https://genesis-wichita-demo.com'
+    },
+    'dealer-world-kia': {
+      id: 'dealer-world-kia',
+      name: 'World Kia',
+      package: 'PLATINUM',
+      website: 'https://world-kia-demo.com'
+    },
+    'dealer-hatchett-hyundai-east': {
+      id: 'dealer-hatchett-hyundai-east',
+      name: 'Hatchett Hyundai East',
+      package: 'SILVER',
+      website: 'https://hatchett-east-demo.com'
     }
   }
 

@@ -4,6 +4,7 @@ import { DealershipAnalyticsService } from '@/lib/google/dealership-analytics-se
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getCurrentISODate, getDateRange } from '@/lib/utils/date-formatter'
+import { features } from '@/lib/features'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -342,7 +343,8 @@ export async function GET(request: NextRequest) {
     // Authenticate directly in GET method
     const session = await SimpleAuth.getSessionFromRequest(request)
 
-    if (!session?.user.id) {
+    // Allow demo mode without authentication for testing
+    if (!session?.user.id && !features.demoMode) {
       logger.warn('Dashboard analytics GET: No session found', {
         hasSession: !!session,
         hasUserId: !!session?.user?.id,
@@ -351,9 +353,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // In demo mode without session, use a default user
+    const userId = session?.user.id || (features.demoMode ? 'demo-user' : null)
+    const userRole = session?.user.role || (features.demoMode ? 'SUPER_ADMIN' : null)
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     logger.info('Dashboard analytics GET: Session found', {
-      userId: session.user.id,
-      userRole: session.user.role
+      userId: userId,
+      userRole: userRole,
+      demoMode: features.demoMode
     })
 
     // Support GET requests with query parameters for simple dashboard data
@@ -368,7 +379,7 @@ export async function GET(request: NextRequest) {
     }
 
     logger.info('Dashboard analytics GET: Request details', {
-      userId: session.user.id,
+      userId: userId,
       dateRange,
       dealershipId,
       url: request.url
@@ -378,7 +389,7 @@ export async function GET(request: NextRequest) {
     const { startDate, endDate } = getDateRange(dateRange)
 
     // Check cache first - include dealershipId in cache key
-    const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId || undefined)
+    const cacheKey = getCacheKey(userId, dateRange, dealershipId || undefined)
     const cachedData = cache.get(cacheKey)
 
     logger.info('Dashboard analytics GET: Cache check', {
@@ -389,7 +400,7 @@ export async function GET(request: NextRequest) {
 
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
       logger.info('Returning cached dashboard analytics data (GET)', {
-        userId: session.user.id,
+        userId: userId,
         cacheAge: Date.now() - cachedData.timestamp
       })
       return NextResponse.json({ data: cachedData.data, cached: true })
@@ -427,14 +438,14 @@ export async function GET(request: NextRequest) {
     logger.info('Dashboard analytics GET: Calling analytics service', {
       startDate,
       endDate,
-      userId: session.user.id,
+      userId: userId,
       dealershipId: dealershipId || null
     })
 
     const analyticsData = await analyticsService.getDealershipAnalytics({
       startDate,
       endDate,
-      userId: session.user.id,
+      userId: userId,
       dealershipId: dealershipId || null
     })
 
@@ -460,7 +471,7 @@ export async function GET(request: NextRequest) {
     cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
 
     logger.info('Dashboard analytics GET completed', {
-      userId: session.user.id,
+      userId: userId,
       hasGA4Data: !!dashboardData.ga4Data,
       hasSearchConsoleData: !!dashboardData.searchConsoleData,
       dealershipId

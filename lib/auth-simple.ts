@@ -181,14 +181,42 @@ export class SimpleAuth {
 
   static async getSessionFromRequest(request: NextRequest): Promise<SimpleSession | null> {
     try {
-      // Safely access cookies with null check
-      const cookies = request.cookies;
-      if (!cookies || typeof cookies.get !== 'function') {
-        console.error('Session retrieval error: cookies object is undefined or invalid');
-        return null;
+      let token: string | undefined;
+
+      // Try multiple ways to get the cookie in production
+      try {
+        // Method 1: Direct cookie access
+        if (request.cookies && typeof request.cookies.get === 'function') {
+          token = request.cookies.get(this.COOKIE_NAME)?.value;
+        }
+      } catch (e) {
+        console.log('Method 1 failed, trying alternative cookie access');
       }
 
-      const token = cookies.get(this.COOKIE_NAME)?.value;
+      // Method 2: Parse from Cookie header if direct access fails
+      if (!token) {
+        try {
+          const cookieHeader = request.headers.get('cookie');
+          console.log('Cookie header:', cookieHeader);
+          if (cookieHeader) {
+            const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+              const [key, value] = cookie.trim().split('=');
+              if (key && value) {
+                acc[key] = decodeURIComponent(value);
+              }
+              return acc;
+            }, {} as Record<string, string>);
+            console.log('Parsed cookies:', Object.keys(cookies));
+            console.log('Looking for cookie:', this.COOKIE_NAME);
+            token = cookies[this.COOKIE_NAME];
+            if (token) {
+              console.log('Found token via header parsing');
+            }
+          }
+        } catch (e) {
+          console.log('Method 2 failed, no valid session token found', e);
+        }
+      }
 
       if (!token) {
         return null;

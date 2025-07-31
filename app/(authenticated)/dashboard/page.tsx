@@ -44,14 +44,14 @@ import type {
   RequestData 
 } from '@/types/api'
 
-const StatCard = ({ 
-  title, 
-  value, 
-  subtitle, 
-  icon: Icon, 
-  trend, 
+const StatCard = ({
+  title,
+  value,
+  subtitle,
+  icon: Icon,
+  trend,
   color = "blue",
-  loading = false 
+  loading = false
 }: {
   title: string
   value: string | number
@@ -62,37 +62,35 @@ const StatCard = ({
   loading?: boolean
 }) => {
   const colorClasses = {
-    blue: "from-blue-500 to-blue-600 text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100/50",
-    green: "from-emerald-500 to-emerald-600 text-emerald-600 bg-gradient-to-br from-emerald-50 to-emerald-100/50",
-    purple: "from-violet-500 to-violet-600 text-violet-600 bg-gradient-to-br from-violet-50 to-violet-100/50",
-    orange: "from-amber-500 to-amber-600 text-amber-600 bg-gradient-to-br from-amber-50 to-amber-100/50",
-    red: "from-red-500 to-red-600 text-red-600 bg-gradient-to-br from-red-50 to-red-100/50"
+    blue: 'text-blue-600 bg-blue-50',
+    green: 'text-green-600 bg-green-50',
+    purple: 'text-purple-400 bg-purple-50',
+    orange: 'text-orange-600 bg-orange-50',
+    red: 'text-red-600 bg-red-50'
   }
 
   return (
-    <Card className="group relative overflow-hidden border border-gray-200/60 shadow-sm bg-white hover:shadow-lg hover:border-gray-300/60 transition-all duration-300 hover:-translate-y-1">
-      <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
-        <CardTitle className="text-sm font-semibold text-gray-700">{title}</CardTitle>
-        <div className={`p-2.5 rounded-xl ${colorClasses[color].split(' ').slice(2).join(' ')} group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className={`h-5 w-5 ${colorClasses[color].split(' ')[2]}`} />
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
+    <Card>
+      <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
+            <p className="text-sm font-medium text-gray-600">{title}</p>
             {loading ? (
-              <div className="h-8 w-20 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-8 w-20 bg-gray-200 rounded-lg animate-pulse mt-1"></div>
             ) : (
-              <div className="text-3xl font-bold text-gray-900 tracking-tight">{value}</div>
+              <p className="text-2xl font-semibold text-gray-900">{value}</p>
             )}
-            <p className="text-sm text-gray-600 mt-2 font-medium">{subtitle}</p>
+            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+            {trend && (
+              <div className={`flex items-center text-xs font-medium mt-1 ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
+                <TrendingUp className={`h-3 w-3 mr-1 ${trend.positive ? '' : 'rotate-180'}`} />
+                {Math.abs(trend.value)}%
+              </div>
+            )}
           </div>
-          {trend && (
-            <div className={`flex items-center text-sm font-medium ${trend.positive ? 'text-emerald-600' : 'text-red-600'}`}>
-              <TrendingUp className={`h-4 w-4 mr-1 ${trend.positive ? '' : 'rotate-180'}`} />
-              {Math.abs(trend.value)}%
-            </div>
-          )}
+          <div className={`p-3 rounded-full ${colorClasses[color]}`}>
+            <Icon className="h-6 w-6" />
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -113,8 +111,8 @@ const ProgressBar = ({
   const percentage = limit > 0 ? (used / limit) * 100 : 0
   const colorClasses = {
     blue: "bg-blue-500",
-    green: "bg-green-500", 
-    purple: "bg-purple-500",
+    green: "bg-green-500",
+    purple: "bg-purple-400",
     orange: "bg-orange-500"
   }
 
@@ -129,7 +127,12 @@ const ProgressBar = ({
           </Badge>
         </div>
       </div>
-      <Progress value={percentage} className="h-2" />
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className={`h-2 rounded-full transition-all ${colorClasses[color]}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
     </div>
   )
 }
@@ -252,7 +255,7 @@ export default function DashboardPage() {
   // Handle authentication - moved after all hooks
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           <p className="text-gray-600">Loading your dashboard...</p>
@@ -286,7 +289,7 @@ export default function DashboardPage() {
   if (error && !dashboardData) {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+        <div className="min-h-screen bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center max-w-md mx-auto">
               <div className="bg-red-50 p-6 rounded-lg border border-red-200">
@@ -320,13 +323,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
               <p className="text-gray-600 mt-1">Welcome back, {user?.name || 'User'}</p>
               {analyticsData && (
                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
@@ -365,7 +368,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Primary Analytics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Core Business Metrics - Most Important */}
           <StatCard
             title="Active Requests"
@@ -405,7 +408,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Secondary Analytics Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <StatCard
             title="GA4 Users"
             value={analyticsData?.ga4Data?.users?.toLocaleString() || (analyticsData?.errors.ga4Error ? 'Error' : 'N/A')}
@@ -435,10 +438,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Package Progress */}
           <div className="lg:col-span-2">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Target className="h-5 w-5 mr-2 text-blue-600" />
@@ -451,7 +454,7 @@ export default function DashboardPage() {
                 ) : dashboardData?.packageProgress ? (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-medium text-gray-900">
                         {dashboardData.packageProgress.packageType || 'Current Package'}
                       </h3>
                       <Badge variant="outline" className="text-blue-600 border-blue-200">
@@ -503,7 +506,7 @@ export default function DashboardPage() {
 
           {/* Recent Activity */}
           <div>
-            <Card className="border-0 shadow-sm bg-white">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Clock className="h-5 w-5 mr-2 text-blue-600" />
@@ -527,42 +530,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-blue-600" />
-                Quick Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Link href="/requests/new">
-                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2 hover:bg-white hover:shadow-sm transition-all">
-                    <Plus className="h-6 w-6 text-blue-600" />
-                    <span className="font-medium">New Request</span>
-                    <span className="text-xs text-gray-500">Start a new SEO project</span>
-                  </Button>
-                </Link>
-                <Link href="/requests">
-                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2 hover:bg-white hover:shadow-sm transition-all">
-                    <FileText className="h-6 w-6 text-green-600" />
-                    <span className="font-medium">View Requests</span>
-                    <span className="text-xs text-gray-500">Check request status</span>
-                  </Button>
-                </Link>
-                <Link href="/reporting">
-                  <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2 hover:bg-white hover:shadow-sm transition-all">
-                    <BarChart className="h-6 w-6 text-purple-600" />
-                    <span className="font-medium">View Reports</span>
-                    <span className="text-xs text-gray-500">Analytics & insights</span>
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+
       </div>
     </div>
   )

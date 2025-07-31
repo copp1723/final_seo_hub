@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, TrendingUp, Car, MapPin, BarChart, AlertCircle } from 'lucide-react'
-import { Card } from '@/components/ui/card'
+import { Send, Bot, User, TrendingUp, Car, MapPin, BarChart, AlertCircle, Lightbulb, Search } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageBubble } from './message-bubble'
@@ -151,16 +151,18 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* Header with context */}
-      <div className="border-b px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-blue-600" />
-            <span className="font-semibold text-gray-900">Automotive SEO Expert</span>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">SEO Assistant</h1>
+            <p className="text-gray-600 mt-2">
+              Get expert automotive SEO guidance and personalized recommendations
+            </p>
           </div>
           {dealershipInfo && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 mt-4 sm:mt-0">
               {dealershipInfo.brand && <Badge variant="outline">{dealershipInfo.brand}</Badge>}
               {dealershipInfo.currentPackage && (
                 <Badge className={`capitalize ${
@@ -174,10 +176,72 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
             </div>
           )}
         </div>
-      </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* SEO Insights */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Quick Tips</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm text-gray-600">
+                Optimize inventory pages with specific make/model keywords
+              </div>
+              <div className="text-sm text-gray-600">
+                Include location-based terms in your content
+              </div>
+              <div className="text-sm text-gray-600">
+                Update meta descriptions for seasonal promotions
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Current Trends</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm text-gray-600">
+                Electric vehicle searches up 45% this quarter
+              </div>
+              <div className="text-sm text-gray-600">
+                "Near me" searches dominate mobile traffic
+              </div>
+              <div className="text-sm text-gray-600">
+                Video content increases engagement by 80%
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Popular Queries</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm text-gray-600">
+                "How to optimize inventory pages?"
+              </div>
+              <div className="text-sm text-gray-600">
+                "Local SEO for car dealerships"
+              </div>
+              <div className="text-sm text-gray-600">
+                "Best practices for vehicle descriptions"
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Chat Interface Card */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>SEO Assistant</CardTitle>
+            <CardDescription>
+              Ask questions about inventory SEO, local rankings, content strategy, and more
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Messages */}
+            <div className="h-96 overflow-y-auto border rounded-lg p-4 mb-4 bg-gray-50 space-y-4">
         {messages.map((message) => (
           <div key={message.id}>
             <MessageBubble
@@ -224,77 +288,81 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
             )}
           </div>
         ))}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-gray-500">
-            <Bot className="h-4 w-4 animate-pulse" />
-            <span className="text-sm">Analyzing your SEO query...</span>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Send to SEO Team - Prominent Placement */}
-      {messages.length > 1 && !isLoading && (
-        <div className="px-4 py-3 border-t bg-gradient-to-r from-green-50 to-emerald-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-900">Need expert help?</p>
-              <p className="text-xs text-gray-600">Get personalized assistance from our SEO team</p>
+              {isLoading && (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <div className="h-2 w-2 bg-gray-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm">Analyzing your SEO query...</span>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
-                const lastMessage = messages[messages.length - 1]
-                const lastUserMessage = messages.slice().reverse().find(m => m.sender === 'user')
-                setEscalateMessage({ ...lastMessage,
-                  originalQuery: lastUserMessage?.content || lastMessage.content
-                })
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium shadow-md"
-            >
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Send to SEO Team
-            </Button>
-          </div>
-        </div>
-      )}
-      {/* Smart Suggestions */}
-      {smartSuggestions.length > 0 && !isLoading && (
-        <div className="px-4 py-2 border-t bg-gray-50">
-          <p className="text-xs text-gray-600 mb-2">Suggested questions:</p>
-          <div className="flex flex-wrap gap-2">
-            {smartSuggestions.map((suggestion, idx) => (
-              <Button
-                key={idx}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                onClick={() => handleSuggestionClick(suggestion)}
-              >
-                {suggestion}
+
+            {/* Input */}
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about inventory SEO, local rankings, content strategy..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={isLoading || !input.trim()}>
+                <Send className="h-4 w-4" />
               </Button>
-            ))}
-          </div>
-        </div>
-      )}
-      {/* Input */}
-      <div className="border-t p-4">
-        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about inventory SEO, local rankings, content strategy..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={isLoading || !input.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-        <p className="text-xs text-gray-500 mt-2">
-          Specialized in automotive SEO, local search, inventory optimization, and lead generation
-        </p>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Smart Suggestions */}
+        {smartSuggestions.length > 0 && !isLoading && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Suggested Questions</CardTitle>
+              <CardDescription>Try these common SEO questions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {smartSuggestions.map((suggestion, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Send to SEO Team */}
+        {messages.length > 1 && !isLoading && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Need Expert Help?</CardTitle>
+              <CardDescription>
+                Get personalized assistance from our SEO team for complex questions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const lastMessage = messages[messages.length - 1]
+                  const lastUserMessage = messages.slice().reverse().find(m => m.sender === 'user')
+                  setEscalateMessage({ ...lastMessage,
+                    originalQuery: lastUserMessage?.content || lastMessage.content
+                  })
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                Send to SEO Team
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Escalation Modal */}

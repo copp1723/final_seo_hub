@@ -168,7 +168,7 @@ export default function RequestsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">SEO Requests</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">SEO Requests</h1>
           <p className="text-sm text-gray-600 mt-1">Track your monthly SEO package progress</p>
         </div>
         <Link href="/focus-request">
@@ -291,7 +291,7 @@ export default function RequestsPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold">
+                      <p className="text-2xl font-semibold">
                         {progress?.totalTasks.completed || 0} / {progress?.totalTasks.total || 0}
                       </p>
                       <p className="text-sm text-gray-600">tasks completed</p>

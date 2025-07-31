@@ -51,7 +51,7 @@ const typeIcons = {
 const typeColors = {
   PAGE: 'text-blue-600',
   BLOG: 'text-green-600',
-  GBP_POST: 'text-purple-600',
+  GBP_POST: 'text-purple-400',
   IMPROVEMENT: 'text-orange-600'
 }
 
@@ -103,56 +103,60 @@ export function TaskWidget({
 
   return (
     <Card className={className}>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle>{title}</CardTitle>
-          <div className="flex items-center gap-2 text-sm">
-            {pendingTasks > 0 && (
-              <Badge variant="warning" className="text-yellow-600 border-yellow-200">
-                {pendingTasks} Pending
-              </Badge>
-            )}
-            {inProgressTasks > 0 && (
-              <Badge variant="info" className="text-blue-600 border-blue-200">
-                {inProgressTasks} In Progress
-              </Badge>
-            )}
+          <CardTitle className="text-lg">Tasks</CardTitle>
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <span>{pendingTasks + inProgressTasks} Active</span>
+            <span>•</span>
+            <span>{tasks.filter(t => t.status === 'COMPLETED').length} Complete</span>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {displayTasks.map((task) => {
-            const TypeIcon = typeIcons[task.type]
-            const StatusIcon = statusIcons[task.status]
-            const overdue = isOverdue(task.dueDate) && task.status !== 'COMPLETED'
+        {displayTasks.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-sm">No active tasks</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {displayTasks.map((task) => {
+              const overdue = isOverdue(task.dueDate) && task.status !== 'COMPLETED'
 
-            return (
-              <div 
-                key={task.id} 
-                className={cn(
-                  "flex items-start gap-3 p-3 rounded-lg border bg-gray-50 hover:bg-gray-100 transition-colors",
-                  task.status === 'COMPLETED' && "opacity-60"
-                )}
-              >
-                {/* Type Icon */}
-                <div className={cn("mt-0.5", typeColors[task.type])}>
-                  <TypeIcon className="h-5 w-5" />
-                </div>
-
-                {/* Task Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm line-clamp-1">{task.title}</p>
-                      {task.requestTitle && (
-                        <p className="text-xs text-gray-500 mt-0.5">{task.requestTitle}</p>
+              return (
+                <div
+                  key={task.id}
+                  className={cn(
+                    "flex items-center justify-between py-2 border-b border-gray-100 last:border-0",
+                    task.status === 'COMPLETED' && "opacity-50"
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={cn(
+                        "text-xs px-2 py-0.5 rounded-full",
+                        task.status === 'PENDING' && "bg-yellow-100 text-yellow-700",
+                        task.status === 'IN_PROGRESS' && "bg-blue-100 text-blue-700",
+                        task.status === 'COMPLETED' && "bg-green-100 text-green-700"
+                      )}>
+                        {task.status.replace('_', ' ').toLowerCase()}
+                      </span>
+                      {task.dueDate && (
+                        <span className={cn(
+                          "text-xs text-gray-500",
+                          overdue && "text-red-600"
+                        )}>
+                          Due {format(new Date(task.dueDate), 'MMM d')}
+                        </span>
                       )}
                     </div>
-                    <div className={cn("flex-shrink-0", statusColors[task.status])}>
-                      <StatusIcon className="h-4 w-4" />
-                    </div>
                   </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
                   
                   {/* Task Meta */}
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
@@ -180,14 +184,12 @@ export function TaskWidget({
           })}
         </div>
 
-        {/* View All Button */}
+        {/* View All Link */}
         {showViewAll && tasks.length > maxTasks && (
-          <div className="mt-4 pt-4 border-t">
-            <Link href="/tasks">
-              <Button variant="ghost" className="w-full" size="sm">
-                View all {tasks.length} tasks
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+          <div className="mt-4 pt-3 border-t">
+            <Link href="/tasks" className="text-sm text-gray-600 hover:text-gray-900 flex items-center justify-center gap-1">
+              View all {tasks.length} tasks
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
         )}

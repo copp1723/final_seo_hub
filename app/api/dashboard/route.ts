@@ -7,6 +7,8 @@ import { PackageType } from '@prisma/client'
 // Import package limits from central source
 import { getPackageLimits } from '@/lib/package-utils'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {

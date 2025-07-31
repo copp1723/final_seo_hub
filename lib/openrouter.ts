@@ -23,6 +23,44 @@ export interface ConversationContext {
 // In-memory conversation storage (in production, use Redis or database)
 const conversations = new Map<string, ConversationContext>()
 
+// Conversation cleanup configuration
+const MAX_CONVERSATIONS = 1000 // Maximum conversations to keep in memory
+const CONVERSATION_TTL = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+const CLEANUP_INTERVAL = 60 * 60 * 1000 // Clean up every hour
+
+// Periodic cleanup function
+function cleanupConversations() {
+  const now = Date.now()
+  const conversationsToDelete: string[] = []
+
+  // Find expired conversations
+  for (const [id, conversation] of conversations.entries()) {
+    const age = now - conversation.updatedAt.getTime()
+    if (age > CONVERSATION_TTL) {
+      conversationsToDelete.push(id)
+    }
+  }
+
+  // Delete expired conversations
+  conversationsToDelete.forEach(id => conversations.delete(id))
+
+  // If still too many, delete oldest conversations
+  if (conversations.size > MAX_CONVERSATIONS) {
+    const sortedConversations = Array.from(conversations.entries())
+      .sort((a, b) => a[1].updatedAt.getTime() - b[1].updatedAt.getTime())
+
+    const toDelete = sortedConversations.slice(0, conversations.size - MAX_CONVERSATIONS)
+    toDelete.forEach(([id]) => conversations.delete(id))
+  }
+
+  console.log(`[CHAT CLEANUP] Cleaned up conversations. Current count: ${conversations.size}`)
+}
+
+// Start cleanup interval (only on server-side)
+if (typeof window === 'undefined') {
+  setInterval(cleanupConversations, CLEANUP_INTERVAL)
+}
+
 export function getConversation(conversationId: string): ConversationContext | null {
   return conversations.get(conversationId) || null
 }

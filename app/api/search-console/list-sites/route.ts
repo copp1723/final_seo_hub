@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger'
 import { google } from 'googleapis'
 import { decrypt } from '@/lib/encryption'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const session = await auth()

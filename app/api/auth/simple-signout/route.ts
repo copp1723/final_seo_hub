@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SimpleAuth } from '@/lib/auth-simple';
 import { logger } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const response = NextResponse.json({ success: true });

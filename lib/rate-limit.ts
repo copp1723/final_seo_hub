@@ -11,6 +11,36 @@ interface RateLimitStore {
 // In-memory store for rate limiting
 const rateLimitStore: RateLimitStore = {}
 
+// Memory management constants
+const MAX_RATE_LIMIT_ENTRIES = 10000 // Maximum entries to prevent memory leaks
+const CLEANUP_INTERVAL = 5 * 60 * 1000 // Clean up every 5 minutes
+
+// Periodic cleanup to prevent memory leaks
+setInterval(() => {
+  const now = Date.now()
+  const keysToDelete: string[] = []
+
+  for (const [key, entry] of Object.entries(rateLimitStore)) {
+    if (now > entry.resetTime) {
+      keysToDelete.push(key)
+    }
+  }
+
+  keysToDelete.forEach(key => delete rateLimitStore[key])
+
+  // If still too many entries, remove oldest ones
+  const remainingEntries = Object.entries(rateLimitStore)
+  if (remainingEntries.length > MAX_RATE_LIMIT_ENTRIES) {
+    const sortedEntries = remainingEntries.sort((a, b) => a[1].resetTime - b[1].resetTime)
+    const toDelete = sortedEntries.slice(0, remainingEntries.length - MAX_RATE_LIMIT_ENTRIES)
+    toDelete.forEach(([key]) => delete rateLimitStore[key])
+  }
+
+  if (keysToDelete.length > 0) {
+    console.log(`[RATE LIMIT] Cleaned up ${keysToDelete.length} expired entries. Current size: ${Object.keys(rateLimitStore).length}`)
+  }
+}, CLEANUP_INTERVAL)
+
 export interface RateLimitConfig {
   windowMs: number // Time window in milliseconds
   maxRequests: number // Maximum requests per window

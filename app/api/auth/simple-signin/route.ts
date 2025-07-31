@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import { SimpleAuth } from '@/lib/auth-simple';
 import { logger } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {

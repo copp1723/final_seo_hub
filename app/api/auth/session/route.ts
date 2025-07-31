@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { logger } from '@/lib/logger';
 
+export const dynamic = 'force-dynamic';
+
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
 );

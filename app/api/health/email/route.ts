@@ -4,6 +4,8 @@ import { getMailgunClient } from '@/lib/mailgun/client'
 import { emailQueue } from '@/lib/mailgun/queue'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   logger.info('🔍 Email health check started')
   

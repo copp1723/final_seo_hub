@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { validateEnvironment } from '@/lib/env-validation'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const startTime = Date.now()
   

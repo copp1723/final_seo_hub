@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth'
 import { getSearchConsoleService } from '@/lib/google/searchConsoleService'
 import { logger } from '@/lib/logger'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   const session = await auth()
   if (!session?.user) {

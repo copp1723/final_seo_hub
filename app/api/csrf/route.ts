@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { getOrCreateCSRFToken } from '@/lib/csrf'
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const session = await SimpleAuth.getSession()
   

@@ -11,11 +11,46 @@ export const dynamic = 'force-dynamic'
 // In-memory cache for dashboard analytics
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const MAX_CACHE_SIZE = 500 // Maximum cache entries to prevent memory leaks
+const CACHE_CLEANUP_THRESHOLD = 100 // Clean up when we exceed this size
 
 // Clear cache function for debugging
 function clearCache() {
   cache.clear()
   logger.info('Analytics cache cleared')
+}
+
+// Enhanced cache cleanup with memory management
+function cleanupCache() {
+  const now = Date.now()
+  const expiredKeys: string[] = []
+
+  // Find expired entries
+  for (const [key, value] of cache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      expiredKeys.push(key)
+    }
+  }
+
+  // Remove expired entries
+  expiredKeys.forEach(key => cache.delete(key))
+
+  // If still too many entries, remove oldest ones
+  if (cache.size > MAX_CACHE_SIZE) {
+    const sortedEntries = Array.from(cache.entries())
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)
+
+    const toDelete = sortedEntries.slice(0, cache.size - CACHE_CLEANUP_THRESHOLD)
+    toDelete.forEach(([key]) => cache.delete(key))
+  }
+
+  if (expiredKeys.length > 0 || cache.size > MAX_CACHE_SIZE) {
+    logger.info('Analytics cache cleanup completed', {
+      expiredRemoved: expiredKeys.length,
+      currentSize: cache.size,
+      maxSize: MAX_CACHE_SIZE
+    })
+  }
 }
 
 function getCacheKey(userId: string, dateRange: string, dealershipId?: string): string {
@@ -287,16 +322,8 @@ export async function POST(request: NextRequest) {
     // Cache the result
     cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
 
-    // Clean up old cache entries
-    if (cache.size > 100) {
-      const sortedEntries = Array.from(cache.entries())
-        .sort((a, b) => a[1].timestamp - b[1].timestamp)
-      
-      // Remove oldest 50 entries
-      for (let i = 0; i < 50; i++) {
-        cache.delete(sortedEntries[i][0])
-      }
-    }
+    // Clean up cache to prevent memory leaks
+    cleanupCache()
 
     return NextResponse.json({ data: dashboardData, cached: false })
     */

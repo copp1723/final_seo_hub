@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Building2, UserPlus, Users, ArrowLeft } from 'lucide-react'
+import { Building2, UserPlus, Users, ArrowLeft, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 interface Dealership {
@@ -148,20 +148,29 @@ export default function DealershipsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-4">
-        <Link href="/admin">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link href="/admin">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Admin
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <Building2 className="mr-3 h-8 w-8" />
+              Dealership Management
+            </h1>
+            <p className="text-gray-600 mt-2">Manage dealerships and invite users</p>
+          </div>
+        </div>
+
+        <Link href="/admin/dealerships/create">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Dealership
           </Button>
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Building2 className="mr-3 h-8 w-8" />
-            Dealership Management
-          </h1>
-          <p className="text-gray-600 mt-2">Manage dealerships and invite users</p>
-        </div>
       </div>
 
       {/* Dealerships Grid */}

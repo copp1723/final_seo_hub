@@ -198,7 +198,7 @@ export const POST = createPostHandler<z.infer<typeof automotiveChatRequestSchema
         source: response.source
       })
 
-      return successResponse(response)
+      return successResponse({ success: true, data: response })
     } catch (error) {
       logger.error('Automotive chat processing error', {
         error,
@@ -222,7 +222,7 @@ export const POST = createPostHandler<z.infer<typeof automotiveChatRequestSchema
         }
       }
 
-      return successResponse(fallbackResponse)
+      return successResponse({ success: true, data: fallbackResponse })
     }
   },
   {

@@ -183,7 +183,7 @@ export default function AdminDashboard() {
               </Button>
             </Link>
 
-            {(user.role === 'SUPER_ADMIN' || user.role === 'AGENCY_ADMIN') && (
+            {user.role === 'AGENCY_ADMIN' && (
               <Link href="/admin/dealerships">
                 <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2">
                   <Building2 className="h-6 w-6" />

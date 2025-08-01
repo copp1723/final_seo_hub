@@ -177,7 +177,7 @@ export default function SuperAdminDashboard() {
           <CardDescription>Common administrative tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/super-admin/users">
               <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2">
                 <Users className="h-6 w-6" />
@@ -188,6 +188,12 @@ export default function SuperAdminDashboard() {
               <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2">
                 <Building2 className="h-6 w-6" />
                 <span>Manage Agencies</span>
+              </Button>
+            </Link>
+            <Link href="/admin/dealerships">
+              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center space-y-2">
+                <Building2 className="h-6 w-6" />
+                <span>Manage Dealerships</span>
               </Button>
             </Link>
             <Link href="/admin">

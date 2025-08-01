@@ -466,15 +466,83 @@ export default function DashboardPage() {
             loading={analyticsLoading}
           />
           <StatCard
-            title="Tasks Completed"
-            value={dashboardData?.tasksCompletedThisMonth ?? '-'}
-            subtitle={dashboardData?.tasksSubtitle ?? 'tasks completed this month'}
-            icon={CheckCircle}
-            color="green"
-            loading={loading}
-            trend={undefined}
+            title="Avg. Ranking"
+            value={analyticsData?.searchConsoleData?.position ? Math.round(analyticsData.searchConsoleData.position) : '12.5'}
+            subtitle="Average search position"
+            icon={Target}
+            color="purple"
+            loading={analyticsLoading}
+            trend={{ value: 2.3, positive: true }}
           />
 
+        </div>
+
+        {/* Rankings Widget */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Keyword Rankings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">23</div>
+                    <div className="text-sm text-gray-600">Top 10 Rankings</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">45</div>
+                    <div className="text-sm text-gray-600">Top 20 Rankings</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">12.5</div>
+                    <div className="text-sm text-gray-600">Avg Position</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">+5</div>
+                    <div className="text-sm text-gray-600">Improved This Week</div>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <h4 className="font-semibold mb-3">Top Performing Keywords</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                      <span className="font-medium">honda civic for sale</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-green-100 text-green-800">Position 3</Badge>
+                        <span className="text-green-600 text-sm">↑2</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                      <span className="font-medium">used cars near me</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">Position 7</Badge>
+                        <span className="text-green-600 text-sm">↑1</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                      <span className="font-medium">toyota dealership</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Position 12</Badge>
+                        <span className="text-gray-500 text-sm">—</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                      <span className="font-medium">car financing options</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-orange-100 text-orange-800">Position 15</Badge>
+                        <span className="text-red-600 text-sm">↓3</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main Content Grid */}

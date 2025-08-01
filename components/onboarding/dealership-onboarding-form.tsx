@@ -383,7 +383,7 @@ export default function DealershipOnboardingForm() {
           </div>
 
           <div>
-            <Label htmlFor="otherBrand" className="text-white">Other</Label>
+            <Label htmlFor="otherBrand" className="text-white">Other Brand</Label>
             <Input
               id="otherBrand"
               value={formData.otherBrand}

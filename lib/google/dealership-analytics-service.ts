@@ -89,28 +89,9 @@ export class DealershipAnalyticsService {
     const { startDate, endDate, dealershipId, userId } = options
 
     try {
-      // Get dealership-specific GA4 property ID from mapping
-      let propertyId: string | null = null
-      let hasDealershipMapping = false
-
-      if (dealershipId) {
-        propertyId = getGA4PropertyId(dealershipId)
-        console.log(`🎯 GA4 Property mapping for ${dealershipId}:`, propertyId)
-
-        if (propertyId && hasGA4Access(dealershipId)) {
-          hasDealershipMapping = true
-          console.log(`✅ Found dealership-specific GA4 mapping for ${dealershipId}`)
-        } else {
-          console.log(`⚠️ No dealership-specific GA4 mapping found for ${dealershipId}, falling back to user connection`)
-        }
-      }
-
-      // Find any GA4 connection (we'll use the property ID from mapping if available, otherwise from connection)
+      // Find user's GA4 connection first
       let connection = await prisma.ga4_connections.findFirst({
-        where: {
-          userId,
-          // We can use any connection since we have the specific property ID from mapping
-        }
+        where: { userId }
       })
 
       if (!connection) {
@@ -122,7 +103,25 @@ export class DealershipAnalyticsService {
         }
       }
 
-      // Use the dealership-specific property ID from mapping, or fallback to connection property ID
+      // Get dealership-specific GA4 property ID from mapping
+      let propertyId: string | null = null
+      let hasDealershipMapping = false
+
+      if (dealershipId) {
+        propertyId = getGA4PropertyId(dealershipId)
+        console.log(`🎯 GA4 Property mapping for ${dealershipId}:`, propertyId)
+
+        // Check if dealership has mapping AND user's connection matches the dealership property
+        if (propertyId && hasGA4Access(dealershipId) && propertyId === connection.propertyId) {
+          hasDealershipMapping = true
+          console.log(`✅ Found dealership-specific GA4 mapping for ${dealershipId} that matches user connection`)
+        } else {
+          console.log(`⚠️ Dealership mapping exists but doesn't match user's GA4 property (${connection.propertyId}), falling back to user connection`)
+          propertyId = null // Reset to use user connection
+        }
+      }
+
+      // Use the dealership-specific property ID if it matches user access, otherwise use user connection
       const targetPropertyId = propertyId || connection.propertyId
 
       if (!targetPropertyId) {

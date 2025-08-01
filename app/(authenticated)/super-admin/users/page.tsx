@@ -21,19 +21,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { 
-  Users, 
-  Plus, 
-  Search, 
-  Filter, 
-  Mail, 
+import {
+  Users,
+  Plus,
+  Search,
+  Filter,
+  Mail,
   MoreHorizontal,
   Eye,
   Edit,
   Trash2,
   UserPlus,
   Check,
-  X
+  X,
+  Send
 } from 'lucide-react'
 import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
@@ -58,6 +59,8 @@ interface User {
   }
   lastLoginAt: string | null
   createdAt: string
+  onboardingCompleted: boolean
+  password: string | null
 }
 
 interface Agency {
@@ -91,7 +94,7 @@ export default function UsersManagement() {
   const [inviteForm, setInviteForm] = useState({
     name: '',
     email: '',
-    role: 'DEALERSHIP_ADMIN',
+    role: 'USER',
     agencyId: '',
     dealershipId: '',
     sendInvite: true
@@ -181,7 +184,7 @@ export default function UsersManagement() {
       setInviteForm({
         name: '',
         email: '',
-        role: 'DEALERSHIP_ADMIN',
+        role: 'USER',
         agencyId: '',
         dealershipId: '',
         sendInvite: true
@@ -252,13 +255,40 @@ export default function UsersManagement() {
     }
   }
 
+  const handleResendInvitation = async (userId: string, userEmail: string) => {
+    if (!confirm(`Are you sure you want to resend the invitation to ${userEmail}?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/super-admin/users/${userId}/resend-invitation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to resend invitation')
+      }
+
+      const data = await response.json()
+      toast.success(data.message)
+      fetchUsers()
+    } catch (error: any) {
+      console.error('Error resending invitation:', error)
+      toast.error(error.message || 'Failed to resend invitation')
+    }
+  }
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'SUPER_ADMIN':
         return 'bg-red-100 text-red-800'
       case 'AGENCY_ADMIN':
         return 'bg-blue-100 text-blue-800'
-      case 'DEALERSHIP_ADMIN':
+      case 'USER':
         return 'bg-green-100 text-green-800'
       default:
         return 'bg-gray-100 text-gray-800'
@@ -314,7 +344,7 @@ export default function UsersManagement() {
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                 <SelectItem value="AGENCY_ADMIN">Agency Admin</SelectItem>
-                <SelectItem value="DEALERSHIP_ADMIN">Dealership Admin</SelectItem>
+                <SelectItem value="USER">Dealership User</SelectItem>
               </SelectContent>
             </Select>
             <Select value={agencyFilter} onValueChange={setAgencyFilter}>
@@ -411,7 +441,7 @@ export default function UsersManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => {
                               setEditingUser(user)
                               setShowEditDialog(true)
@@ -420,7 +450,16 @@ export default function UsersManagement() {
                             <Edit className="h-4 w-4 mr-2" />
                             Edit User
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          {(!user.onboardingCompleted || !user.password) && (
+                            <DropdownMenuItem
+                              onClick={() => handleResendInvitation(user.id, user.email)}
+                              className="text-blue-600"
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              Resend Invitation
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
                             onClick={() => handleDeleteUser(user.id)}
                             className="text-red-600"
                           >
@@ -506,13 +545,13 @@ export default function UsersManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="AGENCY_ADMIN">Agency Admin</SelectItem>
-                  <SelectItem value="DEALERSHIP_ADMIN">Dealership Admin</SelectItem>
+                  <SelectItem value="USER">Dealership User</SelectItem>
                   <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            {(inviteForm.role === 'AGENCY_ADMIN' || inviteForm.role === 'DEALERSHIP_ADMIN') && (
+            {(inviteForm.role === 'AGENCY_ADMIN' || inviteForm.role === 'USER') && (
               <div>
                 <Label htmlFor="agency">Agency</Label>
                 <Select 
@@ -533,18 +572,17 @@ export default function UsersManagement() {
               </div>
             )}
             
-            {inviteForm.role === 'DEALERSHIP_ADMIN' && inviteForm.agencyId && (
+            {inviteForm.role === 'USER' && inviteForm.agencyId && (
               <div>
-                <Label htmlFor="dealership">Dealership (Optional)</Label>
+                <Label htmlFor="dealership">Dealership (Required for Users)</Label>
                 <Select 
                   value={inviteForm.dealershipId} 
                   onValueChange={(value) => setInviteForm(prev => ({ ...prev, dealershipId: value }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select dealership (optional)" />
+                    <SelectValue placeholder="Select dealership" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No specific dealership</SelectItem>
                     {filteredDealerships.map((dealership) => (
                       <SelectItem key={dealership.id} value={dealership.id}>
                         {dealership.name}
@@ -612,13 +650,13 @@ export default function UsersManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="AGENCY_ADMIN">Agency Admin</SelectItem>
-                    <SelectItem value="DEALERSHIP_ADMIN">Dealership Admin</SelectItem>
+                    <SelectItem value="USER">Dealership User</SelectItem>
                     <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
-              {(editingUser.role === 'AGENCY_ADMIN' || editingUser.role === 'DEALERSHIP_ADMIN') && (
+              {(editingUser.role === 'AGENCY_ADMIN' || editingUser.role === 'USER') && (
                 <div>
                   <Label htmlFor="edit-agency">Agency</Label>
                   <Select 

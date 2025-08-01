@@ -86,7 +86,7 @@ export const DEALERSHIP_PROPERTY_MAPPINGS: DealershipPropertyMapping[] = [
   {
     dealershipId: 'dealer-acura-columbus',
     dealershipName: 'Acura of Columbus',
-    ga4PropertyId: '284944578',
+    ga4PropertyId: '320759942', // TEMP: Use same as user connection for demo
     searchConsoleUrl: 'https://www.acuracolumbus.com/',
     hasAccess: true
   },

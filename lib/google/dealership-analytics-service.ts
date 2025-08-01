@@ -6,6 +6,7 @@ import { refreshGA4TokenIfNeeded } from './ga4-token-refresh'
 import { GA4Service } from './ga4Service'
 import { features } from '@/lib/features'
 import { getDemoGA4Analytics, getDemoSearchConsoleData } from '@/lib/demo-data'
+import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access } from '@/lib/dealership-property-mapping'
 
 interface AnalyticsOptions {
   startDate: string
@@ -86,36 +87,66 @@ export class DealershipAnalyticsService {
 
   private async getDealershipGA4Data(options: AnalyticsOptions) {
     const { startDate, endDate, dealershipId, userId } = options
-    
+
     try {
-      // Find connection for this dealership or user
-      let connection = null
+      // Get dealership-specific GA4 property ID from mapping
+      let propertyId: string | null = null
 
       if (dealershipId) {
-        // Try dealership-specific connection first
-        connection = await prisma.ga4_connections.findFirst({
-          where: { dealershipId }
-        })
-      }
+        propertyId = getGA4PropertyId(dealershipId)
+        console.log(`🎯 GA4 Property mapping for ${dealershipId}:`, propertyId)
 
-      // Fallback to user-level connection
-      if (!connection) {
-        connection = await prisma.ga4_connections.findFirst({
-          where: {
-            userId,
-            dealershipId: null
+        if (!propertyId) {
+          console.log(`❌ No GA4 property ID found for dealership: ${dealershipId}`)
+          return {
+            data: undefined,
+            error: `No GA4 property configured for dealership: ${dealershipId}`,
+            hasConnection: false,
+            propertyId: undefined
           }
-        })
+        }
+
+        if (!hasGA4Access(dealershipId)) {
+          console.log(`❌ No GA4 access for dealership: ${dealershipId}`)
+          return {
+            data: undefined,
+            error: `No GA4 access for dealership: ${dealershipId}`,
+            hasConnection: false,
+            propertyId: undefined
+          }
+        }
       }
 
-      if (!connection || !connection.propertyId) {
+      // Find any GA4 connection (we'll use the property ID from mapping, not from connection)
+      let connection = await prisma.ga4_connections.findFirst({
+        where: {
+          userId,
+          // We can use any connection since we have the specific property ID from mapping
+        }
+      })
+
+      if (!connection) {
         return {
           data: undefined,
-          error: 'No GA4 connection found for this dealership',
+          error: 'No GA4 connection found - please connect your Google Analytics account',
           hasConnection: false,
           propertyId: undefined
         }
       }
+
+      // Use the dealership-specific property ID from mapping, or fallback to connection property ID
+      const targetPropertyId = propertyId || connection.propertyId
+
+      if (!targetPropertyId) {
+        return {
+          data: undefined,
+          error: 'No GA4 property ID available',
+          hasConnection: false,
+          propertyId: undefined
+        }
+      }
+
+      console.log(`🔍 Using GA4 property ID: ${targetPropertyId} for dealership: ${dealershipId}`)
 
       // Refresh token if needed
       await refreshGA4TokenIfNeeded(userId)
@@ -123,7 +154,7 @@ export class DealershipAnalyticsService {
       const ga4Service = new GA4Service(userId)
       await ga4Service.initialize()
 
-      const ga4Reports = await ga4Service.batchRunReports(connection.propertyId, [
+      const ga4Reports = await ga4Service.batchRunReports(targetPropertyId, [
         {
           dateRanges: [{ startDate, endDate }],
           metrics: [
@@ -149,7 +180,7 @@ export class DealershipAnalyticsService {
             },
             error: null,
             hasConnection: true,
-            propertyId: connection.propertyId
+            propertyId: targetPropertyId
           }
         }
       }
@@ -158,7 +189,7 @@ export class DealershipAnalyticsService {
         data: undefined,
         error: 'No data available',
         hasConnection: true,
-        propertyId: connection.propertyId
+        propertyId: targetPropertyId
       }
 
     } catch (error) {
@@ -174,41 +205,61 @@ export class DealershipAnalyticsService {
 
   private async getDealershipSearchConsoleData(options: AnalyticsOptions) {
     const { startDate, endDate, dealershipId, userId } = options
-    
+
     try {
-      // Find connection for this dealership or user
-      let connection = null
+      // Get dealership-specific Search Console URL from mapping
+      let siteUrl: string | null = null
 
       if (dealershipId) {
-        // Try dealership-specific connection first
-        connection = await prisma.search_console_connections.findFirst({
-          where: { dealershipId }
-        })
-      }
+        siteUrl = getSearchConsoleUrl(dealershipId)
+        console.log(`🎯 Search Console URL mapping for ${dealershipId}:`, siteUrl)
 
-      // Fallback to user-level connection
-      if (!connection) {
-        connection = await prisma.search_console_connections.findFirst({
-          where: {
-            userId,
-            dealershipId: null
+        if (!siteUrl) {
+          console.log(`❌ No Search Console URL found for dealership: ${dealershipId}`)
+          return {
+            data: undefined,
+            error: `No Search Console URL configured for dealership: ${dealershipId}`,
+            hasConnection: false,
+            siteUrl: undefined
           }
-        })
+        }
       }
 
-      if (!connection || !connection.siteUrl) {
+      // Find any Search Console connection (we'll use the URL from mapping, not from connection)
+      let connection = await prisma.search_console_connections.findFirst({
+        where: {
+          userId,
+          // We can use any connection since we have the specific URL from mapping
+        }
+      })
+
+      if (!connection) {
         return {
           data: undefined,
-          error: 'No Search Console connection found for this dealership',
+          error: 'No Search Console connection found - please connect your Google Search Console account',
           hasConnection: false,
           siteUrl: undefined
         }
       }
 
+      // Use the dealership-specific URL from mapping, or fallback to connection URL
+      const targetSiteUrl = siteUrl || connection.siteUrl
+
+      if (!targetSiteUrl) {
+        return {
+          data: undefined,
+          error: 'No Search Console URL available',
+          hasConnection: false,
+          siteUrl: undefined
+        }
+      }
+
+      console.log(`🔍 Using Search Console URL: ${targetSiteUrl} for dealership: ${dealershipId}`)
+
       const searchConsoleService = await this.getSearchConsoleService(userId)
-      
+
       const searchConsoleData = await searchConsoleService.getSearchAnalytics(
-        connection.siteUrl,
+        targetSiteUrl,
         {
           startDate,
           endDate,
@@ -230,7 +281,7 @@ export class DealershipAnalyticsService {
           },
           error: null,
           hasConnection: true,
-          siteUrl: connection.siteUrl
+          siteUrl: targetSiteUrl
         }
       }
 
@@ -238,7 +289,7 @@ export class DealershipAnalyticsService {
         data: undefined,
         error: 'No data available',
         hasConnection: true,
-        siteUrl: connection.siteUrl
+        siteUrl: targetSiteUrl
       }
 
     } catch (error) {

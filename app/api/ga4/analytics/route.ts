@@ -44,55 +44,106 @@ export async function POST(request: NextRequest) {
     }
 
     const { startDate, endDate, metrics, dimensions } = validationResult.data
+    
+    // Extract dealershipId from query parameters or request body
+    const { searchParams } = new URL(request.url)
+    const dealershipId = searchParams.get('dealershipId') || body.dealershipId
 
     // Debug logging
     logger.info('GA4 Analytics Request', {
       userId: session.user.id,
       dateRange: { startDate, endDate },
       metrics,
-      dimensions
+      dimensions,
+      requestedDealershipId: dealershipId
     })
-
-    // Check cache first
-    const cacheKey = getCacheKey(session.user.id, { startDate, endDate, metrics, dimensions })
-    const cachedData = cache.get(cacheKey)
-    
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
-      logger.info('Returning cached GA4 data', {
-        userId: session.user.id,
-        cacheAge: Date.now() - cachedData.timestamp
-      })
-      return NextResponse.json({ data: cachedData.data, cached: true })
-    }
 
     const user = await prisma.users.findUnique({
       where: { id: session.user.id },
       select: {
         dealershipId: true,
-        agencyId: true
+        agencyId: true,
+        role: true
       }
     })
 
-    if (!user || !user.dealershipId) {
-      logger.warn('GA4 Analytics: User has no active dealership selected', {
+    if (!user) {
+      logger.warn('GA4 Analytics: User not found', {
         userId: session.user.id
       })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Use dealershipId from request if provided, otherwise fall back to user's dealership
+    const targetDealershipId = dealershipId || user.dealershipId
+
+    if (!targetDealershipId) {
+      logger.warn('GA4 Analytics: No dealership specified', {
+        userId: session.user.id,
+        requestedDealershipId: dealershipId,
+        userDealershipId: user.dealershipId
+      })
       return NextResponse.json(
-        { error: 'No active dealership selected. Please select a dealership to view analytics.' },
+        { error: 'No dealership specified. Please select a dealership to view analytics.' },
         { status: 400 }
       )
     }
 
-    const targetDealershipId = user.dealershipId
+    // Access control: Verify user can access the requested dealership
+    if (dealershipId && dealershipId !== user.dealershipId) {
+      // Check if user has access to this dealership (agency users can access multiple dealerships)
+      if (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN') {
+        const hasAccess = await prisma.dealerships.findFirst({
+          where: {
+            id: dealershipId,
+            OR: [
+              { users: { some: { id: session.user.id } } },
+              { agencyId: user.agencyId }
+            ]
+          }
+        })
 
-    // Check for GA4 connection - try agency first, then user
-    let ga4Connection = await prisma.ga4_connections.findFirst({
-      where: {
-        users: {
-          agencyId: user.agencyId
+        if (!hasAccess) {
+          logger.warn('GA4 Analytics: Access denied to dealership', {
+            userId: session.user.id,
+            requestedDealershipId: dealershipId,
+            userRole: user.role
+          })
+          return NextResponse.json(
+            { error: 'Access denied to requested dealership' },
+            { status: 403 }
+          )
         }
       }
+    }
+
+    // Check cache first - include dealershipId in cache key
+    const cacheKey = getCacheKey(session.user.id, { startDate, endDate, metrics, dimensions, dealershipId: targetDealershipId })
+    const cachedData = cache.get(cacheKey)
+    
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
+      logger.info('Returning cached GA4 data', {
+        userId: session.user.id,
+        dealershipId: targetDealershipId,
+        cacheAge: Date.now() - cachedData.timestamp
+      })
+      return NextResponse.json({ data: cachedData.data, cached: true })
+    }
+
+    // Check for GA4 connection - try dealership-specific first, then agency, then user
+    let ga4Connection = await prisma.ga4_connections.findFirst({
+      where: { dealershipId: targetDealershipId }
     })
+
+    if (!ga4Connection) {
+      ga4Connection = await prisma.ga4_connections.findFirst({
+        where: {
+          users: {
+            agencyId: user.agencyId
+          }
+        }
+      })
+    }
 
     if (!ga4Connection) {
       ga4Connection = await prisma.ga4_connections.findFirst({

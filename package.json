@@ -28,7 +28,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:setup-admins": "prisma db execute --schema=prisma/schema.prisma --file=scripts/setup-super-admins.sql",
     "db:reset-with-admins": "prisma migrate reset --force && npm run db:setup-admins",
-    "db:seed-sql": "prisma db execute --file=scripts/seed-data.sql"
+    "db:seed-sql": "prisma db execute --file=scripts/seed-data.sql",
+    "test:integration": "node scripts/integration-test.js",
+    "test:integration:verbose": "DEBUG=1 node scripts/integration-test.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",

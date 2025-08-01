@@ -91,17 +91,80 @@ export async function POST(request: NextRequest) {
     }
 
     const { startDate, endDate, dimensions, searchType, rowLimit } = validationResult.data
+    
+    // Extract dealershipId from query parameters or request body
+    const { searchParams } = new URL(request.url)
+    const dealershipId = searchParams.get('dealershipId') || body.dealershipId
+    
     logger.info('Search Console performance validation successful', {
       userId: session.user.id,
       startDate,
       endDate,
       dimensions,
       searchType,
-      rowLimit
+      rowLimit,
+      requestedDealershipId: dealershipId
     })
 
-    // EMERGENCY DEMO FIX: Skip dealership check
-    const targetDealershipId = 'demo-dealership'
+    // Get user info for dealership determination and access control
+    const user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: {
+        dealershipId: true,
+        agencyId: true,
+        role: true
+      }
+    })
+
+    if (!user) {
+      logger.warn('Search Console performance: User not found', {
+        userId: session.user.id
+      })
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Use dealershipId from request if provided, otherwise fall back to user's dealership
+    const targetDealershipId = dealershipId || user.dealershipId
+
+    if (!targetDealershipId) {
+      logger.warn('Search Console performance: No dealership specified', {
+        userId: session.user.id,
+        requestedDealershipId: dealershipId,
+        userDealershipId: user.dealershipId
+      })
+      return NextResponse.json(
+        { error: 'No dealership specified. Please select a dealership to view performance data.' },
+        { status: 400 }
+      )
+    }
+
+    // Access control: Verify user can access the requested dealership
+    if (dealershipId && dealershipId !== user.dealershipId) {
+      // Check if user has access to this dealership (agency users can access multiple dealerships)
+      if (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN') {
+        const hasAccess = await prisma.dealerships.findFirst({
+          where: {
+            id: dealershipId,
+            OR: [
+              { users: { some: { id: session.user.id } } },
+              { agencyId: user.agencyId }
+            ]
+          }
+        })
+
+        if (!hasAccess) {
+          logger.warn('Search Console performance: Access denied to dealership', {
+            userId: session.user.id,
+            requestedDealershipId: dealershipId,
+            userRole: user.role
+          })
+          return NextResponse.json(
+            { error: 'Access denied to requested dealership' },
+            { status: 403 }
+          )
+        }
+      }
+    }
 
     // Check cache first
     const cacheKey = getCacheKey(targetDealershipId, { startDate, endDate, dimensions, searchType })
@@ -117,9 +180,16 @@ export async function POST(request: NextRequest) {
       dealershipId: targetDealershipId
     })
 
+    // Try dealership-specific connection first, then user-level connection
     searchConsoleConnection = await prisma.search_console_connections.findFirst({
-      where: { userId: session.user.id }
+      where: { dealershipId: targetDealershipId }
     })
+
+    if (!searchConsoleConnection) {
+      searchConsoleConnection = await prisma.search_console_connections.findFirst({
+        where: { userId: session.user.id }
+      })
+    }
 
     logger.info('Search Console connection query result', {
       userId: session.user.id,

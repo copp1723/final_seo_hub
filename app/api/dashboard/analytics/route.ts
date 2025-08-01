@@ -385,6 +385,45 @@ export async function GET(request: NextRequest) {
       url: request.url
     })
 
+    // Add access control for dealership access (skip in demo mode)
+    if (dealershipId && !features.demoMode && session?.user?.id) {
+      const user = await prisma.users.findUnique({
+        where: { id: session.user.id },
+        select: {
+          dealershipId: true,
+          agencyId: true,
+          role: true
+        }
+      })
+
+      if (user && dealershipId !== user.dealershipId) {
+        // Check if user has access to this dealership (agency users can access multiple dealerships)
+        if (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN') {
+          const hasAccess = await prisma.dealerships.findFirst({
+            where: {
+              id: dealershipId,
+              OR: [
+                { users: { some: { id: session.user.id } } },
+                { agencyId: user.agencyId }
+              ]
+            }
+          })
+
+          if (!hasAccess) {
+            logger.warn('Dashboard analytics GET: Access denied to dealership', {
+              userId: session.user.id,
+              requestedDealershipId: dealershipId,
+              userRole: user.role
+            })
+            return NextResponse.json(
+              { error: 'Access denied to requested dealership' },
+              { status: 403 }
+            )
+          }
+        }
+      }
+    }
+
     // Calculate date range using utility
     const { startDate, endDate } = getDateRange(dateRange)
 

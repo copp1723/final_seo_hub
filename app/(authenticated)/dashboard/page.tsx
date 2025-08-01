@@ -167,10 +167,11 @@ export default function DashboardPage() {
       // Build analytics endpoint with dateRange and optional dealershipId
       const endpoint = `/api/dashboard/analytics?dateRange=30days&clearCache=true${currentDealershipId ? `&dealershipId=${currentDealershipId}` : ''}`
 
-      console.log('Dashboard: Fetching analytics data', {
+      console.log('🔍 Dashboard: Fetching analytics data', {
         currentDealershipId,
         endpoint,
-        dealershipName: currentDealership?.name
+        dealershipName: currentDealership?.name,
+        timestamp: new Date().toISOString()
       })
 
       const response = await fetch(endpoint, {
@@ -272,7 +273,24 @@ export default function DashboardPage() {
     }
   }, [user?.id, mounted, currentDealership?.id, fetchDashboardData, fetchAnalyticsData])
 
-  // The effect above will handle dealership changes automatically since currentDealership?.id is in the dependency array
+  // Listen for dealership changes and FORCE this lazy dashboard to refresh!
+  useEffect(() => {
+    const handleDealershipChange = (event: CustomEvent) => {
+      console.log('🔥 Dashboard: DEALERSHIP CHANGED - Time to wake up and refresh!', event.detail)
+      // Force refresh of both dashboard and analytics data
+      if (user?.id && mounted) {
+        console.log('🚀 Dashboard: Forcing data refresh...')
+        fetchDashboardData()
+        fetchAnalyticsData()
+      }
+    }
+
+    window.addEventListener('dealershipChanged', handleDealershipChange as EventListener)
+
+    return () => {
+      window.removeEventListener('dealershipChanged', handleDealershipChange as EventListener)
+    }
+  }, [user?.id, mounted, fetchDashboardData, fetchAnalyticsData])
 
   // Handle authentication - moved after all hooks
   if (isLoading) {

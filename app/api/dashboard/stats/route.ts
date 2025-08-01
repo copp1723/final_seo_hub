@@ -14,7 +14,12 @@ async function handleGET(request: NextRequest) {
     }
 
     const user = await prisma.users.findUnique({
-      where: { id: session.user.id }
+      where: { id: session.user.id },
+      select: {
+        dealershipId: true,
+        agencyId: true,
+        role: true
+      }
     })
 
     if (!user) {
@@ -27,16 +32,37 @@ async function handleGET(request: NextRequest) {
     
     let dealership
     if (dealershipId) {
+      // Access control: Verify user can access the requested dealership
+      if (dealershipId !== user.dealershipId) {
+        // Check if user has access to this dealership (agency users can access multiple dealerships)
+        if (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN') {
+          const hasAccess = await prisma.dealerships.findFirst({
+            where: {
+              id: dealershipId,
+              OR: [
+                { users: { some: { id: session.user.id } } },
+                { agencyId: user.agencyId }
+              ]
+            }
+          })
+
+          if (!hasAccess) {
+            return NextResponse.json(
+              { error: 'Access denied to requested dealership' },
+              { status: 403 }
+            )
+          }
+        }
+      }
+
       dealership = await prisma.dealerships.findUnique({
         where: { id: dealershipId }
       })
     } else {
-      // Get user's dealership or first available dealership
-      const userDealership = await prisma.users.findUnique({
-        where: { id: session.user.id },
-        include: { dealerships: true }
+      // Get user's dealership
+      dealership = await prisma.dealerships.findUnique({
+        where: { id: user.dealershipId || '' }
       })
-      dealership = userDealership?.dealerships || await prisma.dealerships.findFirst()
     }
 
     if (!dealership) {

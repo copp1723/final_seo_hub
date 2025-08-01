@@ -19,6 +19,7 @@ function validateEncryptionKey(key: string | undefined): void {
     /^(.)\1+$/, // All same character
     /^1234567890/, // Sequential numbers
     /^abcdefghij/i, // Sequential letters
+    /^a1b2c3d4e5f67890/, // Specific weak pattern that was used
     /^qwerty/i, // Keyboard patterns
     /^password/i, // Common words
     /^secret/i,

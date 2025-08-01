@@ -16,33 +16,30 @@ interface OnboardingData {
   package: 'PLATINUM' | 'GOLD' | 'SILVER';
   mainBrand: string;
   otherBrand: string;
-  
+
   // Location Details
   address: string;
   city: string;
   state: string;
   zipCode: string;
-  
+
   // Contact Information
   dealerContactName: string;
   dealerContactTitle: string;
   dealerContactEmail: string;
   dealerContactPhone: string;
-  
+
   // Website & Billing
   dealerWebsiteUrl: string;
   billingContactEmail: string;
-  
+
   // Access Notes
   siteAccessNotes: string;
-  
+
   // Target Arrays
   targetVehicleModels: string[];
   targetCities: string[];
   targetDealers: string[];
-  
-  // Supporting Documents
-  documents: File[];
 }
 
 const INITIAL_DATA: OnboardingData = {
@@ -63,8 +60,7 @@ const INITIAL_DATA: OnboardingData = {
   siteAccessNotes: '',
   targetVehicleModels: ['', '', ''],
   targetCities: ['', '', ''],
-  targetDealers: ['', '', ''],
-  documents: []
+  targetDealers: ['', '', '']
 }
 
 const STEPS = [
@@ -327,67 +323,372 @@ export default function DealershipOnboardingForm() {
     }
   }
 
-  const renderDealerStep = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Dealer Information</CardTitle>
-        <p className="text-sm text-gray-600">Basic information about your dealership</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="dealerName">Dealer Name *</Label>
-          <Input
-            id="dealerName"
-            value={formData.dealerName}
-            onChange={(e) => updateField('dealerName', e.target.value)}
-            placeholder="Enter dealer name"
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="package">Package *</Label>
-          <select
-            id="package"
-            className="w-full p-2 border border-gray-300 rounded-md"
-            value={formData.package}
-            onChange={(e) => updateField('package', e.target.value)}
-            required
-          >
-            <option value="">Please select</option>
-            <option value="SILVER">Silver</option>
-            <option value="GOLD">Gold</option>
-            <option value="PLATINUM">Platinum</option>
-          </select>
+  const renderSinglePageForm = () => (
+    <div className="max-w-4xl mx-auto bg-gray-800 text-white p-8 rounded-lg">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold mb-2">
+          <span className="text-blue-400">SEO</span>
+          <span className="text-black bg-white px-1">Werks</span>
+          <span className="text-blue-400">.ai</span>
+        </h1>
+        <h2 className="text-xl text-gray-300">Onboarding</h2>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Row 1: Dealer Name, Package, Main Brand, Other */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <Label htmlFor="dealerName" className="text-white">Dealer Name</Label>
+            <Input
+              id="dealerName"
+              value={formData.dealerName}
+              onChange={(e) => updateField('dealerName', e.target.value)}
+              placeholder="Enter dealer name"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="package" className="text-white">Package</Label>
+            <select
+              id="package"
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+              value={formData.package}
+              onChange={(e) => updateField('package', e.target.value)}
+              required
+            >
+              <option value="">Please select</option>
+              <option value="SILVER">Silver</option>
+              <option value="GOLD">Gold</option>
+              <option value="PLATINUM">Platinum</option>
+            </select>
+          </div>
+
+          <div>
+            <Label htmlFor="mainBrand" className="text-white">Select Main Brand You Sell</Label>
+            <select
+              id="mainBrand"
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+              value={formData.mainBrand}
+              onChange={(e) => updateField('mainBrand', e.target.value)}
+              required
+            >
+              <option value="">Please select</option>
+              {CAR_BRANDS.map(brand => (
+                <option key={brand} value={brand}>{brand}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label htmlFor="otherBrand" className="text-white">Other</Label>
+            <Input
+              id="otherBrand"
+              value={formData.otherBrand}
+              onChange={(e) => updateField('otherBrand', e.target.value)}
+              placeholder="Other Brand"
+              className="bg-gray-700 border-gray-600 text-white"
+            />
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="mainBrand">Select Main Brand You Sell *</Label>
-          <select
-            id="mainBrand"
-            className="w-full p-2 border border-gray-300 rounded-md"
-            value={formData.mainBrand}
-            onChange={(e) => updateField('mainBrand', e.target.value)}
-            required
-          >
-            <option value="">Please select</option>
-            {CAR_BRANDS.map(brand => (
-              <option key={brand} value={brand}>{brand}</option>
-            ))}
-          </select>
+        {/* Row 2: Address, City, State, Zip Code */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <Label htmlFor="address" className="text-white">Address</Label>
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(e) => updateField('address', e.target.value)}
+              placeholder="Address"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="city" className="text-white">City</Label>
+            <Input
+              id="city"
+              value={formData.city}
+              onChange={(e) => updateField('city', e.target.value)}
+              placeholder="City"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="state" className="text-white">State</Label>
+            <select
+              id="state"
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+              value={formData.state}
+              onChange={(e) => updateField('state', e.target.value)}
+              required
+            >
+              <option value="">Please select</option>
+              {US_STATES.map(state => (
+                <option key={state.value} value={state.value}>{state.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label htmlFor="zipCode" className="text-white">Zip Code</Label>
+            <Input
+              id="zipCode"
+              value={formData.zipCode}
+              onChange={(e) => updateField('zipCode', e.target.value)}
+              placeholder="Zip Code"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="otherBrand">Other</Label>
-          <Input
-            id="otherBrand"
-            value={formData.otherBrand}
-            onChange={(e) => updateField('otherBrand', e.target.value)}
-            placeholder="Other brand (if not listed above)"
-          />
+        {/* Row 3: Contact Information */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <Label htmlFor="dealerContactName" className="text-white">Dealer Contact Name</Label>
+            <Input
+              id="dealerContactName"
+              value={formData.dealerContactName}
+              onChange={(e) => updateField('dealerContactName', e.target.value)}
+              placeholder="Contact Name"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="dealerContactTitle" className="text-white">Dealer Contact Title</Label>
+            <Input
+              id="dealerContactTitle"
+              value={formData.dealerContactTitle}
+              onChange={(e) => updateField('dealerContactTitle', e.target.value)}
+              placeholder="Contact Title"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="dealerContactEmail" className="text-white">Dealer Contact Email</Label>
+            <Input
+              id="dealerContactEmail"
+              type="email"
+              value={formData.dealerContactEmail}
+              onChange={(e) => updateField('dealerContactEmail', e.target.value)}
+              placeholder="Multi Emails put ; between"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="dealerContactPhone" className="text-white">Dealer Contact Phone</Label>
+            <Input
+              id="dealerContactPhone"
+              value={formData.dealerContactPhone}
+              onChange={(e) => updateField('dealerContactPhone', e.target.value)}
+              placeholder="Contact Phone"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Row 4: Website and Billing */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="dealerWebsiteUrl" className="text-white">Dealer Website URL</Label>
+            <Input
+              id="dealerWebsiteUrl"
+              type="url"
+              value={formData.dealerWebsiteUrl}
+              onChange={(e) => updateField('dealerWebsiteUrl', e.target.value)}
+              placeholder="Website URL"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="billingContactEmail" className="text-white">Billing Contact Email</Label>
+            <Input
+              id="billingContactEmail"
+              type="email"
+              value={formData.billingContactEmail}
+              onChange={(e) => updateField('billingContactEmail', e.target.value)}
+              placeholder="Multi Emails put ; between"
+              className="bg-gray-700 border-gray-600 text-white"
+              required
+            />
+          </div>
+        </div>
+
+        {/* Access Notes Section */}
+        <div className="space-y-4">
+          <div className="text-white space-y-2">
+            <p><strong>1. Need site access (full access, metadata, seo) and blog access:</strong> please provide us a login or create a new one under access@seowerks.ai Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.</p>
+          </div>
+
+          <div>
+            <Label htmlFor="siteAccessNotes" className="text-white">Access Notes</Label>
+            <Textarea
+              id="siteAccessNotes"
+              value={formData.siteAccessNotes}
+              onChange={(e) => updateField('siteAccessNotes', e.target.value)}
+              placeholder="Access Notes"
+              className="bg-gray-700 border-gray-600 text-white"
+              rows={3}
+            />
+          </div>
+
+          <div className="text-white space-y-2">
+            <p><strong>2. Google Business Profile access:</strong> add our email access@seowerks.ai as a Manager.</p>
+            <p><strong>3. Google Analytics (GA4) access, Viewer only access is fine:</strong> add our email access@seowerks.ai.</p>
+          </div>
+        </div>
+
+        {/* Target Sections */}
+        <div className="space-y-6">
+          {/* Target Vehicle Models */}
+          <div>
+            <Label className="text-white text-lg">Overall Target Vehicle Models (in order of priority, add at least 3)</Label>
+            <div className="space-y-2 mt-2">
+              {formData.targetVehicleModels.map((model, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={model}
+                    onChange={(e) => updateArrayField('targetVehicleModels', index, e.target.value)}
+                    placeholder={`Vehicle Model ${index + 1}`}
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                  {index >= 3 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeArrayItem('targetVehicleModels', index)}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addArrayItem('targetVehicleModels')}
+                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Model
+              </Button>
+            </div>
+          </div>
+
+          {/* Target Cities */}
+          <div>
+            <Label className="text-white text-lg">Overall Target Cities (in order of priority, add at least 3)</Label>
+            <div className="space-y-2 mt-2">
+              {formData.targetCities.map((city, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={city}
+                    onChange={(e) => updateArrayField('targetCities', index, e.target.value)}
+                    placeholder={`Target City ${index + 1}`}
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                  {index >= 3 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeArrayItem('targetCities', index)}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addArrayItem('targetCities')}
+                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Cities
+              </Button>
+            </div>
+          </div>
+
+          {/* Target Dealers */}
+          <div>
+            <Label className="text-white text-lg">Overall Target Dealers (in order of priority, add at least 3)</Label>
+            <div className="space-y-2 mt-2">
+              {formData.targetDealers.map((dealer, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={dealer}
+                    onChange={(e) => updateArrayField('targetDealers', index, e.target.value)}
+                    placeholder={`Target Dealer ${index + 1}`}
+                    className="bg-gray-700 border-gray-600 text-white"
+                  />
+                  {index >= 3 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeArrayItem('targetDealers', index)}
+                      className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addArrayItem('targetDealers')}
+                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Dealer
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex justify-center pt-6">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit'}
+          </Button>
+        </div>
+
+        {/* Submit Status */}
+        {submitStatus && (
+          <Alert className={`mt-4 ${submitStatus.type === 'error' ? 'border-red-500 bg-red-50' : 'border-green-500 bg-green-50'}`}>
+            <AlertDescription className={submitStatus.type === 'error' ? 'text-red-700' : 'text-green-700'}>
+              {submitStatus.message}
+            </AlertDescription>
+          </Alert>
+        )}
+      </form>
+    </div>
   )
 
   const renderLocationStep = () => (
@@ -800,113 +1101,9 @@ export default function DealershipOnboardingForm() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <span className="text-3xl font-bold text-gray-700">
-              {isInvited ? 'Complete Your Dealership Setup' : 'Dealer Onboarding'}
-            </span>
-          </div>
-          <p className="text-lg text-gray-600">
-            {isInvited
-              ? 'Welcome! Complete your dealership setup to activate your SEO services'
-              : 'Complete your dealership onboarding to get started with our SEO services'
-            }
-          </p>
-          {isInvited && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg inline-block">
-              <p className="text-sm text-blue-700">
-                <strong>✉️ Invited User:</strong> This onboarding will complete your account setup and connect you to SEO Works.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div
-                  className={`flex items-center cursor-pointer ${
-                    completedSteps.includes(step.id) || step.id === currentStep
-                      ? 'text-blue-600'
-                      : 'text-gray-400'
-                  }`}
-                  onClick={() => goToStep(step.id)}
-                >
-                  {completedSteps.includes(step.id) ? (
-                    <CheckCircle className="h-8 w-8" />
-                  ) : (
-                    <Circle className={`h-8 w-8 ${step.id === currentStep ? 'fill-current' : ''}`} />
-                  )}
-                  <div className="ml-3 hidden md:block">
-                    <p className="text-sm font-medium">{step.title}</p>
-                    <p className="text-xs">{step.description}</p>
-                  </div>
-                </div>
-                {index < STEPS.length - 1 && (
-                  <div className="hidden md:block w-full max-w-[100px] mx-4">
-                    <div className={`h-1 ${completedSteps.includes(step.id) ? 'bg-blue-600' : 'bg-gray-200'}`} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Status Messages */}
-        {submitStatus.type && (
-          <Alert className={`mb-6 ${submitStatus.type === 'error' ? 'border-red-500 bg-red-50' : 'border-green-500 bg-green-50'}`}>
-            <AlertDescription className={submitStatus.type === 'error' ? 'text-red-700' : 'text-green-700'}>
-              {submitStatus.message}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Form Content */}
-        <div className="space-y-6">
-          {currentStep === 'dealer' && renderDealerStep()}
-          {currentStep === 'location' && renderLocationStep()}
-          {currentStep === 'website' && renderWebsiteStep()}
-          {currentStep === 'targets' && renderTargetsStep()}
-          {currentStep === 'documents' && renderDocumentsStep()}
-        </div>
-
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={prevStep}
-            disabled={currentStep === 'dealer'}
-          >
-            Previous
-          </Button>
-
-          <div className="flex gap-2">
-            {currentStep !== 'documents' ? (
-              <Button
-                type="button"
-                onClick={nextStep}
-                disabled={!validateStep(currentStep)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </Button>
-            )}
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-100 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        {renderSinglePageForm()}
       </div>
     </div>
   )

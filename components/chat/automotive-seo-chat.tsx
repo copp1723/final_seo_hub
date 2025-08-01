@@ -48,26 +48,29 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
     scrollToBottom()
   }, [messages])
 
-  // Initial greeting based on dealership info
+  // Initial greeting based on dealership info - only set once on mount
   useEffect(() => {
-    const greeting = dealershipInfo?.brand 
-      ? `Hello! I'm your specialized ${dealershipInfo.brand} SEO consultant. I combine deep automotive industry knowledge with cutting-edge SEO expertise to help drive more qualified traffic to your showroom. How can I help optimize your online presence today?`
-      : `Hello! I'm your automotive SEO expert, specializing in helping dealerships dominate their local markets through strategic SEO. I understand the unique challenges of automotive retail and can help you attract more qualified buyers. What SEO challenge can I help you solve today?`
+    // Only set initial greeting if no messages exist
+    if (messages.length === 0) {
+      const greeting = dealershipInfo?.brand
+        ? `Hello! I'm your specialized ${dealershipInfo.brand} SEO consultant. I combine deep automotive industry knowledge with cutting-edge SEO expertise to help drive more qualified traffic to your showroom. How can I help optimize your online presence today?`
+        : `Hello! I'm your automotive SEO expert, specializing in helping dealerships dominate their local markets through strategic SEO. I understand the unique challenges of automotive retail and can help you attract more qualified buyers. What SEO challenge can I help you solve today?`
 
-    setMessages([{
-      id: '1',
-      content: greeting,
-      sender: 'assistant',
-      timestamp: new Date().toISOString(),
-      metadata: {
-        suggestions: [
-          "How can I improve my inventory page rankings?",
-          "What's the best local SEO strategy for my dealership?",
-          "How do I track my SEO ROI effectively?"
-        ]
-      }
-    }])
-  }, [dealershipInfo])
+      setMessages([{
+        id: '1',
+        content: greeting,
+        sender: 'assistant',
+        timestamp: new Date().toISOString(),
+        metadata: {
+          suggestions: [
+            "How can I improve my inventory page rankings?",
+            "What's the best local SEO strategy for my dealership?",
+            "How do I track my SEO ROI effectively?"
+          ]
+        }
+      }])
+    }
+  }, [dealershipInfo, messages.length])
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return

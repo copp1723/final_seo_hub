@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit validations..."
+
+# Run dealership mapping validation
+echo "📊 Validating dealership property mappings..."
+npx tsx scripts/validate-dealership-mappings.ts
+
+if [ $? -ne 0 ]; then
+  echo "❌ Dealership mapping validation failed!"
+  echo "Please fix the mapping errors before committing."
+  exit 1
+fi
+
+# Run GA4 property selection tests
+echo "🧪 Running GA4 property selection tests..."
+npm test -- __tests__/ga4-property-selection.test.ts
+
+if [ $? -ne 0 ]; then
+  echo "❌ GA4 property selection tests failed!"
+  echo "This indicates a critical regression in GA4 logic."
+  exit 1
+fi
+
+echo "✅ All validations passed!"

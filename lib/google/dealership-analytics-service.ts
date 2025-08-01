@@ -7,6 +7,7 @@ import { GA4Service } from './ga4Service'
 import { features } from '@/lib/features'
 import { getDemoGA4Analytics, getDemoSearchConsoleData } from '@/lib/demo-data'
 import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access } from '@/lib/dealership-property-mapping'
+import { validateGA4Response } from '@/lib/validation/ga4-data-integrity'
 
 interface AnalyticsOptions {
   startDate: string
@@ -82,7 +83,10 @@ export class DealershipAnalyticsService {
     result.metadata.hasSearchConsoleConnection = scResult.hasConnection
     result.metadata.siteUrl = scResult.siteUrl
 
-    return result
+    // Validate GA4 data integrity before returning
+    const validatedResult = validateGA4Response(dealershipId, result)
+
+    return validatedResult
   }
 
   private async getDealershipGA4Data(options: AnalyticsOptions) {

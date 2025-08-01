@@ -111,17 +111,17 @@ export class DealershipAnalyticsService {
         propertyId = getGA4PropertyId(dealershipId)
         console.log(`🎯 GA4 Property mapping for ${dealershipId}:`, propertyId)
 
-        // Check if dealership has mapping AND user's connection matches the dealership property
-        if (propertyId && hasGA4Access(dealershipId) && propertyId === connection.propertyId) {
+        // Use dealership-specific property if it exists and has access
+        if (propertyId && hasGA4Access(dealershipId)) {
           hasDealershipMapping = true
-          console.log(`✅ Found dealership-specific GA4 mapping for ${dealershipId} that matches user connection`)
+          console.log(`✅ Using dealership-specific GA4 property ${propertyId} for ${dealershipId}`)
         } else {
-          console.log(`⚠️ Dealership mapping exists but doesn't match user's GA4 property (${connection.propertyId}), falling back to user connection`)
+          console.log(`⚠️ No dealership-specific GA4 mapping found for ${dealershipId}, falling back to user connection`)
           propertyId = null // Reset to use user connection
         }
       }
 
-      // Use the dealership-specific property ID if it matches user access, otherwise use user connection
+      // Use the dealership-specific property ID if available, otherwise use user connection
       const targetPropertyId = propertyId || connection.propertyId
 
       if (!targetPropertyId) {

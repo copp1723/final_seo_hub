@@ -91,33 +91,21 @@ export class DealershipAnalyticsService {
     try {
       // Get dealership-specific GA4 property ID from mapping
       let propertyId: string | null = null
+      let hasDealershipMapping = false
 
       if (dealershipId) {
         propertyId = getGA4PropertyId(dealershipId)
         console.log(`🎯 GA4 Property mapping for ${dealershipId}:`, propertyId)
 
-        if (!propertyId) {
-          console.log(`❌ No GA4 property ID found for dealership: ${dealershipId}`)
-          return {
-            data: undefined,
-            error: `No GA4 property configured for dealership: ${dealershipId}`,
-            hasConnection: false,
-            propertyId: undefined
-          }
-        }
-
-        if (!hasGA4Access(dealershipId)) {
-          console.log(`❌ No GA4 access for dealership: ${dealershipId}`)
-          return {
-            data: undefined,
-            error: `No GA4 access for dealership: ${dealershipId}`,
-            hasConnection: false,
-            propertyId: undefined
-          }
+        if (propertyId && hasGA4Access(dealershipId)) {
+          hasDealershipMapping = true
+          console.log(`✅ Found dealership-specific GA4 mapping for ${dealershipId}`)
+        } else {
+          console.log(`⚠️ No dealership-specific GA4 mapping found for ${dealershipId}, falling back to user connection`)
         }
       }
 
-      // Find any GA4 connection (we'll use the property ID from mapping, not from connection)
+      // Find any GA4 connection (we'll use the property ID from mapping if available, otherwise from connection)
       let connection = await prisma.ga4_connections.findFirst({
         where: {
           userId,
@@ -145,6 +133,8 @@ export class DealershipAnalyticsService {
           propertyId: undefined
         }
       }
+
+      console.log(`📊 Using GA4 property ID: ${targetPropertyId} ${hasDealershipMapping ? '(from dealership mapping)' : '(from user connection)'}`)
 
       console.log(`🔍 Using GA4 property ID: ${targetPropertyId} for dealership: ${dealershipId}`)
 

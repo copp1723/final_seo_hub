@@ -179,6 +179,36 @@ export default function ReportingPage() {
             </div>
           </div>
           <div className="flex items-center gap-4 mt-4 sm:mt-0">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
+                  const params = new URLSearchParams({
+                    dateRange,
+                    ...(dealershipId && { dealershipId })
+                  })
+                  const res = await fetch(`/api/reporting/export-csv?${params}`, {
+                    credentials: 'include',
+                  })
+                  if (!res.ok) throw new Error('Failed to export CSV')
+                  const blob = await res.blob()
+                  const url = window.URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = 'report.csv'
+                  document.body.appendChild(a)
+                  a.click()
+                  a.remove()
+                  window.URL.revokeObjectURL(url)
+                } catch (err) {
+                  toast.error('Export failed')
+                }
+              }}
+              disabled={loading}
+            >
+              Export CSV
+            </Button>
             {/* Dealership Selector with error boundary */}
             <div className="flex-shrink-0">
               {(() => {

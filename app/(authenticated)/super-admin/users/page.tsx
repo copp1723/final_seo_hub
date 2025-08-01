@@ -96,8 +96,7 @@ export default function UsersManagement() {
     email: '',
     role: 'USER',
     agencyId: '',
-    dealershipId: '',
-    sendInvite: true
+    dealershipId: ''
   })
 
   useEffect(() => {
@@ -165,12 +164,21 @@ export default function UsersManagement() {
 
   const handleInviteUser = async () => {
     try {
-      const response = await fetch('/api/super-admin/users', {
+      // Prepare payload for generic invitation endpoint
+      const payload = {
+        name: inviteForm.name,
+        email: inviteForm.email,
+        role: inviteForm.role,
+        agencyId: inviteForm.agencyId || undefined,
+        dealershipId: inviteForm.dealershipId || undefined,
+        expiresInHours: 72
+      }
+      const response = await fetch('/api/invitation', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(inviteForm),
+        body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
@@ -179,15 +187,20 @@ export default function UsersManagement() {
       }
 
       const data = await response.json()
-      toast.success(inviteForm.sendInvite ? 'Invitation sent successfully!' : 'User created successfully!')
+      // Display appropriate toast based on email send result
+      if (data.invitationSent) {
+        toast.success('Invitation sent successfully!')
+      } else {
+        toast.success('User created successfully!')
+      }
       setShowInviteDialog(false)
+      // Reset invite form
       setInviteForm({
         name: '',
         email: '',
         role: 'USER',
         agencyId: '',
-        dealershipId: '',
-        sendInvite: true
+        dealershipId: ''
       })
       fetchUsers()
     } catch (error: any) {

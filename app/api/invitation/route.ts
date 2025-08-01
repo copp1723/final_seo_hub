@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic';
 
 // Validation schema for invitation creation
 const createInvitationSchema = z.object({
+  name: z.string().min(1, 'Name is required').optional(),
   email: z.string().email('Invalid email address').toLowerCase(),
   role: z.nativeEnum(UserRole),
   agencyId: z.string().optional(),
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { email, role, agencyId, dealershipId, expiresInHours } = validation.data
+    const { name, email, role, agencyId, dealershipId, expiresInHours } = validation.data
 
     // Ensure only SUPER_ADMIN can create ADMIN or SUPER_ADMIN invitations
     const inviterSession = await SimpleAuth.getSessionFromRequest(request)
@@ -167,6 +168,7 @@ export async function POST(request: NextRequest) {
 
     const newUser = await prisma.users.create({
       data: {
+        name: name || null,
         email,
         role,
         agencyId: agencyId || null,

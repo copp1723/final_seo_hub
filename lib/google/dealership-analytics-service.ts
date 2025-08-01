@@ -296,6 +296,77 @@ export class DealershipAnalyticsService {
     }
   }
 
+  async getSearchConsoleRankings(userId: string, dealershipId?: string | null, startDate?: string, endDate?: string) {
+    try {
+      // Use demo data if enabled
+      if (features.useDemoData) {
+        return getDemoSearchConsoleData('rankings')
+      }
+
+      const targetSiteUrl = await getSearchConsoleUrl(dealershipId, userId)
+
+      if (!targetSiteUrl) {
+        return {
+          data: undefined,
+          error: 'No Search Console URL available',
+          hasConnection: false,
+          siteUrl: undefined
+        }
+      }
+
+      const searchConsoleService = await this.getSearchConsoleService(userId)
+
+      // Get top queries with ranking data
+      const rankingsData = await searchConsoleService.getTopQueries(targetSiteUrl, 30)
+
+      if (rankingsData && rankingsData.rows && rankingsData.rows.length > 0) {
+        const queries = rankingsData.rows.map(row => ({
+          query: row.keys[0],
+          clicks: row.clicks || 0,
+          impressions: row.impressions || 0,
+          ctr: row.ctr || 0,
+          position: row.position || 0
+        }))
+
+        // Calculate ranking stats
+        const top10Count = queries.filter(q => q.position <= 10).length
+        const top20Count = queries.filter(q => q.position <= 20).length
+        const avgPosition = queries.reduce((sum, q) => sum + q.position, 0) / queries.length
+
+        return {
+          data: {
+            queries: queries.slice(0, 10), // Top 10 queries
+            stats: {
+              top10Count,
+              top20Count,
+              avgPosition: Math.round(avgPosition * 10) / 10,
+              totalQueries: queries.length
+            }
+          },
+          error: null,
+          hasConnection: true,
+          siteUrl: targetSiteUrl
+        }
+      }
+
+      return {
+        data: undefined,
+        error: 'No ranking data available',
+        hasConnection: true,
+        siteUrl: targetSiteUrl
+      }
+
+    } catch (error) {
+      logger.error('Search Console rankings fetch error', error, { userId, dealershipId })
+      return {
+        data: undefined,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        hasConnection: false,
+        siteUrl: undefined
+      }
+    }
+  }
+
   private async getSearchConsoleService(userId: string) {
     // Get user info to check for agency/dealership associations
     const user = await prisma.users.findUnique({

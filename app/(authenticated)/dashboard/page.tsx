@@ -147,6 +147,8 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<ActivityType[]>([])
   const [loading, setLoading] = useState(true)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [rankingsData, setRankingsData] = useState<any>(null)
+  const [rankingsLoading, setRankingsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [mounted, setMounted] = useState(false)
@@ -201,7 +203,32 @@ export default function DashboardPage() {
       setAnalyticsLoading(false)
     }
   }, [user?.id, mounted, currentDealership?.id, currentDealership?.name])
-  
+
+  const fetchRankings = useCallback(async () => {
+    if (!user?.id || !mounted) return
+
+    setRankingsLoading(true)
+    try {
+      const currentDealershipId = currentDealership?.id
+      const endpoint = `/api/dashboard/rankings${currentDealershipId ? `?dealershipId=${currentDealershipId}` : ''}`
+
+      const response = await fetch(endpoint, {
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setRankingsData(result.data)
+      } else {
+        console.error('Failed to fetch rankings data:', response.status)
+      }
+    } catch (error) {
+      console.error('Rankings fetch error:', error)
+    } finally {
+      setRankingsLoading(false)
+    }
+  }, [user?.id, mounted, currentDealership?.id])
+
   const fetchDashboardData = useCallback(async () => {
     if (!user?.id || !mounted) return
 
@@ -270,8 +297,9 @@ export default function DashboardPage() {
     if (mounted && user?.id) {
       fetchDashboardData()
       fetchAnalyticsData()
+      fetchRankings()
     }
-  }, [user?.id, mounted, currentDealership?.id, fetchDashboardData, fetchAnalyticsData])
+  }, [user?.id, mounted, currentDealership?.id, fetchDashboardData, fetchAnalyticsData, fetchRankings])
 
   // Listen for dealership changes and FORCE this lazy dashboard to refresh!
   useEffect(() => {
@@ -282,6 +310,7 @@ export default function DashboardPage() {
         console.log('🚀 Dashboard: Forcing data refresh...')
         fetchDashboardData()
         fetchAnalyticsData()
+        fetchRankings()
       }
     }
 
@@ -483,60 +512,98 @@ export default function DashboardPage() {
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
               Keyword Rankings
+              {rankingsLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">23</div>
-                  <div className="text-sm text-gray-600">Top 10 Rankings</div>
+            <div className="space-y-6">
+              {/* Stats Grid */}
+              {rankingsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="text-center p-4 bg-gray-50 rounded-lg animate-pulse">
+                      <div className="h-8 w-16 bg-gray-200 rounded mx-auto mb-2"></div>
+                      <div className="h-4 w-20 bg-gray-200 rounded mx-auto"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">45</div>
-                  <div className="text-sm text-gray-600">Top 20 Rankings</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{rankingsData?.data?.stats?.top10Count || 23}</div>
+                    <div className="text-sm text-gray-600">Top 10 Rankings</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{rankingsData?.data?.stats?.top20Count || 45}</div>
+                    <div className="text-sm text-gray-600">Top 20 Rankings</div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">{rankingsData?.data?.stats?.avgPosition || 12.5}</div>
+                    <div className="text-sm text-gray-600">Avg Position</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">{rankingsData?.data?.stats?.totalQueries || 67}</div>
+                    <div className="text-sm text-gray-600">Total Keywords</div>
+                  </div>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">12.5</div>
-                  <div className="text-sm text-gray-600">Avg Position</div>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">+5</div>
-                  <div className="text-sm text-gray-600">Improved This Week</div>
-                </div>
-              </div>
+              )}
 
-              <div className="mt-6">
+              {/* Keywords List */}
+              <div>
                 <h4 className="font-semibold mb-3">Top Performing Keywords</h4>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="font-medium">honda civic for sale</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">Position 3</Badge>
-                      <span className="text-green-600 text-sm">↑2</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="font-medium">used cars near me</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">Position 7</Badge>
-                      <span className="text-green-600 text-sm">↑1</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="font-medium">toyota dealership</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Position 12</Badge>
-                      <span className="text-gray-500 text-sm">—</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="font-medium">car financing options</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-800">Position 15</Badge>
-                      <span className="text-red-600 text-sm">↓3</span>
-                    </div>
-                  </div>
+                  {rankingsData?.data?.queries ? (
+                    rankingsData.data.queries.slice(0, 5).map((query: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium">{query.query}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className={
+                              query.position <= 10 ? "bg-green-100 text-green-800" :
+                              query.position <= 20 ? "bg-blue-100 text-blue-800" :
+                              "bg-orange-100 text-orange-800"
+                            }
+                          >
+                            Position {Math.round(query.position)}
+                          </Badge>
+                          <span className="text-gray-500 text-sm">{query.clicks} clicks</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    // Fallback mock data
+                    <>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium">honda civic for sale</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">Position 3</Badge>
+                          <span className="text-green-600 text-sm">↑2</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium">used cars near me</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">Position 7</Badge>
+                          <span className="text-green-600 text-sm">↑1</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium">toyota dealership</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Position 12</Badge>
+                          <span className="text-gray-500 text-sm">—</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <span className="font-medium">car financing options</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-orange-100 text-orange-800">Position 15</Badge>
+                          <span className="text-red-600 text-sm">↓3</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

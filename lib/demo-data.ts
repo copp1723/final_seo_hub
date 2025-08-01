@@ -272,7 +272,41 @@ export function getDemoGA4Analytics(startDate: string, endDate: string, dealersh
   }
 }
 
-export function getDemoSearchConsoleData(startDate: string, endDate: string, dealershipId?: string) {
+export function getDemoSearchConsoleData(startDate: string, endDate: string, dealershipId?: string): any
+export function getDemoSearchConsoleData(type: 'rankings'): any
+export function getDemoSearchConsoleData(startDateOrType: string, endDate?: string, dealershipId?: string) {
+  // Handle rankings type
+  if (startDateOrType === 'rankings') {
+    return {
+      data: {
+        queries: [
+          { query: 'honda civic for sale', clicks: 45, impressions: 1200, ctr: 0.0375, position: 3.2 },
+          { query: 'used cars near me', clicks: 38, impressions: 980, ctr: 0.0388, position: 7.1 },
+          { query: 'toyota dealership', clicks: 32, impressions: 1500, ctr: 0.0213, position: 12.3 },
+          { query: 'car financing options', clicks: 28, impressions: 850, ctr: 0.0329, position: 15.7 },
+          { query: 'honda accord lease deals', clicks: 25, impressions: 720, ctr: 0.0347, position: 8.9 },
+          { query: 'certified pre owned cars', clicks: 22, impressions: 650, ctr: 0.0338, position: 11.2 },
+          { query: 'auto service near me', clicks: 20, impressions: 580, ctr: 0.0345, position: 9.4 },
+          { query: 'car parts and accessories', clicks: 18, impressions: 520, ctr: 0.0346, position: 13.8 },
+          { query: 'vehicle maintenance', clicks: 15, impressions: 450, ctr: 0.0333, position: 16.2 },
+          { query: 'new car inventory', clicks: 12, impressions: 380, ctr: 0.0316, position: 18.5 }
+        ],
+        stats: {
+          top10Count: 23,
+          top20Count: 45,
+          avgPosition: 12.5,
+          totalQueries: 67
+        }
+      },
+      error: null,
+      hasConnection: true,
+      siteUrl: 'https://demo-dealership.com'
+    }
+  }
+
+  // Original function for date-based data
+  const startDate = startDateOrType
+  if (!endDate) return null
   // Get dealership info to determine package type and performance
   const dealership = getDealershipInfo(dealershipId)
   const packageMultiplier = getPackageMultiplier(dealership.package)

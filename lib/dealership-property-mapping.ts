@@ -14,35 +14,35 @@ export interface DealershipPropertyMapping {
 
 export const DEALERSHIP_PROPERTY_MAPPINGS: DealershipPropertyMapping[] = [
   {
-    dealershipId: 'dealer-jay-hatfield-columbus',
+    dealershipId: 'dealer-jhc-columbus',
     dealershipName: 'Jay Hatfield Chevrolet of Columbus',
     ga4PropertyId: '323480238',
     searchConsoleUrl: 'https://www.jayhatfieldchevy.net/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-chanute',
+    dealershipId: 'dealer-jhc-chanute',
     dealershipName: 'Jay hatfield Chevrolet GMC of Chanute',
     ga4PropertyId: '323404832',
     searchConsoleUrl: 'https://www.jayhatfieldchanute.com/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-pittsburg',
+    dealershipId: 'dealer-jhc-pittsburg',
     dealershipName: 'Jay Hatfield Chevrolet GMC of Pittsburg',
     ga4PropertyId: '371672738',
     searchConsoleUrl: 'https://www.jayhatfieldchevroletgmc.com/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-vinita',
+    dealershipId: 'dealer-jhc-vinita',
     dealershipName: 'Jay Hatfield Chevrolet of Vinita',
     ga4PropertyId: '320759942',
     searchConsoleUrl: 'https://www.jayhatfieldchevroletvinita.com/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-frontenac',
+    dealershipId: 'dealer-jhdjr-frontenac',
     dealershipName: 'Jay Hatfield CDJR of Frontenac',
     ga4PropertyId: '323415736',
     searchConsoleUrl: 'https://www.jayhatfieldchryslerdodgejeepram.com/',
@@ -56,28 +56,28 @@ export const DEALERSHIP_PROPERTY_MAPPINGS: DealershipPropertyMapping[] = [
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-honda',
+    dealershipId: 'dealer-jhh-wichita',
     dealershipName: 'Jay Hatfield Honda Powerhouse',
     ga4PropertyId: '336729443',
     searchConsoleUrl: 'https://www.jayhatfieldhondawichita.com/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-motorsports-wichita',
+    dealershipId: 'dealer-jhm-wichita',
     dealershipName: 'Jay Hatfield Motorsports of Wichita',
     ga4PropertyId: '317592148',
     searchConsoleUrl: 'https://www.kansasmotorsports.com/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-motorsports-frontenac',
+    dealershipId: 'dealer-jhm-frontenac',
     dealershipName: 'Jay Hatfield Motorsports of Frontenac',
     ga4PropertyId: '317608467',
     searchConsoleUrl: 'https://www.jayhatfieldkawasaki.com/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-motorsports-joplin',
+    dealershipId: 'dealer-jhm-joplin',
     dealershipName: 'Jay Hatfield Motorsports of Joplin',
     ga4PropertyId: '317578343',
     searchConsoleUrl: 'https://www.jhmofjoplin.com/',
@@ -98,14 +98,14 @@ export const DEALERSHIP_PROPERTY_MAPPINGS: DealershipPropertyMapping[] = [
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-motorsports-portal',
+    dealershipId: 'dealer-jhm-portal',
     dealershipName: 'Jay Hatfield Motorsports Portal',
     ga4PropertyId: '461644624',
     searchConsoleUrl: 'http://jayhatfieldmotorsports.com/',
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jay-hatfield-motorsports-ottawa',
+    dealershipId: 'dealer-jhm-ottawa',
     dealershipName: 'Jay Hatfield Motorsports Ottawa',
     ga4PropertyId: '472110523',
     searchConsoleUrl: 'https://www.jayhatfieldottawa.com/',

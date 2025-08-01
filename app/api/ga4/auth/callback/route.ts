@@ -41,18 +41,41 @@ export async function GET(request: NextRequest) {
       throw new Error('No access token received')
     }
 
-    // Set credentials and use default property (skip API calls that require additional permissions)
+    // Set credentials and fetch available properties
     oauth2Client.setCredentials(tokens)
-    
-    const propertyId = '320759942' // Default to Jay Hatfield Chevrolet
-    const propertyName = 'Jay Hatfield Chevrolet'
-    
-    // For now, use default property but log the attempt to fetch from Google
-    logger.info('Using default GA4 property (Google API fetch temporarily disabled for deployment)', {
-      propertyId,
-      propertyName,
-      note: 'Will implement proper property fetching after resolving API parameter issues'
-    });
+
+    let propertyId = '320759942' // Default to Jay Hatfield Chevrolet
+    let propertyName = 'Jay Hatfield Chevrolet'
+
+    try {
+      // Try to fetch actual properties the user has access to
+      const analyticsAdmin = google.analyticsadmin({ version: 'v1alpha', auth: oauth2Client })
+      const response = await analyticsAdmin.accounts.list()
+
+      if (response.data.accounts && response.data.accounts.length > 0) {
+        // Get properties for the first account
+        const accountName = response.data.accounts[0].name
+        const propertiesResponse = await analyticsAdmin.accounts.properties.list({
+          parent: accountName
+        })
+
+        if (propertiesResponse.data.properties && propertiesResponse.data.properties.length > 0) {
+          const firstProperty = propertiesResponse.data.properties[0]
+          // Extract property ID from the resource name (e.g., "properties/123456789")
+          const extractedPropertyId = firstProperty.name?.split('/')[1]
+          if (extractedPropertyId) {
+            propertyId = extractedPropertyId
+            propertyName = firstProperty.displayName || 'Google Analytics Property'
+            logger.info('Using user\'s first available GA4 property', { propertyId, propertyName })
+          }
+        }
+      }
+    } catch (apiError) {
+      logger.warn('Failed to fetch user properties, using default', {
+        error: apiError instanceof Error ? apiError.message : 'Unknown error',
+        defaultPropertyId: propertyId
+      })
+    }
 
     // Get user from database using state (userId) from OAuth flow
     const user = await prisma.users.findUnique({

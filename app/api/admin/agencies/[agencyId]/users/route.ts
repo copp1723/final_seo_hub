@@ -14,6 +14,7 @@ const createUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   name: z.string().min(1, 'Name is required'),
   role: z.nativeEnum(UserRole).optional().default(UserRole.USER),
+  dealershipId: z.string().optional(),
 })
 
 // Validation schema for updating a user
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
       }, { status: 400 })
     }
 
-    const { email, name, role } = validation.data
+    const { email, name, role, dealershipId } = validation.data
 
     // Ensure AGENCY_ADMIN cannot create SUPER_ADMIN
     if (user.role === UserRole.AGENCY_ADMIN && role === UserRole.SUPER_ADMIN) {
@@ -111,8 +112,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ ag
         name,
         role: role || UserRole.USER,
         agencyId,
+        dealershipId: dealershipId || null,
         invitationToken,
         invitationTokenExpires,
+        onboardingCompleted: (role && role !== 'USER'), // Only dealership users (USER role) need onboarding
         updatedAt: new Date(),
       },
       select: { 

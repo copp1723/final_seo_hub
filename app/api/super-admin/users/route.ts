@@ -14,7 +14,8 @@ const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Valid email is required'),
   role: z.nativeEnum(UserRole),
-  agencyId: z.string().optional()
+  agencyId: z.string().optional(),
+  dealershipId: z.string().optional()
 })
 
 const updateUserSchema = z.object({
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const { name, email, role, agencyId } = validation.data
+    const { name, email, role, agencyId, dealershipId } = validation.data
 
     // Check if user already exists
     const existingUser = await prisma.users.findUnique({
@@ -166,9 +167,10 @@ export async function POST(request: NextRequest) {
         email,
         role,
         agencyId: agencyId || null,
+        dealershipId: dealershipId || null,
         invitationToken,
         invitationTokenExpires,
-        onboardingCompleted: true, // Super admin created users are considered onboarded
+        onboardingCompleted: role !== 'USER', // Only dealership users (USER role) need onboarding
         updatedAt: new Date()
       },
       include: {

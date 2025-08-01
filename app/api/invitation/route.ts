@@ -15,6 +15,7 @@ const createInvitationSchema = z.object({
   email: z.string().email('Invalid email address').toLowerCase(),
   role: z.nativeEnum(UserRole),
   agencyId: z.string().optional(),
+  dealershipId: z.string().optional(),
   expiresInHours: z.number().min(1).max(168).optional() // Max 7 days
 })
 
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { email, role, agencyId, expiresInHours } = validation.data
+    const { email, role, agencyId, dealershipId, expiresInHours } = validation.data
 
     // Ensure only SUPER_ADMIN can create ADMIN or SUPER_ADMIN invitations
     const inviterSession = await SimpleAuth.getSessionFromRequest(request)
@@ -169,8 +170,10 @@ export async function POST(request: NextRequest) {
         email,
         role,
         agencyId: agencyId || null,
+        dealershipId: dealershipId || null,
         invitationToken: token,
         invitationTokenExpires: expiresAt,
+        onboardingCompleted: role !== 'USER', // Only dealership users (USER role) need onboarding
       },
     })
 

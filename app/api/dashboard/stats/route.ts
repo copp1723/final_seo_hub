@@ -90,9 +90,20 @@ async function handleGET(request: NextRequest) {
     }
 
     // Get real request data for the dealership
+    // Also include requests by users of this dealership (backward compatibility)
     const requests = await safeDbOperation(() =>
       prisma.requests.findMany({
-        where: { dealershipId: dealership.id },
+        where: {
+          OR: [
+            { dealershipId: dealership.id },
+            { 
+              userId: session.user.id,
+              dealershipId: null,
+              users: { dealershipId: dealership.id }
+            }
+          ]
+        },
+        include: { users: true },
         orderBy: { createdAt: 'desc' }
       })
     )
@@ -182,10 +193,17 @@ async function handleGET(request: NextRequest) {
       }
     })
 
-  } catch (error) {
-    console.error('Dashboard stats error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  }, {
+    // Fallback stats for dashboard
+    activeRequests: 0,
+    completedThisMonth: 0,
+    tasksCompletedThisMonth: 0,
+    tasksSubtitle: 'Service temporarily unavailable',
+    gaConnected: false,
+    packageProgress: { used: 0, total: 0, percentage: 0 },
+    latestRequest: null,
+    dealershipId: null
+  })()
 }
 
 export const GET = handleGET

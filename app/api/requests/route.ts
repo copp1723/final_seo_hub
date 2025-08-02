@@ -195,8 +195,29 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   })
   
   try {
+    // CRITICAL FIX: Fetch user with dealershipId before creating request
+    const user = await safeDbOperation(() =>
+      prisma.users.findUnique({
+        where: { id: authResult.user.id },
+        select: { 
+          id: true,
+          dealershipId: true, 
+          agencyId: true,
+          email: true 
+        }
+      })
+    )
+
+    if (!user) {
+      logger.error('User not found when creating request', {
+        userId: authResult.user.id
+      })
+      return errorResponse('User not found', 404)
+    }
+
     logger.info('Creating focus request in database', {
       userId: authResult.user.id,
+      userDealershipId: user.dealershipId,
       requestData: {
         title: data.title,
         description: data.description,
@@ -207,7 +228,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         keywords: data.keywords,
         targetCities: data.targetCities,
         targetModels: data.targetModels,
-        agencyId: authResult.user.agencyId
+        agencyId: user.agencyId,
+        dealershipId: user.dealershipId,
+        hasDealership: !!user.dealershipId
       }
     })
 
@@ -215,7 +238,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       prisma.requests.create({
         data: {
           userId: authResult.user.id,
-          agencyId: authResult.user.agencyId || null, // Handle null agencyId
+          agencyId: user.agencyId || authResult.user.agencyId || null,
+          dealershipId: user.dealershipId || null, // CRITICAL FIX: Now including dealershipId
           title: data.title,
           description: data.description,
           type: data.type,
@@ -238,18 +262,19 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       userId: authResult.user.id,
       requestId: newRequest.id,
       title: newRequest.title,
-      type: newRequest.type
+      type: newRequest.type,
+      dealershipId: user.dealershipId,
+      requestDealershipId: (newRequest as any).dealershipId
     })
     
     // Create associated tasks
     try {
       const tasksToCreate = [];
-      // Example: Create a single task based on the request type
+      // Create a single task based on the request type
+      // CRITICAL FIX: Use dealershipId from user, not from newRequest
       tasksToCreate.push({
         userId: newRequest.userId,
-        // Using dealershipId from newRequest if available; otherwise null.
-        // It's crucial that newRequest.dealershipId is populated or null.
-        dealershipId: (newRequest as any).dealershipId || null,
+        dealershipId: user.dealershipId || null, // FIX: Use dealershipId from user object
         agencyId: newRequest.agencyId || null,
         type: newRequest.type.toUpperCase() as TaskType, // Convert lowercase request type to uppercase TaskType enum
         title: newRequest.title,
@@ -268,12 +293,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       // For example, if request.type is 'SEO_AUDIT', create multiple sub-tasks (e.g., 'TECHNICAL_AUDIT_TASK', 'CONTENT_AUDIT_TASK')
 
       if (tasksToCreate.length > 0) {
-        await prisma.tasks.createMany({
-          data: tasksToCreate
-        });
+        await safeDbOperation(() =>
+          prisma.tasks.createMany({
+            data: tasksToCreate
+          })
+        );
         logger.info(`${tasksToCreate.length} tasks created for request`, {
           requestId: newRequest.id,
-          taskTypes: tasksToCreate.map(t => t.type)
+          taskTypes: tasksToCreate.map(t => t.type),
+          dealershipId: user.dealershipId,
+          taskDealershipIds: tasksToCreate.map(t => t.dealershipId)
         });
       }
     } catch (taskCreationError) {
@@ -295,9 +324,11 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     )
     
     // Check if this is the user's first request and send welcome email
-    const requestCount = await prisma.requests.count({
-      where: { userId: authResult.user.id },
-    })
+    const requestCount = await safeDbOperation(() =>
+      prisma.requests.count({
+        where: { userId: authResult.user.id },
+      })
+    )
     
     if (requestCount === 1) {
       const welcomeTemplate = welcomeEmailTemplate(newRequest.users)

@@ -157,32 +157,6 @@ export function TaskWidget({
             })}
           </div>
         )}
-                  
-                  {/* Task Meta */}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    <span className={cn(
-                      "flex items-center gap-1",
-                      task.priority === 'HIGH' && "text-red-600 font-medium",
-                      task.priority === 'MEDIUM' && "text-orange-600"
-                    )}>
-                      {task.priority === 'HIGH' && <AlertCircle className="h-3 w-3" />}
-                      {task.priority} Priority
-                    </span>
-                    {task.dueDate && (
-                      <span className={cn(
-                        "flex items-center gap-1",
-                        overdue && "text-red-600 font-medium"
-                      )}>
-                        <Calendar className="h-3 w-3" />
-                        {overdue ? 'Overdue' : `Due ${format(new Date(task.dueDate), 'MMM d')}`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
 
         {/* View All Link */}
         {showViewAll && tasks.length > maxTasks && (

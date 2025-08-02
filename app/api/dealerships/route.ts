@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { logger } from '@/lib/logger'
+import { safeDbOperation } from '@/lib/db-resilience'
+import { withErrorBoundary } from '@/lib/error-boundaries'
 import { z } from 'zod'
 import crypto from 'crypto'
 
@@ -19,19 +21,19 @@ const createDealershipSchema = z.object({
 })
 
 // Get all dealerships (SUPER_ADMIN only)
-export async function GET(request: NextRequest) {
-  try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
-    
-    if (!session?.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const GET = withErrorBoundary(async (request: NextRequest) => {
+  const session = await SimpleAuth.getSessionFromRequest(request)
+  
+  if (!session?.user.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
-    if (session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
-    }
+  if (session.user.role !== 'SUPER_ADMIN') {
+    return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
+  }
 
-    const dealerships = await prisma.dealerships.findMany({
+  const dealerships = await safeDbOperation(async () => {
+    return prisma.dealerships.findMany({
       select: {
         id: true,
         name: true,
@@ -54,57 +56,52 @@ export async function GET(request: NextRequest) {
         name: 'asc'
       }
     })
+  })
 
-    return NextResponse.json({
-      success: true,
-      dealerships
-    })
-
-  } catch (error) {
-    console.error('Error fetching dealerships:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
-}
+  return NextResponse.json({
+    success: true,
+    dealerships
+  })
+})
 
 // Create a new dealership (SUPER_ADMIN only)
-export async function POST(request: NextRequest) {
-  try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+export const POST = withErrorBoundary(async (request: NextRequest) => {
+  const session = await SimpleAuth.getSessionFromRequest(request)
 
-    if (!session?.user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!session?.user.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
-    if (session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
-    }
+  if (session.user.role !== 'SUPER_ADMIN') {
+    return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
+  }
 
-    const body = await request.json()
-    const validation = createDealershipSchema.safeParse(body)
+  const body = await request.json()
+  const validation = createDealershipSchema.safeParse(body)
 
-    if (!validation.success) {
-      return NextResponse.json({
-        error: 'Validation failed',
-        details: validation.error.issues
-      }, { status: 400 })
-    }
+  if (!validation.success) {
+    return NextResponse.json({
+      error: 'Validation failed',
+      details: validation.error.issues
+    }, { status: 400 })
+  }
 
-    const { name, website, address, phone, agencyId, activePackageType, notes } = validation.data
+  const { name, website, address, phone, agencyId, activePackageType, notes } = validation.data
 
-    // Verify agency exists
-    const agency = await prisma.agencies.findUnique({
+  // Verify agency exists
+  const agency = await safeDbOperation(async () => {
+    return prisma.agencies.findUnique({
       where: { id: agencyId }
     })
+  })
 
-    if (!agency) {
-      return NextResponse.json({ error: 'Agency not found' }, { status: 404 })
-    }
+  if (!agency) {
+    return NextResponse.json({ error: 'Agency not found' }, { status: 404 })
+  }
 
-    // Create dealership
-    const dealership = await prisma.dealerships.create({
+  // Create dealership
+  const dealership = await safeDbOperation(async () => {
+    return prisma.dealerships.create({
       data: {
         id: crypto.randomUUID(),
         name,
@@ -130,36 +127,30 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+  })
 
-    logger.info('Dealership created by Super Admin', {
-      dealershipId: dealership.id,
-      dealershipName: dealership.name,
-      agencyId: dealership.agencyId,
-      agencyName: dealership.agencies.name,
-      createdBy: session.user.id
-    })
+  logger.info('Dealership created by Super Admin', {
+    dealershipId: dealership.id,
+    dealershipName: dealership.name,
+    agencyId: dealership.agencyId,
+    agencyName: dealership.agencies.name,
+    createdBy: session.user.id
+  })
 
-    return NextResponse.json({
-      message: 'Dealership created successfully',
-      dealership: {
-        id: dealership.id,
-        name: dealership.name,
-        website: dealership.website,
-        address: dealership.address,
-        phone: dealership.phone,
-        activePackageType: dealership.activePackageType,
-        agency: dealership.agencies.name
-      }
-    }, { status: 201 })
-
-  } catch (error) {
-    logger.error('Error creating dealership', error)
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Dealership name already exists' }, { status: 409 })
+  return NextResponse.json({
+    message: 'Dealership created successfully',
+    dealership: {
+      id: dealership.id,
+      name: dealership.name,
+      website: dealership.website,
+      address: dealership.address,
+      phone: dealership.phone,
+      activePackageType: dealership.activePackageType,
+      agency: dealership.agencies.name
     }
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
-}
+  }, { status: 201 })
+}, {
+  success: false,
+  dealership: null,
+  message: 'Unable to create dealership at this time'
+})

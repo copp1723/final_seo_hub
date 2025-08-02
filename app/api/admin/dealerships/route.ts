@@ -8,6 +8,10 @@ import crypto from 'crypto'
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic'
 
+// SEOWorks API configuration
+const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
+const SEOWORKS_ONBOARD_URL = 'https://api.seoworks.ai/rylie-onboard.cfm'
+
 const createDealershipSchema = z.object({
   name: z.string().min(1, 'Dealership name is required'),
   website: z.string().url().optional().or(z.literal('')),
@@ -31,6 +35,75 @@ const createDealershipSchema = z.object({
   targetDealers: z.array(z.string()).optional().default([]),
   notes: z.string().optional()
 })
+
+async function sendToSEOWorks(data: z.infer<typeof createDealershipSchema>, generatedClientId: string) {
+  // Transform our data format to SEOWorks expected format
+  const seoworksPayload = {
+    timestamp: new Date().toISOString(),
+    businessName: data.name,
+    clientId: generatedClientId,
+    clientEmail: data.email,
+    package: data.activePackageType,
+    mainBrand: data.mainBrand,
+    otherBrand: data.otherBrand || '',
+    address: data.address || '',
+    city: data.city,
+    state: data.state,
+    zipCode: data.zipCode,
+    contactName: data.contactName,
+    contactTitle: data.contactTitle || '',
+    email: data.email,
+    phone: data.phone || '',
+    websiteUrl: data.website || '',
+    billingEmail: data.billingEmail || data.email,
+    siteAccessNotes: data.siteAccessNotes || '',
+    // Convert arrays to semicolon-separated strings for SEOWorks format
+    targetVehicleModels: data.targetVehicleModels.join(';'),
+    targetCities: data.targetCities.join(';'),
+    targetDealers: data.targetDealers.join(';')
+  }
+
+  try {
+    const response = await fetch(SEOWORKS_ONBOARD_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': SEOWORKS_API_KEY || ''
+      },
+      body: JSON.stringify(seoworksPayload)
+    })
+
+    const responseData = await response.json()
+
+    if (!response.ok) {
+      throw new Error(`SEOWorks API error: ${response.status} - ${JSON.stringify(responseData)}`)
+    }
+
+    logger.info('Successfully sent dealership onboarding data to SEOWorks', {
+      clientId: generatedClientId,
+      businessName: data.name,
+      seoworksResponse: responseData
+    })
+
+    return {
+      success: true,
+      clientId: generatedClientId,
+      seoworksResponse: responseData
+    }
+
+  } catch (error) {
+    logger.error('Failed to send dealership onboarding data to SEOWorks', {
+      error: error instanceof Error ? error.message : String(error),
+      businessName: data.name,
+      payload: seoworksPayload
+    })
+    // Don't throw - we'll log the error but continue with dealership creation
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error)
+    }
+  }
+}
 
 // Create a new dealership (SUPER_ADMIN only)
 export async function POST(request: NextRequest) {
@@ -88,16 +161,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Agency not found' }, { status: 404 })
     }
 
-    // Check if clientId is already in use (if provided)
-    if (clientId) {
-      const existingDealership = await prisma.dealerships.findUnique({
-        where: { clientId }
-      })
-      
-      if (existingDealership) {
-        return NextResponse.json({ error: 'Client ID already in use' }, { status: 409 })
-      }
+    // Generate client ID if not provided
+    const generatedClientId = clientId || `dealer_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}_${city.toLowerCase()}_${new Date().getFullYear()}`
+
+    // Check if clientId is already in use
+    const existingDealership = await prisma.dealerships.findUnique({
+      where: { clientId: generatedClientId }
+    })
+    
+    if (existingDealership) {
+      return NextResponse.json({ error: 'Client ID already in use' }, { status: 409 })
     }
+
+    // Send to SEOWorks API
+    const seoworksResult = await sendToSEOWorks(validation.data, generatedClientId)
 
     // Create dealership
     const dealership = await prisma.dealerships.create({
@@ -109,7 +186,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         agencyId,
         activePackageType,
-        clientId: clientId || null,
+        clientId: generatedClientId,
         settings: {
           notes: notes || null,
           branding: {
@@ -135,7 +212,13 @@ export async function POST(request: NextRequest) {
             cities: targetCities,
             competitors: targetDealers
           },
-          siteAccessNotes: siteAccessNotes || null
+          siteAccessNotes: siteAccessNotes || null,
+          seoworks: {
+            submitted: seoworksResult.success,
+            submittedAt: seoworksResult.success ? new Date().toISOString() : null,
+            response: seoworksResult.seoworksResponse || null,
+            error: seoworksResult.error || null
+          }
         },
         updatedAt: new Date()
       },
@@ -149,8 +232,8 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Create a dealership onboarding record for future use
-    await prisma.dealership_onboardings.create({
+    // Create a dealership onboarding record for future use and tracking
+    const onboardingRecord = await prisma.dealership_onboardings.create({
       data: {
         agencyId,
         businessName: name,
@@ -172,8 +255,9 @@ export async function POST(request: NextRequest) {
         targetCities: targetCities,
         targetDealers: targetDealers,
         submittedBy: session.user.email || 'system',
-        status: 'completed',
-        submittedAt: new Date()
+        status: seoworksResult.success ? 'submitted' : 'pending',
+        seoworksResponse: seoworksResult.seoworksResponse || null,
+        submittedAt: seoworksResult.success ? new Date() : null
       }
     })
 
@@ -183,7 +267,9 @@ export async function POST(request: NextRequest) {
       agencyId: dealership.agencyId,
       agencyName: dealership.agencies.name,
       createdBy: session.user.id,
-      clientId: dealership.clientId
+      clientId: dealership.clientId,
+      seoworksSubmitted: seoworksResult.success,
+      onboardingRecordId: onboardingRecord.id
     })
 
     return NextResponse.json({
@@ -197,6 +283,11 @@ export async function POST(request: NextRequest) {
         activePackageType: dealership.activePackageType,
         agency: dealership.agencies.name,
         clientId: dealership.clientId
+      },
+      seoworks: {
+        submitted: seoworksResult.success,
+        clientId: generatedClientId,
+        response: seoworksResult.seoworksResponse
       }
     }, { status: 201 })
 

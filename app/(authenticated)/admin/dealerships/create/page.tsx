@@ -131,7 +131,13 @@ export default function CreateDealershipPage() {
       }
 
       const result = await response.json()
-      toast.success('Dealership created successfully!')
+      
+      // Show success message with SEOWorks status
+      if (result.seoworks?.submitted) {
+        toast.success(`Dealership created and submitted to SEOWorks! Client ID: ${result.seoworks.clientId}`)
+      } else {
+        toast.success('Dealership created successfully! (SEOWorks submission pending)')
+      }
       
       // Redirect to dealership management page
       router.push('/admin/dealerships')

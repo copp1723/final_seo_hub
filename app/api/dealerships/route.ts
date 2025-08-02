@@ -6,6 +6,7 @@ import { safeDbOperation } from '@/lib/db-resilience'
 import { withErrorBoundary } from '@/lib/error-boundaries'
 import { z } from 'zod'
 import crypto from 'crypto'
+import { DealershipConnectionService } from '@/lib/services/dealership-connection-service'
 
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic'
@@ -129,12 +130,24 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
     })
   })
 
+  // Automatically create GA4 and Search Console connections based on hardcoded mappings
+  const connectionResult = await DealershipConnectionService.createConnectionsForDealership(
+    dealership.id,
+    dealership.name
+  )
+
   logger.info('Dealership created by Super Admin', {
     dealershipId: dealership.id,
     dealershipName: dealership.name,
     agencyId: dealership.agencyId,
     agencyName: dealership.agencies.name,
-    createdBy: session.user.id
+    createdBy: session.user.id,
+    connectionsCreated: {
+      ga4: connectionResult.ga4Created,
+      searchConsole: connectionResult.searchConsoleCreated,
+      success: connectionResult.success,
+      errors: connectionResult.errors
+    }
   })
 
   return NextResponse.json({
@@ -147,6 +160,14 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
       phone: dealership.phone,
       activePackageType: dealership.activePackageType,
       agency: dealership.agencies.name
+    },
+    connections: {
+      ga4Created: connectionResult.ga4Created,
+      searchConsoleCreated: connectionResult.searchConsoleCreated,
+      success: connectionResult.success,
+      ga4PropertyId: connectionResult.connections.ga4PropertyId,
+      searchConsoleUrl: connectionResult.connections.searchConsoleUrl,
+      errors: connectionResult.errors
     }
   }, { status: 201 })
 }, {

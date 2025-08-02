@@ -4,6 +4,7 @@ import { SimpleAuth } from '@/lib/auth-simple'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import crypto from 'crypto'
+import { DealershipConnectionService } from '@/lib/services/dealership-connection-service'
 
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic'
@@ -261,6 +262,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Automatically create GA4 and Search Console connections based on hardcoded mappings
+    const connectionResult = await DealershipConnectionService.createConnectionsForDealership(
+      dealership.id,
+      dealership.name
+    )
+
     logger.info('Dealership created by Super Admin', {
       dealershipId: dealership.id,
       dealershipName: dealership.name,
@@ -269,7 +276,13 @@ export async function POST(request: NextRequest) {
       createdBy: session.user.id,
       clientId: dealership.clientId,
       seoworksSubmitted: seoworksResult.success,
-      onboardingRecordId: onboardingRecord.id
+      onboardingRecordId: onboardingRecord.id,
+      connectionsCreated: {
+        ga4: connectionResult.ga4Created,
+        searchConsole: connectionResult.searchConsoleCreated,
+        success: connectionResult.success,
+        errors: connectionResult.errors
+      }
     })
 
     return NextResponse.json({
@@ -288,6 +301,14 @@ export async function POST(request: NextRequest) {
         submitted: seoworksResult.success,
         clientId: generatedClientId,
         response: seoworksResult.seoworksResponse
+      },
+      connections: {
+        ga4Created: connectionResult.ga4Created,
+        searchConsoleCreated: connectionResult.searchConsoleCreated,
+        success: connectionResult.success,
+        ga4PropertyId: connectionResult.connections.ga4PropertyId,
+        searchConsoleUrl: connectionResult.connections.searchConsoleUrl,
+        errors: connectionResult.errors
       }
     }, { status: 201 })
 

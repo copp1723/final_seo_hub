@@ -131,13 +131,28 @@ export default function CreateDealershipPage() {
       }
 
       const result = await response.json()
-      
-      // Show success message with SEOWorks status
+
+      // Show success message with SEOWorks and connection status
+      let message = 'Dealership created successfully!'
+
       if (result.seoworks?.submitted) {
-        toast.success(`Dealership created and submitted to SEOWorks! Client ID: ${result.seoworks.clientId}`)
+        message += ` Submitted to SEOWorks (Client ID: ${result.seoworks.clientId})`
       } else {
-        toast.success('Dealership created successfully! (SEOWorks submission pending)')
+        message += ' (SEOWorks submission pending)'
       }
+
+      if (result.connections?.success) {
+        const connections = []
+        if (result.connections.ga4Created) connections.push('GA4')
+        if (result.connections.searchConsoleCreated) connections.push('Search Console')
+        if (connections.length > 0) {
+          message += ` | ${connections.join(' & ')} connections created`
+        }
+      } else if (result.connections?.errors?.length > 0) {
+        message += ' | Some connection setup issues occurred'
+      }
+
+      toast.success(message)
       
       // Redirect to dealership management page
       router.push('/admin/dealerships')

@@ -1,26 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
+import { safeDbOperation } from '@/lib/db-resilience'
+import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
 
 async function handleGET(request: NextRequest) {
-  try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+  return withErrorBoundary(async () => {
+    const session = await withTimeout(
+      SimpleAuth.getSessionFromRequest(request),
+      5000,
+      'Session authentication timeout'
+    )
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      select: {
-        dealershipId: true,
-        agencyId: true,
-        role: true
-      }
-    })
+    const user = await safeDbOperation(() =>
+      prisma.users.findUnique({
+        where: { id: session.user.id },
+        select: {
+          dealershipId: true,
+          agencyId: true,
+          role: true
+        }
+      })
+    )
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -82,10 +90,12 @@ async function handleGET(request: NextRequest) {
     }
 
     // Get real request data for the dealership
-    const requests = await prisma.requests.findMany({
-      where: { dealershipId: dealership.id },
-      orderBy: { createdAt: 'desc' }
-    })
+    const requests = await safeDbOperation(() =>
+      prisma.requests.findMany({
+        where: { dealershipId: dealership.id },
+        orderBy: { createdAt: 'desc' }
+      })
+    )
 
     const activeRequests = requests.filter(r =>
       r.status === 'PENDING' || r.status === 'IN_PROGRESS'

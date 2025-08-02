@@ -248,6 +248,104 @@ async function handleTaskCancelled(
   }
 }
 
+// Process orphaned tasks for a newly onboarded user
+async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
+  try {
+    // Find orphaned tasks that match this user
+    const orphanedTasks = await prisma.orphaned_tasks.findMany({
+      where: {
+        OR: [
+          { clientId: userId },
+          userEmail ? { clientEmail: userEmail } : {}
+        ].filter(condition => Object.keys(condition).length > 0),
+        processed: false
+      },
+      orderBy: { createdAt: 'asc' }
+    })
+
+    if (orphanedTasks.length === 0) {
+      logger.info('No orphaned tasks found for user', { userId, userEmail })
+      return { processed: 0, created: 0 }
+    }
+
+    let processedCount = 0
+    let createdCount = 0
+
+    for (const orphanedTask of orphanedTasks) {
+      try {
+        // Create a request for this orphaned task if it was completed
+        if (orphanedTask.eventType === 'task.completed') {
+          const newRequest = await prisma.requests.create({
+            data: {
+              userId: userId,
+              title: orphanedTask.deliverables?.[0]?.title || `SEOWorks ${orphanedTask.taskType} Task`,
+              description: `Task created from orphaned SEOWorks task\n\nOriginal Task ID: ${orphanedTask.externalId}\nCompleted: ${orphanedTask.completionDate || new Date().toISOString()}\n\nOriginal Notes: ${orphanedTask.notes || ''}`,
+              type: orphanedTask.taskType.toLowerCase(),
+              status: 'COMPLETED',
+              seoworksTaskId: orphanedTask.externalId,
+              completedAt: orphanedTask.completionDate ? new Date(orphanedTask.completionDate) : new Date(),
+              completedTasks: orphanedTask.deliverables || [] as any,
+              // Set completed counters based on task type
+              pagesCompleted: orphanedTask.taskType.toLowerCase() === 'page' ? 1 : 0,
+              blogsCompleted: orphanedTask.taskType.toLowerCase() === 'blog' ? 1 : 0,
+              gbpPostsCompleted: orphanedTask.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
+              improvementsCompleted: ['improvement', 'maintenance'].includes(orphanedTask.taskType.toLowerCase()) ? 1 : 0
+            }
+          })
+
+          // Mark orphaned task as processed and link it
+          await prisma.orphaned_tasks.update({
+            where: { id: orphanedTask.id },
+            data: {
+              processed: true,
+              linkedRequestId: newRequest.id,
+              notes: `${orphanedTask.notes || ''}\n\nProcessed and linked to request ${newRequest.id} for user ${userId}`
+            }
+          })
+
+          createdCount++
+          logger.info('Created request from orphaned task', {
+            orphanedTaskId: orphanedTask.id,
+            newRequestId: newRequest.id,
+            userId,
+            taskType: orphanedTask.taskType
+          })
+        } else {
+          // For non-completed tasks, just mark as processed with a note
+          await prisma.orphaned_tasks.update({
+            where: { id: orphanedTask.id },
+            data: {
+              processed: true,
+              notes: `${orphanedTask.notes || ''}\n\nProcessed for user ${userId} - task was ${orphanedTask.eventType} status`
+            }
+          })
+        }
+
+        processedCount++
+      } catch (taskError) {
+        logger.error('Failed to process individual orphaned task', taskError, {
+          orphanedTaskId: orphanedTask.id,
+          userId
+        })
+        // Continue processing other tasks even if one fails
+      }
+    }
+
+    logger.info('Completed processing orphaned tasks for user', {
+      userId,
+      userEmail,
+      totalFound: orphanedTasks.length,
+      processed: processedCount,
+      requestsCreated: createdCount
+    })
+
+    return { processed: processedCount, created: createdCount }
+  } catch (error) {
+    logger.error('Failed to process orphaned tasks for user', error, { userId, userEmail })
+    throw error
+  }
+}
+
 // Determine if request should be marked as completed
 function shouldMarkRequestAsCompleted(request: any, data: SeoworksWebhookData): boolean {
   // This is a simplified logic - adjust based on your business rules
@@ -415,22 +513,61 @@ export const POST = compose(
       }
       
       if (!requestRecord) {
-        logger.warn('Request not found and could not create one for webhook', {
-          externalId: data.externalId,
-          eventType,
-          clientId: data.clientId,
-          clientEmail: data.clientEmail,
-          path: '/api/seoworks/webhook',
-          method: 'POST'
-        })
-        // Still return success to avoid retries from SEOWorks
-        return successResponse({
-          message: 'Webhook received (no matching request found)',
-          eventType,
-          externalId: data.externalId,
-          clientId: data.clientId,
-          clientEmail: data.clientEmail
-        })
+        // Store orphaned task data for later processing when dealership is onboarded
+        try {
+          const orphanedTask = await prisma.orphaned_tasks.create({
+            data: {
+              externalId: data.externalId,
+              clientId: data.clientId,
+              clientEmail: data.clientEmail,
+              eventType,
+              taskType: data.taskType,
+              status: data.status,
+              completionDate: data.completionDate,
+              deliverables: data.deliverables || null,
+              rawPayload: payload as any,
+              processed: false,
+              notes: `Webhook received for unknown dealership - task orphaned for later processing`
+            }
+          })
+
+          logger.info('Stored orphaned task for unknown dealership', {
+            orphanedTaskId: orphanedTask.id,
+            externalId: data.externalId,
+            eventType,
+            clientId: data.clientId,
+            clientEmail: data.clientEmail,
+            path: '/api/seoworks/webhook',
+            method: 'POST'
+          })
+
+          return successResponse({
+            message: 'Webhook received and orphaned task stored for unknown dealership',
+            eventType,
+            externalId: data.externalId,
+            clientId: data.clientId,
+            clientEmail: data.clientEmail,
+            orphanedTaskId: orphanedTask.id,
+            stored: true
+          })
+        } catch (orphanError) {
+          logger.error('Failed to store orphaned task', orphanError, {
+            externalId: data.externalId,
+            eventType,
+            clientId: data.clientId,
+            clientEmail: data.clientEmail
+          })
+          
+          // Still return success to avoid retries, but log the failure
+          return successResponse({
+            message: 'Webhook received (no matching request found - storage failed)',
+            eventType,
+            externalId: data.externalId,
+            clientId: data.clientId,
+            clientEmail: data.clientEmail,
+            error: 'Failed to store orphaned task'
+          })
+        }
       }
     }
 

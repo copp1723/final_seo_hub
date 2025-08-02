@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getCurrentISODate, getDateRange } from '@/lib/utils/date-formatter'
 import { features } from '@/lib/features'
+import { safeDbOperation } from '@/lib/db-resilience'
+import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -128,10 +130,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user info for fallback dealership
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      select: { dealershipId: true, agencyId: true, role: true }
-    })
+    const user = await safeDbOperation(() => 
+      prisma.users.findUnique({
+        where: { id: session.user.id },
+        select: { dealershipId: true, agencyId: true, role: true }
+      })
+    )
     
     // Use dealershipId from request if provided, otherwise fall back to user's dealership
     const targetDealershipId = dealershipId || user?.dealershipId
@@ -146,9 +150,11 @@ export async function POST(request: NextRequest) {
     // Find GA4 connection (dealership-level or user-level)
     let ga4Connection = null
     if (targetDealershipId) {
-      ga4Connection = await prisma.ga4_connections.findFirst({
-        where: { dealershipId: targetDealershipId }
-      })
+      ga4Connection = await safeDbOperation(() =>
+        prisma.ga4_connections.findFirst({
+          where: { dealershipId: targetDealershipId }
+        })
+      )
       logger.info('GA4 connection search by dealership', {
         targetDealershipId,
         found: !!ga4Connection,
@@ -157,9 +163,11 @@ export async function POST(request: NextRequest) {
       })
     }
     if (!ga4Connection) {
-      ga4Connection = await prisma.ga4_connections.findFirst({
-        where: { userId: session.user.id }
-      })
+      ga4Connection = await safeDbOperation(() =>
+        prisma.ga4_connections.findFirst({
+          where: { userId: session.user.id }
+        })
+      )
       logger.info('GA4 connection fallback to user', {
         userId: session.user.id,
         found: !!ga4Connection,
@@ -339,9 +347,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  try {
+  return withErrorBoundary(async () => {
     // Authenticate directly in GET method
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    const session = await withTimeout(
+      SimpleAuth.getSessionFromRequest(request),
+      5000,
+      'Session authentication timeout'
+    )
 
     // Allow demo mode without authentication for testing
     if (!session?.user.id && !features.demoMode) {
@@ -517,11 +529,12 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ data: dashboardData })
-  } catch (error) {
-    logger.error('Dashboard analytics GET error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch analytics data' },
-      { status: 500 }
-    )
-  }
+  }, {
+    // Fallback data for analytics dashboard
+    ga4Data: { sessions: 0, users: 0, eventCount: 0, bounceRate: 0 },
+    searchConsoleData: { clicks: 0, impressions: 0, ctr: 0, position: 0 },
+    combinedMetrics: { totalSessions: 0, totalUsers: 0, totalClicks: 0, totalImpressions: 0, avgCTR: 0, avgPosition: 0 },
+    metadata: { hasGA4Connection: false, hasSearchConsoleConnection: false, dateRange: 'Last 30 days' },
+    errors: { message: 'Analytics service temporarily unavailable' }
+  })()
 }

@@ -587,6 +587,30 @@ model seoworks_task_mappings {
   @@index([seoworksTaskId])
 }
 
+model orphaned_tasks {
+  id             String   @id @default(cuid())
+  externalId     String   @unique
+  clientId       String?
+  clientEmail    String?
+  eventType      String
+  taskType       String
+  status         String
+  completionDate String?
+  deliverables   Json?
+  rawPayload     Json
+  processed      Boolean  @default(false)
+  linkedRequestId String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([clientEmail])
+  @@index([processed])
+  @@index([externalId])
+  @@index([createdAt])
+}
+
 enum UserRole {
   USER
   ADMIN

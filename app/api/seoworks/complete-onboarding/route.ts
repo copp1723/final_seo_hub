@@ -4,6 +4,104 @@ import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { PackageType } from '@prisma/client'
 
+// Process orphaned tasks for a newly onboarded user
+async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
+  try {
+    // Find orphaned tasks that match this user
+    const orphanedTasks = await prisma.orphaned_tasks.findMany({
+      where: {
+        OR: [
+          { clientId: userId },
+          userEmail ? { clientEmail: userEmail } : {}
+        ].filter(condition => Object.keys(condition).length > 0),
+        processed: false
+      },
+      orderBy: { createdAt: 'asc' }
+    })
+
+    if (orphanedTasks.length === 0) {
+      logger.info('No orphaned tasks found for user', { userId, userEmail })
+      return { processed: 0, created: 0 }
+    }
+
+    let processedCount = 0
+    let createdCount = 0
+
+    for (const orphanedTask of orphanedTasks) {
+      try {
+        // Create a request for this orphaned task if it was completed
+        if (orphanedTask.eventType === 'task.completed') {
+          const newRequest = await prisma.requests.create({
+            data: {
+              userId: userId,
+              title: orphanedTask.deliverables?.[0]?.title || `SEOWorks ${orphanedTask.taskType} Task`,
+              description: `Task created from orphaned SEOWorks task\n\nOriginal Task ID: ${orphanedTask.externalId}\nCompleted: ${orphanedTask.completionDate || new Date().toISOString()}\n\nOriginal Notes: ${orphanedTask.notes || ''}`,
+              type: orphanedTask.taskType.toLowerCase(),
+              status: 'COMPLETED',
+              seoworksTaskId: orphanedTask.externalId,
+              completedAt: orphanedTask.completionDate ? new Date(orphanedTask.completionDate) : new Date(),
+              completedTasks: orphanedTask.deliverables || [] as any,
+              // Set completed counters based on task type
+              pagesCompleted: orphanedTask.taskType.toLowerCase() === 'page' ? 1 : 0,
+              blogsCompleted: orphanedTask.taskType.toLowerCase() === 'blog' ? 1 : 0,
+              gbpPostsCompleted: orphanedTask.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
+              improvementsCompleted: ['improvement', 'maintenance'].includes(orphanedTask.taskType.toLowerCase()) ? 1 : 0
+            }
+          })
+
+          // Mark orphaned task as processed and link it
+          await prisma.orphaned_tasks.update({
+            where: { id: orphanedTask.id },
+            data: {
+              processed: true,
+              linkedRequestId: newRequest.id,
+              notes: `${orphanedTask.notes || ''}\n\nProcessed and linked to request ${newRequest.id} for user ${userId}`
+            }
+          })
+
+          createdCount++
+          logger.info('Created request from orphaned task', {
+            orphanedTaskId: orphanedTask.id,
+            newRequestId: newRequest.id,
+            userId,
+            taskType: orphanedTask.taskType
+          })
+        } else {
+          // For non-completed tasks, just mark as processed with a note
+          await prisma.orphaned_tasks.update({
+            where: { id: orphanedTask.id },
+            data: {
+              processed: true,
+              notes: `${orphanedTask.notes || ''}\n\nProcessed for user ${userId} - task was ${orphanedTask.eventType} status`
+            }
+          })
+        }
+
+        processedCount++
+      } catch (taskError) {
+        logger.error('Failed to process individual orphaned task', taskError, {
+          orphanedTaskId: orphanedTask.id,
+          userId
+        })
+        // Continue processing other tasks even if one fails
+      }
+    }
+
+    logger.info('Completed processing orphaned tasks for user', {
+      userId,
+      userEmail,
+      totalFound: orphanedTasks.length,
+      processed: processedCount,
+      requestsCreated: createdCount
+    })
+
+    return { processed: processedCount, created: createdCount }
+  } catch (error) {
+    logger.error('Failed to process orphaned tasks for user', error, { userId, userEmail })
+    throw error
+  }
+}
+
 export const dynamic = 'force-dynamic';
 
 // SEOWorks API configuration
@@ -180,12 +278,29 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Process any orphaned tasks for this user
+    let orphanedTasksResult = { processed: 0, created: 0 }
+    try {
+      orphanedTasksResult = await processOrphanedTasksForUser(existingUser.id, existingUser.email)
+      logger.info('Processed orphaned tasks during onboarding', {
+        userId: existingUser.id,
+        orphanedTasksResult
+      })
+    } catch (orphanError) {
+      logger.error('Failed to process orphaned tasks during onboarding', orphanError, {
+        userId: existingUser.id
+      })
+      // Don't fail the onboarding if orphaned task processing fails
+    }
+
     logger.info('Invited user onboarding completed', {
       userId: existingUser.id,
       requestId: setupRequest.id,
       seoworksClientId: seoworksResult.clientId,
       businessName: dealerData.businessName,
-      agencyId: existingUser.agencies?.id
+      agencyId: existingUser.agencies?.id,
+      orphanedTasksProcessed: orphanedTasksResult.processed,
+      requestsCreatedFromOrphans: orphanedTasksResult.created
     })
 
     return successResponse({
@@ -194,7 +309,9 @@ export async function POST(request: NextRequest) {
       requestId: setupRequest.id,
       seoworksClientId: seoworksResult.clientId,
       businessName: dealerData.businessName,
-      seoworksResponse: seoworksResult.seoworksResponse
+      seoworksResponse: seoworksResult.seoworksResponse,
+      orphanedTasksProcessed: orphanedTasksResult.processed,
+      requestsCreatedFromOrphans: orphanedTasksResult.created
     })
 
   } catch (error) {

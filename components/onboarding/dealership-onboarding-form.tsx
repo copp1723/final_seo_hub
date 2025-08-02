@@ -40,6 +40,9 @@ interface OnboardingData {
   targetVehicleModels: string[];
   targetCities: string[];
   targetDealers: string[];
+
+  // Documents
+  documents: File[];
 }
 
 const INITIAL_DATA: OnboardingData = {
@@ -60,7 +63,8 @@ const INITIAL_DATA: OnboardingData = {
   siteAccessNotes: '',
   targetVehicleModels: ['', '', ''],
   targetCities: ['', '', ''],
-  targetDealers: ['', '', '']
+  targetDealers: ['', '', ''],
+  documents: []
 }
 
 const STEPS = [
@@ -431,7 +435,7 @@ export default function DealershipOnboardingForm() {
             >
               <option value="">Please select</option>
               {US_STATES.map(state => (
-                <option key={state.value} value={state.value}>{state.label}</option>
+                <option key={state} value={state}>{state}</option>
               ))}
             </select>
           </div>
@@ -835,11 +839,11 @@ export default function DealershipOnboardingForm() {
             id="siteAccessNotes"
             value={formData.siteAccessNotes}
             onChange={(e) => updateField('siteAccessNotes', e.target.value)}
-            placeholder={`1. Need site access (full access, metadata, seo) and blog access: please provide us a login or create a new one under access@rylieseo.com Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.
+            placeholder={`1. Need site access (full access, metadata, seo) and blog access: please provide us a login or create a new one under access@seowerks.ai Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.
 
-2. Google Business Profile access: add our email access@rylieseo.com as a Manager.
+2. Google Business Profile access: add our email access@seowerks.ai as a Manager.
 
-3. Google Analytics (GA4) access. Viewer only access is fine: add our email access@rylieseo.com.`}
+3. Google Analytics (GA4) access. Viewer only access is fine: add our email access@seowerks.ai.`}
             rows={8}
           />
         </div>

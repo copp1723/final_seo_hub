@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { checkDatabaseHealth } from '@/lib/db-resilience'
+import { ServiceChecker } from '@/lib/error-boundaries'
 import { TokenRefreshService } from '@/lib/google/token-refresh-service'
 
 export const dynamic = 'force-dynamic';
@@ -71,19 +73,19 @@ export async function GET(request: NextRequest) {
 
 async function checkDatabase(): Promise<any> {
   try {
-    const start = Date.now()
+    const healthResult = await checkDatabaseHealth()
     
-    // Test basic connectivity
-    await prisma.$queryRaw`SELECT 1`
-    
-    // Test write capability
-    const testWrite = await prisma.system_settings.findFirst()
-    
-    const responseTime = Date.now() - start
-    
+    if (!healthResult.healthy) {
+      return {
+        status: 'failed',
+        error: healthResult.error,
+        details: 'Database connection failed'
+      }
+    }
+
     return {
       status: 'healthy',
-      responseTime: `${responseTime}ms`,
+      responseTime: `${healthResult.latency}ms`,
       details: 'Database connectivity and operations verified'
     }
   } catch (error) {

@@ -20,7 +20,8 @@ export class EmailQueue {
   private static instance: EmailQueue
   private processing = false
   private readonly maxRetries = 3
-  private readonly retryDelays = [5000, 30000, 300000] // 5s, 30s, 5m
+  private readonly retryDelays = [2000, 10000, 60000, 300000] // 2s, 10s, 1m, 5m
+  private readonly maxBackoffDelay = 900000 // 15 minutes max
 
   static getInstance(): EmailQueue {
     if (!EmailQueue.instance) {
@@ -149,11 +150,13 @@ export class EmailQueue {
       })
 
       // Update attempt count
-      await prisma.$executeRaw`
-        UPDATE email_queue 
-        SET attempts = attempts + 1, last_attempt_at = NOW()
-        WHERE id = ${email.id}
-      `
+      await prisma.email_queue.update({
+        where: { id: email.id },
+        data: {
+          attempts: { increment: 1 },
+          last_attempt_at: new Date()
+        }
+      })
 
       // Send the email
       await sendEmail({
@@ -163,11 +166,13 @@ export class EmailQueue {
       })
 
       // Mark as sent
-      await prisma.$executeRaw`
-        UPDATE email_queue 
-        SET status = 'sent', sent_at = NOW()
-        WHERE id = ${email.id}
-      `
+      await prisma.email_queue.update({
+        where: { id: email.id },
+        data: {
+          status: 'sent',
+          sent_at: new Date()
+        }
+      })
 
       logger.info('Email sent successfully', {
         id: email.id,
@@ -183,11 +188,13 @@ export class EmailQueue {
 
       // Check if we should retry
       if (email.attempts >= email.maxAttempts) {
-        await prisma.$executeRaw`
-          UPDATE email_queue 
-          SET status = 'failed', failed_at = NOW()
-          WHERE id = ${email.id}
-        `
+        await prisma.email_queue.update({
+          where: { id: email.id },
+          data: {
+            status: 'failed',
+            failed_at: new Date()
+          }
+        })
         logger.error('Email permanently failed', {
           id: email.id,
           to: email.to
@@ -197,11 +204,12 @@ export class EmailQueue {
         const delay = this.retryDelays[email.attempts] || 300000
         const retryAt = new Date(Date.now() + delay)
         
-        await prisma.$executeRaw`
-          UPDATE email_queue 
-          SET scheduled_for = ${retryAt}
-          WHERE id = ${email.id}
-        `
+        await prisma.email_queue.update({
+          where: { id: email.id },
+          data: {
+            scheduled_for: retryAt
+          }
+        })
         
         logger.info('Email scheduled for retry', {
           id: email.id,

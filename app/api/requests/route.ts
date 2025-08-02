@@ -8,6 +8,8 @@ import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { withApiMonitoring } from '@/lib/api-wrapper'
+import { safeDbOperation } from '@/lib/db-resilience'
+import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 
 export const dynamic = 'force-dynamic';
 
@@ -82,10 +84,12 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       orderBy.createdAt = 'desc' // Default sort
     }
 
-    const requests = await prisma.requests.findMany({
-      where,
-      orderBy
-    })
+    const requests = await safeDbOperation(() =>
+      prisma.requests.findMany({
+        where,
+        orderBy
+      })
+    )
 
     logger.info('Requests fetched successfully', {
       userId: authResult.user.id,
@@ -207,26 +211,28 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     })
 
-    const newRequest = await prisma.requests.create({
-      data: {
-        userId: authResult.user.id,
-        agencyId: authResult.user.agencyId || null, // Handle null agencyId
-        title: data.title,
-        description: data.description,
-        type: data.type,
-        priority: data.priority,
-        status: RequestStatus.PENDING,
-        packageType: data.packageType || null,
-        keywords: data.keywords || [],
-        targetUrl: data.targetUrl || null,
-        targetCities: data.targetCities || [],
-        targetModels: data.targetModels || []
-      },
-      include: {
-        users: true,
-        agencies: true
-      }
-    })
+    const newRequest = await safeDbOperation(() =>
+      prisma.requests.create({
+        data: {
+          userId: authResult.user.id,
+          agencyId: authResult.user.agencyId || null, // Handle null agencyId
+          title: data.title,
+          description: data.description,
+          type: data.type,
+          priority: data.priority,
+          status: RequestStatus.PENDING,
+          packageType: data.packageType || null,
+          keywords: data.keywords || [],
+          targetUrl: data.targetUrl || null,
+          targetCities: data.targetCities || [],
+          targetModels: data.targetModels || []
+        },
+        include: {
+          users: true,
+          agencies: true
+        }
+      })
+    )
 
     logger.info('Focus request created successfully in database', {
       userId: authResult.user.id,

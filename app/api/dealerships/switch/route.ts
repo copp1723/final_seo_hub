@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
+import { safeDbOperation } from '@/lib/db-resilience'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +13,12 @@ const switchDealershipSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+  return withErrorBoundary(async () => {
+    const session = await withTimeout(
+      SimpleAuth.getSessionFromRequest(request),
+      5000,
+      'Session check timeout'
+    )
     
     if (!session?.user.id) {
       return NextResponse.json(
@@ -25,9 +32,11 @@ export async function POST(request: NextRequest) {
 
     // Handle super admin user
     if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
-      const dealership = await prisma.dealerships.findUnique({
-        where: { id: dealershipId }
-      })
+      const dealership = await safeDbOperation(() => 
+        prisma.dealerships.findUnique({
+          where: { id: dealershipId }
+        })
+      )
       
       if (!dealership) {
         return NextResponse.json(
@@ -101,19 +110,11 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  }, {
+    success: false,
+    error: 'Service temporarily unavailable',
+    message: 'Dealership switching is currently unavailable'
+  })()
 }
 
 export async function GET(request: NextRequest) {

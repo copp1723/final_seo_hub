@@ -26,22 +26,26 @@ export async function GET(request: NextRequest) {
       // Otherwise, get tasks for user's dealership(s)
       const user = await prisma.users.findUnique({
         where: { id: session.user.id },
-        include: { 
-          dealerships: true,
-          agencies: {
-            include: {
-              dealerships: true
-            }
-          }
+        select: {
+          dealershipId: true,
+          agencyId: true,
+          role: true
         }
       })
       
-      if (user?.dealerships?.id) {
-        whereClause.dealershipId = user.dealerships.id
-      } else if (user?.agencies && user.agencies.dealerships.length > 0) {
+      if (user?.dealershipId) {
+        whereClause.dealershipId = user.dealershipId
+      } else if (user?.agencyId && (user.role === 'AGENCY_ADMIN' || user.role === 'SUPER_ADMIN')) {
         // Agency user - get tasks for all agency dealerships
-        whereClause.dealershipId = {
-          in: user.agencies.dealerships.map(d => d.id)
+        const agency = await prisma.agencies.findUnique({
+          where: { id: user.agencyId },
+          include: { dealerships: true }
+        })
+        
+        if (agency?.dealerships && agency.dealerships.length > 0) {
+          whereClause.dealershipId = {
+            in: agency?.dealerships?.map(d => d.id) || []
+          }
         }
       }
     }
@@ -49,36 +53,38 @@ export async function GET(request: NextRequest) {
     // Fetch tasks from database
     const tasks = await prisma.tasks.findMany({
       where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        requests: {
-          select: {
-            id: true,
-            packageType: true
-          }
-        }
-      }
+      orderBy: { createdAt: 'desc' }
     })
 
+    // Get related requests if needed
+    const requestIds = tasks.map(task => task.requestId).filter(Boolean) as string[]
+    const requests = requestIds.length > 0 ? await prisma.requests.findMany({
+      where: { id: { in: requestIds } },
+      select: { id: true, packageType: true }
+    }) : []
+
+    const requestsMap = new Map(requests.map(req => [req.id, req]))
+
     // Transform tasks to match the expected format
-    const formattedTasks = tasks.map(task => ({
-      id: task.id,
-      title: task.title,
-      description: task.description,
-      type: task.type,
-      status: task.status,
-      priority: task.priority || 'MEDIUM',
-      requestTitle: task.requests?.packageType ? `${task.requests.packageType} Package` : undefined,
-      requestId: task.requestId,
-      targetUrl: task.targetUrl,
-      targetCity: task.targetCity,
-      targetModel: task.targetModel,
-      dueDate: task.dueDate?.toISOString(),
-      startedAt: task.startedAt?.toISOString(),
-      createdAt: task.createdAt.toISOString(),
-      completedUrl: task.completedUrl,
-      completedAt: task.completedAt?.toISOString()
-    }))
+    const formattedTasks = tasks.map(task => {
+      const relatedRequest = task.requestId ? requestsMap.get(task.requestId) : null
+      
+      return {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        type: task.type,
+        status: task.status,
+        priority: task.priority,
+        requestTitle: relatedRequest?.packageType ? `${relatedRequest.packageType} Package` : undefined,
+        requestId: task.requestId,
+        targetUrl: task.targetUrl,
+        keywords: task.keywords,
+        createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+        completedAt: task.completedAt?.toISOString()
+      }
+    })
 
     return NextResponse.json({
       success: true,

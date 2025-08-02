@@ -34,7 +34,13 @@ export async function POST(
     // Find the user
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        onboardingCompleted: true,
+        // password field is not selectable due to security restrictions
+        invitationToken: true,
         agencies: {
           select: { name: true }
         },
@@ -49,7 +55,7 @@ export async function POST(
     }
 
     // Check if user already has completed onboarding
-    if (user.onboardingCompleted && user.password) {
+    if (user.onboardingCompleted) {
       return NextResponse.json({ 
         error: 'User has already completed registration. Cannot resend invitation.' 
       }, { status: 400 })

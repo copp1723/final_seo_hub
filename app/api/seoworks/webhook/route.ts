@@ -93,10 +93,11 @@ async function handleTaskCompleted(
     }
 
     // Add to completed tasks array
+    const firstDeliverable = Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null ? data.deliverables[0] : null
     const completedTask = {
-      title: data.deliverables?.[0]?.title || data.taskType,
+      title: (firstDeliverable && 'title' in firstDeliverable && typeof firstDeliverable.title === 'string') ? firstDeliverable.title : data.taskType,
       type: data.taskType,
-      url: data.deliverables?.[0]?.url,
+      url: (firstDeliverable && 'url' in firstDeliverable && typeof firstDeliverable.url === 'string') ? firstDeliverable.url : undefined,
       completedAt: data.completionDate || new Date().toISOString()
     }
 
@@ -278,7 +279,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
           const newRequest = await prisma.requests.create({
             data: {
               userId: userId,
-              title: orphanedTask.deliverables?.[0]?.title || `SEOWorks ${orphanedTask.taskType} Task`,
+              title: (Array.isArray(orphanedTask.deliverables) && orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0] === 'object' && orphanedTask.deliverables[0] !== null && 'title' in orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0].title === 'string') ? orphanedTask.deliverables[0].title : `SEOWorks ${orphanedTask.taskType} Task`,
               description: `Task created from orphaned SEOWorks task\n\nOriginal Task ID: ${orphanedTask.externalId}\nCompleted: ${orphanedTask.completionDate || new Date().toISOString()}\n\nOriginal Notes: ${orphanedTask.notes || ''}`,
               type: orphanedTask.taskType.toLowerCase(),
               status: 'COMPLETED',
@@ -487,7 +488,7 @@ export const POST = compose(
           requestRecord = await prisma.requests.create({
             data: {
               userId: user.id,
-              title: data.deliverables?.[0]?.title || `SEOWorks ${data.taskType} Task`,
+              title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${data.taskType} Task`,
               description: `Task created directly in SEOWorks\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
               type: data.taskType.toLowerCase(),
               status: 'COMPLETED',
@@ -524,7 +525,7 @@ export const POST = compose(
               taskType: data.taskType,
               status: data.status,
               completionDate: data.completionDate,
-              deliverables: data.deliverables || null,
+              deliverables: data.deliverables as any,
               rawPayload: payload as any,
               processed: false,
               notes: `Webhook received for unknown dealership - task orphaned for later processing`

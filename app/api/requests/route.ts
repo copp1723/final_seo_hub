@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
-import { RequestStatus, Prisma, UserRole, TaskType, TaskStatus } from '@prisma/client'
+import { RequestStatus, Prisma, UserRole, TaskType, TaskStatus, RequestPriority } from '@prisma/client'
 import { validateRequest, createRequestSchema } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
@@ -269,25 +269,40 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     // Create associated tasks
     try {
-      const tasksToCreate = [];
+      const tasksToCreate: Array<{
+        userId: string;
+        dealershipId: string | null;
+        agencyId: string | null;
+        type: TaskType;
+        title: string;
+        description: string;
+        priority: RequestPriority;
+        targetUrl: string | null;
+        keywords?: Prisma.InputJsonValue;
+        requestId: string;
+        status: TaskStatus;
+      }> = [];
       // Create a single task based on the request type
       // CRITICAL FIX: Use dealershipId from user, not from newRequest
-      tasksToCreate.push({
+      const taskData: any = {
         userId: newRequest.userId,
         dealershipId: user.dealershipId || null, // FIX: Use dealershipId from user object
         agencyId: newRequest.agencyId || null,
         type: newRequest.type.toUpperCase() as TaskType, // Convert lowercase request type to uppercase TaskType enum
         title: newRequest.title,
         description: newRequest.description || '',
-        priority: newRequest.priority,
+        priority: newRequest.priority as RequestPriority,
         targetUrl: newRequest.targetUrl || null,
-        // Explicitly handle Prisma.JsonNull for empty arrays in JSON fields
-        keywords: Array.isArray(newRequest.keywords) && newRequest.keywords.length > 0 ? (newRequest.keywords as Prisma.InputJsonValue) : Prisma.JsonNull,
         requestId: newRequest.id, // Link to the newly created request
         status: TaskStatus.PENDING, // Default status for new tasks
-        targetCities: Array.isArray(newRequest.targetCities) && newRequest.targetCities.length > 0 ? (newRequest.targetCities as Prisma.InputJsonValue) : Prisma.JsonNull,
-        targetModels: Array.isArray(newRequest.targetModels) && newRequest.targetModels.length > 0 ? (newRequest.targetModels as Prisma.InputJsonValue) : Prisma.JsonNull,
-      });
+      }
+      
+      // Only add keywords if they exist and are not empty
+      if (Array.isArray(newRequest.keywords) && newRequest.keywords.length > 0) {
+        taskData.keywords = newRequest.keywords as Prisma.InputJsonValue
+      }
+      
+      tasksToCreate.push(taskData);
 
       // You can add more complex logic here to create multiple tasks
       // For example, if request.type is 'SEO_AUDIT', create multiple sub-tasks (e.g., 'TECHNICAL_AUDIT_TASK', 'CONTENT_AUDIT_TASK')

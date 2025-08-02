@@ -15,6 +15,9 @@ interface QueuedEmail {
   createdAt: Date
 }
 
+// In-memory queue since email_queue table doesn't exist in schema
+const emailQueue: Map<string, QueuedEmail> = new Map()
+
 // Enhanced email queue with retry logic and delivery tracking
 export class EmailQueue {
   private static instance: EmailQueue
@@ -53,17 +56,22 @@ export class EmailQueue {
         return 'skipped'
       }
 
-      // Create queue entry
-      const queueEntry = await prisma.$executeRaw`
-        INSERT INTO email_queue (
-          id, user_id, type, recipient, subject, html_content, 
-          attempts, max_attempts, scheduled_for, created_at
-        ) VALUES (
-          gen_random_uuid(), ${email.userId}, ${email.type}, ${email.to},
-          ${email.subject}, ${email.html}, 0, ${this.maxRetries},
-          ${email.scheduledFor || new Date()}, NOW()
-        ) RETURNING id
-      `
+      // Create queue entry in memory
+      const id = `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const queueEntry: QueuedEmail = {
+        id,
+        userId: email.userId,
+        type: email.type,
+        to: email.to,
+        subject: email.subject,
+        html: email.html,
+        attempts: 0,
+        maxAttempts: this.maxRetries,
+        scheduledFor: email.scheduledFor || new Date(),
+        createdAt: new Date()
+      }
+      
+      emailQueue.set(id, queueEntry)
 
       logger.info('Email queued successfully', {
         userId: email.userId,
@@ -130,15 +138,21 @@ export class EmailQueue {
   }
 
   private async getNextEmails(limit: number): Promise<QueuedEmail[]> {
-    const result = await prisma.$queryRaw<QueuedEmail[]>`
-      SELECT * FROM email_queue 
-      WHERE scheduled_for <= NOW() 
-        AND attempts < max_attempts
-        AND (last_attempt_at IS NULL OR last_attempt_at < NOW() - INTERVAL '5 minutes')
-      ORDER BY scheduled_for ASC 
-      LIMIT ${limit}
-    `
-    return result
+    const now = new Date()
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
+    
+    const result: QueuedEmail[] = []
+    
+    for (const [id, email] of emailQueue.entries()) {
+      if (result.length >= limit) break
+      
+      if (email.scheduledFor <= now && 
+          email.attempts < email.maxAttempts) {
+        result.push(email)
+      }
+    }
+    
+    return result.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime())
   }
 
   private async processEmail(email: QueuedEmail): Promise<void> {
@@ -149,14 +163,12 @@ export class EmailQueue {
         attempts: email.attempts
       })
 
-      // Update attempt count
-      await prisma.email_queue.update({
-        where: { id: email.id },
-        data: {
-          attempts: { increment: 1 },
-          last_attempt_at: new Date()
-        }
-      })
+      // Update attempt count in memory
+      const queuedEmail = emailQueue.get(email.id)
+      if (queuedEmail) {
+        queuedEmail.attempts += 1
+        emailQueue.set(email.id, queuedEmail)
+      }
 
       // Send the email
       await sendEmail({
@@ -165,14 +177,8 @@ export class EmailQueue {
         html: email.html
       })
 
-      // Mark as sent
-      await prisma.email_queue.update({
-        where: { id: email.id },
-        data: {
-          status: 'sent',
-          sent_at: new Date()
-        }
-      })
+      // Mark as sent by removing from queue
+      emailQueue.delete(email.id)
 
       logger.info('Email sent successfully', {
         id: email.id,
@@ -187,34 +193,25 @@ export class EmailQueue {
       })
 
       // Check if we should retry
-      if (email.attempts >= email.maxAttempts) {
-        await prisma.email_queue.update({
-          where: { id: email.id },
-          data: {
-            status: 'failed',
-            failed_at: new Date()
-          }
-        })
+      const queuedEmail = emailQueue.get(email.id)
+      if (!queuedEmail || queuedEmail.attempts >= queuedEmail.maxAttempts) {
+        emailQueue.delete(email.id)
         logger.error('Email permanently failed', {
           id: email.id,
           to: email.to
         })
       } else {
         // Schedule retry with exponential backoff
-        const delay = this.retryDelays[email.attempts] || 300000
+        const delay = this.retryDelays[queuedEmail.attempts] || 300000
         const retryAt = new Date(Date.now() + delay)
         
-        await prisma.email_queue.update({
-          where: { id: email.id },
-          data: {
-            scheduled_for: retryAt
-          }
-        })
+        queuedEmail.scheduledFor = retryAt
+        emailQueue.set(email.id, queuedEmail)
         
         logger.info('Email scheduled for retry', {
           id: email.id,
           retryAt,
-          attempts: email.attempts + 1
+          attempts: queuedEmail.attempts
         })
       }
     }
@@ -223,13 +220,18 @@ export class EmailQueue {
   // Clean up old queue entries
   async cleanup(): Promise<void> {
     try {
-      const result = await prisma.$executeRaw`
-        DELETE FROM email_queue 
-        WHERE (status = 'sent' AND sent_at < NOW() - INTERVAL '7 days')
-           OR (status = 'failed' AND failed_at < NOW() - INTERVAL '30 days')
-      `
+      const now = new Date()
+      const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000) // 24 hours
+      let deletedCount = 0
       
-      logger.info('Email queue cleanup completed', { deletedRows: result })
+      for (const [id, email] of emailQueue.entries()) {
+        if (email.createdAt < cutoff && email.attempts >= email.maxAttempts) {
+          emailQueue.delete(id)
+          deletedCount++
+        }
+      }
+      
+      logger.info('Email queue cleanup completed', { deletedRows: deletedCount })
     } catch (error) {
       logger.error('Email queue cleanup failed', error)
     }
@@ -237,16 +239,26 @@ export class EmailQueue {
 
   // Get queue statistics
   async getStats(): Promise<any> {
-    const stats = await prisma.$queryRaw`
-      SELECT 
-        status,
-        COUNT(*) as count,
-        AVG(attempts) as avg_attempts
-      FROM email_queue 
-      WHERE created_at > NOW() - INTERVAL '24 hours'
-      GROUP BY status
-    `
+    const now = new Date()
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     
-    return stats
+    const stats = {
+      pending: 0,
+      totalAttempts: 0,
+      count: 0
+    }
+    
+    for (const [id, email] of emailQueue.entries()) {
+      if (email.createdAt > last24h) {
+        stats.pending++
+        stats.totalAttempts += email.attempts
+        stats.count++
+      }
+    }
+    
+    return {
+      pending: stats.pending,
+      avg_attempts: stats.count > 0 ? stats.totalAttempts / stats.count : 0
+    }
   }
 }

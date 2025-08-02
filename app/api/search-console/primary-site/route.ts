@@ -57,8 +57,25 @@ export async function POST(req: Request) {
     }
 
     // Update the primary site for the dealership
+    // First find the connection to update
+    const connection = await prisma.search_console_connections.findFirst({
+      where: {
+        OR: [
+          { dealershipId: targetDealershipId },
+          { userId: session.user.id }
+        ]
+      }
+    })
+
+    if (!connection) {
+      return NextResponse.json(
+        { error: 'Search Console connection not found' },
+        { status: 404 }
+      )
+    }
+
     await prisma.search_console_connections.update({
-      where: { userId: targetDealershipId },
+      where: { id: connection.id },
       data: {
         siteUrl: siteUrl,
         siteName: new URL(siteUrl).hostname

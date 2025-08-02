@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 const cache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
 
-function getCacheKey(userId: string, dealershipId?: string): string {
+function getCacheKey(userId: string, dealershipId?: string | null): string {
   return `rankings_${userId}_${dealershipId || 'user-level'}_${new Date().toISOString().split('T')[0]}`
 }
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const dealershipId = searchParams.get('dealershipId')
 
     // Check cache first
-    const cacheKey = getCacheKey(session.user.id, dealershipId)
+    const cacheKey = getCacheKey(session.user.id, dealershipId || undefined)
     const cachedData = cache.get(cacheKey)
     
     if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {

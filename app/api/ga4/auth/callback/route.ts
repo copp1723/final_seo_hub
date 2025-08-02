@@ -55,11 +55,11 @@ export async function GET(request: NextRequest) {
       if (response.data.accounts && response.data.accounts.length > 0) {
         // Get properties for the first account
         const accountName = response.data.accounts[0].name
-        const propertiesResponse = await analyticsAdmin.accounts.properties.list({
-          parent: accountName
+        const propertiesResponse = await analyticsAdmin.properties.list({
+          filter: `parent:${accountName}`
         })
 
-        if (propertiesResponse.data.properties && propertiesResponse.data.properties.length > 0) {
+        if (propertiesResponse.data && propertiesResponse.data.properties && propertiesResponse.data.properties.length > 0) {
           const firstProperty = propertiesResponse.data.properties[0]
           // Extract property ID from the resource name (e.g., "properties/123456789")
           const extractedPropertyId = firstProperty.name?.split('/')[1]

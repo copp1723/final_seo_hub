@@ -84,7 +84,7 @@ export function Navigation() {
 
   // Admin navigation items - show based on user role
   const visibleAdminNavItems = adminNavItems.filter(item =>
-    item.roles.includes(user?.role)
+    user?.role && item.roles.includes(user.role)
   )
 
   return (

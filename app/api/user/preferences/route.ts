@@ -93,8 +93,9 @@ export async function PATCH(request: NextRequest) {
     })
     
     return successResponse({
-      preferences
-    }, 'Preferences updated successfully')
+      preferences,
+      message: 'Preferences updated successfully'
+    }, 200)
   } catch (error) {
     logger.error('Error updating user preferences', error, {
       userId: authResult.user.id

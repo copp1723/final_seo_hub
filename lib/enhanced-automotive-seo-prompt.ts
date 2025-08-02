@@ -224,7 +224,7 @@ export const CONVERSATION_ENHANCERS = {
     ford: "Ford's new EV lineup is changing search behavior. Are you certified for Lightning or Mach-E?",
     chevrolet: "Chevy's incentives change frequently. Dynamic content for offers becomes crucial...",
     luxury: "Luxury buyers expect a different digital experience. Premium photography and detailed specifications are non-negotiable..."
-  },
+  } as Record<string, string>,
 
   // Seasonal awareness
   seasonalContext: {
@@ -233,7 +233,7 @@ export const CONVERSATION_ENHANCERS = {
     fall: "Model year-end clearance time. Urgency messaging and inventory-specific pages are key...",
     winter: "Service becomes huge - winter tire packages, maintenance specials. Is your service SEO optimized?",
     yearEnd: "Business buyers looking for tax advantages. Commercial content often gets overlooked..."
-  }
+  } as Record<string, string>
 }
 
 export const enhanceResponse = (

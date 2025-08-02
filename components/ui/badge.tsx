@@ -26,12 +26,12 @@ function Badge({ className, variant = "default", ...props }: BadgeProps) {
             variant === "warning",
           "border-emerald-200/60 bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 hover:from-emerald-100 hover:to-emerald-200 shadow-sm":
             variant === "success",
-          "border-red-200/60 bg-gradient-to-r from-red-50 to-red-100 text-red-700 hover:from-red-100 hover:to-red-200 shadow-sm":
+          "border-rose-200/60 bg-gradient-to-r from-rose-50 to-rose-100 text-rose-700 hover:from-rose-100 hover:to-rose-200 shadow-sm":
             variant === "error"
         },
         className
       )}
-      { ...props}
+      {...props}
     />
   )
 }

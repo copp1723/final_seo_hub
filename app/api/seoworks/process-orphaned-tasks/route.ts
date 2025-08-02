@@ -42,7 +42,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
           const newRequest = await prisma.requests.create({
             data: {
               userId: userId,
-              title: orphanedTask.deliverables?.[0]?.title || `SEOWorks ${orphanedTask.taskType} Task`,
+              title: (Array.isArray(orphanedTask.deliverables) && orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0] === 'object' && orphanedTask.deliverables[0] !== null && 'title' in orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0].title === 'string') ? orphanedTask.deliverables[0].title : `SEOWorks ${orphanedTask.taskType} Task`,
               description: `Task created from orphaned SEOWorks task\n\nOriginal Task ID: ${orphanedTask.externalId}\nCompleted: ${orphanedTask.completionDate || new Date().toISOString()}\n\nOriginal Notes: ${orphanedTask.notes || ''}`,
               type: orphanedTask.taskType.toLowerCase(),
               status: 'COMPLETED',

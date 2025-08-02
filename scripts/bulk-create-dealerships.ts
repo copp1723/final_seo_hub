@@ -26,38 +26,15 @@ async function createDealerships(agencyId: string) {
       
       console.log(`✅ Created dealership: ${dealership.name} (ID: ${created.id})`)
       
-      // If GA4 property ID is provided, create the connection record
+      // Note: GA4 and Search Console connections require a userId
+      // These connections should be created when a user actually connects their accounts
+      // Skipping automatic connection creation for now
       if (dealership.ga4PropertyId) {
-        await prisma.ga4_connections.create({
-          data: {
-            dealershipId: created.id,
-            propertyId: dealership.ga4PropertyId,
-            propertyName: dealership.name + " - GA4",
-            accessToken: '',
-            users: {
-              connect: { id: 'placeholder' }
-            }
-            // Note: accessToken and refreshToken will be set when user connects
-          }
-        })
-        console.log(`  📊 Added GA4 property: ${dealership.ga4PropertyId}`)
+        console.log(`  📊 GA4 property ready to connect: ${dealership.ga4PropertyId}`)
       }
       
-      // If Search Console URL is provided, create the connection record
       if (dealership.searchConsoleUrl) {
-        await prisma.search_console_connections.create({
-          data: {
-            dealershipId: created.id,
-            siteUrl: dealership.searchConsoleUrl,
-            siteName: dealership.name + " - Search Console",
-            accessToken: '',
-            users: {
-              connect: { id: 'placeholder' }
-            }
-            // Note: accessToken and refreshToken will be set when user connects
-          }
-        })
-        console.log(`  🔍 Added Search Console site: ${dealership.searchConsoleUrl}`)
+        console.log(`  🔍 Search Console site ready to connect: ${dealership.searchConsoleUrl}`)
       }
       
     } catch (error) {

@@ -65,7 +65,7 @@ export class DealershipAnalyticsService {
       metadata: {
         hasGA4Connection: false,
         hasSearchConsoleConnection: false,
-        dealershipId
+        dealershipId: dealershipId || 'unknown'
       }
     }
 
@@ -84,7 +84,7 @@ export class DealershipAnalyticsService {
     result.metadata.siteUrl = scResult.siteUrl
 
     // Validate GA4 data integrity before returning
-    const validatedResult = validateGA4Response(dealershipId, result)
+    const validatedResult = validateGA4Response(dealershipId || null, result)
 
     return validatedResult
   }
@@ -299,11 +299,11 @@ export class DealershipAnalyticsService {
   async getSearchConsoleRankings(userId: string, dealershipId?: string | null, startDate?: string, endDate?: string) {
     try {
       // Use demo data if enabled
-      if (features.useDemoData) {
+      if (features.demoMode) {
         return getDemoSearchConsoleData('rankings')
       }
 
-      const targetSiteUrl = await getSearchConsoleUrl(dealershipId, userId)
+      const targetSiteUrl = dealershipId ? getSearchConsoleUrl(dealershipId) : null
 
       if (!targetSiteUrl) {
         return {
@@ -321,7 +321,7 @@ export class DealershipAnalyticsService {
 
       if (rankingsData && rankingsData.rows && rankingsData.rows.length > 0) {
         const queries = rankingsData.rows.map(row => ({
-          query: row.keys[0],
+          query: row.keys?.[0] || 'unknown',
           clicks: row.clicks || 0,
           impressions: row.impressions || 0,
           ctr: row.ctr || 0,

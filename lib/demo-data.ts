@@ -12,8 +12,9 @@ export const getDemoStats = (): DashboardData => ({
   tasksCompletedThisMonth: 28,
   tasksSubtitle: "28 tasks completed this month",
   gaConnected: true,
+  searchConsoleConnected: true,
   packageProgress: {
-    packageType: "Gold",
+    packageType: "GOLD",
     pages: {
       completed: 8,
       total: 12,
@@ -48,12 +49,12 @@ export const getDemoStats = (): DashboardData => ({
     }
   },
   latestRequest: {
-    packageType: "Gold",
+    packageType: "GOLD",
     pagesCompleted: 8,
     blogsCompleted: 6,
     gbpPostsCompleted: 15,
     improvementsCompleted: 9
-  },
+  } as any,
   dealershipId: "demo-dealership-001"
 })
 
@@ -90,9 +91,9 @@ export const getDemoAnalytics = (): DashboardAnalyticsData => ({
     fetchedAt: new Date().toISOString(),
     hasGA4Connection: true,
     hasSearchConsoleConnection: true,
-    dealershipId: "demo-dealership-001",
-    propertyId: "GA4-DEMO-12345",
-    siteUrl: "https://demo-dealership.com"
+    // dealershipId: "demo-dealership-001", // Not part of AnalyticsMetadata type
+    // propertyId: "GA4-DEMO-12345", // Not part of AnalyticsMetadata type
+    // siteUrl: "https://demo-dealership.com" // Not part of AnalyticsMetadata type
   }
 })
 
@@ -101,47 +102,32 @@ export const getDemoActivity = (): Activity[] => [
   {
     id: "activity-1",
     type: "page_completed",
-    title: "Landing Page Optimization Completed",
-    description: "New vehicle inventory page optimized for 'Honda Civic 2024' keywords",
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    dealershipId: "demo-dealership-001"
+    description: "Landing Page Optimization Completed - New vehicle inventory page optimized for 'Honda Civic 2024' keywords",
+    time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
   },
   {
     id: "activity-2", 
     type: "blog_published",
-    title: "Blog Post Published",
-    description: "\"5 Tips for First-Time Car Buyers\" published with SEO optimization",
-    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    dealershipId: "demo-dealership-001"
+    description: "Blog Post Published - \"5 Tips for First-Time Car Buyers\" published with SEO optimization",
+    time: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString()
   },
   {
     id: "activity-3",
     type: "gbp_post_created", 
-    title: "Google Business Profile Updated",
-    description: "Monthly promotion post created with seasonal offer highlighting",
-    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-    status: "completed",
-    dealershipId: "demo-dealership-001"
+    description: "Google Business Profile Updated - Monthly promotion post created with seasonal offer highlighting",
+    time: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()
   },
   {
     id: "activity-4",
     type: "improvement_applied",
-    title: "Technical SEO Improvement",
-    description: "Site speed optimization applied - 23% faster loading times",
-    timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    status: "completed", 
-    dealershipId: "demo-dealership-001"
+    description: "Technical SEO Improvement - Site speed optimization applied - 23% faster loading times",
+    time: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
     id: "activity-5",
     type: "request_started",
-    title: "New Content Request Initiated",
-    description: "Service department landing page optimization project started",
-    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    status: "in_progress",
-    dealershipId: "demo-dealership-001"
+    description: "New Content Request Initiated - Service department landing page optimization project started",
+    time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
   }
 ]
 
@@ -224,7 +210,7 @@ export function getDemoGA4Analytics(startDate: string, endDate: string, dealersh
   const dates = generateDateRange(startDate, endDate)
 
   // Generate realistic daily metrics with dealership-specific seeding
-  const dealershipSeed = dealership.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const dealershipSeed = dealership.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
 
   const dailyMetrics = dates.map((date, index) => {
     const isWeekend = new Date(date).getDay() === 0 || new Date(date).getDay() === 6
@@ -316,7 +302,7 @@ export function getDemoSearchConsoleData(startDateOrType: string, endDate?: stri
   const dates = generateDateRange(startDate, endDate)
 
   // Generate realistic daily metrics with dealership-specific seeding
-  const dealershipSeed = dealership.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const dealershipSeed = dealership.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
 
   const dailyMetrics = dates.map((date, index) => {
     // Use dealership-specific seed for consistent but different data per dealership

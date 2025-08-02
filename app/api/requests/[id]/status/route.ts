@@ -93,8 +93,9 @@ export async function PATCH(
     }
     
     return successResponse({ 
-      request: updatedRequest 
-    }, 'Request status updated successfully')
+      request: updatedRequest,
+      message: 'Request status updated successfully'
+    }, 200)
   } catch (error) {
     logger.error('Error updating request status', error, {
       requestId,

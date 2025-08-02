@@ -413,10 +413,10 @@ export async function GET(request: NextRequest) {
         if (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN') {
           const hasAccess = await prisma.dealerships.findFirst({
             where: {
-              id: dealershipId,
+              id: dealershipId || undefined,
               OR: [
                 { users: { some: { id: session.user.id } } },
-                { agencyId: user.agencyId }
+                ...(user.agencyId ? [{ agencyId: user.agencyId }] : [])
               ]
             }
           })

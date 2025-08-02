@@ -62,33 +62,33 @@ const StatCard = ({
   loading?: boolean
 }) => {
   const colorClasses = {
-    blue: 'text-blue-600 bg-blue-50',
-    green: 'text-green-600 bg-green-50',
-    purple: 'text-purple-600 bg-purple-50',
-    orange: 'text-orange-600 bg-orange-50',
-    red: 'text-red-600 bg-red-50'
+    blue: 'text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100 shadow-sm',
+    green: 'text-emerald-600 bg-gradient-to-br from-emerald-50 to-emerald-100 shadow-sm',
+    purple: 'text-violet-600 bg-gradient-to-br from-violet-50 to-violet-100 shadow-sm',
+    orange: 'text-orange-600 bg-gradient-to-br from-orange-50 to-orange-100 shadow-sm',
+    red: 'text-red-600 bg-gradient-to-br from-red-50 to-red-100 shadow-sm'
   }
 
   return (
-    <Card>
+    <Card className="hover-lift">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600">{title}</p>
+          <div className="flex-1">
+            <p className="text-caption text-slate-500">{title}</p>
             {loading ? (
-              <div className="h-8 w-20 bg-gray-200 rounded-lg animate-pulse mt-1"></div>
+              <div className="h-8 w-20 bg-slate-200 rounded-lg animate-pulse mt-2"></div>
             ) : (
-              <p className="text-2xl font-semibold text-gray-900">{value}</p>
+              <p className="text-3xl font-bold text-slate-900 mt-2">{value}</p>
             )}
-            <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+            <p className="text-body-sm mt-1">{subtitle}</p>
             {trend && (
-              <div className={`flex items-center text-xs font-medium mt-1 ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`flex items-center text-xs font-medium mt-2 px-2 py-1 rounded-full ${trend.positive ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
                 <TrendingUp className={`h-3 w-3 mr-1 ${trend.positive ? '' : 'rotate-180'}`} />
                 {Math.abs(trend.value)}%
               </div>
             )}
           </div>
-          <div className={`p-3 rounded-full ${colorClasses[color]}`}>
+          <div className={`p-4 rounded-2xl ${colorClasses[color]} ml-4`}>
             <Icon className="h-6 w-6" />
           </div>
         </div>
@@ -392,23 +392,23 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-subtle">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600 mt-1">Welcome back, {user?.name || 'User'}</p>
+            <div className="space-y-2">
+              <h1 className="text-headline gradient-text-primary">Dashboard</h1>
+              <p className="text-body">Welcome back, {user?.name || 'User'}</p>
               {analyticsData && (
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="flex items-center gap-1">
-                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <span className="text-xs text-gray-500">GA4</span>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 backdrop-blur-sm border border-white/20">
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-emerald-500' : 'bg-red-500'} shadow-sm`} />
+                    <span className="text-caption text-slate-600">GA4</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <span className="text-xs text-gray-500">Search Console</span>
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 backdrop-blur-sm border border-white/20">
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-emerald-500' : 'bg-red-500'} shadow-sm`} />
+                    <span className="text-caption text-slate-600">Search Console</span>
                   </div>
                 </div>
               )}
@@ -421,13 +421,13 @@ export default function DashboardPage() {
                 onClick={fetchAnalyticsData}
                 disabled={analyticsLoading}
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover-lift"
               >
                 <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} />
                 Refresh Analytics
               </Button>
               <Link href="/requests/new">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button className="hover-lift">
                   <Plus className="h-4 w-4 mr-2" />
                   New Request
                 </Button>
@@ -437,7 +437,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Primary Analytics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in">
           {/* Core Business Metrics - Most Important */}
           <StatCard
             title="Active Requests"

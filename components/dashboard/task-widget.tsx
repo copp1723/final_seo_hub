@@ -102,14 +102,13 @@ export function TaskWidget({
   }
 
   return (
-    <Card className={className}>
+    <Card className={cn(className, "hover-lift")}>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Tasks</CardTitle>
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span>{pendingTasks + inProgressTasks} Active</span>
-            <span>•</span>
-            <span>{tasks.filter(t => t.status === 'COMPLETED').length} Complete</span>
+          <CardTitle className="text-lg font-semibold text-slate-900">Tasks</CardTitle>
+          <div className="flex items-center gap-3 text-body-sm">
+            <span className="px-2 py-1 rounded-full bg-violet-50 text-violet-700">{pendingTasks + inProgressTasks} Active</span>
+            <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">{tasks.filter(t => t.status === 'COMPLETED').length} Complete</span>
           </div>
         </div>
       </CardHeader>
@@ -127,18 +126,18 @@ export function TaskWidget({
                 <div
                   key={task.id}
                   className={cn(
-                    "flex items-center justify-between py-2 border-b border-gray-100 last:border-0",
-                    task.status === 'COMPLETED' && "opacity-50"
+                    "flex items-center justify-between py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 rounded-lg px-3 -mx-3 transition-all duration-200 animate-slide-up",
+                    task.status === 'COMPLETED' && "opacity-60"
                   )}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
+                    <p className="text-sm font-medium text-slate-900 truncate">{task.title}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={cn(
-                        "text-xs px-2 py-0.5 rounded-full",
-                        task.status === 'PENDING' && "bg-yellow-100 text-yellow-700",
-                        task.status === 'IN_PROGRESS' && "bg-blue-100 text-blue-700",
-                        task.status === 'COMPLETED' && "bg-green-100 text-green-700"
+                        "text-xs px-2 py-1 rounded-full font-medium shadow-sm",
+                        task.status === 'PENDING' && "bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200/60",
+                        task.status === 'IN_PROGRESS' && "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200/60",
+                        task.status === 'COMPLETED' && "bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border border-emerald-200/60"
                       )}>
                         {task.status.replace('_', ' ').toLowerCase()}
                       </span>

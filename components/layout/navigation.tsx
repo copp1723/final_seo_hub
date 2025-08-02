@@ -88,14 +88,14 @@ export function Navigation() {
   )
 
   return (
-    <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-lg sticky top-0 z-50">
+    <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-elegant sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-18 items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center gap-2 lg:gap-6 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight hover:from-violet-700 hover:to-purple-700 transition-all duration-300">
+              <Link href="/dashboard" className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight hover:scale-105 transition-all duration-300">
                 SEO Hub
               </Link>
             </div>
@@ -112,10 +112,10 @@ export function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative',
+                      'inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative hover:scale-105 active:scale-95',
                       isActive
-                        ? 'text-violet-700 bg-violet-50/80 shadow-sm border border-violet-200/50 backdrop-blur-sm'
-                        : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50/80 hover:shadow-sm'
+                        ? 'text-violet-700 bg-gradient-to-r from-violet-50 to-violet-100 shadow-sm border border-violet-200/50 backdrop-blur-sm'
+                        : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50/80 hover:shadow-sm'
                     )}
                   >
                     <Icon className="h-4 w-4 mr-3 flex-shrink-0" />
@@ -154,10 +154,10 @@ export function Navigation() {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50/80 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:ring-offset-2 hover:scale-105 active:scale-95"
               >
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center ring-2 ring-white shadow-sm">
-                  <User className="h-4 w-4 text-blue-600" />
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-100 to-violet-200 flex items-center justify-center ring-2 ring-white shadow-elegant">
+                  <User className="h-4 w-4 text-violet-600" />
                 </div>
                 <div className="hidden lg:block text-left">
                   <div className="text-sm font-medium text-gray-700">

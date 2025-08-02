@@ -10,22 +10,23 @@ function Badge({ className, variant = "default", ...props }: BadgeProps) {
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 backdrop-blur-sm border",
         {
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80":
+          "border-violet-200/60 bg-gradient-to-r from-violet-50 to-violet-100 text-violet-700 hover:from-violet-100 hover:to-violet-200 shadow-sm":
             variant === "default",
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80":
+          "border-slate-200/60 bg-gradient-to-r from-slate-50 to-slate-100 text-slate-700 hover:from-slate-100 hover:to-slate-200 shadow-sm":
             variant === "secondary",
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80":
+          "border-red-200/60 bg-gradient-to-r from-red-50 to-red-100 text-red-700 hover:from-red-100 hover:to-red-200 shadow-sm":
             variant === "destructive",
-          "text-foreground": variant === "outline",
-          "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-200":
+          "border-slate-300/60 bg-white/80 text-slate-600 hover:bg-slate-50/80 shadow-sm": 
+            variant === "outline",
+          "border-blue-200/60 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 hover:from-blue-100 hover:to-blue-200 shadow-sm":
             variant === "info",
-          "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-200":
+          "border-orange-200/60 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 hover:from-orange-100 hover:to-orange-200 shadow-sm":
             variant === "warning",
-          "border-transparent bg-green-100 text-green-800 hover:bg-green-200":
+          "border-emerald-200/60 bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 hover:from-emerald-100 hover:to-emerald-200 shadow-sm":
             variant === "success",
-          "border-transparent bg-red-100 text-red-800 hover:bg-red-200":
+          "border-red-200/60 bg-gradient-to-r from-red-50 to-red-100 text-red-700 hover:from-red-100 hover:to-red-200 shadow-sm":
             variant === "error"
         },
         className

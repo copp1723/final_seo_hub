@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
-import { DealershipAnalyticsService } from '@/lib/google/dealership-analytics-service'
+import { analyticsCoordinator } from '@/lib/analytics/analytics-coordinator'
+import { CacheKeys } from '@/lib/cache/cache-keys'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getCurrentISODate, getDateRange } from '@/lib/utils/date-formatter'
@@ -11,54 +12,8 @@ import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
 
-// In-memory cache for dashboard analytics
-const cache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-const MAX_CACHE_SIZE = 500 // Maximum cache entries to prevent memory leaks
-const CACHE_CLEANUP_THRESHOLD = 100 // Clean up when we exceed this size
-
-// Clear cache function for debugging
-function clearCache() {
-  cache.clear()
-  logger.info('Analytics cache cleared')
-}
-
-// Enhanced cache cleanup with memory management
-function cleanupCache() {
-  const now = Date.now()
-  const expiredKeys: string[] = []
-
-  // Find expired entries
-  for (const [key, value] of cache.entries()) {
-    if (now - value.timestamp > CACHE_TTL) {
-      expiredKeys.push(key)
-    }
-  }
-
-  // Remove expired entries
-  expiredKeys.forEach(key => cache.delete(key))
-
-  // If still too many entries, remove oldest ones
-  if (cache.size > MAX_CACHE_SIZE) {
-    const sortedEntries = Array.from(cache.entries())
-      .sort((a, b) => a[1].timestamp - b[1].timestamp)
-
-    const toDelete = sortedEntries.slice(0, cache.size - CACHE_CLEANUP_THRESHOLD)
-    toDelete.forEach(([key]) => cache.delete(key))
-  }
-
-  if (expiredKeys.length > 0 || cache.size > MAX_CACHE_SIZE) {
-    logger.info('Analytics cache cleanup completed', {
-      expiredRemoved: expiredKeys.length,
-      currentSize: cache.size,
-      maxSize: MAX_CACHE_SIZE
-    })
-  }
-}
-
-function getCacheKey(userId: string, dateRange: string, dealershipId?: string): string {
-  return `dashboard_analytics_${userId}_${dateRange}_${dealershipId || 'user-level'}_${new Date().toISOString().split('T')[0]}`
-}
+// Note: Cache management is now handled by the centralized cache manager
+// See /lib/cache/centralized-cache-manager.ts for implementation
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,17 +48,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { startDate, endDate, dateRange = '30days', dealershipId } = body
 
-    // Check cache first - include dealershipId in cache key
-    const cacheKey = getCacheKey(session.user.id, dateRange, dealershipId)
-    const cachedData = cache.get(cacheKey)
-    
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
-      logger.info('Returning cached dashboard analytics data', {
-        userId: session.user.id,
-        cacheAge: Date.now() - cachedData.timestamp
-      })
-      return NextResponse.json({ data: cachedData.data, cached: true })
-    }
+    const clearCacheParam = request.nextUrl.searchParams.get('clearCache')
+    const forceRefresh = clearCacheParam === 'true'
 
     // Initialize response data structure
     const dashboardData = {
@@ -178,28 +124,23 @@ export async function POST(request: NextRequest) {
 
     dashboardData.metadata.hasGA4Connection = !!ga4Connection
 
-    // CRITICAL: Use DealershipAnalyticsService instead of old logic
-    logger.info('POST method should use DealershipAnalyticsService - switching to new implementation')
+    // Use analytics coordinator for synchronized data fetching
+    const analyticsData = await analyticsCoordinator.fetchCoordinatedAnalytics(
+      session.user.id,
+      dateRange,
+      targetDealershipId,
+      forceRefresh
+    )
 
-    const analyticsService = new DealershipAnalyticsService()
-    const analyticsData = await analyticsService.getDealershipAnalytics({
-      startDate,
-      endDate,
-      userId: session.user.id,
-      dealershipId: targetDealershipId
-    })
-
-    // Map the analytics data to dashboard format
+    // Map the coordinated analytics data to dashboard format
     dashboardData.ga4Data = analyticsData.ga4Data || null
     dashboardData.searchConsoleData = analyticsData.searchConsoleData || null
-    dashboardData.errors = analyticsData.errors
+    dashboardData.errors.ga4Error = analyticsData.errors.ga4 || null
+    dashboardData.errors.searchConsoleError = analyticsData.errors.searchConsole || null
     dashboardData.metadata = {
       ...dashboardData.metadata,
       ...analyticsData.metadata
     }
-
-    // Cache the result
-    cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
 
     logger.info('Dashboard analytics POST completed using DealershipAnalyticsService', {
       userId: session.user.id,
@@ -385,10 +326,8 @@ export async function GET(request: NextRequest) {
     const dealershipId = searchParams.get('dealershipId')
     const clearCacheParam = searchParams.get('clearCache')
 
-    // Clear cache if requested (for debugging dealership switching)
-    if (clearCacheParam === 'true') {
-      clearCache()
-    }
+    // Force refresh if requested
+    const forceRefresh = clearCacheParam === 'true'
 
     logger.info('Dashboard analytics GET: Request details', {
       userId: userId,
@@ -439,23 +378,13 @@ export async function GET(request: NextRequest) {
     // Calculate date range using utility
     const { startDate, endDate } = getDateRange(dateRange)
 
-    // Check cache first - include dealershipId in cache key
-    const cacheKey = getCacheKey(userId, dateRange, dealershipId || undefined)
-    const cachedData = cache.get(cacheKey)
-
-    logger.info('Dashboard analytics GET: Cache check', {
-      cacheKey,
-      hasCachedData: !!cachedData,
-      cacheAge: cachedData ? Date.now() - cachedData.timestamp : 'N/A'
+    // Note: Caching is now handled by the analytics coordinator
+    logger.info('Dashboard analytics GET: Fetching data via coordinator', {
+      userId,
+      dateRange,
+      dealershipId,
+      forceRefresh
     })
-
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
-      logger.info('Returning cached dashboard analytics data (GET)', {
-        userId: userId,
-        cacheAge: Date.now() - cachedData.timestamp
-      })
-      return NextResponse.json({ data: cachedData.data, cached: true })
-    }
 
     // Execute the analytics logic directly instead of delegating to POST
     // Initialize response data structure
@@ -483,43 +412,39 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Use DealershipAnalyticsService to get comprehensive analytics data
-    const analyticsService = new DealershipAnalyticsService()
-
-    logger.info('Dashboard analytics GET: Calling analytics service', {
-      startDate,
-      endDate,
+    // Use analytics coordinator for synchronized data fetching
+    logger.info('Dashboard analytics GET: Using analytics coordinator', {
       userId: userId,
-      dealershipId: dealershipId || null
+      dealershipId: dealershipId || null,
+      dateRange
     })
 
-    const analyticsData = await analyticsService.getDealershipAnalytics({
-      startDate,
-      endDate,
-      userId: userId,
-      dealershipId: dealershipId || null
-    })
+    const analyticsData = await analyticsCoordinator.fetchCoordinatedAnalytics(
+      userId,
+      dateRange,
+      dealershipId || undefined,
+      forceRefresh
+    )
 
-    // Map the analytics data to dashboard format
+    // Map the coordinated analytics data to dashboard format
     dashboardData.ga4Data = analyticsData.ga4Data || null
     dashboardData.searchConsoleData = analyticsData.searchConsoleData || null
-    dashboardData.metadata.hasGA4Connection = analyticsData.metadata.hasGA4Connection
-    dashboardData.metadata.hasSearchConsoleConnection = analyticsData.metadata.hasSearchConsoleConnection
+    dashboardData.metadata = {
+      ...dashboardData.metadata,
+      ...analyticsData.metadata
+    }
 
     if (analyticsData.ga4Data) {
-      dashboardData.combinedMetrics.totalSessions = analyticsData.ga4Data.sessions
-      dashboardData.combinedMetrics.totalUsers = analyticsData.ga4Data.users
+      dashboardData.combinedMetrics.totalSessions = analyticsData.ga4Data.sessions || 0
+      dashboardData.combinedMetrics.totalUsers = analyticsData.ga4Data.users || 0
     }
 
     if (analyticsData.searchConsoleData) {
-      dashboardData.combinedMetrics.totalClicks = analyticsData.searchConsoleData.clicks
-      dashboardData.combinedMetrics.totalImpressions = analyticsData.searchConsoleData.impressions
-      dashboardData.combinedMetrics.avgCTR = analyticsData.searchConsoleData.ctr
-      dashboardData.combinedMetrics.avgPosition = analyticsData.searchConsoleData.position
+      dashboardData.combinedMetrics.totalClicks = analyticsData.searchConsoleData.clicks || 0
+      dashboardData.combinedMetrics.totalImpressions = analyticsData.searchConsoleData.impressions || 0
+      dashboardData.combinedMetrics.avgCTR = analyticsData.searchConsoleData.ctr || 0
+      dashboardData.combinedMetrics.avgPosition = analyticsData.searchConsoleData.position || 0
     }
-
-    // Cache the result
-    cache.set(cacheKey, { data: dashboardData, timestamp: Date.now() })
 
     logger.info('Dashboard analytics GET completed', {
       userId: userId,

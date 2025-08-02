@@ -293,33 +293,86 @@ export default function DashboardPage() {
     }
   }, [user?.id, mounted, currentDealership?.id, toast])
 
+  // Coordinated data fetching function
+  const fetchAllData = useCallback(async () => {
+    if (!mounted || !user?.id) return
+
+    // Set all loading states together
+    setLoading(true)
+    setAnalyticsLoading(true)
+    setRankingsLoading(true)
+    setError(null)
+
+    try {
+      // Fetch all data in parallel with proper coordination
+      const dealershipParam = currentDealership?.id ? `&dealershipId=${currentDealership.id}` : ''
+      
+      const [dashboardRes, analyticsRes, rankingsRes] = await Promise.allSettled([
+        fetch(`/api/dashboard/stats?clearCache=true${dealershipParam}`),
+        fetch(`/api/dashboard/analytics?dateRange=30days&clearCache=true${dealershipParam}`),
+        fetch(`/api/dashboard/rankings?clearCache=true${dealershipParam}`)
+      ])
+
+      // Process dashboard data
+      if (dashboardRes.status === 'fulfilled' && dashboardRes.value.ok) {
+        const data = await dashboardRes.value.json()
+        setDashboardData(data.data)
+      } else {
+        console.error('Dashboard data fetch failed')
+      }
+
+      // Process analytics data
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value.ok) {
+        const data = await analyticsRes.value.json()
+        setAnalyticsData(data.data)
+      } else {
+        console.error('Analytics data fetch failed')
+      }
+
+      // Process rankings data
+      if (rankingsRes.status === 'fulfilled' && rankingsRes.value.ok) {
+        const data = await rankingsRes.value.json()
+        setRankingsData(data.data)
+      } else {
+        console.error('Rankings data fetch failed')
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      setError('Failed to load dashboard data')
+    } finally {
+      setLoading(false)
+      setAnalyticsLoading(false)
+      setRankingsLoading(false)
+    }
+  }, [user?.id, mounted, currentDealership?.id])
+
   useEffect(() => {
     if (mounted && user?.id) {
-      fetchDashboardData()
-      fetchAnalyticsData()
-      fetchRankings()
+      fetchAllData()
     }
-  }, [user?.id, mounted, currentDealership?.id, fetchDashboardData, fetchAnalyticsData, fetchRankings])
+  }, [user?.id, mounted, currentDealership?.id, fetchAllData])
 
-  // Listen for dealership changes and FORCE this lazy dashboard to refresh!
+  // Listen for dealership changes and use coordinated refresh
   useEffect(() => {
-    const handleDealershipChange = (event: CustomEvent) => {
-      console.log('🔥 Dashboard: DEALERSHIP CHANGED - Time to wake up and refresh!', event.detail)
-      // Force refresh of both dashboard and analytics data
-      if (user?.id && mounted) {
-        console.log('🚀 Dashboard: Forcing data refresh...')
-        fetchDashboardData()
-        fetchAnalyticsData()
-        fetchRankings()
-      }
+    const handleDealershipChange = async (event: CustomEvent) => {
+      console.log('🔥 Dashboard: DEALERSHIP CHANGED - Coordinated refresh starting', event.detail)
+      
+      // Add a small delay to ensure context has updated
+      setTimeout(() => {
+        if (user?.id && mounted) {
+          console.log('🚀 Dashboard: Executing coordinated data refresh...')
+          fetchAllData()
+        }
+      }, 100)
     }
 
-    window.addEventListener('dealershipChanged', handleDealershipChange as EventListener)
+    window.addEventListener('dealershipChanged', handleDealershipChange as unknown as EventListener)
 
     return () => {
-      window.removeEventListener('dealershipChanged', handleDealershipChange as EventListener)
+      window.removeEventListener('dealershipChanged', handleDealershipChange as unknown as EventListener)
     }
-  }, [user?.id, mounted, fetchDashboardData, fetchAnalyticsData])
+  }, [user?.id, mounted, fetchAllData])
 
   // Handle authentication - moved after all hooks
   if (isLoading) {

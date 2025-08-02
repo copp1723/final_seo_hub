@@ -153,12 +153,16 @@ export function DealershipProvider({ children }: { children: ReactNode }) {
       }
 
       // Dispatch event for components that need to react to dealership changes
-      window.dispatchEvent(new CustomEvent('dealershipChanged', {
-        detail: { 
-          dealership: result.dealership,
-          previousDealership: currentDealership
-        }
-      }))
+      // Add a small delay to ensure state has propagated
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dealershipChanged', {
+          detail: { 
+            dealership: result.dealership,
+            previousDealership: currentDealership,
+            invalidateCache: true
+          }
+        }))
+      }, 50)
 
       logger.info('Dealership switched successfully', {
         from: currentDealership?.id,

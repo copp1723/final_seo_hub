@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
-import { DealershipAnalyticsService } from '@/lib/google/dealership-analytics-service'
+import { analyticsCoordinator } from '@/lib/analytics/analytics-coordinator'
+import { CacheKeys } from '@/lib/cache/cache-keys'
 import { logger } from '@/lib/logger'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
 
-// In-memory cache for rankings data
-const cache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
-
-function getCacheKey(userId: string, dealershipId?: string | null): string {
-  return `rankings_${userId}_${dealershipId || 'user-level'}_${new Date().toISOString().split('T')[0]}`
-}
+// Note: Cache management is now handled by the centralized cache manager
+// See /lib/cache/centralized-cache-manager.ts for implementation
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,43 +22,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const dealershipId = searchParams.get('dealershipId')
 
-    // Check cache first
-    const cacheKey = getCacheKey(session.user.id, dealershipId || undefined)
-    const cachedData = cache.get(cacheKey)
-    
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
-      logger.info('Returning cached rankings data', {
-        userId: session.user.id,
-        dealershipId,
-        cacheKey
-      })
-      return NextResponse.json({ 
-        data: cachedData.data,
-        cached: true,
-        timestamp: cachedData.timestamp
-      })
-    }
-
-    // Fetch fresh data
-    const analyticsService = new DealershipAnalyticsService()
-    
-    const rankingsData = await analyticsService.getSearchConsoleRankings(
+    const clearCacheParam = request.nextUrl.searchParams.get('clearCache')
+    const forceRefresh = clearCacheParam === 'true'
+    // Use analytics coordinator for synchronized data fetching
+    const analyticsData = await analyticsCoordinator.fetchCoordinatedAnalytics(
       session.user.id,
-      dealershipId
+      '30days', // Default date range for rankings
+      dealershipId || undefined,
+      forceRefresh
     )
 
-    // Cache the result
-    cache.set(cacheKey, {
-      data: rankingsData,
-      timestamp: Date.now()
-    })
-
-    // Clean up old cache entries
-    const now = Date.now()
-    for (const [key, value] of cache.entries()) {
-      if (now - value.timestamp > CACHE_TTL) {
-        cache.delete(key)
-      }
+    // Extract rankings data from coordinated response
+    const rankingsData = {
+      data: analyticsData.rankingsData,
+      error: analyticsData.errors.rankings || analyticsData.errors.searchConsole,
+      hasConnection: analyticsData.metadata.dataSources.searchConsole !== 'none'
     }
 
     logger.info('Rankings data fetched successfully', {

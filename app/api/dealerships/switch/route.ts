@@ -5,6 +5,8 @@ import { z } from 'zod'
 import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 import { safeDbOperation } from '@/lib/db-resilience'
 import { logger } from '@/lib/logger'
+import { DealershipEventBus } from '@/lib/events/dealership-event-bus'
+import { cacheManager } from '@/lib/cache/centralized-cache-manager'
 
 export const dynamic = 'force-dynamic';
 
@@ -96,10 +98,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Get previous dealership ID for event
+    const previousDealershipId = currentUser?.dealershipId || undefined
+
     // Update the user's dealershipId in the database
     await prisma.users.update({
       where: { id: session.user.id },
       data: { dealershipId: dealership.id }
+    })
+
+    // Emit dealership change event for cache invalidation
+    await DealershipEventBus.notifyDealershipChange(
+      session.user.id,
+      previousDealershipId,
+      dealership.id
+    )
+
+    // Invalidate all caches for this user to ensure fresh data
+    cacheManager.invalidateByUser(session.user.id)
+    
+    logger.info('Dealership switch completed with cache invalidation', {
+      userId: session.user.id,
+      previousDealershipId,
+      newDealershipId: dealership.id
     })
 
     return NextResponse.json({

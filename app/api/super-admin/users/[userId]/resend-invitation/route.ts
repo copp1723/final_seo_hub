@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { sendInvitationEmail } from '@/lib/mailgun/invitation'
 import { logger } from '@/lib/logger'
-import crypto from 'crypto'
+import { generateSecureToken } from '@/lib/crypto-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,7 +62,7 @@ export async function POST(
     }
 
     // Generate new invitation token
-    const invitationToken = crypto.randomBytes(32).toString('hex')
+    const invitationToken = generateSecureToken()
     const invitationTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
     // Update user with new token

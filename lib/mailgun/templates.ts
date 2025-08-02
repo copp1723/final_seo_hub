@@ -148,13 +148,12 @@ export function welcomeEmailTemplate(user: users, branding?: BrandingConfig): { 
 export function userInvitationTemplate(user: users, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string } {
   const config = branding || DEFAULT_BRANDING
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const appUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   
-  // If a magic link URL is provided, use it for all users
-  // Otherwise, fall back to the default behavior
+  // Always use the provided loginUrl which contains the secure invitation token
+  // If no loginUrl is provided, direct to signin page
   const isDealershipUser = user.role === 'USER' && user.agencyId
-  const onboardingUrl = `${appUrl}/onboarding/seoworks?token=${user.id}&invited=true`
-  const finalLoginUrl = loginUrl || (isDealershipUser ? onboardingUrl : `${appUrl}/auth/signin`)
+  const finalLoginUrl = loginUrl || `${appUrl}/auth/signin`
   
   const content = `
     <h2>You've been invited to ${config.companyName}!</h2>

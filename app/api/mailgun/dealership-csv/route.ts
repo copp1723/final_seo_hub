@@ -103,22 +103,42 @@ export async function POST(request: NextRequest) {
     logger.info('Received Mailgun webhook for dealership CSV processing')
 
     // Verify Mailgun signature for security
-    const signature = request.headers.get('x-mailgun-signature')
-    const timestamp = request.headers.get('x-mailgun-timestamp')
-    const token = request.headers.get('x-mailgun-token')
-
-    if (!signature || !timestamp || !token) {
-      logger.warn('Missing Mailgun signature headers')
-      return errorResponse('Missing Mailgun signature headers', 401)
-    }
-
-    if (!CsvSecurityService.verifyMailgunSignature(timestamp, token, signature)) {
-      logger.warn('Invalid Mailgun signature')
-      return errorResponse('Invalid Mailgun signature', 401)
-    }
-
-    // Parse form data (Mailgun sends multipart/form-data)
+    // Mailgun may send headers with different casing or in form data
     const formData = await request.formData()
+    
+    // Try to get signature from headers first, then from form data
+    const signature = request.headers.get('x-mailgun-signature') || 
+                     request.headers.get('X-Mailgun-Signature') ||
+                     formData.get('signature') as string
+    const timestamp = request.headers.get('x-mailgun-timestamp') || 
+                     request.headers.get('X-Mailgun-Timestamp') ||
+                     formData.get('timestamp') as string
+    const token = request.headers.get('x-mailgun-token') || 
+                 request.headers.get('X-Mailgun-Token') ||
+                 formData.get('token') as string
+
+    // Skip signature verification in development mode if explicitly disabled
+    const skipVerification = process.env.NODE_ENV === 'development' && 
+                           process.env.SKIP_MAILGUN_VERIFICATION === 'true'
+    
+    if (!skipVerification) {
+      if (!signature || !timestamp || !token) {
+        logger.warn('Missing Mailgun signature headers', {
+          headers: Object.fromEntries(request.headers.entries()),
+          formDataKeys: Array.from(formData.keys())
+        })
+        return errorResponse('Missing Mailgun signature headers', 400)
+      }
+
+      if (!CsvSecurityService.verifyMailgunSignature(timestamp, token, signature)) {
+        logger.warn('Invalid Mailgun signature')
+        return errorResponse('Invalid Mailgun signature', 401)
+      }
+    } else {
+      logger.warn('Skipping Mailgun signature verification in development mode')
+    }
+
+    // Get email details from form data
     const sender = formData.get('sender') as string
     const subject = formData.get('subject') as string
     const attachmentCount = parseInt(formData.get('attachment-count') as string || '0')

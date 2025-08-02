@@ -7,6 +7,7 @@ import { UserRole } from '@prisma/client'
 import { sendInvitationEmail } from '@/lib/mailgun/invitation'
 import { rateLimits } from '@/lib/rate-limit'
 import { z } from 'zod'
+import { secureCompare, generateSecureToken } from '@/lib/crypto-utils'
 
 export const dynamic = 'force-dynamic';
 
@@ -36,16 +37,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/error?error=MissingToken', request.url))
     }
 
-    // Find user with this invitation token
-    console.log('🔍 Looking for user with token:', token)
-    const user = await prisma.users.findFirst({
+    // Find all users with non-expired invitation tokens to prevent timing attacks
+    console.log('🔍 Looking for users with active invitation tokens')
+    const usersWithTokens = await prisma.users.findMany({
       where: {
-        invitationToken: token,
+        invitationToken: {
+          not: null
+        },
         invitationTokenExpires: {
           gt: new Date() // Token must not be expired
         }
       }
     })
+
+    // Use constant-time comparison to find the matching user
+    let user = null
+    for (const candidate of usersWithTokens) {
+      if (candidate.invitationToken && secureCompare(candidate.invitationToken, token)) {
+        user = candidate
+        break
+      }
+    }
 
     if (!user) {
       console.log('❌ User not found or token expired')
@@ -162,7 +174,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const token = crypto.randomBytes(32).toString('hex')
+    const token = generateSecureToken()
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + (expiresInHours || 72))
 

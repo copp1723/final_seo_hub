@@ -56,7 +56,7 @@ export const DEALERSHIP_PROPERTY_MAPPINGS: DealershipPropertyMapping[] = [
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-jhh-wichita',
+    dealershipId: 'dealer-jhhp-wichita',
     dealershipName: 'Jay Hatfield Honda Powerhouse',
     ga4PropertyId: '336729443',
     searchConsoleUrl: 'https://www.jayhatfieldhondawichita.com/',
@@ -86,7 +86,7 @@ export const DEALERSHIP_PROPERTY_MAPPINGS: DealershipPropertyMapping[] = [
   {
     dealershipId: 'dealer-acura-columbus',
     dealershipName: 'Acura of Columbus',
-    ga4PropertyId: '320759942', // TEMP: Use same as user connection for demo
+    ga4PropertyId: '284944578',
     searchConsoleUrl: 'https://www.acuracolumbus.com/',
     hasAccess: true
   },
@@ -133,7 +133,7 @@ export const DEALERSHIP_PROPERTY_MAPPINGS: DealershipPropertyMapping[] = [
     hasAccess: true
   },
   {
-    dealershipId: 'dealer-premier-auto-center',
+    dealershipId: 'dealer-premier-auto-tucson',
     dealershipName: 'Premier Auto Center - Tucson',
     ga4PropertyId: '470694371',
     searchConsoleUrl: 'https://scottsaysyes.com/',

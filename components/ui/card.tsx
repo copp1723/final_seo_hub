@@ -9,7 +9,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       ref={ref}
       className={cn(
         'group relative rounded-2xl border border-slate-200/60 bg-white/90 backdrop-blur-xl shadow-elegant hover:shadow-depth transition-all duration-300 ease-out hover:border-slate-300/60 hover:-translate-y-0.5',
-        'before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/40 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300',
+        'before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/40 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300 before:pointer-events-none',
         className
       )}
       { ...props}

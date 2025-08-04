@@ -93,12 +93,24 @@ export class DealershipAnalyticsService {
     const { startDate, endDate, dealershipId, userId } = options
 
     try {
-      // Find user's GA4 connection first
-      let connection = await prisma.ga4_connections.findFirst({
-        where: { userId }
-      })
+      // Find GA4 connection - check dealership-level first, then user-level
+      let connection = null
+
+      if (dealershipId) {
+        connection = await prisma.ga4_connections.findFirst({
+          where: { dealershipId }
+        })
+      }
+
+      // Fallback to user-level connection if no dealership connection found
+      if (!connection) {
+        connection = await prisma.ga4_connections.findFirst({
+          where: { userId }
+        })
+      }
 
       if (!connection) {
+        logger.info('No GA4 connection found', { userId, dealershipId })
         return {
           data: undefined,
           error: 'No GA4 connection found - please connect your Google Analytics account',
@@ -106,6 +118,14 @@ export class DealershipAnalyticsService {
           propertyId: undefined
         }
       }
+
+      logger.info('GA4 connection found', {
+        userId,
+        dealershipId,
+        connectionId: connection.id,
+        propertyId: connection.propertyId,
+        connectionType: connection.dealershipId ? 'dealership' : 'user'
+      })
 
       // Get dealership-specific GA4 property ID from mapping
       let propertyId: string | null = null
@@ -218,15 +238,24 @@ export class DealershipAnalyticsService {
         }
       }
 
-      // Find any Search Console connection (we'll use the URL from mapping, not from connection)
-      let connection = await prisma.search_console_connections.findFirst({
-        where: {
-          userId,
-          // We can use any connection since we have the specific URL from mapping
-        }
-      })
+      // Find Search Console connection - check dealership-level first, then user-level
+      let connection = null
+
+      if (dealershipId) {
+        connection = await prisma.search_console_connections.findFirst({
+          where: { dealershipId }
+        })
+      }
+
+      // Fallback to user-level connection if no dealership connection found
+      if (!connection) {
+        connection = await prisma.search_console_connections.findFirst({
+          where: { userId }
+        })
+      }
 
       if (!connection) {
+        logger.info('No Search Console connection found', { userId, dealershipId })
         return {
           data: undefined,
           error: 'No Search Console connection found - please connect your Google Search Console account',
@@ -234,6 +263,14 @@ export class DealershipAnalyticsService {
           siteUrl: undefined
         }
       }
+
+      logger.info('Search Console connection found', {
+        userId,
+        dealershipId,
+        connectionId: connection.id,
+        siteUrl: connection.siteUrl,
+        connectionType: connection.dealershipId ? 'dealership' : 'user'
+      })
 
       // Use the dealership-specific URL from mapping, or fallback to connection URL
       const targetSiteUrl = siteUrl || connection.siteUrl

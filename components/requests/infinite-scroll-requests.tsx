@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useDealership } from '@/app/context/DealershipContext'
 import { RequestCard } from './request-card'
 import { Loader2 } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -43,6 +44,7 @@ export function InfiniteScrollRequests({
   searchQuery = '',
   statusFilter = ''
 }: InfiniteScrollRequestsProps) {
+  const { currentDealership } = useDealership()
   const [requests, setRequests] = useState<Request[]>(initialRequests)
   const [pagination, setPagination] = useState<PaginationInfo>(initialPagination)
   const [loading, setLoading] = useState(false)
@@ -61,21 +63,25 @@ export function InfiniteScrollRequests({
         page: String(pagination.page + 1),
         pageSize: String(pagination.pageSize),
         ...(statusFilter && { status: statusFilter }),
-        ...(debouncedSearch && { search: debouncedSearch })
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(currentDealership?.id && { dealershipId: currentDealership.id })
       })
       
       const response = await fetch(`/api/requests/paginated?${params}`)
-      if (!response.ok) throw new Error('Failed to fetch requests')
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to fetch requests: ${response.status} - ${errorText}`)
+      }
       
       const data = await response.json()
       setRequests(prev => [...prev, ...data.data.requests])
       setPagination(data.data.pagination)
     } catch (error) {
-      // Silent error handling
+      console.error('Error loading more requests:', error)
     } finally {
       setLoading(false)
     }
-  }, [pagination, loading, statusFilter, debouncedSearch])
+  }, [pagination, loading, statusFilter, debouncedSearch, currentDealership?.id])
 
   // Search requests
   const searchRequests = useCallback(async () => {
@@ -85,21 +91,26 @@ export function InfiniteScrollRequests({
         page: '1',
         pageSize: String(pagination.pageSize),
         ...(statusFilter && { status: statusFilter }),
-        ...(debouncedSearch && { search: debouncedSearch })
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(currentDealership?.id && { dealershipId: currentDealership.id })
       })
       
       const response = await fetch(`/api/requests/paginated?${params}`)
-      if (!response.ok) throw new Error('Failed to fetch requests')
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Failed to fetch requests: ${response.status} - ${errorText}`)
+      }
       
       const data = await response.json()
       setRequests(data.data.requests)
       setPagination(data.data.pagination)
     } catch (error) {
-      // Silent error handling
+      console.error('Error searching requests:', error)
+      setRequests([])
     } finally {
       setLoading(false)
     }
-  }, [pagination.pageSize, statusFilter, debouncedSearch])
+  }, [pagination.pageSize, statusFilter, debouncedSearch, currentDealership?.id])
 
   // Set up intersection observer
   useEffect(() => {
@@ -129,6 +140,12 @@ export function InfiniteScrollRequests({
       searchRequests()
     }
   }, [debouncedSearch, searchRequests, searchQuery])
+
+  // CRITICAL FIX: Handle dealership changes
+  useEffect(() => {
+    // Reset and refetch when dealership changes
+    searchRequests()
+  }, [currentDealership?.id])
 
   return (
     <div className="space-y-6">

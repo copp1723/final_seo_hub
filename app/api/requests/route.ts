@@ -35,10 +35,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
   try {
     const where: Prisma.requestsWhereInput = {}
 
+    // CRITICAL FIX: Add dealership filtering for proper data isolation
+    const dealershipId = searchParams.get('dealershipId') || user.dealershipId
+
     // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
     // Otherwise, fetch requests for the individual user.
     if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
       where.agencyId = user.agencyId
+      // CRITICAL FIX: Also filter by dealership if user has one
+      if (dealershipId) {
+        where.dealershipId = dealershipId
+      }
     } else if (user.role === UserRole.SUPER_ADMIN) {
       // SUPER_ADMIN can see all requests if no specific agencyId is provided via a different route
       // For this route, we assume they want to see their own requests or all if not filtered by agency
@@ -55,9 +62,17 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       // If they are a SUPER_ADMIN and no agencyId, they see their own requests.
       // This behavior can be changed if SUPER_ADMINs should see *all* requests through this endpoint.
       where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views
+      // CRITICAL FIX: Also filter by dealership for SUPER_ADMIN if they have one
+      if (dealershipId) {
+        where.dealershipId = dealershipId
+      }
     }
     else {
       where.userId = user.id
+      // CRITICAL FIX: Filter by dealership for regular users
+      if (dealershipId) {
+        where.dealershipId = dealershipId
+      }
     }
 
     if (statusParam && statusParam !== 'all') {
@@ -93,6 +108,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     logger.info('Requests fetched successfully', {
       userId: authResult.user.id,
+      dealershipId: dealershipId,
       count: requests.length,
       filters: { status: statusParam, type, searchQuery, sortBy, sortOrder },
       path: '/api/requests',

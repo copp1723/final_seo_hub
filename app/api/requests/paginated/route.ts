@@ -28,8 +28,16 @@ export const GET = createGetHandler(
     const pageSize = Math.min(query.pageSize, DEFAULTS.PAGINATION.MAX_PAGE_SIZE)
     const skip = (query.page - 1) * pageSize
 
+    // CRITICAL FIX: Add dealership filtering for proper data isolation
+    const dealershipId = searchParams.get('dealershipId') || user!.dealershipId
+
     // Build where clause
     const where: any = { userId: user!.id }
+    
+    // CRITICAL FIX: Filter by dealership if user has one
+    if (dealershipId) {
+      where.dealershipId = dealershipId
+    }
     
     if (query.status) {
       where.status = query.status

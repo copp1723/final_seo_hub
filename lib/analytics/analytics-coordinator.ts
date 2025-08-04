@@ -18,6 +18,10 @@ export interface CoordinatedAnalyticsResult {
     dealershipId?: string
     fromCache: boolean
     timestamp: string
+    hasGA4Connection?: boolean
+    hasSearchConsoleConnection?: boolean
+    propertyId?: string | null
+    siteUrl?: string | null
     dataSources: {
       ga4: 'dealership' | 'user' | 'none'
       searchConsole: 'dealership' | 'user' | 'none'
@@ -91,8 +95,12 @@ export class AnalyticsCoordinator {
         result.ga4Data = ga4Result.value.data
         result.errors.ga4 = ga4Result.value.error
         result.metadata.dataSources.ga4 = ga4Result.value.source || 'none'
+        result.metadata.hasGA4Connection = ga4Result.value.hasConnection || false
+        result.metadata.propertyId = ga4Result.value.propertyId || null
       } else {
         result.errors.ga4 = 'Failed to fetch GA4 data'
+        result.metadata.hasGA4Connection = false
+        result.metadata.propertyId = null
         logger.error('GA4 fetch failed', ga4Result.reason)
       }
 
@@ -102,8 +110,12 @@ export class AnalyticsCoordinator {
         result.rankingsData = searchConsoleResult.value.rankings
         result.errors.searchConsole = searchConsoleResult.value.error
         result.metadata.dataSources.searchConsole = searchConsoleResult.value.source || 'none'
+        result.metadata.hasSearchConsoleConnection = searchConsoleResult.value.hasConnection || false
+        result.metadata.siteUrl = searchConsoleResult.value.siteUrl || null
       } else {
         result.errors.searchConsole = 'Failed to fetch Search Console data'
+        result.metadata.hasSearchConsoleConnection = false
+        result.metadata.siteUrl = null
         logger.error('Search Console fetch failed', searchConsoleResult.reason)
       }
 
@@ -136,10 +148,10 @@ export class AnalyticsCoordinator {
     userId: string,
     dateRange: string,
     dealershipId?: string
-  ): Promise<{ data: any; error: string | null; source?: 'dealership' | 'user' }> {
+  ): Promise<{ data: any; error: string | null; source?: 'dealership' | 'user'; hasConnection?: boolean; propertyId?: string | null }> {
     try {
       const { startDate, endDate } = getDateRange(dateRange)
-      
+
       const analytics = await this.analyticsService.getDealershipAnalytics({
         userId,
         dealershipId: dealershipId || null,
@@ -150,13 +162,17 @@ export class AnalyticsCoordinator {
       return {
         data: analytics.ga4Data,
         error: analytics.errors?.ga4Error || null,
-        source: (analytics.metadata?.hasGA4Connection ? 'user' : 'dealership') as 'dealership' | 'user'
+        source: (analytics.metadata?.hasGA4Connection ? 'user' : 'dealership') as 'dealership' | 'user',
+        hasConnection: analytics.metadata?.hasGA4Connection || false,
+        propertyId: analytics.metadata?.propertyId || null
       }
     } catch (error) {
       logger.error('GA4 data fetch error', error, { userId, dealershipId })
       return {
         data: null,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        hasConnection: false,
+        propertyId: null
       }
     }
   }
@@ -168,10 +184,10 @@ export class AnalyticsCoordinator {
     userId: string,
     dateRange: string,
     dealershipId?: string
-  ): Promise<{ data: any; rankings: any; error: string | null; source?: 'dealership' | 'user' }> {
+  ): Promise<{ data: any; rankings: any; error: string | null; source?: 'dealership' | 'user'; hasConnection?: boolean; siteUrl?: string | null }> {
     try {
       const { startDate, endDate } = getDateRange(dateRange)
-      
+
       const analytics = await this.analyticsService.getDealershipAnalytics({
         userId,
         dealershipId: dealershipId || null,
@@ -189,14 +205,18 @@ export class AnalyticsCoordinator {
         data: analytics.searchConsoleData,
         rankings: rankings.data,
         error: analytics.errors?.searchConsoleError || rankings.error || null,
-        source: (analytics.metadata?.hasSearchConsoleConnection ? 'user' : 'dealership') as 'dealership' | 'user'
+        source: (analytics.metadata?.hasSearchConsoleConnection ? 'user' : 'dealership') as 'dealership' | 'user',
+        hasConnection: analytics.metadata?.hasSearchConsoleConnection || false,
+        siteUrl: analytics.metadata?.siteUrl || null
       }
     } catch (error) {
       logger.error('Search Console data fetch error', error, { userId, dealershipId })
       return {
         data: null,
         rankings: null,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        hasConnection: false,
+        siteUrl: null
       }
     }
   }

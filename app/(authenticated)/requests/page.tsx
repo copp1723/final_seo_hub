@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/app/simple-auth-provider'
+import { useDealership } from '@/app/context/DealershipContext'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { PackageType, RequestStatus } from '@prisma/client'
@@ -42,6 +43,7 @@ interface Request {
 
 export default function RequestsPage() {
   const { user, isLoading } = useAuth()
+  const { currentDealership } = useDealership()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -79,7 +81,8 @@ export default function RequestsPage() {
         status: statusFilter,
         type: typeFilter,
         sortBy: sortBy,
-        sortOrder: sortOrder
+        sortOrder: sortOrder,
+        dealershipId: currentDealership?.id || null
       })
       const response = await fetch(`/api/requests?${query}`)
       const data = await response.json()
@@ -95,7 +98,7 @@ export default function RequestsPage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, createQueryString])
+  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, currentDealership?.id, createQueryString])
 
   useEffect(() => {
     if (isLoading) return

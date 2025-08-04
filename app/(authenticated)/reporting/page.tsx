@@ -454,7 +454,11 @@ export default function ReportingPage() {
                   <div className="text-center py-8">
                     <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">Connect Google Analytics 4 to view traffic data</p>
-                    <Button className="mt-4" variant="outline">
+                    <Button
+                      className="mt-4"
+                      variant="outline"
+                      onClick={() => window.location.href = '/settings'}
+                    >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Connect GA4
                     </Button>
@@ -506,7 +510,11 @@ export default function ReportingPage() {
                   <div className="text-center py-8">
                     <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600">Connect Google Search Console to view search performance</p>
-                    <Button className="mt-4" variant="outline">
+                    <Button
+                      className="mt-4"
+                      variant="outline"
+                      onClick={() => window.location.href = '/settings'}
+                    >
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Connect Search Console
                     </Button>

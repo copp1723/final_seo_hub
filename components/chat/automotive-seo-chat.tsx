@@ -319,18 +319,25 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
                 handleSend();
               }}
               className="flex gap-2"
+              key="seo-chat-form"
             >
               <Input
+                key="seo-chat-input"
                 value={input}
                 onChange={(e) => {
                   console.log('✏️ Input changed:', e.target.value)
                   setInput(e.target.value)
+                }}
+                onInput={(e) => {
+                  console.log('🔄 Input event:', (e.target as HTMLInputElement).value)
+                  setInput((e.target as HTMLInputElement).value)
                 }}
                 placeholder="Ask about inventory SEO, local rankings, content strategy..."
                 disabled={isLoading}
                 className="flex-1"
                 onFocus={() => console.log('🎯 Input focused')}
                 onBlur={() => console.log('👋 Input blurred')}
+                autoComplete="off"
               />
               <Button
                 type="submit"

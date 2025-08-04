@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { decrypt } from '@/lib/encryption';
 import { prisma } from '@/lib/prisma';
 import { refreshGA4TokenIfNeeded } from './ga4-token-refresh';
+import { logger } from '@/lib/logger';
 
 interface RunReportOptions {
   propertyId: string;
@@ -11,6 +12,24 @@ interface RunReportOptions {
   endDate: string;
   limit?: number;
   orderBys?: any[];
+}
+
+// Utility function to detect authentication errors
+function isAuthenticationError(error: any): boolean {
+  if (!error) return false;
+
+  const errorMessage = error.message?.toLowerCase() || '';
+  const errorCode = error.code;
+
+  return (
+    errorCode === 401 ||
+    errorCode === 403 ||
+    errorMessage.includes('invalid_grant') ||
+    errorMessage.includes('token has been expired') ||
+    errorMessage.includes('invalid credentials') ||
+    errorMessage.includes('unauthorized') ||
+    errorMessage.includes('access denied')
+  );
 }
 
 export class GA4Service {
@@ -93,33 +112,60 @@ export class GA4Service {
     });
   }
 
-  async runReport(options: RunReportOptions) {
+  async runReport(options: RunReportOptions, retryCount = 0): Promise<any> {
     try {
       if (!this.analyticsData) {
         await this.initialize();
       }
     } catch (error) {
-      console.error('Failed to initialize GA4 analytics:', error);
+      logger.error('Failed to initialize GA4 analytics', error, { userId: this.userId });
       throw new Error('Failed to initialize GA4 analytics');
     }
 
     const { propertyId, metrics, dimensions, startDate, endDate, limit, orderBys } = options;
 
-    const response = await this.analyticsData!.properties.runReport({
-      property: `properties/${propertyId}`,
-      requestBody: {
-        dateRanges: [{ startDate, endDate }],
-        metrics: metrics.map(metric => ({ name: metric })),
-        dimensions: dimensions?.map(dimension => ({ name: dimension })),
-        limit: limit || 10000,
-        orderBys: orderBys || [{ metric: { metricName: metrics[0] }, desc: true }]
-      }
-    });
+    try {
+      const response = await this.analyticsData!.properties.runReport({
+        property: `properties/${propertyId}`,
+        requestBody: {
+          dateRanges: [{ startDate, endDate }],
+          metrics: metrics.map(metric => ({ name: metric })),
+          dimensions: dimensions?.map(dimension => ({ name: dimension })),
+          limit: limit || 10000,
+          orderBys: orderBys || [{ metric: { metricName: metrics[0] }, desc: true }]
+        }
+      });
 
-    return response.data;
+      return response.data;
+    } catch (error) {
+      // Check if this is an authentication error and we haven't retried yet
+      if (isAuthenticationError(error) && retryCount === 0) {
+        logger.info('GA4 authentication error detected, attempting token refresh', {
+          userId: this.userId,
+          error: error.message
+        });
+
+        // Try to refresh the token
+        const refreshSuccess = await refreshGA4TokenIfNeeded(this.userId);
+
+        if (refreshSuccess) {
+          // Re-initialize with new token and retry
+          this.analyticsData = null;
+          await this.initialize();
+          return this.runReport(options, retryCount + 1);
+        } else {
+          logger.error('Failed to refresh GA4 token', error, { userId: this.userId });
+          throw new Error('GA4 token expired and refresh failed. Please reconnect your Google Analytics account.');
+        }
+      }
+
+      // If not an auth error or retry failed, throw the original error
+      logger.error('GA4 runReport failed', error, { userId: this.userId, propertyId });
+      throw error;
+    }
   }
 
-  async batchRunReports(propertyId: string, requests: any[]) {
+  async batchRunReports(propertyId: string, requests: any[], retryCount = 0): Promise<any> {
     if (!this.analyticsData) {
       await this.initialize();
     }
@@ -129,23 +175,79 @@ export class GA4Service {
       throw new Error(`Invalid property ID format: ${propertyId}. Expected numeric string.`);
     }
 
-    const response = await this.analyticsData!.properties.batchRunReports({
-      property: `properties/${propertyId}`,
-      requestBody: { requests }
-    });
+    try {
+      const response = await this.analyticsData!.properties.batchRunReports({
+        property: `properties/${propertyId}`,
+        requestBody: { requests }
+      });
 
-    return response.data.reports;
+      return response.data.reports;
+    } catch (error) {
+      // Check if this is an authentication error and we haven't retried yet
+      if (isAuthenticationError(error) && retryCount === 0) {
+        logger.info('GA4 authentication error detected in batchRunReports, attempting token refresh', {
+          userId: this.userId,
+          propertyId,
+          error: error.message
+        });
+
+        // Try to refresh the token
+        const refreshSuccess = await refreshGA4TokenIfNeeded(this.userId);
+
+        if (refreshSuccess) {
+          // Re-initialize with new token and retry
+          this.analyticsData = null;
+          await this.initialize();
+          return this.batchRunReports(propertyId, requests, retryCount + 1);
+        } else {
+          logger.error('Failed to refresh GA4 token in batchRunReports', error, { userId: this.userId });
+          throw new Error('GA4 token expired and refresh failed. Please reconnect your Google Analytics account.');
+        }
+      }
+
+      // If not an auth error or retry failed, throw the original error
+      logger.error('GA4 batchRunReports failed', error, { userId: this.userId, propertyId });
+      throw error;
+    }
   }
 
-  async getMetadata(propertyId: string) {
+  async getMetadata(propertyId: string, retryCount = 0): Promise<any> {
     if (!this.analyticsData) {
       await this.initialize();
     }
 
-    const response = await this.analyticsData!.properties.getMetadata({
-      name: `properties/${propertyId}/metadata`
-    });
+    try {
+      const response = await this.analyticsData!.properties.getMetadata({
+        name: `properties/${propertyId}/metadata`
+      });
 
-    return response.data;
+      return response.data;
+    } catch (error) {
+      // Check if this is an authentication error and we haven't retried yet
+      if (isAuthenticationError(error) && retryCount === 0) {
+        logger.info('GA4 authentication error detected in getMetadata, attempting token refresh', {
+          userId: this.userId,
+          propertyId,
+          error: error.message
+        });
+
+        // Try to refresh the token
+        const refreshSuccess = await refreshGA4TokenIfNeeded(this.userId);
+
+        if (refreshSuccess) {
+          // Re-initialize with new token and retry
+          this.analyticsData = null;
+          await this.initialize();
+          return this.getMetadata(propertyId, retryCount + 1);
+        } else {
+          logger.error('Failed to refresh GA4 token in getMetadata', error, { userId: this.userId });
+          throw new Error('GA4 token expired and refresh failed. Please reconnect your Google Analytics account.');
+        }
+      }
+
+      // If not an auth error or retry failed, throw the original error
+      logger.error('GA4 getMetadata failed', error, { userId: this.userId, propertyId });
+      throw error;
+    }
   }
 }

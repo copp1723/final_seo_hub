@@ -246,7 +246,7 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
         </div>
 
         {/* Chat Interface Card */}
-        <Card className="mb-8">
+        <Card className="mb-8 [&::before]:pointer-events-none">
           <CardHeader>
             <CardTitle>SEO Assistant</CardTitle>
             <CardDescription>
@@ -318,7 +318,7 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
                 e.preventDefault();
                 handleSend();
               }}
-              className="flex gap-2"
+              className="flex gap-2 relative z-10"
               key="seo-chat-form"
             >
               <Input
@@ -334,10 +334,11 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
                 }}
                 placeholder="Ask about inventory SEO, local rankings, content strategy..."
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 relative z-20"
                 onFocus={() => console.log('🎯 Input focused')}
                 onBlur={() => console.log('👋 Input blurred')}
                 autoComplete="off"
+                style={{ pointerEvents: 'auto' }}
               />
               <Button
                 type="submit"

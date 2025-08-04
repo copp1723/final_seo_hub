@@ -1,0 +1,36 @@
+# Global owners - require review for all changes
+* @copp1723
+
+# Security-sensitive files require additional scrutiny
+/lib/auth.ts @copp1723
+/lib/encryption.ts @copp1723
+/lib/csrf.ts @copp1723
+/lib/rate-limit*.ts @copp1723
+/middleware.ts @copp1723
+
+# Database and schema changes
+/prisma/ @copp1723
+/lib/prisma.ts @copp1723
+/lib/db-utils.ts @copp1723
+
+# API routes with sensitive operations
+/app/api/auth/ @copp1723
+/app/api/admin/ @copp1723
+/app/api/seoworks/webhook/ @copp1723
+
+# CI/CD and deployment configurations
+/.github/ @copp1723
+/deployment/ @copp1723
+/scripts/ @copp1723
+
+# Environment and configuration files
+/.env* @copp1723
+/next.config.ts @copp1723
+/package.json @copp1723
+/package-lock.json @copp1723
+
+# Documentation that affects security or deployment
+/docs/AUTHENTICATION_FIX.md @copp1723
+/docs/SECURITY*.md @copp1723
+/docs/DEPLOYMENT.md @copp1723
+/docs/GITHUB_BRANCH_PROTECTION_SETUP.md @copp1723 

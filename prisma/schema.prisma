@@ -1,0 +1,653 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model accounts {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  users             users   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model agencies {
+  id                     String                   @id @default(cuid())
+  name                   String
+  slug                   String                   @unique
+  domain                 String?                  @unique
+  primaryColor           String                   @default("#3b82f6")
+  secondaryColor         String                   @default("#1e40af")
+  logo                   String?
+  plan                   String                   @default("starter")
+  status                 String                   @default("active")
+  maxUsers               Int                      @default(5)
+  maxConversations       Int                      @default(100)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime @updatedAt
+  ga4PropertyId          String?
+  ga4PropertyName        String?
+  ga4RefreshToken        String?
+  conversations          conversations[]
+  dealership_onboardings dealership_onboardings[]
+  dealerships            dealerships[]
+  escalations            escalations[]
+  orders                 orders[]
+  report_schedules       report_schedules[]
+  requests               requests[]
+  seoworks_tasks         seoworks_tasks[]
+  themes                 themes?
+  usage_metrics          usage_metrics[]
+  user_invites           user_invites[]
+  users                  users[]
+}
+
+model audit_logs {
+  id         String   @id @default(cuid())
+  action     String
+  entityType String
+  entityId   String
+  userEmail  String
+  userId     String?
+  details    Json?
+  resource   String?
+  createdAt  DateTime @default(now())
+  users      users    @relation(fields: [userEmail], references: [email], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([userEmail, createdAt])
+}
+
+model conversations {
+  id            String        @id @default(cuid())
+  title         String
+  model         String        @default("gpt-4-turbo")
+  agencyId      String
+  userId        String
+  messageCount  Int           @default(0)
+  lastMessage   String?
+  lastMessageAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime @updatedAt
+  agencies      agencies      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  users         users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  escalations   escalations[]
+  messages      messages[]
+
+  @@index([agencyId, updatedAt])
+  @@index([agencyId, userId])
+}
+
+model dealership_onboardings {
+  id                  String    @id @default(cuid())
+  agencyId            String
+  businessName        String
+  package             String
+  mainBrand           String
+  otherBrand          String?
+  address             String
+  city                String
+  state               String
+  zipCode             String
+  contactName         String
+  contactTitle        String
+  email               String
+  phone               String
+  websiteUrl          String
+  billingEmail        String
+  siteAccessNotes     String?
+  targetVehicleModels String[]
+  targetCities        String[]
+  targetDealers       String[]
+  submittedBy         String
+  status              String    @default("pending")
+  seoworksResponse    Json?
+  submittedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime @updatedAt
+  agencies            agencies  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, createdAt])
+  @@index([agencyId, status])
+}
+
+model escalations {
+  id             String        @id @default(cuid())
+  agencyId       String
+  userId         String
+  userEmail      String
+  conversationId String
+  subject        String
+  description    String
+  priority       String        @default("medium")
+  category       String?
+  chatContext    Json?
+  status         String        @default("pending")
+  assignedTo     String?
+  assignedAt     DateTime?
+  resolution     String?
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  internalNotes  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime @updatedAt
+  agencies       agencies      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  conversations  conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users          users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, status])
+  @@index([assignedTo, status])
+  @@index([conversationId])
+  @@index([userId, status])
+}
+
+model feature_flag_overrides {
+  id                String   @id @default(cuid())
+  agencyId          String
+  flagKey           String
+  enabled           Boolean
+  rolloutPercentage Int      @default(100)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([agencyId, flagKey])
+}
+
+model messages {
+  id             String        @id @default(cuid())
+  content        String
+  role           String
+  model          String?
+  agencyId       String
+  conversationId String
+  userId         String
+  tokenCount     Int?
+  responseTime   Int?
+  createdAt      DateTime      @default(now())
+  conversations  conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  users          users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, conversationId])
+  @@index([agencyId, createdAt])
+}
+
+model orders {
+  id              String          @id @default(cuid())
+  agencyId        String?
+  userEmail       String
+  taskType        String
+  title           String
+  description     String
+  status          String          @default("pending")
+  assignedTo      String?
+  estimatedHours  Float?
+  actualHours     Float?
+  deliverables    Json?
+  completionNotes String?
+  qualityScore    Int?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  seoworksTaskId  String?
+  agencies        agencies?       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  users           users           @relation(fields: [userEmail], references: [email], onDelete: Cascade)
+  seoworks_tasks  seoworks_tasks?
+
+  @@index([agencyId, status])
+  @@index([userEmail, status])
+}
+
+model report_schedules {
+  id                  String    @id @default(cuid())
+  agencyId            String
+  cronPattern         String
+  ga4PropertyId       String
+  userId              String
+  reportType          String
+  emailRecipients     String[]
+  brandingOptionsJson String?
+  isActive            Boolean   @default(true)
+  lastRun             DateTime?
+  nextRun             DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime @updatedAt
+  agencies            agencies  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  users               users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId])
+  @@index([isActive, nextRun])
+  @@index([userId])
+}
+
+model seoworks_tasks {
+  id              String    @id @default(cuid())
+  externalId      String    @unique
+  taskType        String
+  status          String
+  completionDate  DateTime?
+  postTitle       String
+  postUrl         String?
+  completionNotes String?
+  isWeekly        Boolean   @default(false)
+  payload         Json?
+  orderId         String?   @unique
+  agencyId        String?
+  receivedAt      DateTime  @default(now())
+  processedAt     DateTime?
+  agencies        agencies? @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  orders          orders?   @relation(fields: [orderId], references: [id])
+
+  @@index([agencyId, status])
+  @@index([externalId])
+  @@index([taskType, status])
+}
+
+model sessions {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model themes {
+  id             String   @id @default(cuid())
+  agencyId       String   @unique
+  companyName    String
+  primaryColor   String
+  secondaryColor String
+  logo           String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  agencies       agencies @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+}
+
+model usage_metrics {
+  id         String   @id @default(cuid())
+  agencyId   String
+  metricType String
+  value      Int
+  model      String?
+  date       DateTime @default(now())
+  period     String   @default("daily")
+  agencies   agencies @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@index([agencyId, date])
+  @@index([agencyId, metricType, date])
+}
+
+model user_ga4_tokens {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  encryptedAccessToken  String
+  encryptedRefreshToken String?
+  expiryDate            DateTime?
+  scope                 String?
+  tokenType             String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime @updatedAt
+  users                 users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model user_invites {
+  id           String    @id @default(cuid())
+  email        String
+  role         String    @default("user")
+  isSuperAdmin Boolean   @default(false)
+  agencyId     String?
+  invitedBy    String
+  token        String    @unique
+  status       String    @default("pending")
+  acceptedAt   DateTime?
+  expiresAt    DateTime  @default(dbgenerated("(now() + '7 days'::interval)"))
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime @updatedAt
+  agencies     agencies? @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  users        users     @relation(fields: [invitedBy], references: [id])
+
+  @@unique([email, agencyId])
+  @@index([email, status])
+  @@index([token])
+}
+
+model user_search_console_tokens {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  encryptedAccessToken  String
+  encryptedRefreshToken String?
+  expiryDate            DateTime?
+  scope                 String?
+  verifiedSites         String[]
+  primarySite           String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime @updatedAt
+  users                 users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model users {
+  id                         String                      @id @default(cuid())
+  name                       String?
+  email                      String                      @unique
+  emailVerified              DateTime?
+  image                      String?
+  agencyId                   String?
+  dealershipId               String?
+  role                       UserRole                    @default(USER)
+  theme                      String?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  isSuperAdmin               Boolean                     @default(false)
+  onboardingCompleted        Boolean                     @default(false)
+  invitationToken            String?
+  invitationTokenExpires     DateTime?
+  apiKey                     String?
+  apiKeyCreatedAt            DateTime?
+  accounts                   accounts[]
+  audit_logs                 audit_logs[]
+  conversations              conversations[]
+  escalations                escalations[]
+  ga4_connections            ga4_connections[]
+  messages                   messages[]
+  monthly_usage              monthly_usage[]
+  orders                     orders[]
+  report_schedules           report_schedules[]
+  requests                   requests[]
+  search_console_connections search_console_connections[]
+  sessions                   sessions[]
+  tasks                      tasks[]
+  user_ga4_tokens            user_ga4_tokens?
+  user_invites               user_invites[]
+  user_preferences           user_preferences?
+  user_search_console_tokens user_search_console_tokens?
+  agencies                   agencies?                   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  dealerships                dealerships?                @relation("UserDealership", fields: [dealershipId], references: [id])
+
+  @@index([dealershipId])
+}
+
+model verification_tokens {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model dealerships {
+  id                         String          @id @default(cuid())
+  name                       String
+  agencyId                   String
+  website                    String?
+  address                    String?
+  phone                      String?
+  activePackageType          PackageType?
+  currentBillingPeriodStart  DateTime?
+  currentBillingPeriodEnd    DateTime?
+  pagesUsedThisPeriod        Int             @default(0)
+  blogsUsedThisPeriod        Int             @default(0)
+  gbpPostsUsedThisPeriod     Int             @default(0)
+  improvementsUsedThisPeriod Int             @default(0)
+  settings                   Json?
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+  clientId                   String?         @unique
+  agencies                   agencies        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  monthly_usage              monthly_usage[]
+  users                      users[]         @relation("UserDealership")
+  ga4_connections            ga4_connections[]
+  search_console_connections search_console_connections[]
+
+  @@index([agencyId])
+}
+
+model requests {
+  id                     String                   @id @default(cuid())
+  userId                 String
+  agencyId               String?
+  dealershipId           String?
+  title                  String
+  description            String
+  type                   String
+  priority               RequestPriority          @default(MEDIUM)
+  status                 RequestStatus            @default(PENDING)
+  packageType            PackageType?
+  pagesCompleted         Int                      @default(0)
+  blogsCompleted         Int                      @default(0)
+  gbpPostsCompleted      Int                      @default(0)
+  improvementsCompleted  Int                      @default(0)
+  keywords               Json?
+  targetUrl              String?
+  targetCities           Json?
+  targetModels           Json?
+  completedTasks         Json?
+  contentUrl             String?
+  pageTitle              String?
+  seoworksTaskId         String?
+  completedAt            DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  agencies               agencies?                @relation(fields: [agencyId], references: [id])
+  users                  users                    @relation(fields: [userId], references: [id])
+  seoworks_task_mappings seoworks_task_mappings[]
+
+  @@index([userId, status])
+  @@index([agencyId, status])
+  @@index([status, createdAt])
+}
+
+model ga4_connections {
+  id           String    @id @default(cuid())
+  userId       String
+  dealershipId String?
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  propertyId   String?
+  propertyName String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  users        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, dealershipId])
+  @@index([dealershipId])
+}
+
+model search_console_connections {
+  id           String    @id @default(cuid())
+  userId       String
+  dealershipId String?
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  siteUrl      String?
+  siteName     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  users        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, dealershipId])
+  @@index([dealershipId])
+}
+
+model user_preferences {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  emailNotifications Boolean  @default(true)
+  requestCreated     Boolean  @default(true)
+  statusChanged      Boolean  @default(true)
+  taskCompleted      Boolean  @default(true)
+  weeklySummary      Boolean  @default(true)
+  marketingEmails    Boolean  @default(false)
+  timezone           String?  @default("America/New_York")
+  language           String?  @default("en")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  users              users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model system_settings {
+  id                    String   @id @default("default")
+  maintenanceMode       Boolean  @default(false)
+  newUserRegistration   Boolean  @default(true)
+  emailNotifications    Boolean  @default(true)
+  auditLogging          Boolean  @default(true)
+  maxUsersPerAgency     Int      @default(50)
+  maxRequestsPerUser    Int      @default(1000)
+  maxFileUploadSize     Int      @default(10)
+  smtpHost              String   @default("")
+  smtpPort              Int      @default(587)
+  smtpUser              String   @default("")
+  smtpFromEmail         String   @default("")
+  maintenanceMessage    String   @default("The system is currently under maintenance. Please try again later.")
+  welcomeMessage        String   @default("Welcome to our SEO management platform! Get started by exploring your dashboard.")
+  rateLimitPerMinute    Int      @default(60)
+  sessionTimeoutMinutes Int      @default(480)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model monthly_usage {
+  id               String       @id @default(cuid())
+  userId           String?
+  dealershipId     String?
+  month            Int
+  year             Int
+  packageType      PackageType
+  pagesUsed        Int
+  blogsUsed        Int
+  gbpPostsUsed     Int
+  improvementsUsed Int
+  archivedAt       DateTime     @default(now())
+  dealerships      dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  users            users?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month, year])
+  @@unique([dealershipId, month, year])
+  @@index([userId])
+  @@index([dealershipId])
+}
+
+model tasks {
+  id           String          @id @default(cuid())
+  userId       String
+  dealershipId String?
+  agencyId     String?
+  type         TaskType
+  status       TaskStatus      @default(PENDING)
+  title        String
+  description  String?
+  priority     RequestPriority @default(MEDIUM)
+  targetUrl    String?
+  keywords     Json?
+  requestId    String? // Link to the request this task belongs to
+  completedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  users        users           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  @@index([userId, status])
+  @@index([agencyId, status])
+  @@index([status, createdAt])
+}
+
+model seoworks_task_mappings {
+  id             String   @id @default(cuid())
+  requestId      String
+  seoworksTaskId String   @unique
+  taskType       String
+  metadata       Json     @default("{}")
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  request        requests @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([seoworksTaskId])
+}
+
+model orphaned_tasks {
+  id             String   @id @default(cuid())
+  externalId     String   @unique
+  clientId       String?
+  clientEmail    String?
+  eventType      String
+  taskType       String
+  status         String
+  completionDate String?
+  deliverables   Json?
+  rawPayload     Json
+  processed      Boolean  @default(false)
+  linkedRequestId String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([clientEmail])
+  @@index([processed])
+  @@index([externalId])
+  @@index([createdAt])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  AGENCY_ADMIN
+  DEALERSHIP_ADMIN
+  SUPER_ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PackageType {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskType {
+  PAGE
+  BLOG
+  GBP_POST
+  IMPROVEMENT
+}

@@ -1,0 +1,183 @@
+SEO Team Webhook Integration Guide
+✅ Quick Start
+You’re all set. Here’s everything you need to start sending task data into our system.
+Your Credentials
+URL: https://rylie-seo-hub.onrender.com/api/seoworks/webhook
+API Key: 7f3e9b5d2a8c4f6e1b9d3c7a5e8f2b4d6c9a1e3f7b5d9c2a6e4f8b1d3c7a9e5f
+
+🔁 How to Send Task Data
+Send a POST request using the following JSON format:
+{
+  "eventType": "task.completed",
+  "timestamp": "2025-01-28T20:00:00Z",
+  "data": {
+    "externalId": "your-unique-task-id",
+    "clientId": "dealer-acura-columbus",
+    "taskType": "blog",
+    "status": "completed",
+    "completionDate": "2025-01-28T20:00:00Z",
+    "deliverables": [
+      {
+        "type": "blog",
+        "title": "Blog Title Here",
+        "url": "https://dealershipwebsite.com/blog/article"
+      }
+    ]
+  }
+}
+
+🧾 Field Explanations
+Field
+Description
+Example
+eventType
+What happened to the task
+"task.completed"
+timestamp
+Time of request (ISO format)
+"2025-01-28T20:00:00Z"
+externalId
+Your unique task ID
+"seo-task-12345"
+clientId
+The dealership identifier
+"dealer-acura-columbus"
+taskType
+Type of task
+"blog", "page", "gbp_post"
+status
+Status of the task
+"completed"
+completionDate
+Task completion time (ISO format)
+"2025-01-28T20:00:00Z"
+deliverables
+Output items for the task
+Array of objects (see structure above)
+
+
+📚 Task Types
+blog – Blog posts
+
+
+page – Website pages
+
+
+gbp_post – Google Business Profile posts
+
+
+improvement – Site improvements
+
+
+maintenance – Maintenance tasks
+
+
+
+📦 Required Headers
+x-api-key: 7f3e9b5d2a8c4f6e1b9d3c7a5e8f2b4d6c9a1e3f7b5d9c2a6e4f8b1d3c7a9e5f
+Content-Type: application/json
+
+⚙️ How It Works
+You send task data → our server receives and processes it.
+
+
+If dealership exists → task shows up immediately in their dashboard.
+
+
+If dealership not set up yet → task is stored and processed later automatically ("stored_for_later_processing").
+
+
+
+📌 Examples
+Example 1: Blog Post for Acura of Columbus
+curl -X POST https://rylie-seo-hub.onrender.com/api/seoworks/webhook \
+  -H "x-api-key: 7f3e9b5d2a8c4f6e1b9d3c7a5e8f2b4d6c9a1e3f7b5d9c2a6e4f8b1d3c7a9e5f" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventType": "task.completed",
+    "timestamp": "2025-01-28T20:00:00Z",
+    "data": {
+      "externalId": "blog-acura-001",
+      "clientId": "dealer-acura-columbus",
+      "taskType": "blog",
+      "status": "completed",
+      "completionDate": "2025-01-28T20:00:00Z",
+      "deliverables": [{
+        "type": "blog",
+        "title": "5 Winter Maintenance Tips for Your Acura",
+        "url": "https://acuracolumbus.com/blog/winter-maintenance-tips"
+      }]
+    }
+  }'
+Example 2: Multiple Pages Completed
+{
+  "eventType": "task.completed",
+  "timestamp": "2025-01-28T20:00:00Z",
+  "data": {
+    "externalId": "pages-honda-002",
+    "clientId": "dealer-honda-downtown",
+    "taskType": "page",
+    "status": "completed",
+    "completionDate": "2025-01-28T20:00:00Z",
+    "deliverables": [
+      {
+        "type": "page",
+        "title": "Service Department",
+        "url": "https://hondadowntown.com/service"
+      },
+      {
+        "type": "page",
+        "title": "Parts Department",
+        "url": "https://hondadowntown.com/parts"
+      }
+    ]
+  }
+}
+
+✅ Response Types
+Success – Dealership Exists
+{
+  "success": true,
+  "message": "Webhook processed successfully",
+  "requestId": "req_123"
+}
+Success – Dealership Not Set Up Yet
+{
+  "message": "Webhook received and task stored (dealership not yet set up)",
+  "status": "stored_for_later_processing",
+  "seoworksTaskId": "task_456"
+}
+Error – Invalid API Key
+{
+  "error": "Invalid API key",
+  "code": "UNAUTHORIZED"
+}
+
+🏷️ Common Dealership IDs
+Dealership
+ID
+Acura of Columbus
+dealer-acura-columbus
+Honda Downtown
+dealer-honda-downtown
+Toyota North
+dealer-toyota-north
+(Add more as needed)
+
+
+
+
+🛠️ Troubleshooting
+Q: What if I don’t know the dealership ID?
+A: Use a logical placeholder (e.g., dealer-ford-seattle). We’ll map it later.
+Q: Can I send multiple deliverables in one request?
+A: Yes. Include multiple items in the deliverables array.
+Q: What happens to tasks for dealerships not in the system?
+A: We store them and auto-link once the dealership is onboarded.
+Q: Do I need to retry failed requests?
+A: No. If you receive a 200 OK, it was received—even if stored for later.
+
+ 
+Reminder: You can send task data for any dealership. Even if they’re not in the system yet, we’ll handle the rest.
+
+

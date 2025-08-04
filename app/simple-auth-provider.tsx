@@ -33,7 +33,6 @@ export function useAuth() {
 export function SimpleAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   const checkSession = async () => {
@@ -83,33 +82,19 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  // Set mounted state
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Initialize session after mount
-  useEffect(() => {
-    if (!mounted) return;
-
     checkSession();
 
-    // Check session every 5 minutes
     const interval = setInterval(checkSession, 5 * 60 * 1000);
 
-    // Check session on window focus - only if window is available
     const handleFocus = () => checkSession();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', handleFocus);
-    }
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       clearInterval(interval);
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', handleFocus);
-      }
+      window.removeEventListener('focus', handleFocus);
     };
-  }, [mounted]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, signOut, refreshSession }}>

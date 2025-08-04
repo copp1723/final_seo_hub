@@ -5,6 +5,15 @@ import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic';
 
+async function checkConnectionHealth(service: ReturnType<typeof getSearchConsoleService>) {
+  try {
+    const sites = await service.listSites()
+    return sites
+  } catch (error: any) {
+    throw error
+  }
+}
+
 export async function GET(req: Request) {
   const session = await auth()
   if (!session?.user) {
@@ -25,6 +34,36 @@ export async function GET(req: Request) {
 
   try {
     const service = await getSearchConsoleService(session.user.id)
+
+    let verifiedSites
+    try {
+      verifiedSites = await checkConnectionHealth(service)
+    } catch (error: any) {
+      logger.error('Search Console connection health check failed', error, { userId: session.user.id })
+      const errorMessage = error?.message || 'Unknown error'
+      const errorCode = error?.code || 'UNKNOWN'
+      return NextResponse.json(
+        {
+          error: 'Connection health check failed',
+          details: errorMessage,
+          code: errorCode,
+          suggestion: 'Please reconnect your Google Search Console account.'
+        },
+        { status: 500 }
+      )
+    }
+
+    const siteUrls = verifiedSites.map((site: any) => site.siteUrl)
+    if (!siteUrls.includes(siteUrl)) {
+      return NextResponse.json(
+        {
+          error: 'Missing permission for the requested site URL',
+          details: `The site URL ${siteUrl} is not verified or accessible in your account.`,
+          code: 'PERMISSION_DENIED'
+        },
+        { status: 403 }
+      )
+    }
     
     let data
     switch (metric) {
@@ -50,10 +89,12 @@ export async function GET(req: Request) {
     }
     
     return NextResponse.json(data)
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Search Console analytics error', error, { userId: session.user.id, siteUrl, metric })
+    const errorMessage = error?.message || 'Failed to fetch analytics'
+    const errorCode = error?.code || 'UNKNOWN'
     return NextResponse.json(
-      { error: 'Failed to fetch analytics' },
+      { error: errorMessage, code: errorCode },
       { status: 500 }
     )
   }

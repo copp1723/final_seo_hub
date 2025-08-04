@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SimpleAuth } from '@/lib/auth-simple';
 
+// Middleware to protect routes, redirect unauthenticated users to signin,
+// and redirect authenticated users away from auth pages.
 const protectedRoutes = [
   '/dashboard',
   '/admin',
@@ -38,14 +40,20 @@ export async function middleware(request: NextRequest) {
   }
 
   // Get session
-  const session = await SimpleAuth.getSessionFromRequest(request);
+  let session = null;
+  try {
+    session = await SimpleAuth.getSessionFromRequest(request);
+  } catch {
+    // If session retrieval fails, treat as unauthenticated
+    session = null;
+  }
 
   // Handle protected routes
   if (isProtectedRoute) {
     if (!session) {
       // Redirect to signin if not authenticated
       const signinUrl = new URL('/auth/simple-signin', request.url);
-      signinUrl.searchParams.set('callbackUrl', pathname);
+      signinUrl.searchParams.set('callbackUrl', request.nextUrl.pathname + request.nextUrl.search);
       return NextResponse.redirect(signinUrl);
     }
   }

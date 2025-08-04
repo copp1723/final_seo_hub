@@ -1,10 +1,17 @@
+/************************************************************
+ * Middleware: Pass-through for all routes except API, static,
+ * and image optimization files.
+ * 
+ * Currently, this middleware does not modify requests or responses.
+ * Place authentication or session management logic here if needed.
+ ************************************************************/
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  // Allow all API routes to pass through
+  // Allow all API routes, static files, and image optimization files to pass through
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for API routes, static files, etc.
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
@@ -13,14 +20,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For all other routes, add a simple session cookie if not present
+  // For all other routes, simply continue without modification
   const response = NextResponse.next();
-  const hasCookie = request.cookies && typeof request.cookies.has === 'function'
-    ? request.cookies.has('seo-hub-session')
-    : false;
-  
-  // Remove auto-login for security - users must authenticate properly
-  // This was a security vulnerability that automatically logged in as admin
+
+  // Removed unused cookie check for clarity and simplicity
 
   return response;
 }

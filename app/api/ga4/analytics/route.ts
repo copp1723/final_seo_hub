@@ -23,6 +23,31 @@ function getCacheKey(userId: string, params: any): string {
   return `${userId}-${JSON.stringify(params)}`
 }
 
+// Helper function for GA4 connection health check
+async function ga4ConnectionHealthCheck(ga4Service: GA4Service, propertyId: string) {
+  try {
+    // Simple query: fetch sessions for one day (today)
+    const today = new Date().toISOString().slice(0, 10)
+    const response = await ga4Service.batchRunReports(propertyId, [
+      {
+        dateRanges: [{ startDate: today, endDate: today }],
+        metrics: [{ name: 'sessions' }],
+        dimensions: [{ name: 'date' }],
+        limit: 1
+      }
+    ])
+    return { success: true, response }
+  } catch (error: any) {
+    // Return error details for logging and response
+    return {
+      success: false,
+      errorCode: error.code || 'UNKNOWN_ERROR',
+      errorMessage: error.message || 'Unknown error during GA4 health check',
+      errorDetails: error
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)
@@ -183,8 +208,35 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Initialize GA4 service
-    const ga4Service = new GA4Service(session.user.id)
+    // Initialize GA4 service with fresh access token
+    const ga4Service = new GA4Service(session.user.id, { refreshToken: true })
+
+    // Perform GA4 connection health check
+    const healthCheckResult = await ga4ConnectionHealthCheck(ga4Service, ga4Connection.propertyId)
+    if (!healthCheckResult.success) {
+      logger.error('GA4 connection health check failed', healthCheckResult.errorDetails, {
+        userId: session.user.id,
+        propertyId: ga4Connection.propertyId,
+        errorCode: healthCheckResult.errorCode,
+        errorMessage: healthCheckResult.errorMessage
+      })
+      // Invalidate cache for this user/property if exists
+      for (const key of cache.keys()) {
+        if (key.startsWith(session.user.id) && key.includes(ga4Connection.propertyId)) {
+          cache.delete(key)
+        }
+      }
+      return NextResponse.json(
+        {
+          error: 'GA4 connection health check failed. Please reconnect your Google Analytics account.',
+          details: {
+            code: healthCheckResult.errorCode,
+            message: healthCheckResult.errorMessage
+          }
+        },
+        { status: 502 }
+      )
+    }
 
     // Prepare batch requests for different reports
     const batchRequests = [
@@ -269,14 +321,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: processedData, cached: false })
 
-  } catch (error) {
+  } catch (error: any) {
     const session = await SimpleAuth.getSessionFromRequest(request)
     logger.error('GA4 analytics API error', error, {
       userId: session?.user.id,
       path: '/api/ga4/analytics',
       method: 'POST',
+      errorCode: error.code || 'UNKNOWN_ERROR',
       errorMessage: error instanceof Error ? error.message : 'Unknown error',
-      errorStack: error instanceof Error ? error.stack : undefined
+      errorStack: error instanceof Error ? error.stack : undefined,
+      googleErrorDetails: error.response?.data || null
     })
 
     // Provide more specific error messages
@@ -286,7 +340,8 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       errorDetails = {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
+        googleErrorDetails: (error as any).response?.data || null
       }
       
       if (error.message.includes('permission') || error.message.includes('access')) {

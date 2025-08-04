@@ -17,6 +17,14 @@ export default function ChatPage() {
   const [showDebug, setShowDebug] = useState(false)
   const [apiTest, setApiTest] = useState<string>('')
 
+  // Debug logging
+  console.log('🔍 ChatPage render:', {
+    user: user ? { email: user.email, role: user.role } : null,
+    isLoading,
+    currentDealership: currentDealership ? { name: currentDealership.name, type: currentDealership.activePackageType } : null,
+    dealershipLoading
+  })
+
   useEffect(() => {
     if (isLoading) return
     if (!user) {
@@ -58,48 +66,47 @@ export default function ChatPage() {
   } : undefined
 
   return (
-    <div className="h-full p-4">
-      {/* Debug Panel */}
-      <div className="mb-4">
-        <Button
-          onClick={() => setShowDebug(!showDebug)}
-          variant="outline"
-          size="sm"
-        >
-          {showDebug ? 'Hide' : 'Show'} Debug Info
-        </Button>
+    <div className="min-h-screen p-4 bg-gray-50">
+      {/* Always visible debug info at top */}
+      <div className="mb-6 bg-yellow-100 border border-yellow-400 rounded-lg p-4">
+        <h2 className="text-lg font-bold text-yellow-800 mb-2">🔧 DEBUG MODE ACTIVE</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <p><strong>User:</strong> {user ? `${user.email} (${user.role})` : 'Not authenticated'}</p>
+            <p><strong>Auth Loading:</strong> {isLoading.toString()}</p>
+            <p><strong>Dealership Loading:</strong> {dealershipLoading.toString()}</p>
+          </div>
+          <div>
+            <p><strong>Current Dealership:</strong> {currentDealership ? `${currentDealership.name} (${currentDealership.activePackageType})` : 'None'}</p>
+            <p><strong>Dealership Info:</strong> {JSON.stringify(dealershipInfo)}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <Button onClick={testAPI} size="sm" variant="outline">Test API</Button>
+          <Button
+            onClick={() => setShowDebug(!showDebug)}
+            size="sm"
+            variant="outline"
+          >
+            {showDebug ? 'Hide' : 'Show'} Test Chat
+          </Button>
+        </div>
+        {apiTest && (
+          <pre className="mt-2 p-2 bg-white rounded text-xs overflow-auto max-h-40 border">
+            {apiTest}
+          </pre>
+        )}
       </div>
 
+      {/* Test Chat Component */}
       {showDebug && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Debug Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <p><strong>User:</strong> {user ? `${user.email} (${user.role})` : 'Not authenticated'}</p>
-                <p><strong>Auth Loading:</strong> {isLoading.toString()}</p>
-                <p><strong>Dealership Loading:</strong> {dealershipLoading.toString()}</p>
-                <p><strong>Current Dealership:</strong> {currentDealership ? `${currentDealership.name} (${currentDealership.activePackageType})` : 'None'}</p>
-                <p><strong>Dealership Info:</strong> {JSON.stringify(dealershipInfo)}</p>
-                <div className="mt-4">
-                  <Button onClick={testAPI} size="sm">Test API</Button>
-                  {apiTest && (
-                    <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-40">
-                      {apiTest}
-                    </pre>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="mb-6">
           <ChatTest />
         </div>
       )}
 
-      <div className="h-full">
+      {/* Main Chat */}
+      <div className="bg-white rounded-lg shadow-lg">
         <AutomotiveSEOChat dealershipInfo={dealershipInfo} />
       </div>
     </div>

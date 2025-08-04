@@ -114,15 +114,26 @@ export default function CreateDealershipPage() {
       return
     }
 
+    // Validate and fix website URL if provided
+    let websiteUrl = formData.website.trim()
+    if (websiteUrl && !websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+      websiteUrl = `https://${websiteUrl}`
+    }
+
     setCreating(true)
 
     try {
+      const submissionData = {
+        ...formData,
+        website: websiteUrl // Use the corrected URL
+      }
+
       const response = await fetch('/api/admin/dealerships', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submissionData)
       })
 
       if (!response.ok) {
@@ -159,7 +170,13 @@ export default function CreateDealershipPage() {
       
     } catch (error: any) {
       console.error('Error creating dealership:', error)
-      toast.error(error.message || 'Failed to create dealership')
+      
+      // Check if this is a navigation/redirect error
+      if (error.message.includes('redirect') || error.message.includes('navigation')) {
+        toast.error('Form submission error - please check all fields and try again')
+      } else {
+        toast.error(error.message || 'Failed to create dealership')
+      }
     } finally {
       setCreating(false)
     }
@@ -291,8 +308,9 @@ export default function CreateDealershipPage() {
                     type="url"
                     value={formData.website}
                     onChange={(e) => handleInputChange('website', e.target.value)}
-                    placeholder="https://www.dealership.com"
+                    placeholder="https://www.dealership.com or www.dealership.com"
                   />
+                  <p className="text-xs text-gray-500">Enter with or without https:// - we'll add it automatically</p>
                 </div>
 
                 <div className="space-y-2">

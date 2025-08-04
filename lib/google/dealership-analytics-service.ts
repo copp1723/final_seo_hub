@@ -91,6 +91,7 @@ export class DealershipAnalyticsService {
 
   private async getDealershipGA4Data(options: AnalyticsOptions) {
     const { startDate, endDate, dealershipId, userId } = options
+    let targetPropertyId: string | null = null
 
     try {
       // Find GA4 connection - check dealership-level first, then user-level
@@ -146,7 +147,7 @@ export class DealershipAnalyticsService {
       }
 
       // Use the dealership-specific property ID if available, otherwise use user connection
-      const targetPropertyId = propertyId || connection.propertyId
+      targetPropertyId = propertyId || connection.propertyId
 
       if (!targetPropertyId) {
         return {
@@ -161,29 +162,71 @@ export class DealershipAnalyticsService {
 
       console.log(`🔍 Using GA4 property ID: ${targetPropertyId} for dealership: ${dealershipId}`)
 
-      // Refresh token if needed
-      await refreshGA4TokenIfNeeded(userId)
+      // Check if the connection has a valid access token
+      if (!connection.accessToken) {
+        console.log(`⚠️ GA4 connection ${connection.id} has no access token, falling back to user-level connection`)
 
-      const ga4Service = new GA4Service(userId)
-      await ga4Service.initialize()
+        // Fall back to user-level connection
+        const userConnection = await prisma.ga4_connections.findFirst({
+          where: { userId },
+          orderBy: { updatedAt: 'desc' }
+        })
 
-      const ga4Reports = await ga4Service.batchRunReports(targetPropertyId, [
-        {
-          dateRanges: [{ startDate, endDate }],
-          metrics: [
-            { name: 'sessions' },
-            { name: 'totalUsers' },
-            { name: 'eventCount' }
-          ],
-          dimensions: [],
-          limit: 1
+        if (!userConnection || !userConnection.accessToken) {
+          return {
+            data: undefined,
+            error: 'No valid GA4 access token available',
+            hasConnection: true, // Connection exists but no valid token
+            propertyId: targetPropertyId
+          }
         }
-      ])
 
-      if (ga4Reports && ga4Reports[0]) {
-        const report = ga4Reports[0]
+        console.log(`🔄 Using user-level GA4 connection ${userConnection.id} for authentication`)
+        connection = userConnection
+      }
+
+      // Use the connection's token
+      const accessToken = decrypt(connection.accessToken)
+      const refreshToken = connection.refreshToken ? decrypt(connection.refreshToken) : undefined
+
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        `${process.env.NEXTAUTH_URL}/api/ga4/auth/callback`
+      )
+
+      oauth2Client.setCredentials({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      })
+
+      const analyticsData = google.analyticsdata({
+        version: 'v1beta',
+        auth: oauth2Client
+      })
+
+      const response = await analyticsData.properties.batchRunReports({
+        property: `properties/${targetPropertyId}`,
+        requestBody: {
+          requests: [
+            {
+              dateRanges: [{ startDate, endDate }],
+              metrics: [
+                { name: 'sessions' },
+                { name: 'totalUsers' },
+                { name: 'eventCount' }
+              ],
+              dimensions: [],
+              limit: 1
+            }
+          ]
+        }
+      })
+
+      if (response.data && response.data.reports && response.data.reports[0]) {
+        const report = response.data.reports[0]
         const row = report.rows?.[0]
-        
+
         if (row) {
           return {
             data: {
@@ -210,14 +253,15 @@ export class DealershipAnalyticsService {
       return {
         data: undefined,
         error: error instanceof Error ? error.message : 'Failed to fetch GA4 data',
-        hasConnection: false,
-        propertyId: undefined
+        hasConnection: true, // Connection exists, but data fetch failed
+        propertyId: targetPropertyId
       }
     }
   }
 
   private async getDealershipSearchConsoleData(options: AnalyticsOptions) {
     const { startDate, endDate, dealershipId, userId } = options
+    let targetSiteUrl: string | null = null
 
     try {
       // Get dealership-specific Search Console URL from mapping
@@ -273,7 +317,7 @@ export class DealershipAnalyticsService {
       })
 
       // Use the dealership-specific URL from mapping, or fallback to connection URL
-      const targetSiteUrl = siteUrl || connection.siteUrl
+      targetSiteUrl = siteUrl || connection.siteUrl
 
       if (!targetSiteUrl) {
         return {
@@ -327,20 +371,22 @@ export class DealershipAnalyticsService {
       return {
         data: undefined,
         error: error instanceof Error ? error.message : 'Failed to fetch Search Console data',
-        hasConnection: false,
-        siteUrl: undefined
+        hasConnection: true, // Connection exists, but data fetch failed
+        siteUrl: targetSiteUrl
       }
     }
   }
 
   async getSearchConsoleRankings(userId: string, dealershipId?: string | null, startDate?: string, endDate?: string) {
+    let targetSiteUrl: string | null = null
+
     try {
       // Use demo data if enabled
       if (features.demoMode) {
         return getDemoSearchConsoleData('rankings')
       }
 
-      const targetSiteUrl = dealershipId ? getSearchConsoleUrl(dealershipId) : null
+      targetSiteUrl = dealershipId ? getSearchConsoleUrl(dealershipId) : null
 
       if (!targetSiteUrl) {
         return {
@@ -398,8 +444,8 @@ export class DealershipAnalyticsService {
       return {
         data: undefined,
         error: error instanceof Error ? error.message : 'Unknown error',
-        hasConnection: false,
-        siteUrl: undefined
+        hasConnection: true, // Connection exists, but data fetch failed
+        siteUrl: targetSiteUrl
       }
     }
   }

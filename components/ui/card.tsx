@@ -16,7 +16,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     />
   )
 )
-Card.displayName = 'Card'
+Card.displayName = 'Card' // Fixed pointer events issue
 
 export const CardHeader = forwardRef<HTMLDivElement, CardProps>(
   ({ className, ...props }, ref) => (

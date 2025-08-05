@@ -579,11 +579,27 @@ export async function GET(request: NextRequest) {
       dashboardData.combinedMetrics.avgPosition = analyticsData.searchConsoleData.position || 0
     }
 
+    // Add connection status metadata for better UI handling
+    dashboardData.metadata.connectionStatus = {
+      ga4: {
+        connected: !!ga4Connection,
+        hasData: !!dashboardData.ga4Data?.sessions,
+        propertyName: ga4Connection?.propertyName || null
+      },
+      searchConsole: {
+        connected: !!searchConsoleConnection,
+        hasData: !!dashboardData.searchConsoleData?.clicks,
+        siteName: searchConsoleConnection?.siteUrl || null
+      }
+    }
+
     logger.info('Dashboard analytics GET completed', {
       userId: userId,
       hasGA4Data: !!dashboardData.ga4Data,
       hasSearchConsoleData: !!dashboardData.searchConsoleData,
-      dealershipId
+      dealershipId,
+      ga4Connected: !!ga4Connection,
+      searchConsoleConnected: !!searchConsoleConnection
     })
 
     return NextResponse.json({ data: dashboardData })

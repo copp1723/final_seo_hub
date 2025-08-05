@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   BarChart3,
   RefreshCw,
-  Download
+  Download,
+  AlertCircle
 } from 'lucide-react'
 import { useDealership } from '@/app/context/DealershipContext'
 import { toast } from 'sonner'
@@ -41,6 +42,18 @@ interface AnalyticsData {
   metadata?: {
     hasGA4Connection: boolean
     hasSearchConsoleConnection: boolean
+    connectionStatus?: {
+      ga4: {
+        connected: boolean
+        hasData: boolean
+        propertyName: string | null
+      }
+      searchConsole: {
+        connected: boolean
+        hasData: boolean
+        siteName: string | null
+      }
+    }
   }
 }
 
@@ -56,6 +69,9 @@ export default function ReportingPage() {
   const fetchAnalyticsData = async (forceRefresh = false) => {
     try {
       setDataLoading(true)
+      // Clear previous data immediately when starting fetch for new dealership
+      setAnalyticsData(null)
+
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
         dateRange,
@@ -76,6 +92,8 @@ export default function ReportingPage() {
     } catch (error) {
       console.error('Analytics fetch error:', error)
       toast.error("Failed to load analytics data")
+      // Clear data on error to prevent showing stale data
+      setAnalyticsData(null)
     } finally {
       setDataLoading(false)
     }
@@ -141,6 +159,34 @@ export default function ReportingPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Connection Status Alert */}
+        {analyticsData?.metadata?.connectionStatus && (
+          !analyticsData.metadata.connectionStatus.ga4.connected ||
+          !analyticsData.metadata.connectionStatus.searchConsole.connected
+        ) && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-amber-800 mb-1">
+                  Analytics Setup Required for {currentDealership?.name || 'This Dealership'}
+                </h3>
+                <div className="text-sm text-amber-700 space-y-1">
+                  {!analyticsData.metadata.connectionStatus.ga4.connected && (
+                    <p>• Google Analytics 4 is not connected - user behavior, traffic, and geographic data will not be available</p>
+                  )}
+                  {!analyticsData.metadata.connectionStatus.searchConsole.connected && (
+                    <p>• Google Search Console is not connected - keyword performance and search insights will not be available</p>
+                  )}
+                  <p className="mt-2 text-xs">
+                    Connect these services in Settings to see comprehensive analytics data for this dealership.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-gradient-to-r from-white to-blue-50/30 rounded-lg border border-slate-200 p-8 mb-8 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -157,12 +203,12 @@ export default function ReportingPage() {
               {analyticsData?.metadata && (
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                    <span className="text-xs text-slate-500">GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : 'Not Connected'}</span>
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.connectionStatus?.ga4.connected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    <span className="text-xs text-slate-500">GA4 {analyticsData.metadata.connectionStatus?.ga4.connected ? 'Connected' : 'Not Connected'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                    <span className="text-xs text-slate-500">Search Console {analyticsData.metadata.hasSearchConsoleConnection ? 'Connected' : 'Not Connected'}</span>
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.connectionStatus?.searchConsole.connected ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    <span className="text-xs text-slate-500">Search Console {analyticsData.metadata.connectionStatus?.searchConsole.connected ? 'Connected' : 'Not Connected'}</span>
                   </div>
                 </div>
               )}

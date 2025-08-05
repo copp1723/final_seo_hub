@@ -18,7 +18,8 @@ import {
   Clock,
   CheckCircle,
   FileText,
-  TrendingUp
+  TrendingUp,
+  AlertCircle
 } from 'lucide-react'
 
 import ErrorBoundary from '@/components/error-boundary'
@@ -49,6 +50,22 @@ interface AnalyticsData {
     impressions: number
     ctr: number
     topQueries?: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>
+  }
+  metadata?: {
+    hasGA4Connection: boolean
+    hasSearchConsoleConnection: boolean
+    connectionStatus?: {
+      ga4: {
+        connected: boolean
+        hasData: boolean
+        propertyName: string | null
+      }
+      searchConsole: {
+        connected: boolean
+        hasData: boolean
+        siteName: string | null
+      }
+    }
   }
 }
 
@@ -167,6 +184,9 @@ export default function DashboardPage() {
 
     try {
       setAnalyticsLoading(true)
+      // Clear previous data immediately when starting fetch for new dealership
+      setAnalyticsData(null)
+
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
         dateRange: '30days'
@@ -180,9 +200,14 @@ export default function DashboardPage() {
       if (response.ok) {
         const result = await response.json()
         setAnalyticsData(result.data)
+      } else {
+        // If request fails, ensure data stays null
+        setAnalyticsData(null)
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error)
+      // Clear data on error to prevent showing stale data
+      setAnalyticsData(null)
     } finally {
       setAnalyticsLoading(false)
     }
@@ -194,6 +219,9 @@ export default function DashboardPage() {
 
     try {
       setRankingsLoading(true)
+      // Clear previous data immediately when starting fetch for new dealership
+      setRankingsData(null)
+
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams()
       if (dealershipId) params.append('dealershipId', dealershipId)
@@ -205,9 +233,14 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         setRankingsData(data)
+      } else {
+        // If request fails, ensure data stays null
+        setRankingsData(null)
       }
     } catch (error) {
       console.error('Error fetching rankings data:', error)
+      // Clear data on error to prevent showing stale data
+      setRankingsData(null)
     } finally {
       setRankingsLoading(false)
     }
@@ -289,53 +322,105 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Connection Status Alert */}
+          {analyticsData?.metadata?.connectionStatus && (
+            !analyticsData.metadata.connectionStatus.ga4.connected ||
+            !analyticsData.metadata.connectionStatus.searchConsole.connected
+          ) && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-amber-800 mb-1">
+                    Analytics Setup Required
+                  </h3>
+                  <div className="text-sm text-amber-700 space-y-1">
+                    {!analyticsData.metadata.connectionStatus.ga4.connected && (
+                      <p>• Google Analytics 4 is not connected for this dealership</p>
+                    )}
+                    {!analyticsData.metadata.connectionStatus.searchConsole.connected && (
+                      <p>• Google Search Console is not connected for this dealership</p>
+                    )}
+                    <p className="mt-2 text-xs">
+                      Connect these services in Settings to see real analytics data for this dealership.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Analytics Overview */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <Card className="border border-slate-200/60 shadow-sm bg-white">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-medium text-slate-900">Traffic Metrics</CardTitle>
+                <CardTitle className="text-lg font-medium text-slate-900 flex items-center gap-2">
+                  Traffic Metrics
+                  {analyticsData?.metadata?.connectionStatus?.ga4.connected === false && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">GA4 Not Connected</span>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-6">
-                  <StatCard
-                    title="Sessions"
-                    value={analyticsData?.ga4Data?.sessions?.toLocaleString() ?? '-'}
-                    subtitle="Last 30 days"
-                    loading={analyticsLoading}
-                    gradient="emerald"
-                  />
-                  <StatCard
-                    title="Users"
-                    value={analyticsData?.ga4Data?.users?.toLocaleString() ?? '-'}
-                    subtitle="Last 30 days"
-                    loading={analyticsLoading}
-                    gradient="blue"
-                  />
-                </div>
+                {analyticsData?.metadata?.connectionStatus?.ga4.connected === false ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <div className="text-sm">Google Analytics 4 not connected</div>
+                    <div className="text-xs mt-1">Connect GA4 in Settings to see traffic data</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-6">
+                    <StatCard
+                      title="Sessions"
+                      value={analyticsData?.ga4Data?.sessions?.toLocaleString() ?? '-'}
+                      subtitle="Last 30 days"
+                      loading={analyticsLoading}
+                      gradient="emerald"
+                    />
+                    <StatCard
+                      title="Users"
+                      value={analyticsData?.ga4Data?.users?.toLocaleString() ?? '-'}
+                      subtitle="Last 30 days"
+                      loading={analyticsLoading}
+                      gradient="blue"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             <Card className="border border-slate-200/60 shadow-sm bg-white">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-medium text-slate-900">Search Performance</CardTitle>
+                <CardTitle className="text-lg font-medium text-slate-900 flex items-center gap-2">
+                  Search Performance
+                  {analyticsData?.metadata?.connectionStatus?.searchConsole.connected === false && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Search Console Not Connected</span>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-6">
-                  <StatCard
-                    title="Clicks"
-                    value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() ?? '-'}
-                    subtitle="Last 30 days"
-                    loading={analyticsLoading}
-                    gradient="purple"
-                  />
-                  <StatCard
-                    title="Impressions"
-                    value={analyticsData?.searchConsoleData?.impressions?.toLocaleString() ?? '-'}
-                    subtitle="Last 30 days"
-                    loading={analyticsLoading}
-                    gradient="orange"
-                  />
-                </div>
+                {analyticsData?.metadata?.connectionStatus?.searchConsole.connected === false ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <div className="text-sm">Google Search Console not connected</div>
+                    <div className="text-xs mt-1">Connect Search Console in Settings to see search data</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-6">
+                    <StatCard
+                      title="Clicks"
+                      value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() ?? '-'}
+                      subtitle="Last 30 days"
+                      loading={analyticsLoading}
+                      gradient="purple"
+                    />
+                    <StatCard
+                      title="Impressions"
+                      value={analyticsData?.searchConsoleData?.impressions?.toLocaleString() ?? '-'}
+                      subtitle="Last 30 days"
+                      loading={analyticsLoading}
+                      gradient="orange"
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -411,7 +496,12 @@ export default function DashboardPage() {
                 <div>
                   <h4 className="font-medium mb-2 text-sm">Top Performing Keywords</h4>
                   <div className="space-y-1">
-                    {analyticsData?.searchConsoleData?.topQueries && analyticsData.searchConsoleData.topQueries.length > 0 ? (
+                    {analyticsData?.metadata?.connectionStatus?.searchConsole.connected === false ? (
+                      <div className="text-center py-4 text-slate-500">
+                        <div className="text-sm">Search Console not connected</div>
+                        <div className="text-xs mt-1">Connect Search Console in Settings to see keyword data</div>
+                      </div>
+                    ) : analyticsData?.searchConsoleData?.topQueries && analyticsData.searchConsoleData.topQueries.length > 0 ? (
                       analyticsData.searchConsoleData.topQueries
                         .slice(0, 3)
                         .map((query, index) => {
@@ -438,7 +528,7 @@ export default function DashboardPage() {
                     ) : (
                       <div className="text-center py-4 text-slate-500">
                         <div className="text-sm">No keyword data available</div>
-                        <div className="text-xs mt-1">Connect Search Console to see top keywords</div>
+                        <div className="text-xs mt-1">Keyword data will appear here once available</div>
                       </div>
                     )}
                   </div>

@@ -1,1 +1,1 @@
-export { middleware, config } from './middleware/middleware-simple'
+export { middleware, config } from './middleware/simple-middleware'

@@ -24,11 +24,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if this is a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
+  const isProtectedRoute = protectedRoutes.some(route =>
     pathname.startsWith(route)
   );
-  
-  const isAuthRoute = authRoutes.some(route => 
+
+  const isAuthRoute = authRoutes.some(route =>
     pathname.startsWith(route)
   );
 
@@ -39,6 +39,15 @@ export async function middleware(request: NextRequest) {
 
   // Get session
   const session = await SimpleAuth.getSessionFromRequest(request);
+
+  // Handle root route - redirect to sign-in if not authenticated, dashboard if authenticated
+  if (pathname === '/') {
+    if (!session) {
+      return NextResponse.redirect(new URL('/auth/simple-signin', request.url));
+    } else {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
 
   // Handle protected routes
   if (isProtectedRoute) {

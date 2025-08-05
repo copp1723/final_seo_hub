@@ -17,8 +17,16 @@ export class GA4ServiceMock {
   }
 
   async runReport() {
-    const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock');
-    const mockData = generateMockGA4Data();
+    // Generate simple mock data since we removed the mock data files
+    const mockData = {
+      overview: {
+        metrics: {
+          sessions: [25, 30, 35, 40, 45],
+          totalUsers: [20, 25, 30, 35, 40],
+          eventCount: [50, 60, 70, 80, 90]
+        }
+      }
+    };
     
     // Format response to match GA4 API structure
     return {
@@ -36,8 +44,16 @@ export class GA4ServiceMock {
   }
 
   async batchRunReports(propertyId: string, requests: any[]) {
-    const { generateMockGA4Data } = await import('@/lib/mock-data/search-console-mock');
-    const mockData = generateMockGA4Data();
+    // Generate simple mock data since we removed the mock data files
+    const mockData = {
+      overview: {
+        metrics: {
+          sessions: [25, 30, 35, 40, 45],
+          totalUsers: [20, 25, 30, 35, 40],
+          eventCount: [50, 60, 70, 80, 90]
+        }
+      }
+    };
     
     // Create mock reports for each request
     return requests.map(() => ({

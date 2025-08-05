@@ -1,5 +1,5 @@
 import { DealershipAnalyticsService } from '@/lib/google/dealership-analytics-service'
-import { cacheManager } from '@/lib/cache/centralized-cache-manager'
+import { redisManager } from '@/lib/redis'
 import { CacheKeys } from '@/lib/cache/cache-keys'
 import { logger } from '@/lib/logger'
 import { getDateRange } from '@/lib/utils/date-formatter'
@@ -56,15 +56,23 @@ export class AnalyticsCoordinator {
     
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
-      const cached = cacheManager.get<CoordinatedAnalyticsResult>(cacheKey)
-      if (cached) {
-        logger.info('Analytics data served from cache', {
-          userId,
-          dealershipId,
-          cacheKey,
-          responseTime: Date.now() - startTime
-        })
-        return { ...cached, metadata: { ...cached.metadata, fromCache: true } }
+      try {
+        const redisClient = await redisManager.getClient()
+        if (redisClient) {
+          const cachedData = await redisClient.get(cacheKey)
+          if (cachedData) {
+            const cached = JSON.parse(cachedData) as CoordinatedAnalyticsResult
+            logger.info('Analytics data served from cache', {
+              userId,
+              dealershipId,
+              cacheKey,
+              responseTime: Date.now() - startTime
+            })
+            return { ...cached, metadata: { ...cached.metadata, fromCache: true } }
+          }
+        }
+      } catch (error) {
+        logger.warn('Cache retrieval failed, proceeding without cache', { error, cacheKey })
       }
     }
 
@@ -121,7 +129,15 @@ export class AnalyticsCoordinator {
 
       // Cache the result if at least one service succeeded
       if (result.ga4Data || result.searchConsoleData) {
-        cacheManager.set(cacheKey, result, { userId, dealershipId })
+        try {
+          const redisClient = await redisManager.getClient()
+          if (redisClient) {
+            const ttlSeconds = Math.floor(CacheKeys.CACHE_TTL / 1000) // Convert to seconds
+            await redisClient.setex(cacheKey, ttlSeconds, JSON.stringify(result))
+          }
+        } catch (error) {
+          logger.warn('Cache storage failed', { error, cacheKey })
+        }
       }
 
       logger.info('Coordinated analytics fetch completed', {
@@ -225,12 +241,24 @@ export class AnalyticsCoordinator {
    * Invalidate all analytics cache for a dealership change
    */
   async invalidateDealershipCache(userId: string, dealershipId?: string): Promise<void> {
-    if (dealershipId) {
-      // Invalidate specific dealership
-      cacheManager.invalidateByDealership(dealershipId)
-    } else {
-      // Invalidate all user cache
-      cacheManager.invalidateByUser(userId)
+    try {
+      const redisClient = await redisManager.getClient()
+      if (redisClient) {
+        // For Redis, we'll need to delete specific keys since Redis doesn't have pattern-based deletion
+        // We'll delete common cache patterns for this user/dealership
+        const patterns = [
+          CacheKeys.analytics(userId, '7days', dealershipId),
+          CacheKeys.analytics(userId, '30days', dealershipId),
+          CacheKeys.analytics(userId, '90days', dealershipId),
+          CacheKeys.dashboard(userId, '30days', dealershipId)
+        ]
+
+        for (const key of patterns) {
+          await redisClient.del(key)
+        }
+      }
+    } catch (error) {
+      logger.warn('Cache invalidation failed', { error, userId, dealershipId })
     }
 
     logger.info('Analytics cache invalidated', { userId, dealershipId })

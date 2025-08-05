@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger'
 import { refreshGA4TokenIfNeeded } from './ga4-token-refresh'
 import { GA4Service } from './ga4Service'
 import { features } from '@/lib/features'
-import { getDemoGA4Analytics, getDemoSearchConsoleData } from '@/lib/demo-data'
+
 import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access } from '@/lib/dealership-property-mapping'
 import { validateGA4Response } from '@/lib/validation/ga4-data-integrity'
 
@@ -46,16 +46,7 @@ export class DealershipAnalyticsService {
   async getDealershipAnalytics(options: AnalyticsOptions): Promise<DashboardAnalytics> {
     const { startDate, endDate, dealershipId, userId } = options
 
-    // Check if demo mode is enabled
-    if (features.demoMode) {
-      logger.info('🎭 Returning demo analytics data', {
-        userId,
-        dealershipId,
-        dateRange: { startDate, endDate }
-      })
 
-      return this.getDemoAnalytics(startDate, endDate, dealershipId)
-    }
 
     const result: DashboardAnalytics = {
       errors: {
@@ -381,10 +372,7 @@ export class DealershipAnalyticsService {
     let targetSiteUrl: string | null = null
 
     try {
-      // Use demo data if enabled
-      if (features.demoMode) {
-        return getDemoSearchConsoleData('rankings')
-      }
+
 
       targetSiteUrl = dealershipId ? getSearchConsoleUrl(dealershipId) : null
 
@@ -500,52 +488,7 @@ export class DealershipAnalyticsService {
     return new SearchConsoleService(accessToken, refreshToken)
   }
 
-  private getDemoAnalytics(startDate: string, endDate: string, dealershipId?: string | null): DashboardAnalytics {
-    logger.info('🎭 Generating demo analytics for dealership', {
-      dealershipId,
-      startDate,
-      endDate
-    })
 
-    // Get demo GA4 data
-    const demoGA4 = getDemoGA4Analytics(startDate, endDate, dealershipId || undefined)
-
-    // Get demo Search Console data
-    const demoSC = getDemoSearchConsoleData(startDate, endDate, dealershipId || undefined)
-
-    logger.info('🎭 Demo data generated', {
-      dealershipId,
-      ga4Sessions: demoGA4.totals.sessions,
-      ga4Users: demoGA4.totals.users,
-      scClicks: demoSC.totals.clicks,
-      propertyId: demoGA4.metadata.propertyId
-    })
-
-    return {
-      ga4Data: {
-        sessions: demoGA4.totals.sessions,
-        users: demoGA4.totals.users,
-        pageviews: demoGA4.totals.eventCount
-      },
-      searchConsoleData: {
-        clicks: demoSC.totals.clicks,
-        impressions: demoSC.totals.impressions,
-        ctr: demoSC.totals.ctr,
-        position: demoSC.totals.position
-      },
-      errors: {
-        ga4Error: null,
-        searchConsoleError: null
-      },
-      metadata: {
-        hasGA4Connection: true,
-        hasSearchConsoleConnection: true,
-        dealershipId: dealershipId || 'demo-dealership-001',
-        propertyId: demoGA4.metadata.propertyId,
-        siteUrl: demoSC.metadata.siteUrl
-      }
-    }
-  }
 }
 
 // Helper function to get analytics for a dealership

@@ -26,8 +26,7 @@ export const features = {
   advancedAnalytics: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS === 'true',
   performanceTrends: process.env.NEXT_PUBLIC_FEATURE_PERFORMANCE_TRENDS === 'true' || process.env.NODE_ENV === 'development',
 
-  // Demo Mode
-  demoMode: process.env.DEMO_MODE === 'true' || process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 } as const;
 
 // User-specific feature flags (can override global flags)

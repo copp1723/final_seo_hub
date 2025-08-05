@@ -19,12 +19,9 @@ const config = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^next-auth$': '<rootDir>/__mocks__/next-auth.js',
-    '^next-auth/providers/google$': '<rootDir>/__mocks__/next-auth-providers-google.js',
-    '^@auth/prisma-adapter$': '<rootDir>/__mocks__/auth-prisma-adapter.js',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(next-auth|@auth)/)',
+    'node_modules/',
   ],
   collectCoverageFrom: [
     '**/*.{ts,tsx}',

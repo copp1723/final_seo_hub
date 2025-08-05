@@ -1,5 +1,4 @@
 import { logger } from '@/lib/logger'
-import { cacheManager } from '@/lib/cache/centralized-cache-manager'
 import { analyticsCoordinator } from '@/lib/analytics/analytics-coordinator'
 
 export interface DealershipChangeEvent {
@@ -107,13 +106,13 @@ export class DealershipEventBus {
         newDealershipId: event.newDealershipId
       })
 
-      // Invalidate previous dealership cache
-      if (event.previousDealershipId) {
-        cacheManager.invalidateByDealership(event.previousDealershipId)
-      }
+      // Use analytics coordinator for cache invalidation (now uses Redis)
+      await analyticsCoordinator.invalidateDealershipCache(event.userId, event.previousDealershipId)
 
-      // Also invalidate user-level cache to ensure consistency
-      cacheManager.invalidateByUser(event.userId)
+      // Also invalidate for new dealership to ensure consistency
+      if (event.newDealershipId) {
+        await analyticsCoordinator.invalidateDealershipCache(event.userId, event.newDealershipId)
+      }
     })
 
     // Cache pre-warming handler

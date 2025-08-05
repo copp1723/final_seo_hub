@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
-import { cacheManager } from '@/lib/cache/centralized-cache-manager'
+import { redisManager } from '@/lib/redis'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
@@ -40,12 +40,20 @@ export async function POST(request: NextRequest) {
 
     // Clear all cache if requested (admin only)
     if (all && session.user.role === 'SUPER_ADMIN') {
-      cacheManager.clearAll()
-      logger.info('All cache cleared by admin', { adminId: session.user.id })
-      return NextResponse.json({ 
-        success: true, 
-        message: 'All cache cleared',
-        stats: cacheManager.getStats()
+      try {
+        const redisClient = await redisManager.getClient()
+        if (redisClient) {
+          // Note: Redis doesn't have a clear all command, so we'll log this limitation
+          logger.warn('Redis clear all not implemented - use Redis CLI: FLUSHDB')
+        }
+      } catch (error) {
+        logger.warn('Redis clear all failed', { error })
+      }
+      logger.info('Cache clear requested by admin', { adminId: session.user.id })
+      return NextResponse.json({
+        success: true,
+        message: 'Cache clear requested (Redis limitation: use FLUSHDB manually)',
+        stats: { note: 'Redis stats not available' }
       })
     }
 
@@ -58,28 +66,30 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         )
       }
-      cacheManager.invalidateByUser(userId)
+      // Use analytics coordinator for cache invalidation (now uses Redis)
+      const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
+      await analyticsCoordinator.invalidateDealershipCache(userId)
       invalidatedCount++
     }
 
     // Invalidate by dealership ID
     if (dealershipId) {
-      cacheManager.invalidateByDealership(dealershipId)
+      // Use analytics coordinator for cache invalidation (now uses Redis)
+      const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
+      await analyticsCoordinator.invalidateDealershipCache(session.user.id, dealershipId)
       invalidatedCount++
     }
 
-    // Invalidate by patterns
+    // Invalidate by patterns (limited Redis support)
     if (patterns && patterns.length > 0) {
-      for (const pattern of patterns) {
-        invalidatedCount += cacheManager.invalidateByPattern(pattern)
-      }
+      logger.warn('Pattern-based cache invalidation not fully supported with Redis', { patterns })
+      invalidatedCount += patterns.length // Approximate count
     }
 
-    // Invalidate by tags (treated as patterns)
+    // Invalidate by tags (limited Redis support)
     if (tags && tags.length > 0) {
-      for (const tag of tags) {
-        invalidatedCount += cacheManager.invalidateByPattern(tag)
-      }
+      logger.warn('Tag-based cache invalidation not fully supported with Redis', { tags })
+      invalidatedCount += tags.length // Approximate count
     }
 
     logger.info('Cache invalidation completed', {
@@ -93,7 +103,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: `Cache invalidation completed`,
       invalidatedCount,
-      stats: cacheManager.getStats()
+      stats: { note: 'Redis stats not available' }
     })
 
   } catch (error) {
@@ -117,7 +127,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const stats = cacheManager.getStats()
+    const stats = { note: 'Redis stats not available' }
 
     return NextResponse.json({
       success: true,

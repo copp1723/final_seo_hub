@@ -12,8 +12,7 @@ import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
 
-// Note: Cache management is now handled by the centralized cache manager
-// See /lib/cache/centralized-cache-manager.ts for implementation
+// Note: Cache management is now handled by Redis through the analytics coordinator
 
 export async function POST(request: NextRequest) {
   try {
@@ -296,8 +295,7 @@ export async function GET(request: NextRequest) {
       'Session authentication timeout'
     )
 
-    // Allow demo mode without authentication for testing
-    if (!session?.user.id && !features.demoMode) {
+    if (!session?.user.id) {
       logger.warn('Dashboard analytics GET: No session found', {
         hasSession: !!session,
         hasUserId: !!session?.user?.id,
@@ -306,9 +304,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // In demo mode without session, use a default user
-    const userId = session?.user.id || (features.demoMode ? 'demo-user' : null)
-    const userRole = session?.user.role || (features.demoMode ? 'SUPER_ADMIN' : null)
+    const userId = session?.user.id
+    const userRole = session?.user.role
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -316,8 +313,7 @@ export async function GET(request: NextRequest) {
 
     logger.info('Dashboard analytics GET: Session found', {
       userId: userId,
-      userRole: userRole,
-      demoMode: features.demoMode
+      userRole: userRole
     })
 
     // Support GET requests with query parameters for simple dashboard data
@@ -336,8 +332,8 @@ export async function GET(request: NextRequest) {
       url: request.url
     })
 
-    // Add access control for dealership access (skip in demo mode)
-    if (dealershipId && !features.demoMode && session?.user?.id) {
+    // Add access control for dealership access
+    if (dealershipId && session?.user?.id) {
       const user = await prisma.users.findUnique({
         where: { id: session.user.id },
         select: {

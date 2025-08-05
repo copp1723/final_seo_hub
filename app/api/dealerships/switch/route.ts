@@ -6,7 +6,6 @@ import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 import { safeDbOperation } from '@/lib/db-resilience'
 import { logger } from '@/lib/logger'
 import { DealershipEventBus } from '@/lib/events/dealership-event-bus'
-import { cacheManager } from '@/lib/cache/centralized-cache-manager'
 
 export const dynamic = 'force-dynamic';
 
@@ -114,8 +113,8 @@ export async function POST(request: NextRequest) {
       dealership.id
     )
 
-    // Invalidate all caches for this user to ensure fresh data
-    cacheManager.invalidateByUser(session.user.id)
+    // Cache invalidation is now handled by the DealershipEventBus
+    // which uses the analytics coordinator with Redis
     
     logger.info('Dealership switch completed with cache invalidation', {
       userId: session.user.id,

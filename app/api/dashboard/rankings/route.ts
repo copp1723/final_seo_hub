@@ -7,8 +7,7 @@ import { logger } from '@/lib/logger'
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
 
-// Note: Cache management is now handled by the centralized cache manager
-// See /lib/cache/centralized-cache-manager.ts for implementation
+// Note: Cache management is now handled by Redis through the analytics coordinator
 
 export async function GET(request: NextRequest) {
   try {

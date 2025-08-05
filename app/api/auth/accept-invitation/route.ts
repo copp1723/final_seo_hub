@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { signIn } from '@/lib/auth'
 import crypto from 'crypto'
 import { SimpleAuth } from '@/lib/auth-simple'
 

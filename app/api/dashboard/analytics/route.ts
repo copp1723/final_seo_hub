@@ -186,31 +186,116 @@ export async function POST(request: NextRequest) {
         await ga4Service.initialize()
 
         const ga4Reports = await ga4Service.batchRunReports(ga4Connection.propertyId || '', [
+          // Basic metrics
           {
             dateRanges: [{ startDate, endDate }],
             metrics: [
               { name: 'sessions' },
               { name: 'totalUsers' },
-              { name: 'eventCount' }
+              { name: 'screenPageViews' },
+              { name: 'newUsers' },
+              { name: 'averageSessionDuration' },
+              { name: 'bounceRate' }
             ],
             dimensions: [],
             limit: 1
+          },
+          // Traffic sources
+          {
+            dateRanges: [{ startDate, endDate }],
+            metrics: [{ name: 'sessions' }],
+            dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+            limit: 10,
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
+          },
+          // Geographic data
+          {
+            dateRanges: [{ startDate, endDate }],
+            metrics: [{ name: 'sessions' }],
+            dimensions: [{ name: 'city' }],
+            limit: 10,
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
+          },
+          // Device data
+          {
+            dateRanges: [{ startDate, endDate }],
+            metrics: [{ name: 'sessions' }],
+            dimensions: [{ name: 'deviceCategory' }],
+            limit: 5,
+            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
+          },
+          // Hourly data for user journey analysis
+          {
+            dateRanges: [{ startDate, endDate }],
+            metrics: [{ name: 'sessions' }],
+            dimensions: [{ name: 'hour' }],
+            limit: 24,
+            orderBys: [{ dimension: { dimensionName: 'hour' } }]
           }
         ])
 
-        if (ga4Reports && ga4Reports[0]) {
-          const report = ga4Reports[0]
-          const row = report.rows?.[0]
-          
-          if (row) {
+        if (ga4Reports && ga4Reports.length > 0) {
+          // Process basic metrics (report 0)
+          const basicReport = ga4Reports[0]
+          const basicRow = basicReport.rows?.[0]
+
+          if (basicRow) {
+            const sessions = parseInt(basicRow.metricValues?.[0]?.value || '0')
+            const totalUsers = parseInt(basicRow.metricValues?.[1]?.value || '0')
+            const pageviews = parseInt(basicRow.metricValues?.[2]?.value || '0')
+            const newUsers = parseInt(basicRow.metricValues?.[3]?.value || '0')
+            const avgSessionDuration = parseFloat(basicRow.metricValues?.[4]?.value || '0')
+            const bounceRate = parseFloat(basicRow.metricValues?.[5]?.value || '0')
+
             dashboardData.ga4Data = {
-              sessions: parseInt(row.metricValues?.[0]?.value || '0'),
-              users: parseInt(row.metricValues?.[1]?.value || '0'),
-              pageviews: parseInt(row.metricValues?.[2]?.value || '0')
+              sessions,
+              users: totalUsers,
+              pageviews,
+              newUsers,
+              returningUsers: totalUsers - newUsers,
+              averageSessionDuration: avgSessionDuration,
+              bounceRate,
+              engagementRate: 1 - bounceRate
             }
-            
-            dashboardData.combinedMetrics.totalSessions = dashboardData.ga4Data.sessions
-            dashboardData.combinedMetrics.totalUsers = dashboardData.ga4Data.users
+
+            dashboardData.combinedMetrics.totalSessions = sessions
+            dashboardData.combinedMetrics.totalUsers = totalUsers
+          }
+
+          // Process traffic sources (report 1)
+          const trafficReport = ga4Reports[1]
+          if (trafficReport?.rows) {
+            dashboardData.ga4Data.trafficSources = trafficReport.rows.map(row => ({
+              source: row.dimensionValues?.[0]?.value || 'Unknown',
+              sessions: parseInt(row.metricValues?.[0]?.value || '0')
+            }))
+          }
+
+          // Process geographic data (report 2)
+          const geoReport = ga4Reports[2]
+          if (geoReport?.rows) {
+            dashboardData.ga4Data.cities = geoReport.rows.map(row => ({
+              city: row.dimensionValues?.[0]?.value || 'Unknown',
+              sessions: parseInt(row.metricValues?.[0]?.value || '0')
+            }))
+          }
+
+          // Process device data (report 3)
+          const deviceReport = ga4Reports[3]
+          if (deviceReport?.rows) {
+            dashboardData.ga4Data.devices = deviceReport.rows.map(row => ({
+              device: row.dimensionValues?.[0]?.value || 'Unknown',
+              sessions: parseInt(row.metricValues?.[0]?.value || '0')
+            }))
+          }
+
+          // Process hourly data (report 4)
+          const hourlyReport = ga4Reports[4]
+          if (hourlyReport?.rows) {
+            dashboardData.ga4Data.hourlyData = hourlyReport.rows.map(row => ({
+              hour: parseInt(row.dimensionValues?.[0]?.value || '0'),
+              sessions: parseInt(row.metricValues?.[0]?.value || '0')
+            }))
           }
         }
 
@@ -229,7 +314,8 @@ export async function POST(request: NextRequest) {
     if (searchConsoleConnection) {
       try {
         const searchConsoleService = await getSearchConsoleService(session.user.id)
-        
+
+        // Fetch overall metrics
         const searchConsoleData = await searchConsoleService.getSearchAnalytics(
           searchConsoleConnection.siteUrl || '',
           {
@@ -241,20 +327,52 @@ export async function POST(request: NextRequest) {
           }
         )
 
+        // Fetch top queries
+        const topQueriesData = await searchConsoleService.getSearchAnalytics(
+          searchConsoleConnection.siteUrl || '',
+          {
+            startDate,
+            endDate,
+            dimensions: ['query'],
+            searchType: 'web',
+            rowLimit: 20
+          }
+        )
+
         if (searchConsoleData && searchConsoleData.rows && searchConsoleData.rows.length > 0) {
           const row = searchConsoleData.rows[0]
-          
+
           dashboardData.searchConsoleData = {
             clicks: row.clicks || 0,
             impressions: row.impressions || 0,
             ctr: row.ctr || 0,
             position: row.position || 0
           }
-          
+
           dashboardData.combinedMetrics.totalClicks = dashboardData.searchConsoleData.clicks
           dashboardData.combinedMetrics.totalImpressions = dashboardData.searchConsoleData.impressions
           dashboardData.combinedMetrics.avgCTR = dashboardData.searchConsoleData.ctr
           dashboardData.combinedMetrics.avgPosition = dashboardData.searchConsoleData.position
+        }
+
+        // Process top queries data
+        if (topQueriesData?.rows && topQueriesData.rows.length > 0) {
+          if (!dashboardData.searchConsoleData) {
+            dashboardData.searchConsoleData = {
+              clicks: 0,
+              impressions: 0,
+              ctr: 0,
+              position: 0
+            }
+          }
+
+          dashboardData.searchConsoleData.topQueries = topQueriesData.rows.map(row => ({
+            query: row.keys?.[0] || 'Unknown',
+            clicks: row.clicks || 0,
+            impressions: row.impressions || 0,
+            ctr: row.ctr || 0,
+            position: row.position || 0
+          }))
         }
 
         logger.info('Search Console data fetched successfully for dashboard', {
@@ -385,8 +503,27 @@ export async function GET(request: NextRequest) {
     // Execute the analytics logic directly instead of delegating to POST
     // Initialize response data structure
     const dashboardData = {
-      ga4Data: null as { sessions: number; users: number; pageviews: number } | null,
-      searchConsoleData: null as { clicks: number; impressions: number; ctr: number; position: number } | null,
+      ga4Data: null as {
+        sessions: number;
+        users: number;
+        pageviews: number;
+        newUsers?: number;
+        returningUsers?: number;
+        averageSessionDuration?: number;
+        bounceRate?: number;
+        engagementRate?: number;
+        trafficSources?: Array<{ source: string; sessions: number }>;
+        cities?: Array<{ city: string; sessions: number }>;
+        devices?: Array<{ device: string; sessions: number }>;
+        hourlyData?: Array<{ hour: number; sessions: number }>;
+      } | null,
+      searchConsoleData: null as {
+        clicks: number;
+        impressions: number;
+        ctr: number;
+        position: number;
+        topQueries?: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>;
+      } | null,
       combinedMetrics: {
         totalSessions: 0,
         totalUsers: 0,

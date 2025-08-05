@@ -48,6 +48,7 @@ interface AnalyticsData {
     clicks: number
     impressions: number
     ctr: number
+    topQueries?: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>
   }
 }
 
@@ -410,29 +411,36 @@ export default function DashboardPage() {
                 <div>
                   <h4 className="font-medium mb-2 text-sm">Top Performing Keywords</h4>
                   <div className="space-y-1">
-                    <div className="flex justify-between items-center p-2 bg-gradient-to-r from-green-50 to-emerald-50/50 rounded text-sm border border-green-100">
-                      <span className="font-medium truncate flex-1 mr-2">acura columbus</span>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs px-1 py-0">
-                          Position 1
-                        </Badge>
-                        <span className="text-gray-500 text-xs">1223 clicks</span>
+                    {analyticsData?.searchConsoleData?.topQueries && analyticsData.searchConsoleData.topQueries.length > 0 ? (
+                      analyticsData.searchConsoleData.topQueries
+                        .slice(0, 3)
+                        .map((query, index) => {
+                          const colors = [
+                            'from-green-50 to-emerald-50/50 border-green-100 bg-green-100 text-green-800',
+                            'from-blue-50 to-sky-50/50 border-blue-100 bg-blue-100 text-blue-800',
+                            'from-purple-50 to-violet-50/50 border-purple-100 bg-purple-100 text-purple-800'
+                          ]
+                          const colorClass = colors[index % 3]
+                          const [bgClass, badgeClass] = colorClass.split(' bg-')
+
+                          return (
+                            <div key={query.query} className={`flex justify-between items-center p-2 bg-gradient-to-r ${bgClass} rounded text-sm border`}>
+                              <span className="font-medium truncate flex-1 mr-2">{query.query}</span>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <Badge variant="secondary" className={`bg-${badgeClass} text-xs px-1 py-0`}>
+                                  Position {Math.round(query.position)}
+                                </Badge>
+                                <span className="text-gray-500 text-xs">{query.clicks} clicks</span>
+                              </div>
+                            </div>
+                          )
+                        })
+                    ) : (
+                      <div className="text-center py-4 text-slate-500">
+                        <div className="text-sm">No keyword data available</div>
+                        <div className="text-xs mt-1">Connect Search Console to see top keywords</div>
                       </div>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-gradient-to-r from-blue-50 to-sky-50/50 rounded text-sm border border-blue-100">
-                      <span className="font-medium">columbus acura</span>
-                      <div className="flex items-center gap-1">
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs px-1 py-0">Position 2</Badge>
-                        <span className="text-gray-500 text-xs">175 clicks</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center p-2 bg-gradient-to-r from-purple-50 to-violet-50/50 rounded text-sm border border-purple-100">
-                      <span className="font-medium">acura dublin</span>
-                      <div className="flex items-center gap-1">
-                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs px-1 py-0">Position 1</Badge>
-                        <span className="text-gray-500 text-xs">129 clicks</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

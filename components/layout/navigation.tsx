@@ -22,7 +22,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/chat', label: 'SEO Chat', icon: MessageSquare },
   { href: '/requests', label: 'Requests', icon: FileText },
-  { href: '/reporting', label: 'Reports', icon: TrendingUp },
+  { href: '/reporting', label: 'Insights', icon: TrendingUp },
   { href: '/tasks', label: 'Tasks', icon: Settings }
 ]
 

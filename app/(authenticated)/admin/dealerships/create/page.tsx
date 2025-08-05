@@ -80,7 +80,7 @@ export default function CreateDealershipPage() {
   useEffect(() => {
     if (!user) return
     
-    if (user.role !== 'SUPER_ADMIN') {
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN') {
       router.push('/admin')
       return
     }
@@ -90,11 +90,19 @@ export default function CreateDealershipPage() {
 
   const fetchAgencies = async () => {
     try {
-      const response = await fetch('/api/admin/agencies')
-      if (!response.ok) throw new Error('Failed to fetch agencies')
-      
-      const data = await response.json()
-      setAgencies(data.agencies || [])
+      // For AGENCY_ADMIN users, they can only create for their own agency
+      if (user?.role === 'AGENCY_ADMIN' && user.agencyId) {
+        // Create a placeholder agency object since they can only use their own
+        setAgencies([{ id: user.agencyId, name: 'Your Agency' }])
+        setFormData(prev => ({ ...prev, agencyId: user.agencyId || '' }))
+      } else {
+        // For SUPER_ADMIN, fetch all agencies
+        const response = await fetch('/api/admin/agencies')
+        if (!response.ok) throw new Error('Failed to fetch agencies')
+        
+        const data = await response.json()
+        setAgencies(data.agencies || [])
+      }
     } catch (error) {
       console.error('Error fetching agencies:', error)
       toast.error('Failed to load agencies')
@@ -580,6 +588,7 @@ export default function CreateDealershipPage() {
                   value={formData.agencyId}
                   onValueChange={(value) => handleInputChange('agencyId', value)}
                   required
+                  disabled={user?.role === 'AGENCY_ADMIN'}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select an agency" />
@@ -592,6 +601,11 @@ export default function CreateDealershipPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {user?.role === 'AGENCY_ADMIN' && (
+                  <p className="text-sm text-gray-600">
+                    You can only create dealerships for your own agency.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

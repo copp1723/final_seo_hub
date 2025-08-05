@@ -21,7 +21,7 @@ const createDealershipSchema = z.object({
   notes: z.string().optional()
 })
 
-// Get all dealerships (SUPER_ADMIN only)
+// Get dealerships (SUPER_ADMIN can see all, AGENCY_ADMIN can see their agency's)
 export const GET = withErrorBoundary(async (request: NextRequest) => {
   const session = await SimpleAuth.getSessionFromRequest(request)
   
@@ -29,12 +29,22 @@ export const GET = withErrorBoundary(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (session.user.role !== 'SUPER_ADMIN') {
-    return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
+  if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'AGENCY_ADMIN') {
+    return NextResponse.json({ error: 'Access denied. Admin required.' }, { status: 403 })
   }
+
+  // Build where clause based on user role
+  const whereClause: any = {}
+  
+  // If AGENCY_ADMIN, only show dealerships from their agency
+  if (session.user.role === 'AGENCY_ADMIN' && session.user.agencyId) {
+    whereClause.agencyId = session.user.agencyId
+  }
+  // SUPER_ADMIN can see all dealerships (no where clause restriction)
 
   const dealerships = await safeDbOperation(async () => {
     return prisma.dealerships.findMany({
+      where: whereClause,
       select: {
         id: true,
         name: true,
@@ -65,7 +75,7 @@ export const GET = withErrorBoundary(async (request: NextRequest) => {
   })
 })
 
-// Create a new dealership (SUPER_ADMIN only)
+// Create a new dealership (SUPER_ADMIN can create for any agency, AGENCY_ADMIN can create for their agency)
 export const POST = withErrorBoundary(async (request: NextRequest) => {
   const session = await SimpleAuth.getSessionFromRequest(request)
 
@@ -73,8 +83,8 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (session.user.role !== 'SUPER_ADMIN') {
-    return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
+  if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'AGENCY_ADMIN') {
+    return NextResponse.json({ error: 'Access denied. Admin required.' }, { status: 403 })
   }
 
   const body = await request.json()
@@ -88,6 +98,16 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
   }
 
   const { name, website, address, phone, agencyId, activePackageType, notes } = validation.data
+
+  // If AGENCY_ADMIN, ensure they can only create dealerships for their own agency
+  if (session.user.role === 'AGENCY_ADMIN') {
+    if (!session.user.agencyId) {
+      return NextResponse.json({ error: 'Agency admin must have an associated agency' }, { status: 400 })
+    }
+    if (agencyId !== session.user.agencyId) {
+      return NextResponse.json({ error: 'Agency admin can only create dealerships for their own agency' }, { status: 403 })
+    }
+  }
 
   // Verify agency exists
   const agency = await safeDbOperation(async () => {
@@ -136,12 +156,13 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
     dealership.name
   )
 
-  logger.info('Dealership created by Super Admin', {
+  logger.info('Dealership created by admin', {
     dealershipId: dealership.id,
     dealershipName: dealership.name,
     agencyId: dealership.agencyId,
     agencyName: dealership.agencies.name,
     createdBy: session.user.id,
+    createdByRole: session.user.role,
     connectionsCreated: {
       ga4: connectionResult.ga4Created,
       searchConsole: connectionResult.searchConsoleCreated,

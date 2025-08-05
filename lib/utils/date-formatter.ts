@@ -109,16 +109,31 @@ export function formatRelativeTime(date: Date | string | number): string {
 export function getDateRange(range: string): { startDate: string; endDate: string } {
   const endDate = new Date()
   const startDate = new Date()
-  
+
   switch (range) {
     case '7days':
       startDate.setDate(startDate.getDate() - 7)
       break
+    case '14days':
+      startDate.setDate(startDate.getDate() - 14)
+      break
     case '30days':
       startDate.setDate(startDate.getDate() - 30)
       break
+    case '60days':
+      startDate.setDate(startDate.getDate() - 60)
+      break
     case '90days':
       startDate.setDate(startDate.getDate() - 90)
+      break
+    case 'thisweek':
+      startDate.setDate(startDate.getDate() - startDate.getDay())
+      break
+    case 'thismonth':
+      startDate.setDate(1)
+      break
+    case '6months':
+      startDate.setMonth(startDate.getMonth() - 6)
       break
     case '1year':
       startDate.setFullYear(startDate.getFullYear() - 1)

@@ -323,6 +323,8 @@ export class DealershipAnalyticsService {
 
       const searchConsoleService = await this.getSearchConsoleService(userId)
 
+      console.log(`🔍 Making Search Console API call to: ${targetSiteUrl}`)
+
       const searchConsoleData = await searchConsoleService.getSearchAnalytics(
         targetSiteUrl,
         {
@@ -333,6 +335,15 @@ export class DealershipAnalyticsService {
           rowLimit: 1
         }
       )
+
+      console.log(`📊 Search Console API response:`, {
+        hasData: !!searchConsoleData,
+        hasRows: !!(searchConsoleData?.rows),
+        rowCount: searchConsoleData?.rows?.length || 0,
+        firstRow: searchConsoleData?.rows?.[0] || null,
+        requestedUrl: targetSiteUrl,
+        error: searchConsoleData?.error || null
+      })
 
       if (searchConsoleData && searchConsoleData.rows && searchConsoleData.rows.length > 0) {
         const row = searchConsoleData.rows[0]

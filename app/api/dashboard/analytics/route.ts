@@ -131,25 +131,27 @@ export async function POST(request: NextRequest) {
       forceRefresh
     )
 
-    // Map the coordinated analytics data to dashboard format
+    // Map from analyticsCoordinator exclusively — remove legacy/stale vars
+    // Intentionally align metadata with coordinator response only.
     dashboardData.ga4Data = analyticsData.ga4Data || null
     dashboardData.searchConsoleData = analyticsData.searchConsoleData || null
     dashboardData.errors.ga4Error = analyticsData.errors.ga4 || null
     dashboardData.errors.searchConsoleError = analyticsData.errors.searchConsole || null
+    // Preserve existing metadata fields and extend safely without adding unknown keys to the typed object
     dashboardData.metadata = {
       ...dashboardData.metadata,
-      ...analyticsData.metadata,
-      connectionStatus: {
-        ga4: {
-          connected: !!ga4Connection,
-          hasData: !!dashboardData.ga4Data?.sessions,
-          propertyName: ga4Connection?.propertyName || null
-        },
-        searchConsole: {
-          connected: !!searchConsoleConnection,
-          hasData: !!dashboardData.searchConsoleData?.clicks,
-          siteName: searchConsoleConnection?.siteUrl || null
-        }
+      ...analyticsData.metadata
+    } as any
+    ;(dashboardData.metadata as any).connectionStatus = {
+      ga4: {
+        connected: !!analyticsData.metadata?.hasGA4Connection,
+        connectedForDealership: analyticsData.metadata?.dataSources?.ga4 !== 'none',
+        hasData: !!dashboardData.ga4Data?.sessions
+      },
+      searchConsole: {
+        connected: !!analyticsData.metadata?.hasSearchConsoleConnection,
+        connectedForDealership: analyticsData.metadata?.dataSources?.searchConsole !== 'none',
+        hasData: !!dashboardData.searchConsoleData?.clicks
       }
     }
 
@@ -158,8 +160,8 @@ export async function POST(request: NextRequest) {
       hasGA4Data: !!dashboardData.ga4Data,
       hasSearchConsoleData: !!dashboardData.searchConsoleData,
       dealershipId: targetDealershipId,
-      ga4Connected: !!ga4Connection,
-      searchConsoleConnected: !!searchConsoleConnection
+      ga4Connected: !!analyticsData.metadata?.hasGA4Connection,
+      searchConsoleConnected: !!analyticsData.metadata?.hasSearchConsoleConnection
     })
 
     return NextResponse.json({ data: dashboardData })
@@ -594,23 +596,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Add connection status metadata for better UI handling
+    // The analytics coordinator already provides connection status in metadata
     dashboardData.metadata = {
       ...dashboardData.metadata,
-      hasGA4Connection: !!ga4Connection,
-      hasSearchConsoleConnection: !!searchConsoleConnection,
-      propertyId: ga4Connection?.propertyId || null,
-      siteUrl: searchConsoleConnection?.siteUrl || null,
-      connectionStatus: {
-        ga4: {
-          connected: !!ga4Connection,
-          hasData: !!dashboardData.ga4Data?.sessions,
-          propertyName: ga4Connection?.propertyName || null
-        },
-        searchConsole: {
-          connected: !!searchConsoleConnection,
-          hasData: !!dashboardData.searchConsoleData?.clicks,
-          siteName: searchConsoleConnection?.siteUrl || null
-        }
+      hasGA4Connection: !!analyticsData.metadata?.hasGA4Connection,
+      hasSearchConsoleConnection: !!analyticsData.metadata?.hasSearchConsoleConnection,
+      propertyId: analyticsData.metadata?.propertyId || null,
+      siteUrl: analyticsData.metadata?.siteUrl || null
+    } as any
+    ;(dashboardData.metadata as any).connectionStatus = {
+      ga4: {
+        connected: !!analyticsData.metadata?.hasGA4Connection,
+        connectedForDealership: analyticsData.metadata?.dataSources?.ga4 !== 'none',
+        hasData: !!dashboardData.ga4Data?.sessions
+      },
+      searchConsole: {
+        connected: !!analyticsData.metadata?.hasSearchConsoleConnection,
+        connectedForDealership: analyticsData.metadata?.dataSources?.searchConsole !== 'none',
+        hasData: !!dashboardData.searchConsoleData?.clicks
       }
     }
 
@@ -619,8 +622,8 @@ export async function GET(request: NextRequest) {
       hasGA4Data: !!dashboardData.ga4Data,
       hasSearchConsoleData: !!dashboardData.searchConsoleData,
       dealershipId,
-      ga4Connected: !!ga4Connection,
-      searchConsoleConnected: !!searchConsoleConnection
+      ga4Connected: !!analyticsData.metadata?.hasGA4Connection,
+      searchConsoleConnected: !!analyticsData.metadata?.hasSearchConsoleConnection
     })
 
     return NextResponse.json({ data: dashboardData })

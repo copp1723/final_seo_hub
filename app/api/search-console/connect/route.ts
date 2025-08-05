@@ -37,14 +37,27 @@ export async function GET(req: NextRequest) {
       state: session.user.id, // Pass user ID for security
     })
 
-    logger.info('Search Console OAuth initiated', { 
+    logger.info('Search Console OAuth initiated', {
       userId: session.user.id,
       callbackUrl: `${process.env.NEXTAUTH_URL}/api/search-console/callback`
     })
 
+    // Best-effort cache clear for current dealership context to avoid stale empties on new connection
+    try {
+      const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
+      const url = new URL(req.url)
+      const dealershipId = url.searchParams.get('dealershipId') || undefined
+      await analyticsCoordinator.invalidateDealershipCache(session.user.id, dealershipId)
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info('Search Console connect pre-emptive cache invalidation', { userId: session.user.id, dealershipId })
+      }
+    } catch (e) {
+      logger.warn('Search Console connect cache invalidation failed (non-fatal)', { error: e, userId: session.user.id })
+    }
+
     return NextResponse.redirect(authUrl)
   } catch (error) {
-    logger.error('Search Console connect error', error, { 
+    logger.error('Search Console connect error', error, {
       userId: session.user.id,
       errorMessage: error instanceof Error ? error.message : 'Unknown error'
     })

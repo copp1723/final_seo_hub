@@ -111,13 +111,16 @@ export default function SuperAdminAgenciesPage() {
     e.preventDefault()
 
     const url = '/api/admin/agencies'
-    const method = 'POST'
+    const method = editingAgency ? 'PUT' : 'POST'
+    const payload = editingAgency 
+      ? { id: editingAgency.id, ...formData }
+      : formData
 
     try {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
       const responseData = await response.json()
       if (!response.ok) {

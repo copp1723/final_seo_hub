@@ -91,6 +91,20 @@ export async function POST(request: NextRequest) {
       isAgencyAdmin: user?.role === 'AGENCY_ADMIN'
     })
 
+    // Invalidate coordinated analytics cache for this dealership (best-effort)
+    try {
+      const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
+      await analyticsCoordinator.invalidateDealershipCache(session.user.id, targetDealershipId || undefined)
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info('GA4 cache invalidated after property update', {
+          userId: session.user.id,
+          dealershipId: targetDealershipId
+        })
+      }
+    } catch (e) {
+      logger.warn('GA4 cache invalidation failed after property update', { error: e, userId: session.user.id, dealershipId: targetDealershipId })
+    }
+
     return NextResponse.json({
       success: true,
       propertyId,

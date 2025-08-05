@@ -206,7 +206,7 @@ export default function SettingsPage() {
     
     try {
       const res = await fetch('/api/settings/profile', {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: profile.name,

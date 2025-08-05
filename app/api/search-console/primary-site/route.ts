@@ -81,6 +81,20 @@ export async function POST(req: Request) {
         siteName: new URL(siteUrl).hostname
       }
     })
+
+    // Invalidate coordinated analytics cache for this dealership (best-effort)
+    try {
+      const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
+      await analyticsCoordinator.invalidateDealershipCache(session.user.id, targetDealershipId || undefined)
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info('Search Console cache invalidated after primary site update', {
+          userId: session.user.id,
+          dealershipId: targetDealershipId
+        })
+      }
+    } catch (e) {
+      logger.warn('Search Console cache invalidation failed after primary site update', { error: e, userId: session.user.id, dealershipId: targetDealershipId })
+    }
     
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
+import { logger } from '@/lib/logger'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -28,6 +29,19 @@ export async function GET(request: NextRequest) {
   authUrl.searchParams.set('prompt', 'consent')
   authUrl.searchParams.set('state', session.user.id) // Pass userId as state
   console.log('[GA4 CONNECT] Using state:', session.user.id)
+
+  // Best-effort cache clear for current dealership context to avoid stale empties on new connection
+  try {
+    const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
+    const url = new URL(request.url)
+    const dealershipId = url.searchParams.get('dealershipId') || undefined
+    await analyticsCoordinator.invalidateDealershipCache(session.user.id, dealershipId)
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('GA4 connect pre-emptive cache invalidation', { userId: session.user.id, dealershipId })
+    }
+  } catch (e) {
+    logger.warn('GA4 connect cache invalidation failed (non-fatal)', { error: e, userId: session.user.id })
+  }
 
   return NextResponse.redirect(authUrl.toString())
 }

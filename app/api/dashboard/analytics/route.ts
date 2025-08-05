@@ -138,14 +138,28 @@ export async function POST(request: NextRequest) {
     dashboardData.errors.searchConsoleError = analyticsData.errors.searchConsole || null
     dashboardData.metadata = {
       ...dashboardData.metadata,
-      ...analyticsData.metadata
+      ...analyticsData.metadata,
+      connectionStatus: {
+        ga4: {
+          connected: !!ga4Connection,
+          hasData: !!dashboardData.ga4Data?.sessions,
+          propertyName: ga4Connection?.propertyName || null
+        },
+        searchConsole: {
+          connected: !!searchConsoleConnection,
+          hasData: !!dashboardData.searchConsoleData?.clicks,
+          siteName: searchConsoleConnection?.siteUrl || null
+        }
+      }
     }
 
     logger.info('Dashboard analytics POST completed using DealershipAnalyticsService', {
       userId: session.user.id,
       hasGA4Data: !!dashboardData.ga4Data,
       hasSearchConsoleData: !!dashboardData.searchConsoleData,
-      dealershipId: targetDealershipId
+      dealershipId: targetDealershipId,
+      ga4Connected: !!ga4Connection,
+      searchConsoleConnected: !!searchConsoleConnection
     })
 
     return NextResponse.json({ data: dashboardData })
@@ -580,16 +594,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Add connection status metadata for better UI handling
-    dashboardData.metadata.connectionStatus = {
-      ga4: {
-        connected: !!ga4Connection,
-        hasData: !!dashboardData.ga4Data?.sessions,
-        propertyName: ga4Connection?.propertyName || null
-      },
-      searchConsole: {
-        connected: !!searchConsoleConnection,
-        hasData: !!dashboardData.searchConsoleData?.clicks,
-        siteName: searchConsoleConnection?.siteUrl || null
+    dashboardData.metadata = {
+      ...dashboardData.metadata,
+      hasGA4Connection: !!ga4Connection,
+      hasSearchConsoleConnection: !!searchConsoleConnection,
+      propertyId: ga4Connection?.propertyId || null,
+      siteUrl: searchConsoleConnection?.siteUrl || null,
+      connectionStatus: {
+        ga4: {
+          connected: !!ga4Connection,
+          hasData: !!dashboardData.ga4Data?.sessions,
+          propertyName: ga4Connection?.propertyName || null
+        },
+        searchConsole: {
+          connected: !!searchConsoleConnection,
+          hasData: !!dashboardData.searchConsoleData?.clicks,
+          siteName: searchConsoleConnection?.siteUrl || null
+        }
       }
     }
 

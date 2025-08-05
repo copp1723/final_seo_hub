@@ -62,15 +62,24 @@ export default function ReportingPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const [dataLoading, setDataLoading] = useState(true)
   const [dateRange, setDateRange] = useState('30days')
+  const [previousDealershipId, setPreviousDealershipId] = useState<string | null>(null)
 
   const { currentDealership } = useDealership()
+
+  // Clear data when dealership changes
+  useEffect(() => {
+    const currentId = currentDealership?.id || null
+    if (previousDealershipId !== null && previousDealershipId !== currentId) {
+      console.log('Reporting: Dealership changed, clearing data:', { from: previousDealershipId, to: currentId })
+      setAnalyticsData(null)
+    }
+    setPreviousDealershipId(currentId)
+  }, [currentDealership?.id, previousDealershipId])
 
   // Fetch analytics data
   const fetchAnalyticsData = async (forceRefresh = false) => {
     try {
       setDataLoading(true)
-      // Clear previous data immediately when starting fetch for new dealership
-      setAnalyticsData(null)
 
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
@@ -88,11 +97,11 @@ export default function ReportingPage() {
       }
 
       const result = await response.json()
+      console.log('Reporting analytics data received:', result.data) // Debug log
       setAnalyticsData(result.data)
     } catch (error) {
       console.error('Analytics fetch error:', error)
       toast.error("Failed to load analytics data")
-      // Clear data on error to prevent showing stale data
       setAnalyticsData(null)
     } finally {
       setDataLoading(false)

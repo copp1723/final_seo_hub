@@ -152,6 +152,19 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [rankingsLoading, setRankingsLoading] = useState(true)
+  const [previousDealershipId, setPreviousDealershipId] = useState<string | null>(null)
+
+  // Clear data when dealership changes
+  useEffect(() => {
+    const currentId = currentDealership?.id || null
+    if (previousDealershipId !== null && previousDealershipId !== currentId) {
+      console.log('Dealership changed, clearing data:', { from: previousDealershipId, to: currentId })
+      setAnalyticsData(null)
+      setRankingsData(null)
+      setDashboardData(null)
+    }
+    setPreviousDealershipId(currentId)
+  }, [currentDealership?.id, previousDealershipId])
 
   // Fetch dashboard data
   const fetchDashboardData = useCallback(async () => {
@@ -184,8 +197,6 @@ export default function DashboardPage() {
 
     try {
       setAnalyticsLoading(true)
-      // Clear previous data immediately when starting fetch for new dealership
-      setAnalyticsData(null)
 
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
@@ -199,14 +210,14 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const result = await response.json()
+        console.log('Analytics data received:', result.data) // Debug log
         setAnalyticsData(result.data)
       } else {
-        // If request fails, ensure data stays null
+        console.error('Analytics API error:', response.status, response.statusText)
         setAnalyticsData(null)
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error)
-      // Clear data on error to prevent showing stale data
       setAnalyticsData(null)
     } finally {
       setAnalyticsLoading(false)
@@ -219,8 +230,6 @@ export default function DashboardPage() {
 
     try {
       setRankingsLoading(true)
-      // Clear previous data immediately when starting fetch for new dealership
-      setRankingsData(null)
 
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams()
@@ -232,14 +241,14 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const data = await response.json()
+        console.log('Rankings data received:', data) // Debug log
         setRankingsData(data)
       } else {
-        // If request fails, ensure data stays null
+        console.error('Rankings API error:', response.status, response.statusText)
         setRankingsData(null)
       }
     } catch (error) {
       console.error('Error fetching rankings data:', error)
-      // Clear data on error to prevent showing stale data
       setRankingsData(null)
     } finally {
       setRankingsLoading(false)

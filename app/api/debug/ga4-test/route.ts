@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
-import { prisma } from '@/lib/db'
+import { prisma } from '@/lib/prisma'
 import { decrypt } from '@/lib/encryption'
 import { google } from 'googleapis'
 

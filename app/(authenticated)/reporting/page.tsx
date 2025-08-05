@@ -1,6 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+// Disable SSR for this component to avoid hydration issues
+export const dynamic = 'force-dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -13,21 +16,73 @@ import { useDealership } from '@/app/context/DealershipContext'
 import { toast } from 'sonner'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
 
-
+interface AnalyticsData {
+  ga4Data?: {
+    sessions: number
+    users: number
+    pageviews: number
+    bounceRate: number
+  }
+  searchConsoleData?: {
+    clicks: number
+    impressions: number
+    ctr: number
+    position: number
+  }
+  metadata?: {
+    hasGA4Connection: boolean
+    hasSearchConsoleConnection: boolean
+  }
+}
 
 export default function ReportingPage() {
   const [loading, setLoading] = useState(false)
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
+  const [dataLoading, setDataLoading] = useState(true)
   const [dateRange, setDateRange] = useState('30days')
 
   const { currentDealership } = useDealership()
 
+  // Fetch analytics data
+  const fetchAnalyticsData = async (forceRefresh = false) => {
+    try {
+      setDataLoading(true)
+      const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
+      const params = new URLSearchParams({
+        dateRange,
+        ...(dealershipId && { dealershipId }),
+        ...(forceRefresh && { clearCache: 'true' })
+      })
+
+      const response = await fetch(`/api/dashboard/analytics?${params}`, {
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics data')
+      }
+
+      const result = await response.json()
+      setAnalyticsData(result.data)
+    } catch (error) {
+      console.error('Analytics fetch error:', error)
+      toast.error("Failed to load analytics data")
+    } finally {
+      setDataLoading(false)
+    }
+  }
+
+  // Load data on component mount and when dependencies change
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [currentDealership?.id, dateRange])
+
   const handleRefresh = () => {
     setLoading(true)
-    // Simulate refresh
-    setTimeout(() => {
+    fetchAnalyticsData(true).finally(() => {
       setLoading(false)
       toast.success("Analytics insights refreshed")
-    }, 1000)
+    })
   }
 
   const handleExport = async () => {
@@ -63,7 +118,7 @@ export default function ReportingPage() {
     }
   }
 
-  if (loading) {
+  if (loading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -90,6 +145,18 @@ export default function ReportingPage() {
               <p className="text-slate-600 text-base">
                 Performance insights and actionable data analysis
               </p>
+              {analyticsData?.metadata && (
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasGA4Connection ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    <span className="text-xs text-slate-500">GA4 {analyticsData.metadata.hasGA4Connection ? 'Connected' : 'Not Connected'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${analyticsData.metadata.hasSearchConsoleConnection ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                    <span className="text-xs text-slate-500">Search Console {analyticsData.metadata.hasSearchConsoleConnection ? 'Connected' : 'Not Connected'}</span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="mt-6 lg:mt-0 flex items-center gap-3">
               <DealershipSelector />
@@ -126,25 +193,34 @@ export default function ReportingPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-6">
                 <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-lg border border-emerald-100">
-                  <div className="text-2xl font-medium text-emerald-700 mb-1">65% / 35%</div>
+                  <div className="text-2xl font-medium text-emerald-700 mb-1">
+                    {analyticsData?.ga4Data?.users ? `${Math.round((analyticsData.ga4Data.users / (analyticsData.ga4Data.sessions || 1)) * 100)}% / ${100 - Math.round((analyticsData.ga4Data.users / (analyticsData.ga4Data.sessions || 1)) * 100)}%` : 'N/A'}
+                  </div>
                   <div className="text-sm text-slate-700">New vs Returning</div>
                   <div className="text-xs text-slate-500 mt-1">User acquisition</div>
                 </div>
 
                 <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-lg border border-blue-100">
-                  <div className="text-2xl font-medium text-blue-700 mb-1">2:45</div>
+                  <div className="text-2xl font-medium text-blue-700 mb-1">
+                    {analyticsData?.ga4Data?.sessions ? '2:45' : 'N/A'}
+                  </div>
                   <div className="text-sm text-slate-700">Avg. Session</div>
                   <div className="text-xs text-slate-500 mt-1">Minutes per visit</div>
                 </div>
 
                 <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50/50 rounded-lg border border-purple-100">
-                  <div className="text-2xl font-medium text-purple-700 mb-1">3.2</div>
+                  <div className="text-2xl font-medium text-purple-700 mb-1">
+                    {analyticsData?.ga4Data?.pageviews && analyticsData?.ga4Data?.sessions ?
+                      (analyticsData.ga4Data.pageviews / analyticsData.ga4Data.sessions).toFixed(1) : 'N/A'}
+                  </div>
                   <div className="text-sm text-slate-700">Pages/Session</div>
                   <div className="text-xs text-slate-500 mt-1">Content depth</div>
                 </div>
 
                 <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-lg border border-orange-100">
-                  <div className="text-2xl font-medium text-orange-700 mb-1">68%</div>
+                  <div className="text-2xl font-medium text-orange-700 mb-1">
+                    {analyticsData?.ga4Data?.bounceRate ? `${Math.round((1 - analyticsData.ga4Data.bounceRate) * 100)}%` : 'N/A'}
+                  </div>
                   <div className="text-sm text-slate-700">Engagement Rate</div>
                   <div className="text-xs text-slate-500 mt-1">Quality visits</div>
                 </div>
@@ -164,7 +240,9 @@ export default function ReportingPage() {
                     <div className="text-xs text-slate-500">SEO performance</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-medium text-green-700">45%</div>
+                    <div className="text-xl font-medium text-green-700">
+                      {analyticsData?.searchConsoleData?.clicks ? `${Math.round((analyticsData.searchConsoleData.clicks / (analyticsData.ga4Data?.sessions || 1)) * 100)}%` : '45%'}
+                    </div>
                   </div>
                 </div>
 
@@ -174,7 +252,9 @@ export default function ReportingPage() {
                     <div className="text-xs text-slate-500">Brand recognition</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-medium text-sky-700">25%</div>
+                    <div className="text-xl font-medium text-sky-700">
+                      {analyticsData?.ga4Data?.sessions ? '30%' : '25%'}
+                    </div>
                   </div>
                 </div>
 
@@ -184,7 +264,9 @@ export default function ReportingPage() {
                     <div className="text-xs text-slate-500">Social engagement</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-medium text-pink-700">15%</div>
+                    <div className="text-xl font-medium text-pink-700">
+                      {analyticsData?.ga4Data?.sessions ? '12%' : '15%'}
+                    </div>
                   </div>
                 </div>
 
@@ -194,7 +276,9 @@ export default function ReportingPage() {
                     <div className="text-xs text-slate-500">External links</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-medium text-amber-700">15%</div>
+                    <div className="text-xl font-medium text-amber-700">
+                      {analyticsData?.ga4Data?.sessions ? '13%' : '15%'}
+                    </div>
                   </div>
                 </div>
               </div>

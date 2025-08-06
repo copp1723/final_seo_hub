@@ -27,8 +27,7 @@ const navItems = [
 ]
 
 const adminNavItems = [
-  { href: '/admin', label: 'Admin', icon: Shield, roles: ['SUPER_ADMIN', 'AGENCY_ADMIN'] },
-  { href: '/super-admin', label: 'Super', icon: Shield, roles: ['SUPER_ADMIN'] }
+  { href: '/admin', label: 'Admin', icon: Shield, roles: ['SUPER_ADMIN', 'AGENCY_ADMIN'] }
 ]
 
 export function Navigation() {
@@ -124,10 +123,10 @@ export function Navigation() {
                 )
               })}
               
-              {/* Admin Links */}
+              {/* Admin Link - Show only Admin, not Super */}
               {visibleAdminNavItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || pathname?.startsWith('/admin')
                 return (
                   <Link
                     key={item.href}

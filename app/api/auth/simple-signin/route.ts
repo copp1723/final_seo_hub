@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     // Redirect based on role
     let redirectPath = '/dashboard'
     if (user.role === 'SUPER_ADMIN') {
-      redirectPath = '/super-admin'
+      redirectPath = '/settings?tab=users'
     } else if (user.role === 'AGENCY_ADMIN') {
       redirectPath = '/dashboard'
     }

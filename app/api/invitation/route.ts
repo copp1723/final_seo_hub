@@ -204,6 +204,26 @@ export async function POST(request: NextRequest) {
       skipPreferences: true
     })
 
+    if (invitationSent) {
+      logger.info('Invitation sent successfully', {
+        userId: newUser.id,
+        email: newUser.email,
+        invitedBy,
+        role,
+        agencyId,
+        dealershipId
+      })
+    } else {
+      logger.warn('User created but invitation email failed to send', {
+        userId: newUser.id,
+        email: newUser.email,
+        invitedBy,
+        role,
+        agencyId,
+        dealershipId
+      })
+    }
+
     return NextResponse.json({
       message: `Invitation ${invitationSent ? 'sent successfully' : 'created but email failed to send'}`,
       userId: newUser.id,
@@ -211,10 +231,18 @@ export async function POST(request: NextRequest) {
       invitationSent,
       // Note: invitationToken is not returned for security reasons
     })
-  } catch (error) {
-    logger.error('Generate invitation token error:', error)
+  } catch (error: any) {
+    logger.error('Generate invitation token error:', error, {
+      email,
+      role,
+      agencyId,
+      dealershipId,
+      inviterEmail: inviterSession?.user?.email
+    })
+
     return NextResponse.json({
-      error: 'Failed to generate invitation'
+      error: error.message || 'Failed to generate invitation',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, {
       status: 500
     })

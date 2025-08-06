@@ -100,11 +100,22 @@ async function sendSuccessEmail(to: string, result: any, agencyName: string): Pr
 
 export async function POST(request: NextRequest) {
   try {
-    logger.info('Received Mailgun webhook for dealership CSV processing')
+    const url = new URL(request.url)
+    logger.info('Received Mailgun webhook for dealership CSV processing', {
+      url: url.pathname,
+      method: request.method,
+      headers: Object.fromEntries(request.headers.entries())
+    })
 
     // Verify Mailgun signature for security
     // Mailgun may send headers with different casing or in form data
-    const formData = await request.formData()
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch (error) {
+      logger.error('Failed to parse form data from Mailgun webhook', error)
+      return errorResponse('Invalid form data', 400)
+    }
     
     // Try to get signature from headers first, then from form data
     const signature = request.headers.get('x-mailgun-signature') || 
@@ -142,8 +153,45 @@ export async function POST(request: NextRequest) {
     const sender = formData.get('sender') as string
     const subject = formData.get('subject') as string
     const attachmentCount = parseInt(formData.get('attachment-count') as string || '0')
+    const eventType = formData.get('event') as string
 
-    logger.info('Processing email from sender', { sender, subject, attachmentCount })
+    logger.info('Processing email from sender', {
+      sender,
+      subject,
+      attachmentCount,
+      eventType,
+      formDataKeys: Array.from(formData.keys())
+    })
+
+    // Check if this is actually a dealership CSV processing request
+    // If there's no sender or it's not an inbound email, this might be a different webhook
+    if (!sender || eventType !== 'stored') {
+      logger.info('Webhook is not for dealership CSV processing', {
+        sender,
+        eventType,
+        subject
+      })
+      return successResponse({
+        message: 'Webhook received but not for dealership CSV processing',
+        eventType,
+        sender
+      })
+    }
+
+    // Additional check: if this is an invitation email being sent out (not received),
+    // it shouldn't be processed by this webhook
+    if (subject && subject.toLowerCase().includes('invitation') ||
+        subject && subject.toLowerCase().includes('welcome')) {
+      logger.info('Ignoring outbound invitation email webhook', {
+        sender,
+        subject,
+        eventType
+      })
+      return successResponse({
+        message: 'Ignoring outbound invitation email',
+        subject
+      })
+    }
 
     // Check rate limiting
     if (CsvSecurityService.isRateLimited(sender)) {
@@ -240,9 +288,15 @@ export async function POST(request: NextRequest) {
       agency: senderValidation.agency?.name
     })
 
-  } catch (error) {
-    logger.error('Mailgun webhook error', error)
-    return errorResponse('Internal server error', 500)
+  } catch (error: any) {
+    logger.error('Mailgun webhook error', error, {
+      url: request.url,
+      method: request.method,
+      headers: Object.fromEntries(request.headers.entries()),
+      errorMessage: error?.message,
+      errorStack: error?.stack
+    })
+    return errorResponse(`Internal server error: ${error?.message || 'Unknown error'}`, 500)
   }
 }
 

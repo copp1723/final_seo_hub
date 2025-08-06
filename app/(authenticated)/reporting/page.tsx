@@ -348,8 +348,11 @@ export default function ReportingPage() {
                           <div className="text-xs text-slate-500">{config.desc}</div>
                         </div>
                         <div className="text-right">
-                          <div className={`text-xl font-medium ${colorClasses[config.color as keyof typeof colorClasses].split(' ').pop()}`}>
+                          <div className={`text-lg font-medium ${colorClasses[config.color as keyof typeof colorClasses].split(' ').pop()}`}>
                             {percentage}%
+                          </div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            ({source.sessions.toLocaleString()} sessions)
                           </div>
                         </div>
                       </div>
@@ -406,6 +409,50 @@ export default function ReportingPage() {
                   </div>
                 </div>
 
+
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-slate-200/60 shadow-sm bg-white">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-medium text-slate-900">User Journey Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-4">User Behavior Insights</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50/50 rounded-lg border border-blue-100">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">Bounce Rate</div>
+                          <div className="text-xs text-slate-500">Single-page sessions</div>
+                        </div>
+                        <div className="text-lg font-medium text-blue-700">
+                          {analyticsData?.ga4Data?.bounceRate ?
+                            `${Math.round(analyticsData.ga4Data.bounceRate * 100)}%` :
+                            (analyticsData?.ga4Data?.sessions ? 'N/A' : '-')}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50/50 rounded-lg border border-emerald-100">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">Return Visitors</div>
+                          <div className="text-xs text-slate-500">Repeat engagement</div>
+                        </div>
+                        <div className="text-lg font-medium text-emerald-700">
+                          {analyticsData?.ga4Data?.newUsers && analyticsData?.ga4Data?.users ?
+                            `${Math.round(((analyticsData.ga4Data.users - analyticsData.ga4Data.newUsers) / analyticsData.ga4Data.users) * 100)}%` :
+                            (analyticsData?.ga4Data?.users ? 'N/A' : '-')}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="pt-6 border-t border-slate-200">
                   <h4 className="text-sm font-medium text-slate-700 mb-4">Device Usage</h4>
                   <div className="grid grid-cols-3 gap-3">
@@ -434,52 +481,6 @@ export default function ReportingPage() {
                     )}
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200/60 shadow-sm bg-white">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-medium text-slate-900">User Journey Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-sm font-medium text-slate-700 mb-4">Peak Activity Times</h4>
-                  <div className="space-y-3">
-                    {analyticsData?.ga4Data?.hourlyData && analyticsData.ga4Data.hourlyData.length > 0 ? (
-                      (() => {
-                        // Find top 3 peak hours
-                        const sortedHours = [...analyticsData.ga4Data.hourlyData]
-                          .sort((a, b) => b.sessions - a.sessions)
-                          .slice(0, 3)
-
-                        const labels = ['Peak Hours', 'High Activity', 'Evening Rush']
-
-                        return sortedHours.map((hourData, index) => {
-                          const hour = hourData.hour
-                          const nextHour = (hour + 1) % 24
-                          const timeRange = `${hour.toString().padStart(2, '0')}:00 - ${nextHour.toString().padStart(2, '0')}:00`
-
-                          return (
-                            <div key={hour} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-lg border border-slate-100">
-                              <span className="text-sm font-medium text-slate-900">{timeRange}</span>
-                              <span className="text-xs text-slate-600 bg-slate-200 px-2 py-1 rounded">
-                                {labels[index]} ({hourData.sessions} sessions)
-                              </span>
-                            </div>
-                          )
-                        })
-                      })()
-                    ) : (
-                      <div className="text-center py-4 text-slate-500">
-                        <div className="text-sm">No hourly activity data available</div>
-                        <div className="text-xs mt-1">Connect Google Analytics to see peak times</div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
               </div>
             </CardContent>
           </Card>

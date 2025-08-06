@@ -596,7 +596,7 @@ export default function DashboardPage() {
                 dealershipId={currentDealership?.id}
                 limit={15}
                 autoRefresh={true}
-                refreshInterval={30}
+                refreshInterval={60}
               />
             </div>
           </div>

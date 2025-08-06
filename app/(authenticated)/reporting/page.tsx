@@ -498,17 +498,36 @@ export default function ReportingPage() {
                   <h4 className="text-sm font-medium text-slate-700 mb-4">High Opportunity Keywords</h4>
                   <div className="space-y-3">
                     {analyticsData?.searchConsoleData?.topQueries && analyticsData.searchConsoleData.topQueries.length > 0 ? (
-                      analyticsData.searchConsoleData.topQueries
-                        .filter(query => query.position > 10 && query.impressions > 100) // High opportunity: lower position but good impressions
-                        .slice(0, 3)
-                        .map((query, index) => (
-                          <div key={query.query} className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50/50 rounded-lg border border-emerald-100 border-l-4 border-l-emerald-500">
-                            <p className="text-sm font-medium text-slate-900">{query.query}</p>
-                            <p className="text-xs text-slate-600 mt-1">
-                              Position {Math.round(query.position)} • {query.impressions.toLocaleString()} impressions, {query.clicks} clicks
-                            </p>
-                          </div>
-                        ))
+                      (() => {
+                        const opportunities = analyticsData.searchConsoleData.topQueries
+                          .filter(query => query.position > 10 && query.impressions > 100)
+                          .slice(0, 3);
+                        const boxes = [];
+                        
+                        // Add actual opportunity boxes
+                        opportunities.forEach(query => {
+                          boxes.push(
+                            <div key={query.query} className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50/50 rounded-lg border border-emerald-100 border-l-4 border-l-emerald-500">
+                              <p className="text-sm font-medium text-slate-900">{query.query}</p>
+                              <p className="text-xs text-slate-600 mt-1">
+                                Position {Math.round(query.position)} • {query.impressions.toLocaleString()} impressions, {query.clicks} clicks
+                              </p>
+                            </div>
+                          );
+                        });
+                        
+                        // Add placeholder boxes to make it 3 total
+                        while (boxes.length < 3) {
+                          boxes.push(
+                            <div key={`placeholder-opp-${boxes.length}`} className="p-4 rounded-lg border border-slate-100 bg-slate-50/30">
+                              <div className="h-4 bg-slate-100 rounded animate-pulse mb-2"></div>
+                              <div className="h-3 bg-slate-100 rounded animate-pulse w-3/4"></div>
+                            </div>
+                          );
+                        }
+                        
+                        return boxes;
+                      })()
                     ) : (
                       <div className="text-center py-4 text-slate-500">
                         <div className="text-sm">No keyword opportunity data available</div>
@@ -522,17 +541,36 @@ export default function ReportingPage() {
                   <h4 className="text-sm font-medium text-slate-700 mb-4">Top Performing Keywords</h4>
                   <div className="space-y-3">
                     {analyticsData?.searchConsoleData?.topQueries && analyticsData.searchConsoleData.topQueries.length > 0 ? (
-                      analyticsData.searchConsoleData.topQueries
-                        .filter(query => query.position <= 5) // Top performing: good positions
-                        .slice(0, 3)
-                        .map((query, index) => (
-                          <div key={query.query} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50/50 rounded-lg border border-blue-100 border-l-4 border-l-blue-500">
-                            <p className="text-sm font-medium text-slate-900">{query.query}</p>
-                            <p className="text-xs text-slate-600 mt-1">
-                              Position {Math.round(query.position)} • {query.clicks} clicks, {(query.ctr * 100).toFixed(1)}% CTR
-                            </p>
-                          </div>
-                        ))
+                      (() => {
+                        const topPerforming = analyticsData.searchConsoleData.topQueries
+                          .filter(query => query.position <= 5)
+                          .slice(0, 3);
+                        const boxes = [];
+                        
+                        // Add actual top performing boxes
+                        topPerforming.forEach(query => {
+                          boxes.push(
+                            <div key={query.query} className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50/50 rounded-lg border border-blue-100 border-l-4 border-l-blue-500">
+                              <p className="text-sm font-medium text-slate-900">{query.query}</p>
+                              <p className="text-xs text-slate-600 mt-1">
+                                Position {Math.round(query.position)} • {query.clicks} clicks, {(query.ctr * 100).toFixed(1)}% CTR
+                              </p>
+                            </div>
+                          );
+                        });
+                        
+                        // Add placeholder boxes to make it 3 total
+                        while (boxes.length < 3) {
+                          boxes.push(
+                            <div key={`placeholder-top-${boxes.length}`} className="p-4 rounded-lg border border-slate-100 bg-slate-50/30">
+                              <div className="h-4 bg-slate-100 rounded animate-pulse mb-2"></div>
+                              <div className="h-3 bg-slate-100 rounded animate-pulse w-3/4"></div>
+                            </div>
+                          );
+                        }
+                        
+                        return boxes;
+                      })()
                     ) : (
                       <div className="text-center py-4 text-slate-500">
                         <div className="text-sm">No top performing keywords available</div>
@@ -546,17 +584,36 @@ export default function ReportingPage() {
                   <h4 className="text-sm font-medium text-slate-700 mb-4">Needs Attention</h4>
                   <div className="space-y-3">
                     {analyticsData?.searchConsoleData?.topQueries && analyticsData.searchConsoleData.topQueries.length > 0 ? (
-                      analyticsData.searchConsoleData.topQueries
-                        .filter(query => query.ctr < 0.02 && query.impressions > 50) // Low CTR but decent impressions
-                        .slice(0, 3)
-                        .map((query, index) => (
-                          <div key={query.query} className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 rounded-lg border border-amber-100 border-l-4 border-l-amber-500">
-                            <p className="text-sm font-medium text-slate-900">{query.query}</p>
-                            <p className="text-xs text-slate-600 mt-1">
-                              Position {Math.round(query.position)} • Low CTR ({(query.ctr * 100).toFixed(1)}%), {query.impressions.toLocaleString()} impressions
-                            </p>
-                          </div>
-                        ))
+                      (() => {
+                        const needsAttention = analyticsData.searchConsoleData.topQueries
+                          .filter(query => query.ctr < 0.02 && query.impressions > 50)
+                          .slice(0, 3);
+                        const boxes = [];
+                        
+                        // Add actual needs attention boxes
+                        needsAttention.forEach(query => {
+                          boxes.push(
+                            <div key={query.query} className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 rounded-lg border border-amber-100 border-l-4 border-l-amber-500">
+                              <p className="text-sm font-medium text-slate-900">{query.query}</p>
+                              <p className="text-xs text-slate-600 mt-1">
+                                Position {Math.round(query.position)} • Low CTR ({(query.ctr * 100).toFixed(1)}%), {query.impressions.toLocaleString()} impressions
+                              </p>
+                            </div>
+                          );
+                        });
+                        
+                        // Add placeholder boxes to make it 3 total
+                        while (boxes.length < 3) {
+                          boxes.push(
+                            <div key={`placeholder-attention-${boxes.length}`} className="p-4 rounded-lg border border-slate-100 bg-slate-50/30">
+                              <div className="h-4 bg-slate-100 rounded animate-pulse mb-2"></div>
+                              <div className="h-3 bg-slate-100 rounded animate-pulse w-3/4"></div>
+                            </div>
+                          );
+                        }
+                        
+                        return boxes;
+                      })()
                     ) : (
                       <div className="text-center py-4 text-slate-500">
                         <div className="text-sm">No attention-needed keywords identified</div>

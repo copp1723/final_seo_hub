@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
     const rankingsData = {
       data: analyticsData.rankingsData,
       error: analyticsData.errors.rankings || analyticsData.errors.searchConsole,
-      hasConnection: analyticsData.metadata.dataSources.searchConsole !== 'none'
+      hasConnection: analyticsData.metadata.dataSources.searchConsole !== 'none',
+      permission: (analyticsData.metadata as any)?.searchConsolePermission
     }
 
     logger.info('Rankings data fetched successfully', {

@@ -477,39 +477,6 @@ export default function ReportingPage() {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-200">
-                  <h4 className="text-sm font-medium text-slate-700 mb-4">Top Landing Pages</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-slate-50/50 rounded-lg border border-slate-100">
-                      <span className="text-sm font-medium text-slate-900">Homepage</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500">2,450 visits</span>
-                        <span className="text-sm font-medium text-slate-900">35%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-slate-50/50 rounded-lg border border-slate-100">
-                      <span className="text-sm font-medium text-slate-900">New Vehicles</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500">1,680 visits</span>
-                        <span className="text-sm font-medium text-slate-900">24%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-slate-50/50 rounded-lg border border-slate-100">
-                      <span className="text-sm font-medium text-slate-900">Service Center</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500">1,120 visits</span>
-                        <span className="text-sm font-medium text-slate-900">16%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-slate-50/50 rounded-lg border border-slate-100">
-                      <span className="text-sm font-medium text-slate-900">Used Cars</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500">980 visits</span>
-                        <span className="text-sm font-medium text-slate-900">14%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>

@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
       ...dashboardData.metadata,
       ...analyticsData.metadata
     } as any
+    ;(dashboardData.metadata as any).searchConsolePermission = (analyticsData.metadata as any)?.searchConsolePermission
     ;(dashboardData.metadata as any).connectionStatus = {
       ga4: {
         connected: !!analyticsData.metadata?.hasGA4Connection,
@@ -151,7 +152,8 @@ export async function POST(request: NextRequest) {
       searchConsole: {
         connected: !!analyticsData.metadata?.hasSearchConsoleConnection,
         connectedForDealership: analyticsData.metadata?.dataSources?.searchConsole !== 'none',
-        hasData: !!dashboardData.searchConsoleData?.clicks
+        hasData: !!dashboardData.searchConsoleData?.clicks,
+        permission: (analyticsData.metadata as any)?.searchConsolePermission
       }
     }
 
@@ -602,7 +604,8 @@ export async function GET(request: NextRequest) {
       hasGA4Connection: !!analyticsData.metadata?.hasGA4Connection,
       hasSearchConsoleConnection: !!analyticsData.metadata?.hasSearchConsoleConnection,
       propertyId: analyticsData.metadata?.propertyId || null,
-      siteUrl: analyticsData.metadata?.siteUrl || null
+      siteUrl: analyticsData.metadata?.siteUrl || null,
+      searchConsolePermission: (analyticsData.metadata as any)?.searchConsolePermission
     } as any
     ;(dashboardData.metadata as any).connectionStatus = {
       ga4: {
@@ -613,7 +616,8 @@ export async function GET(request: NextRequest) {
       searchConsole: {
         connected: !!analyticsData.metadata?.hasSearchConsoleConnection,
         connectedForDealership: analyticsData.metadata?.dataSources?.searchConsole !== 'none',
-        hasData: !!dashboardData.searchConsoleData?.clicks
+        hasData: !!dashboardData.searchConsoleData?.clicks,
+        permission: (analyticsData.metadata as any)?.searchConsolePermission
       }
     }
 

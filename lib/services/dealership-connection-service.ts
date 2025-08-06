@@ -122,7 +122,7 @@ export class DealershipConnectionService {
         }
       } else if (existingGA4) {
         logger.info('GA4 connection already exists', { dealershipId, propertyId: mapping.ga4PropertyId })
-        result.connections.ga4PropertyId = mapping.ga4PropertyId
+        result.connections.ga4PropertyId = mapping.ga4PropertyId || undefined
       } else if (!mapping.ga4PropertyId) {
         logger.info('No GA4 property ID configured (intentional)', { 
           dealershipId, 

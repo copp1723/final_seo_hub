@@ -22,6 +22,7 @@ export interface CoordinatedAnalyticsResult {
     hasSearchConsoleConnection?: boolean
     propertyId?: string | null
     siteUrl?: string | null
+    searchConsolePermission?: 'ok' | 'no_permission' | 'not_connected' | 'unknown_error'
     dataSources: {
       ga4: 'dealership' | 'user' | 'none'
       searchConsole: 'dealership' | 'user' | 'none'
@@ -120,6 +121,7 @@ export class AnalyticsCoordinator {
         result.metadata.dataSources.searchConsole = searchConsoleResult.value.source || 'none'
         result.metadata.hasSearchConsoleConnection = searchConsoleResult.value.hasConnection || false
         result.metadata.siteUrl = searchConsoleResult.value.siteUrl || null
+        ;(result.metadata as any).searchConsolePermission = searchConsoleResult.value.permissionStatus
       } else {
         result.errors.searchConsole = 'Failed to fetch Search Console data'
         result.metadata.hasSearchConsoleConnection = false
@@ -200,7 +202,7 @@ export class AnalyticsCoordinator {
     userId: string,
     dateRange: string,
     dealershipId?: string
-  ): Promise<{ data: any; rankings: any; error: string | null; source?: 'dealership' | 'user'; hasConnection?: boolean; siteUrl?: string | null }> {
+  ): Promise<{ data: any; rankings: any; error: string | null; source?: 'dealership' | 'user'; hasConnection?: boolean; siteUrl?: string | null; permissionStatus?: 'ok' | 'no_permission' | 'not_connected' | 'unknown_error' }> {
     try {
       const { startDate, endDate } = getDateRange(dateRange)
 
@@ -223,7 +225,8 @@ export class AnalyticsCoordinator {
         error: analytics.errors?.searchConsoleError || rankings.error || null,
         source: (analytics.metadata?.hasSearchConsoleConnection ? 'user' : 'dealership') as 'dealership' | 'user',
         hasConnection: analytics.metadata?.hasSearchConsoleConnection || false,
-        siteUrl: analytics.metadata?.siteUrl || null
+        siteUrl: analytics.metadata?.siteUrl || null,
+        permissionStatus: (analytics.metadata as any)?.searchConsolePermission
       }
     } catch (error) {
       logger.error('Search Console data fetch error', error, { userId, dealershipId })

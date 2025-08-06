@@ -4,6 +4,8 @@ import { encrypt, decrypt } from '@/lib/encryption'
 import { logger } from '@/lib/logger'
 
 export async function refreshGA4TokenIfNeeded(userId: string): Promise<boolean> {
+  let connectionId: string | undefined = undefined;
+
   try {
     // Get user info to check for agency/dealership associations
     const user = await prisma.users.findUnique({
@@ -43,6 +45,8 @@ export async function refreshGA4TokenIfNeeded(userId: string): Promise<boolean> 
       logger.warn('No GA4 connection found for token refresh', { userId, userDealershipId: user?.dealershipId });
       return false
     }
+
+    connectionId = connection.id
 
     // Check if token is expired or will expire soon (within 5 minutes)
     const now = new Date()
@@ -117,7 +121,7 @@ export async function refreshGA4TokenIfNeeded(userId: string): Promise<boolean> 
   } catch (error) {
     logger.error('Failed to refresh GA4 token', error, {
       userId,
-      connectionId: connection?.id,
+      connectionId,
       errorMessage: error instanceof Error ? error.message : 'Unknown error'
     })
     return false

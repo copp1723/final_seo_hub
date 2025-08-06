@@ -322,7 +322,6 @@ export function AutomotiveSEOChat({ dealershipInfo }: { dealershipInfo?: Dealers
                 autoComplete="off"
                 style={{ pointerEvents: 'auto' }}
               />
-              />
               <Button type="submit" disabled={isLoading || !input.trim()}>
                 <Send className="h-4 w-4" />
               </Button>

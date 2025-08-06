@@ -142,7 +142,7 @@ export class GA4Service {
       if (isAuthenticationError(error) && retryCount === 0) {
         logger.info('GA4 authentication error detected, attempting token refresh', {
           userId: this.userId,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
 
         // Try to refresh the token
@@ -188,7 +188,7 @@ export class GA4Service {
         logger.info('GA4 authentication error detected in batchRunReports, attempting token refresh', {
           userId: this.userId,
           propertyId,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
 
         // Try to refresh the token
@@ -228,7 +228,7 @@ export class GA4Service {
         logger.info('GA4 authentication error detected in getMetadata, attempting token refresh', {
           userId: this.userId,
           propertyId,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
 
         // Try to refresh the token

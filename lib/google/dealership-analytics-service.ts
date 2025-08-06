@@ -21,12 +21,22 @@ interface DashboardAnalytics {
     sessions: number
     users: number
     pageviews: number
+    newUsers?: number
+    returningUsers?: number
+    engagementRate?: number
+    averageSessionDuration?: number
+    bounceRate?: number
+    trafficSources?: Array<{ source: string; sessions: number }>
+    cities?: Array<{ city: string; sessions: number }>
+    devices?: Array<{ device: string; sessions: number }>
+    hourlyData?: Array<{ hour: number; sessions: number }>
   }
   searchConsoleData?: {
     clicks: number
     impressions: number
     ctr: number
     position: number
+    topQueries?: Array<{ query: string; clicks: number; impressions: number; ctr: number; position: number }>
   }
   errors: {
     ga4Error: string | null
@@ -38,6 +48,7 @@ interface DashboardAnalytics {
     dealershipId: string
     propertyId?: string
     siteUrl?: string
+    searchConsolePermission?: 'ok' | 'no_permission' | 'not_connected' | 'unknown_error'
   }
 }
 
@@ -65,14 +76,15 @@ export class DealershipAnalyticsService {
     result.ga4Data = ga4Result.data
     result.errors.ga4Error = ga4Result.error
     result.metadata.hasGA4Connection = ga4Result.hasConnection
-    result.metadata.propertyId = ga4Result.propertyId
+    result.metadata.propertyId = (ga4Result.propertyId ?? undefined)
 
     // Get Search Console data for dealership
     const scResult = await this.getDealershipSearchConsoleData({ startDate, endDate, dealershipId, userId })
     result.searchConsoleData = scResult.data
     result.errors.searchConsoleError = scResult.error
     result.metadata.hasSearchConsoleConnection = scResult.hasConnection
-    result.metadata.siteUrl = scResult.siteUrl
+    result.metadata.siteUrl = (scResult.siteUrl ?? undefined)
+    ;(result.metadata as any).searchConsolePermission = scResult.permissionStatus
 
     // Validate GA4 data integrity before returning
     const validatedResult = validateGA4Response(dealershipId || null, result)
@@ -137,8 +149,9 @@ export class DealershipAnalyticsService {
         }
       }
 
-      // Use the dealership-specific property ID if available, otherwise use user connection
-      targetPropertyId = propertyId || connection.propertyId
+      // IMPORTANT: Always prefer the user's actual connection over hardcoded mappings
+      // This ensures data is fetched even when dealership isn't in the mapping file
+      targetPropertyId = connection.propertyId || propertyId
 
       if (!targetPropertyId) {
         return {
@@ -197,33 +210,117 @@ export class DealershipAnalyticsService {
       })
 
       const response = await analyticsData.properties.batchRunReports({
-        property: `properties/${targetPropertyId}`,
+        property: `properties/${String(targetPropertyId)}`,
         requestBody: {
           requests: [
+            // Basic metrics
             {
               dateRanges: [{ startDate, endDate }],
               metrics: [
                 { name: 'sessions' },
                 { name: 'totalUsers' },
-                { name: 'eventCount' }
+                { name: 'screenPageViews' },
+                { name: 'newUsers' },
+                { name: 'engagementRate' },
+                { name: 'averageSessionDuration' },
+                { name: 'bounceRate' }
               ],
               dimensions: [],
               limit: 1
+            },
+            // Traffic sources
+            {
+              dateRanges: [{ startDate, endDate }],
+              metrics: [{ name: 'sessions' }],
+              dimensions: [{ name: 'sessionDefaultChannelGrouping' }],
+              limit: 10,
+              orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
+            },
+            // Geographic data (cities)
+            {
+              dateRanges: [{ startDate, endDate }],
+              metrics: [{ name: 'sessions' }],
+              dimensions: [{ name: 'city' }],
+              limit: 10,
+              orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
+            },
+            // Device data
+            {
+              dateRanges: [{ startDate, endDate }],
+              metrics: [{ name: 'sessions' }],
+              dimensions: [{ name: 'deviceCategory' }],
+              limit: 5,
+              orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
+            },
+            // Hourly data
+            {
+              dateRanges: [{ startDate, endDate }],
+              metrics: [{ name: 'sessions' }],
+              dimensions: [{ name: 'hour' }],
+              limit: 24,
+              orderBys: [{ dimension: { dimensionName: 'hour' } }]
             }
           ]
         }
-      })
+      } as any)
 
-      if (response.data && response.data.reports && response.data.reports[0]) {
-        const report = response.data.reports[0]
-        const row = report.rows?.[0]
+      const respData: any = (response as any).data
+      if (respData && respData.reports && respData.reports.length > 0) {
+        // Parse basic metrics (first report)
+        const basicReport = respData.reports[0]
+        const basicRow = basicReport.rows?.[0]
 
-        if (row) {
+        // Parse traffic sources (second report)
+        const trafficSourcesReport = respData.reports[1]
+        const trafficSources = trafficSourcesReport?.rows?.map((row: any) => ({
+          source: row.dimensionValues?.[0]?.value || 'Unknown',
+          sessions: parseInt(row.metricValues?.[0]?.value || '0')
+        })) || []
+
+        // Parse cities (third report)
+        const citiesReport = respData.reports[2]
+        const cities = citiesReport?.rows?.map((row: any) => ({
+          city: row.dimensionValues?.[0]?.value || 'Unknown',
+          sessions: parseInt(row.metricValues?.[0]?.value || '0')
+        })) || []
+
+        // Parse devices (fourth report)
+        const devicesReport = respData.reports[3]
+        const devices = devicesReport?.rows?.map((row: any) => ({
+          device: row.dimensionValues?.[0]?.value || 'Unknown',
+          sessions: parseInt(row.metricValues?.[0]?.value || '0')
+        })) || []
+
+        // Parse hourly data (fifth report)
+        const hourlyReport = respData.reports[4]
+        const hourlyData = hourlyReport?.rows?.map((row: any) => ({
+          hour: parseInt(row.dimensionValues?.[0]?.value || '0'),
+          sessions: parseInt(row.metricValues?.[0]?.value || '0')
+        })) || []
+
+        if (basicRow) {
+          const sessions = parseInt(basicRow.metricValues?.[0]?.value || '0')
+          const totalUsers = parseInt(basicRow.metricValues?.[1]?.value || '0')
+          const pageviews = parseInt(basicRow.metricValues?.[2]?.value || '0')
+          const newUsers = parseInt(basicRow.metricValues?.[3]?.value || '0')
+          const engagementRate = parseFloat(basicRow.metricValues?.[4]?.value || '0')
+          const averageSessionDuration = parseFloat(basicRow.metricValues?.[5]?.value || '0')
+          const bounceRate = parseFloat(basicRow.metricValues?.[6]?.value || '0')
+
           return {
             data: {
-              sessions: parseInt(row.metricValues?.[0]?.value || '0'),
-              users: parseInt(row.metricValues?.[1]?.value || '0'),
-              pageviews: parseInt(row.metricValues?.[2]?.value || '0')
+              sessions,
+              users: totalUsers,
+              pageviews,
+              newUsers,
+              returningUsers: Math.max(0, totalUsers - newUsers),
+              engagementRate,
+              averageSessionDuration,
+              bounceRate,
+              trafficSources,
+              cities,
+              devices,
+              hourlyData
             },
             error: null,
             hasConnection: true,
@@ -253,6 +350,16 @@ export class DealershipAnalyticsService {
   private async getDealershipSearchConsoleData(options: AnalyticsOptions) {
     const { startDate, endDate, dealershipId, userId } = options
     let targetSiteUrl: string | null = null
+    let permissionStatus: 'ok' | 'no_permission' | 'not_connected' | 'unknown_error' = 'unknown_error'
+
+    const classifyGscError = (err: any): 'no_permission' | 'unknown_error' => {
+      const msg = typeof err === 'string' ? err : (err?.message || '')
+      const code = (err as any)?.code ?? (err as any)?.response?.status
+      const reason = (err as any)?.errors?.[0]?.reason || (err as any)?.response?.data?.error?.errors?.[0]?.reason
+      if (code === 403 && /insufficientPermissions|forbidden/i.test(String(reason || ''))) return 'no_permission'
+      if (/user does not have sufficient permission|insufficientPermissions|insufficient permission/i.test(msg)) return 'no_permission'
+      return 'unknown_error'
+    }
 
     try {
       // Get dealership-specific Search Console URL from mapping
@@ -261,16 +368,6 @@ export class DealershipAnalyticsService {
       if (dealershipId) {
         siteUrl = getSearchConsoleUrl(dealershipId)
         console.log(`🎯 Search Console URL mapping for ${dealershipId}:`, siteUrl)
-
-        if (!siteUrl) {
-          console.log(`❌ No Search Console URL found for dealership: ${dealershipId}`)
-          return {
-            data: undefined,
-            error: `No Search Console URL configured for dealership: ${dealershipId}`,
-            hasConnection: false,
-            siteUrl: undefined
-          }
-        }
       }
 
       // Find Search Console connection - check dealership-level first, then user-level
@@ -282,7 +379,6 @@ export class DealershipAnalyticsService {
         })
       }
 
-      // Fallback to user-level connection if no dealership connection found
       if (!connection) {
         connection = await prisma.search_console_connections.findFirst({
           where: { userId }
@@ -291,11 +387,13 @@ export class DealershipAnalyticsService {
 
       if (!connection) {
         logger.info('No Search Console connection found', { userId, dealershipId })
+        permissionStatus = 'not_connected'
         return {
           data: undefined,
           error: 'No Search Console connection found - please connect your Google Search Console account',
           hasConnection: false,
-          siteUrl: undefined
+          siteUrl: undefined,
+          permissionStatus
         }
       }
 
@@ -307,15 +405,17 @@ export class DealershipAnalyticsService {
         connectionType: connection.dealershipId ? 'dealership' : 'user'
       })
 
-      // Use the dealership-specific URL from mapping, or fallback to connection URL
-      targetSiteUrl = siteUrl || connection.siteUrl
+      // Prefer user's actual connection over hardcoded mappings
+      targetSiteUrl = connection.siteUrl || siteUrl
 
       if (!targetSiteUrl) {
+        permissionStatus = 'not_connected'
         return {
           data: undefined,
           error: 'No Search Console URL available',
           hasConnection: false,
-          siteUrl: undefined
+          siteUrl: undefined,
+          permissionStatus
         }
       }
 
@@ -325,39 +425,67 @@ export class DealershipAnalyticsService {
 
       console.log(`🔍 Making Search Console API call to: ${targetSiteUrl}`)
 
-      const searchConsoleData = await searchConsoleService.getSearchAnalytics(
-        targetSiteUrl,
-        {
-          startDate,
-          endDate,
-          dimensions: [],
-          searchType: 'web',
-          rowLimit: 1
-        }
-      )
+      // Fetch both summary data and top queries in parallel
+      const [searchConsoleData, topQueriesData] = await Promise.all([
+        searchConsoleService.getSearchAnalytics(
+          targetSiteUrl,
+          {
+            startDate,
+            endDate,
+            dimensions: [],
+            searchType: 'web',
+            rowLimit: 1
+          }
+        ),
+        searchConsoleService.getSearchAnalytics(
+          targetSiteUrl,
+          {
+            startDate,
+            endDate,
+            dimensions: ['query'],
+            searchType: 'web',
+            rowLimit: 20
+          }
+        )
+      ])
 
       console.log(`📊 Search Console API response:`, {
         hasData: !!searchConsoleData,
         hasRows: !!(searchConsoleData?.rows),
         rowCount: searchConsoleData?.rows?.length || 0,
         firstRow: searchConsoleData?.rows?.[0] || null,
+        hasTopQueries: !!(topQueriesData?.rows),
+        topQueriesCount: topQueriesData?.rows?.length || 0,
         requestedUrl: targetSiteUrl,
-        error: searchConsoleData?.error || null
+        error: (searchConsoleData as any)?.error || null
       })
+
+      permissionStatus = 'ok'
 
       if (searchConsoleData && searchConsoleData.rows && searchConsoleData.rows.length > 0) {
         const row = searchConsoleData.rows[0]
-        
+
+        // Process top queries
+        const topQueries = topQueriesData?.rows?.map(queryRow => ({
+          query: queryRow.keys?.[0] || 'Unknown',
+          clicks: queryRow.clicks || 0,
+          impressions: queryRow.impressions || 0,
+          ctr: queryRow.ctr || 0,
+          position: queryRow.position || 0
+        })) || []
+
         return {
           data: {
             clicks: row.clicks || 0,
             impressions: row.impressions || 0,
             ctr: row.ctr || 0,
-            position: row.position || 0
+            position: row.position || 0,
+            topQueries
           },
           error: null,
           hasConnection: true,
-          siteUrl: targetSiteUrl
+          siteUrl: targetSiteUrl,
+          permissionStatus
         }
       }
 
@@ -365,16 +493,21 @@ export class DealershipAnalyticsService {
         data: undefined,
         error: 'No data available',
         hasConnection: true,
-        siteUrl: targetSiteUrl
+        siteUrl: targetSiteUrl,
+        permissionStatus
       }
 
     } catch (error) {
       logger.error('Search Console dealership data fetch error', error, { userId, dealershipId })
+      const classified = classifyGscError(error)
+      permissionStatus = classified
+
       return {
         data: undefined,
         error: error instanceof Error ? error.message : 'Failed to fetch Search Console data',
-        hasConnection: true, // Connection exists, but data fetch failed
-        siteUrl: targetSiteUrl
+        hasConnection: true,
+        siteUrl: targetSiteUrl,
+        permissionStatus
       }
     }
   }
@@ -383,9 +516,25 @@ export class DealershipAnalyticsService {
     let targetSiteUrl: string | null = null
 
     try {
+      // Prefer the user's actual SC connection siteUrl, falling back to mapping only if missing
+      // Reuse the permission-aware path by attempting to resolve via connection like getDealershipSearchConsoleData does
+      // Minimal duplication: first try to find a connection
+      let resolvedSiteUrl: string | null = null
+      if (dealershipId) {
+        const dealershipConn = await prisma.search_console_connections.findFirst({ where: { dealershipId } })
+        if (dealershipConn?.siteUrl) {
+          resolvedSiteUrl = dealershipConn.siteUrl
+        }
+      }
+      if (!resolvedSiteUrl) {
+        const userConn = await prisma.search_console_connections.findFirst({ where: { userId } })
+        if (userConn?.siteUrl) {
+          resolvedSiteUrl = userConn.siteUrl
+        }
+      }
 
-
-      targetSiteUrl = dealershipId ? getSearchConsoleUrl(dealershipId) : null
+      // Fallback to hardcoded mapping only if no connection siteUrl
+      targetSiteUrl = resolvedSiteUrl || (dealershipId ? getSearchConsoleUrl(dealershipId) : null)
 
       if (!targetSiteUrl) {
         return {
@@ -398,11 +547,24 @@ export class DealershipAnalyticsService {
 
       const searchConsoleService = await this.getSearchConsoleService(userId)
 
-      // Get top queries with ranking data
-      const rankingsData = await searchConsoleService.getTopQueries(targetSiteUrl, 30)
+      // Use Search Analytics API for live queries. If no explicit dates provided, default to last 30 days
+      const effectiveStart = startDate || new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      const effectiveEnd = endDate || new Date().toISOString().slice(0, 10)
+
+      // Fetch up to ~200 rows for broader coverage
+      const rankingsData = await searchConsoleService.getSearchAnalytics(
+        targetSiteUrl,
+        {
+          startDate: effectiveStart,
+          endDate: effectiveEnd,
+          dimensions: ['query'],
+          searchType: 'web',
+          rowLimit: 200
+        }
+      )
 
       if (rankingsData && rankingsData.rows && rankingsData.rows.length > 0) {
-        const queries = rankingsData.rows.map(row => ({
+        const queries = rankingsData.rows.map((row: any) => ({
           query: row.keys?.[0] || 'unknown',
           clicks: row.clicks || 0,
           impressions: row.impressions || 0,
@@ -410,21 +572,26 @@ export class DealershipAnalyticsService {
           position: row.position || 0
         }))
 
-        // Calculate ranking stats
+        // Compute stats in the shape the UI expects to read today
         const top10Count = queries.filter(q => q.position <= 10).length
         const top20Count = queries.filter(q => q.position <= 20).length
-        const avgPosition = queries.reduce((sum, q) => sum + q.position, 0) / queries.length
+        const avgPosition = queries.length > 0 ? (queries.reduce((sum, q) => sum + (Number.isFinite(q.position) ? q.position : 0), 0) / queries.length) : 0
+
+        // Keep contract stable for the current UI usage:
+        // dashboard/page.tsx reads rankingsData?.data?.data?.averagePosition
+        // So return { data: { data: { averagePosition, ... } } }
+        const stablePayload = {
+          data: {
+            averagePosition: Math.round(avgPosition * 10) / 10,
+            top10Count,
+            top20Count,
+            totalKeywords: queries.length,
+            queries: queries.slice(0, 50) // cap for response size safety
+          }
+        }
 
         return {
-          data: {
-            queries: queries.slice(0, 10), // Top 10 queries
-            stats: {
-              top10Count,
-              top20Count,
-              avgPosition: Math.round(avgPosition * 10) / 10,
-              totalQueries: queries.length
-            }
-          },
+          data: stablePayload,
           error: null,
           hasConnection: true,
           siteUrl: targetSiteUrl

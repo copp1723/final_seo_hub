@@ -24,6 +24,7 @@ import {
 
 import ErrorBoundary from '@/components/error-boundary'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 
 // Type definitions
 interface DashboardData {
@@ -589,53 +590,14 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {/* Recent Activity */}
+            {/* Live Activity Feed - Real-time updates */}
             <div>
-              <Card className="border border-slate-200/60 shadow-sm bg-white">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-medium text-slate-900 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-blue-600" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          New page created: "Acura Service Center"
-                        </p>
-                        <p className="text-sm text-gray-500">2 hours ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <FileText className="h-5 w-5 text-blue-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          Blog post published: "2024 Acura Models"
-                        </p>
-                        <p className="text-sm text-gray-500">1 day ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0">
-                        <TrendingUp className="h-5 w-5 text-orange-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          Keyword ranking improved for "acura columbus"
-                        </p>
-                        <p className="text-sm text-gray-500">2 days ago</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ActivityFeed
+                dealershipId={currentDealership?.id}
+                limit={15}
+                autoRefresh={true}
+                refreshInterval={30}
+              />
             </div>
           </div>
         </div>

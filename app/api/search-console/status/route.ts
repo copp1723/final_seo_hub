@@ -67,6 +67,28 @@ export async function GET(request: NextRequest) {
     }
 
     const primary = dealershipConn || userConn || null
+
+    // Optionally enrich with permission by leveraging coordinator light call
+    let permission: 'ok' | 'no_permission' | 'not_connected' | 'unknown_error' | null = null
+    try {
+      if (primary) {
+        // Lightweight probe via coordinator to reuse classification logic
+        const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
+        const coord = await analyticsCoordinator.fetchCoordinatedAnalytics(
+          session.user.id,
+          '7days',
+          targetDealershipId || undefined,
+          true // forceRefresh to avoid stale
+        )
+        permission = (coord.metadata as any)?.searchConsolePermission || null
+      } else {
+        permission = 'not_connected'
+      }
+    } catch (e) {
+      logger.warn('Search Console status permission probe failed', { error: e })
+      permission = null
+    }
+
     return NextResponse.json({
       connected: !!primary, // legacy
       siteUrl: primary?.siteUrl || null, // legacy
@@ -75,7 +97,8 @@ export async function GET(request: NextRequest) {
       connectedForDealership,
       hasUserLevelConnection,
       dealershipId: targetDealershipId,
-      source
+      source,
+      permission
     })
   } catch (error) {
     logger.error('Search Console status error', error, { userId: session?.user.id })

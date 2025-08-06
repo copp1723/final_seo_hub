@@ -6,7 +6,7 @@ import { refreshGA4TokenIfNeeded } from './ga4-token-refresh'
 import { GA4Service } from './ga4Service'
 import { features } from '@/lib/features'
 
-import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access } from '@/lib/dealership-property-mapping'
+import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access, DEALERSHIP_PROPERTY_MAPPINGS } from '@/lib/dealership-property-mapping'
 import { validateGA4Response } from '@/lib/validation/ga4-data-integrity'
 
 interface AnalyticsOptions {
@@ -57,6 +57,14 @@ export class DealershipAnalyticsService {
   async getDealershipAnalytics(options: AnalyticsOptions): Promise<DashboardAnalytics> {
     const { startDate, endDate, dealershipId, userId } = options
 
+    // DIAGNOSTIC: Log the incoming request
+    console.log('🔍 [DIAGNOSTIC] getDealershipAnalytics called with:', {
+      dealershipId,
+      userId,
+      startDate,
+      endDate,
+      timestamp: new Date().toISOString()
+    })
 
 
     const result: DashboardAnalytics = {
@@ -137,21 +145,31 @@ export class DealershipAnalyticsService {
 
       if (dealershipId) {
         propertyId = getGA4PropertyId(dealershipId)
-        console.log(`🎯 GA4 Property mapping for ${dealershipId}:`, propertyId)
+        console.log(`🎯 [DIAGNOSTIC] GA4 Property mapping for ${dealershipId}:`, propertyId)
+        
+        // DIAGNOSTIC: Check what dealership name this maps to
+        const mapping = DEALERSHIP_PROPERTY_MAPPINGS.find(m => m.dealershipId === dealershipId)
+        console.log(`🔍 [DIAGNOSTIC] Dealership mapping found:`, {
+          dealershipId: mapping?.dealershipId,
+          dealershipName: mapping?.dealershipName,
+          ga4PropertyId: mapping?.ga4PropertyId,
+          hasAccess: mapping?.hasAccess
+        })
 
         // Use dealership-specific property if it exists and has access
         if (propertyId && hasGA4Access(dealershipId)) {
           hasDealershipMapping = true
-          console.log(`✅ Using dealership-specific GA4 property ${propertyId} for ${dealershipId}`)
+          console.log(`✅ [DIAGNOSTIC] Using dealership-specific GA4 property ${propertyId} for ${dealershipId}`)
         } else {
-          console.log(`⚠️ No dealership-specific GA4 mapping found for ${dealershipId}, falling back to user connection`)
+          console.log(`⚠️ [DIAGNOSTIC] No dealership-specific GA4 mapping found for ${dealershipId}, falling back to user connection`)
           propertyId = null // Reset to use user connection
         }
       }
 
-      // IMPORTANT: Always prefer the user's actual connection over hardcoded mappings
-      // This ensures data is fetched even when dealership isn't in the mapping file
-      targetPropertyId = connection.propertyId || propertyId
+      // FIXED: Prefer dealership-specific mapping when available
+      // Falls back to user connection only if no mapping exists
+      // This prevents cross-dealership data contamination
+      targetPropertyId = propertyId || connection.propertyId
 
       if (!targetPropertyId) {
         return {
@@ -405,8 +423,9 @@ export class DealershipAnalyticsService {
         connectionType: connection.dealershipId ? 'dealership' : 'user'
       })
 
-      // Prefer user's actual connection over hardcoded mappings
-      targetSiteUrl = connection.siteUrl || siteUrl
+      // FIXED: Prefer dealership-specific mapping over user's generic connection
+      // This prevents cross-dealership data contamination
+      targetSiteUrl = siteUrl || connection.siteUrl
 
       if (!targetSiteUrl) {
         permissionStatus = 'not_connected'
@@ -419,7 +438,14 @@ export class DealershipAnalyticsService {
         }
       }
 
-      console.log(`🔍 Using Search Console URL: ${targetSiteUrl} for dealership: ${dealershipId}`)
+      console.log(`🔍 [DIAGNOSTIC] Using Search Console URL: ${targetSiteUrl} for dealership: ${dealershipId}`)
+      console.log(`🔍 [DIAGNOSTIC] Connection details:`, {
+        connectionId: connection.id,
+        connectionDealershipId: connection.dealershipId,
+        connectionUserId: connection.userId,
+        connectionSiteUrl: connection.siteUrl,
+        mappedSiteUrl: siteUrl
+      })
 
       const searchConsoleService = await this.getSearchConsoleService(userId)
 
@@ -449,14 +475,16 @@ export class DealershipAnalyticsService {
         )
       ])
 
-      console.log(`📊 Search Console API response:`, {
+      console.log(`📊 [DIAGNOSTIC] Search Console API response:`, {
         hasData: !!searchConsoleData,
         hasRows: !!(searchConsoleData?.rows),
         rowCount: searchConsoleData?.rows?.length || 0,
         firstRow: searchConsoleData?.rows?.[0] || null,
         hasTopQueries: !!(topQueriesData?.rows),
         topQueriesCount: topQueriesData?.rows?.length || 0,
+        topQueries: topQueriesData?.rows?.slice(0, 3).map((r: any) => r.keys?.[0]) || [],
         requestedUrl: targetSiteUrl,
+        dealershipId,
         error: (searchConsoleData as any)?.error || null
       })
 

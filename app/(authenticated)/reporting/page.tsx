@@ -97,7 +97,10 @@ export default function ReportingPage() {
       }
 
       const result = await response.json()
-      console.log('Reporting analytics data received:', result.data) // Debug log
+      console.log('🔍 [REPORTING DEBUG] Full API response:', JSON.stringify(result, null, 2))
+      console.log('🔍 [REPORTING DEBUG] Search Console data:', JSON.stringify(result.data?.searchConsoleData, null, 2))
+      console.log('🔍 [REPORTING DEBUG] Top queries:', result.data?.searchConsoleData?.topQueries)
+      console.log('🔍 [REPORTING DEBUG] Current dealership:', currentDealership?.name, currentDealership?.id)
       setAnalyticsData(result.data)
     } catch (error) {
       console.error('Analytics fetch error:', error)

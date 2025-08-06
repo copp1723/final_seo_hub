@@ -458,8 +458,17 @@ export async function GET(request: NextRequest) {
     const dealershipId = searchParams.get('dealershipId')
     const clearCacheParam = searchParams.get('clearCache')
 
-    // Force refresh if requested
-    const forceRefresh = clearCacheParam === 'true'
+    // Force refresh if requested OR when switching dealerships
+    const forceRefresh = clearCacheParam === 'true' || !!dealershipId
+
+    console.log('🎯 ANALYTICS API GET REQUEST:', {
+      userId: userId,
+      dateRange,
+      requestedDealershipId: dealershipId,
+      forceRefresh,
+      clearCache: clearCacheParam,
+      timestamp: new Date().toISOString()
+    })
 
     logger.info('Dashboard analytics GET: Request details', {
       userId: userId,
@@ -570,12 +579,28 @@ export async function GET(request: NextRequest) {
       dateRange
     })
 
+    console.log('📡 CALLING ANALYTICS COORDINATOR:', {
+      userId,
+      dealershipId: dealershipId || 'none',
+      dateRange,
+      forceRefresh
+    })
+
     const analyticsData = await analyticsCoordinator.fetchCoordinatedAnalytics(
       userId,
       dateRange,
       dealershipId || undefined,
       forceRefresh
     )
+
+    console.log('📊 ANALYTICS COORDINATOR RETURNED:', {
+      dealershipId: dealershipId || 'none',
+      hasGA4Data: !!analyticsData.ga4Data,
+      hasSearchData: !!analyticsData.searchConsoleData,
+      ga4Cities: analyticsData.ga4Data?.cities?.slice(0, 2),
+      searchQueries: analyticsData.searchConsoleData?.topQueries?.slice(0, 2),
+      fromCache: analyticsData.metadata?.fromCache
+    })
 
     // Map the coordinated analytics data to dashboard format
     dashboardData.ga4Data = analyticsData.ga4Data || null

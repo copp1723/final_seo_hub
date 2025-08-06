@@ -52,6 +52,14 @@ export class AnalyticsCoordinator {
   ): Promise<CoordinatedAnalyticsResult> {
     const startTime = Date.now()
     
+    console.log('🔍 Analytics Coordinator START:', {
+      userId,
+      dealershipId,
+      dateRange,
+      forceRefresh,
+      timestamp: new Date().toISOString()
+    })
+    
     // Generate cache key
     const cacheKey = CacheKeys.analytics(userId, dateRange, dealershipId)
     
@@ -63,6 +71,12 @@ export class AnalyticsCoordinator {
           const cachedData = await redisClient.get(cacheKey)
           if (cachedData) {
             const cached = JSON.parse(cachedData) as CoordinatedAnalyticsResult
+            console.log('⚠️ RETURNING CACHED DATA:', {
+              dealershipId,
+              cacheKey,
+              ga4Cities: cached.ga4Data?.cities?.slice(0, 2),
+              searchQueries: cached.searchConsoleData?.topQueries?.slice(0, 2)
+            })
             logger.info('Analytics data served from cache', {
               userId,
               dealershipId,
@@ -76,6 +90,8 @@ export class AnalyticsCoordinator {
         logger.warn('Cache retrieval failed, proceeding without cache', { error, cacheKey })
       }
     }
+
+    console.log('📊 FETCHING FRESH DATA for dealership:', dealershipId)
 
     // Initialize result
     const result: CoordinatedAnalyticsResult = {
@@ -106,6 +122,14 @@ export class AnalyticsCoordinator {
         result.metadata.dataSources.ga4 = ga4Result.value.source || 'none'
         result.metadata.hasGA4Connection = ga4Result.value.hasConnection || false
         result.metadata.propertyId = ga4Result.value.propertyId || null
+        
+        console.log('✅ GA4 DATA RECEIVED:', {
+          dealershipId,
+          hasData: !!result.ga4Data,
+          sessions: result.ga4Data?.sessions,
+          cities: result.ga4Data?.cities?.slice(0, 2),
+          devices: result.ga4Data?.devices?.slice(0, 2)
+        })
       } else {
         result.errors.ga4 = 'Failed to fetch GA4 data'
         result.metadata.hasGA4Connection = false
@@ -122,6 +146,14 @@ export class AnalyticsCoordinator {
         result.metadata.hasSearchConsoleConnection = searchConsoleResult.value.hasConnection || false
         result.metadata.siteUrl = searchConsoleResult.value.siteUrl || null
         ;(result.metadata as any).searchConsolePermission = searchConsoleResult.value.permissionStatus
+        
+        console.log('✅ SEARCH CONSOLE DATA RECEIVED:', {
+          dealershipId,
+          hasData: !!result.searchConsoleData,
+          clicks: result.searchConsoleData?.clicks,
+          topQueries: result.searchConsoleData?.topQueries?.slice(0, 2),
+          siteUrl: result.metadata.siteUrl
+        })
       } else {
         result.errors.searchConsole = 'Failed to fetch Search Console data'
         result.metadata.hasSearchConsoleConnection = false
@@ -168,6 +200,7 @@ export class AnalyticsCoordinator {
     dealershipId?: string
   ): Promise<{ data: any; error: string | null; source?: 'dealership' | 'user'; hasConnection?: boolean; propertyId?: string | null }> {
     try {
+      console.log('🔄 Fetching GA4 data:', { userId, dealershipId, dateRange })
       const { startDate, endDate } = getDateRange(dateRange)
 
       const analytics = await this.analyticsService.getDealershipAnalytics({
@@ -175,6 +208,14 @@ export class AnalyticsCoordinator {
         dealershipId: dealershipId || null,
         startDate,
         endDate
+      })
+
+      console.log('📈 GA4 analytics service returned:', {
+        dealershipId,
+        hasData: !!analytics.ga4Data,
+        sessions: analytics.ga4Data?.sessions,
+        firstCity: analytics.ga4Data?.cities?.[0],
+        propertyId: analytics.metadata?.propertyId
       })
 
       return {
@@ -204,6 +245,7 @@ export class AnalyticsCoordinator {
     dealershipId?: string
   ): Promise<{ data: any; rankings: any; error: string | null; source?: 'dealership' | 'user'; hasConnection?: boolean; siteUrl?: string | null; permissionStatus?: 'ok' | 'no_permission' | 'not_connected' | 'unknown_error' }> {
     try {
+      console.log('🔄 Fetching Search Console data:', { userId, dealershipId, dateRange })
       const { startDate, endDate } = getDateRange(dateRange)
 
       const analytics = await this.analyticsService.getDealershipAnalytics({
@@ -218,6 +260,14 @@ export class AnalyticsCoordinator {
         userId,
         dealershipId || null
       )
+
+      console.log('🔍 Search Console analytics service returned:', {
+        dealershipId,
+        hasData: !!analytics.searchConsoleData,
+        clicks: analytics.searchConsoleData?.clicks,
+        firstQuery: analytics.searchConsoleData?.topQueries?.[0],
+        siteUrl: analytics.metadata?.siteUrl
+      })
 
       return {
         data: analytics.searchConsoleData,

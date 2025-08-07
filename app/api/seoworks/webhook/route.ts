@@ -495,7 +495,8 @@ export const POST = compose(
               data.clientId ? { id: data.clientId } : {},
               data.clientEmail ? { email: data.clientEmail } : {}
             ].filter(condition => Object.keys(condition).length > 0)
-          }
+          },
+          select: { id: true, email: true, dealershipId: true, agencyId: true }
         })
         
         if (user && eventType === 'task.completed') {
@@ -503,6 +504,8 @@ export const POST = compose(
           requestRecord = await prisma.requests.create({
             data: {
               userId: user.id,
+              agencyId: user.agencyId || null,
+              dealershipId: user.dealershipId || null,
               title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${data.taskType} Task`,
               description: `Task created directly in SEOWorks\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
               type: data.taskType.toLowerCase(),

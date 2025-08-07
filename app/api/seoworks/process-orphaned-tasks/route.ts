@@ -16,22 +16,25 @@ async function handlePOST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}))
-  const { userId, userEmail } = body || {}
-  if (!userId && !userEmail) {
-    return errorResponse('userId or userEmail is required', 400)
+  const { userId, userEmail, externalId } = body || {}
+  if (!userId && !userEmail && !externalId) {
+    return errorResponse('Provide userId or userEmail, or externalId', 400)
   }
 
   try {
-    const orphanedTasks = await prisma.orphaned_tasks.findMany({
-      where: {
-        OR: [
-          userId ? { clientId: userId } : {},
-          userEmail ? { clientEmail: userEmail } : {}
-        ].filter((c) => Object.keys(c).length > 0),
-        processed: false,
-      },
-      orderBy: { createdAt: 'asc' },
-    })
+    // If externalId is provided, limit to that single orphaned task
+    const orphanedTasks = externalId
+      ? await prisma.orphaned_tasks.findMany({ where: { externalId, processed: false } })
+      : await prisma.orphaned_tasks.findMany({
+          where: {
+            OR: [
+              userId ? { clientId: userId } : {},
+              userEmail ? { clientEmail: userEmail } : {},
+            ].filter((c) => Object.keys(c).length > 0),
+            processed: false,
+          },
+          orderBy: { createdAt: 'asc' },
+        })
 
     if (orphanedTasks.length === 0) {
       return successResponse({ processed: 0, created: 0, message: 'No orphaned tasks to process' })
@@ -43,9 +46,33 @@ async function handlePOST(request: NextRequest) {
     for (const orphaned of orphanedTasks) {
       try {
         if (orphaned.eventType === 'task.completed') {
+          // Determine the owning user
+          let ownerUserId = userId
+          if (!ownerUserId) {
+            const owner = await prisma.users.findFirst({
+              where: {
+                OR: [
+                  orphaned.clientId ? { id: orphaned.clientId } : {},
+                  orphaned.clientEmail ? { email: orphaned.clientEmail } : {},
+                ].filter((c) => Object.keys(c).length > 0),
+              },
+              select: { id: true },
+            })
+            ownerUserId = owner?.id
+          }
+
+          if (!ownerUserId) {
+            // Skip if we cannot resolve a user
+            await prisma.orphaned_tasks.update({
+              where: { id: orphaned.id },
+              data: { notes: `${orphaned.notes || ''}\n\nProcessing skipped: no user resolved` },
+            })
+            continue
+          }
+
           const newRequest = await prisma.requests.create({
             data: {
-              userId: userId!,
+              userId: ownerUserId!,
               title: Array.isArray(orphaned.deliverables) && (orphaned.deliverables as any[])[0]?.title
                 ? (orphaned.deliverables as any[])[0].title
                 : `SEOWorks ${String(orphaned.taskType).toLowerCase()} Task`,
@@ -67,7 +94,7 @@ async function handlePOST(request: NextRequest) {
             data: {
               processed: true,
               linkedRequestId: newRequest.id,
-              notes: `${orphaned.notes || ''}\n\nProcessed and linked to request ${newRequest.id} for user ${userId}`,
+              notes: `${orphaned.notes || ''}\n\nProcessed and linked to request ${newRequest.id} for user ${newRequest.userId}`,
             },
           })
 

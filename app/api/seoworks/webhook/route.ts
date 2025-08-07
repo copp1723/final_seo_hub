@@ -88,6 +88,7 @@ async function handleTaskCompleted(
         break
       case 'improvement':
       case 'maintenance':
+      case 'seochange':
         updateData.improvementsCompleted = { increment: 1 }
         break
     }
@@ -132,6 +133,7 @@ async function handleTaskCompleted(
           break
         case 'maintenance':
         case 'improvement':
+        case 'seochange':
           taskTypeForUsage = 'improvements'
           break
       }
@@ -290,7 +292,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
               pagesCompleted: orphanedTask.taskType.toLowerCase() === 'page' ? 1 : 0,
               blogsCompleted: orphanedTask.taskType.toLowerCase() === 'blog' ? 1 : 0,
               gbpPostsCompleted: orphanedTask.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
-              improvementsCompleted: ['improvement', 'maintenance'].includes(orphanedTask.taskType.toLowerCase()) ? 1 : 0
+              improvementsCompleted: ['improvement', 'maintenance', 'seochange'].includes(orphanedTask.taskType.toLowerCase()) ? 1 : 0
             }
           })
 
@@ -512,7 +514,7 @@ export const POST = compose(
               pagesCompleted: data.taskType.toLowerCase() === 'page' ? 1 : 0,
               blogsCompleted: data.taskType.toLowerCase() === 'blog' ? 1 : 0,
               gbpPostsCompleted: data.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
-              improvementsCompleted: ['improvement', 'maintenance'].includes(data.taskType.toLowerCase()) ? 1 : 0
+              improvementsCompleted: ['improvement', 'maintenance', 'seochange'].includes(data.taskType.toLowerCase()) ? 1 : 0
             },
             include: { users: true }
           })

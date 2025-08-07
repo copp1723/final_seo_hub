@@ -132,7 +132,7 @@ export function TaskList({
                 <SelectItem value="PAGE">Page</SelectItem>
                 <SelectItem value="BLOG">Blog</SelectItem>
                 <SelectItem value="GBP_POST">GBP Post</SelectItem>
-                <SelectItem value="IMPROVEMENT">Improvement</SelectItem>
+                <SelectItem value="IMPROVEMENT">SEO Change</SelectItem>
               </SelectContent>
             </Select>
 

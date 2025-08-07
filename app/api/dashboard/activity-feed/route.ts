@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
         'PAGE': { icon: 'FileText', color: 'purple', label: 'Page created' },
         'BLOG': { icon: 'PenTool', color: 'indigo', label: 'Blog published' },
         'GBP_POST': { icon: 'MapPin', color: 'orange', label: 'GBP post published' },
-        'IMPROVEMENT': { icon: 'TrendingUp', color: 'emerald', label: 'Improvement made' }
+        'IMPROVEMENT': { icon: 'TrendingUp', color: 'emerald', label: 'SEO change made' }
       }
 
       const taskInfo = typeMap[task.type] || { icon: 'Activity', color: 'gray', label: 'Task completed' }

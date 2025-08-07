@@ -6,7 +6,7 @@
 import { TaskType as DatabaseTaskType } from '@prisma/client'
 
 // Frontend and API use lowercase with underscores
-export type RequestTaskType = 'page' | 'blog' | 'gbp_post' | 'improvement' | 'maintenance'
+export type RequestTaskType = 'page' | 'blog' | 'gbp_post' | 'improvement' | 'maintenance' | 'seochange'
 
 // Package utils use camelCase
 export type PackageTaskType = 'pages' | 'blogs' | 'gbpPosts' | 'improvements'
@@ -21,6 +21,7 @@ export function requestTypeToTaskType(requestType: string): DatabaseTaskType {
     'gbp_post': DatabaseTaskType.GBP_POST,
     'improvement': DatabaseTaskType.IMPROVEMENT,
     'maintenance': DatabaseTaskType.IMPROVEMENT, // maintenance maps to improvement
+    'seochange': DatabaseTaskType.IMPROVEMENT, // seochange maps to improvement
   }
   
   const normalizedType = requestType.toLowerCase()
@@ -41,7 +42,8 @@ export function taskTypeToRequestType(taskType: DatabaseTaskType): RequestTaskTy
     [DatabaseTaskType.PAGE]: 'page',
     [DatabaseTaskType.BLOG]: 'blog',
     [DatabaseTaskType.GBP_POST]: 'gbp_post',
-    [DatabaseTaskType.IMPROVEMENT]: 'improvement',
+    // Expose IMPROVEMENT as 'seochange' for external/UI terminology
+    [DatabaseTaskType.IMPROVEMENT]: 'seochange',
   }
   
   return mapping[taskType]
@@ -58,6 +60,7 @@ export function requestTypeToPackageType(requestType: string): PackageTaskType {
     'gbp-post': 'gbpPosts', // Handle both formats
     'improvement': 'improvements',
     'maintenance': 'improvements', // maintenance maps to improvements
+    'seochange': 'improvements', // seochange maps to improvements usage bucket
   }
   
   const normalizedType = requestType.toLowerCase()
@@ -74,7 +77,7 @@ export function requestTypeToPackageType(requestType: string): PackageTaskType {
  * Validate if a string is a valid request type
  */
 export function isValidRequestType(type: string): type is RequestTaskType {
-  const validTypes: RequestTaskType[] = ['page', 'blog', 'gbp_post', 'improvement', 'maintenance']
+  const validTypes: RequestTaskType[] = ['page', 'blog', 'gbp_post', 'improvement', 'maintenance', 'seochange']
   return validTypes.includes(type.toLowerCase() as RequestTaskType)
 }
 

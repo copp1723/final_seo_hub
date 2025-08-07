@@ -77,7 +77,7 @@ const typeConfig = {
   },
   IMPROVEMENT: {
     icon: Wrench,
-    label: 'Improvement',
+    label: 'SEO Change',
     color: 'bg-orange-500',
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-700'

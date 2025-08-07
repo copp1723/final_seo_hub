@@ -70,6 +70,7 @@ export async function handleTaskCompleted(
         break
       case 'improvement':
       case 'maintenance':
+      case 'seochange':
         updateData.improvementsCompleted = { increment: 1 }
         break
     }
@@ -113,6 +114,7 @@ export async function handleTaskCompleted(
           break
         case 'maintenance':
         case 'improvement':
+        case 'seochange':
           taskTypeForUsage = 'improvements'
           break
       }

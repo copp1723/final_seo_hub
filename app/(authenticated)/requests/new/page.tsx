@@ -114,7 +114,7 @@ export default function NewRequestPage() {
                   <option value="page">Page</option>
                   <option value="blog">Blog</option>
                   <option value="gbp_post">GBP Post</option>
-                  <option value="maintenance">Maintenance</option>
+                  <option value="seochange">SEO Change</option>
                 </select>
               </div>
 

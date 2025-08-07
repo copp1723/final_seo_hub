@@ -45,7 +45,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
               pagesCompleted: orphanedTask.taskType.toLowerCase() === 'page' ? 1 : 0,
               blogsCompleted: orphanedTask.taskType.toLowerCase() === 'blog' ? 1 : 0,
               gbpPostsCompleted: orphanedTask.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
-              improvementsCompleted: ['improvement', 'maintenance'].includes(orphanedTask.taskType.toLowerCase()) ? 1 : 0
+              improvementsCompleted: ['improvement', 'maintenance', 'seochange'].includes(orphanedTask.taskType.toLowerCase()) ? 1 : 0
             }
           })
 

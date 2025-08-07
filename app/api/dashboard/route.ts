@@ -133,7 +133,8 @@ export async function GET(request: NextRequest) {
             type = 'gbp_' + (req.status === 'COMPLETED' ? 'completed' : 'progress')
             break
           case 'improvement':
-            description = `SEO improvements ${req.status === 'COMPLETED' ? 'applied' : 'in progress'}`
+          case 'seochange':
+            description = `SEO changes ${req.status === 'COMPLETED' ? 'applied' : 'in progress'}`
             type = 'improvement_' + (req.status === 'COMPLETED' ? 'completed' : 'progress')
             break
           default:

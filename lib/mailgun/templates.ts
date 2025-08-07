@@ -333,7 +333,7 @@ export function taskCompletedTemplate(
       ${request.pagesCompleted > 0 ? `<li>Pages Completed: ${request.pagesCompleted}</li>` : ''}
       ${request.blogsCompleted > 0 ? `<li>Blogs Completed: ${request.blogsCompleted}</li>` : ''}
       ${request.gbpPostsCompleted > 0 ? `<li>GBP Posts Completed: ${request.gbpPostsCompleted}</li>` : ''}
-      ${request.improvementsCompleted > 0 ? `<li>Improvements Completed: ${request.improvementsCompleted}</li>` : ''}
+      ${request.improvementsCompleted > 0 ? `<li>SEO Changes Completed: ${request.improvementsCompleted}</li>` : ''}
     </ul>
     
     <a href="${process.env.NEXT_PUBLIC_APP_URL}/requests" class="button">View All Requests</a>

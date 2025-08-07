@@ -34,8 +34,9 @@ export function contentAddedTemplate(
     blog: 'Blog Post',
     gbp_post: 'Google Business Profile Post',
     'gbp-post': 'Google Business Profile Post',
-    improvement: 'Website Improvement',
-    maintenance: 'Website Update'
+    improvement: 'SEO Change',
+    maintenance: 'SEO Change',
+    seochange: 'SEO Change'
   }[taskDetails.type.toLowerCase()] || 'Content'
 
   const contentTypeIcon = {
@@ -43,11 +44,12 @@ export function contentAddedTemplate(
     blog: '📝',
     gbp_post: '🏢',
     'gbp-post': '🏢',
-    improvement: '⚡',
-    maintenance: '🔧'
+    improvement: '⚙️',
+    maintenance: '⚙️',
+    seochange: '⚙️'
   }[taskDetails.type.toLowerCase()] || '✨'
 
-  const actionVerb = ['improvement', 'maintenance'].includes(taskDetails.type.toLowerCase()) 
+  const actionVerb = ['improvement', 'maintenance', 'seochange'].includes(taskDetails.type.toLowerCase()) 
     ? 'updated on' 
     : 'added to'
   
@@ -183,7 +185,7 @@ export function contentAddedTemplate(
           ${request.pagesCompleted > 0 ? `<li>Pages Added: <strong>${request.pagesCompleted}</strong></li>` : ''}
           ${request.blogsCompleted > 0 ? `<li>Blog Posts Published: <strong>${request.blogsCompleted}</strong></li>` : ''}
           ${request.gbpPostsCompleted > 0 ? `<li>Google Business Posts: <strong>${request.gbpPostsCompleted}</strong></li>` : ''}
-          ${request.improvementsCompleted > 0 ? `<li>Site Improvements: <strong>${request.improvementsCompleted}</strong></li>` : ''}
+          ${request.improvementsCompleted > 0 ? `<li>SEO Changes: <strong>${request.improvementsCompleted}</strong></li>` : ''}
         </ul>
       ` : ''}
       

@@ -172,7 +172,7 @@ export const CommonSchemas = {
   },
   contentRequest: {
     title: { required: true, type: 'string' as const, minLength: 1, maxLength: 200 },
-    type: { required: true, enum: ['page', 'blog', 'gbp_post', 'improvement'] },
+    type: { required: true, enum: ['page', 'blog', 'gbp_post', 'improvement', 'seochange'] },
     dealershipId: { required: true, type: 'string' as const }
   }
 }

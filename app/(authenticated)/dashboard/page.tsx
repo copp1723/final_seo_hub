@@ -581,7 +581,7 @@ export default function DashboardPage() {
                       limit={dashboardData?.packageProgress?.gbpPostsLimit || 12}
                     />
                     <ProgressBar
-                      label="Improvements"
+                      label="SEO Changes"
                       used={dashboardData?.packageProgress?.improvementsUsed || 3}
                       limit={dashboardData?.packageProgress?.improvementsLimit || 5}
                     />

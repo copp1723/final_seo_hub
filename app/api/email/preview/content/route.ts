@@ -49,6 +49,7 @@ function getDemoTitle(taskType: string): string {
     case 'gbp-post':
       return 'Black Friday Special - 0% APR on All Models'
     case 'improvement':
+    case 'seochange':
       return 'Homepage Speed Optimization'
     case 'maintenance':
       return 'SSL Certificate Update'
@@ -66,6 +67,7 @@ function getDemoUrl(taskType: string): string {
       return 'https://posts.gle/abc123'
     case 'improvement':
     case 'maintenance':
+    case 'seochange':
       return 'https://dealership.com'
     default:
       return 'https://dealership.com/2024-toyota-camry-chicago'

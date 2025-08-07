@@ -368,7 +368,7 @@ export default function RequestsPage() {
                       <div>
                         <div className="flex justify-between text-sm mb-1">
                           <span className="flex items-center gap-1">
-                            <Wrench className="h-3 w-3" /> SEO Improvements
+                            <Wrench className="h-3 w-3" /> SEO Changes
                           </span>
                           <span>{progress.improvements.completed} of {progress.improvements.total}</span>
                         </div>

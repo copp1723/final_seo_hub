@@ -18,6 +18,24 @@ import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
 
+// Normalize inbound task types from SEOWorks into our canonical set
+function normalizeTaskType(raw: string): 'page' | 'blog' | 'gbp_post' | 'improvement' | string {
+  const t = (raw || '').toString().toLowerCase().replace(/-/g, '_').trim()
+  if (['gbp', 'gbp_post', 'gbp_posting', 'gbp_posts', 'gmb', 'google_my_business'].includes(t)) {
+    return 'gbp_post'
+  }
+  if (['improvement', 'seochange', 'seo_change', 'seochg', 'seo_chg', 'maintenance', 'seo_update'].includes(t)) {
+    return 'improvement'
+  }
+  if (['page', 'landing_page', 'vdp', 'content_page'].includes(t)) {
+    return 'page'
+  }
+  if (['blog', 'article', 'post'].includes(t)) {
+    return 'blog'
+  }
+  return t
+}
+
 interface SeoworksDeliverable {
   type: string;
   title: string;
@@ -75,8 +93,9 @@ async function handleTaskCompleted(
     // Update request progress based on task type
     const updateData: Record<string, unknown> = {}
     
-    // Increment the appropriate counter
-    switch (data.taskType.toLowerCase()) {
+    // Normalize and increment the appropriate counter
+    const normalizedType = normalizeTaskType(data.taskType)
+    switch (normalizedType) {
       case 'page':
         updateData.pagesCompleted = { increment: 1 }
         break
@@ -87,8 +106,6 @@ async function handleTaskCompleted(
         updateData.gbpPostsCompleted = { increment: 1 }
         break
       case 'improvement':
-      case 'maintenance':
-      case 'seochange':
         updateData.improvementsCompleted = { increment: 1 }
         break
     }
@@ -97,7 +114,7 @@ async function handleTaskCompleted(
     const firstDeliverable = Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null ? data.deliverables[0] : null
     const completedTask = {
       title: (firstDeliverable && 'title' in firstDeliverable && typeof firstDeliverable.title === 'string') ? firstDeliverable.title : data.taskType,
-      type: data.taskType,
+      type: normalizedType,
       url: (firstDeliverable && 'url' in firstDeliverable && typeof firstDeliverable.url === 'string') ? firstDeliverable.url : undefined,
       completedAt: data.completionDate || new Date().toISOString()
     }
@@ -121,7 +138,7 @@ async function handleTaskCompleted(
     // Increment usage for package tracking
     if (updatedRequest.userId) {
       let taskTypeForUsage: keyof typeof PACKAGE_LIMITS[keyof typeof PACKAGE_LIMITS] | null = null;
-      switch (data.taskType.toLowerCase()) {
+      switch (normalizedType) {
         case 'page':
           taskTypeForUsage = 'pages'
           break
@@ -131,9 +148,7 @@ async function handleTaskCompleted(
         case 'gbp_post':
           taskTypeForUsage = 'gbpPosts'
           break
-        case 'maintenance':
         case 'improvement':
-        case 'seochange':
           taskTypeForUsage = 'improvements'
           break
       }
@@ -151,7 +166,7 @@ async function handleTaskCompleted(
 
     // Send task completion email
     // Use content-specific template for pages, blogs, and GBP posts
-    const isContentTask = ['page', 'blog', 'gbp_post', 'gbp-post'].includes(data.taskType.toLowerCase())
+    const isContentTask = ['page', 'blog', 'gbp_post', 'gbp-post'].includes(normalizedType)
     
     const emailTemplate = isContentTask
       ? contentAddedTemplate(updatedRequest, request.users, completedTask)
@@ -506,18 +521,18 @@ export const POST = compose(
               userId: user.id,
               agencyId: user.agencyId || null,
               dealershipId: user.dealershipId || null,
-              title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${data.taskType} Task`,
+              title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${normalizeTaskType(data.taskType)} Task`,
               description: `Task created directly in SEOWorks\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
-              type: data.taskType.toLowerCase(),
+              type: normalizeTaskType(data.taskType),
               status: 'COMPLETED',
               seoworksTaskId: data.externalId,
               completedAt: new Date(data.completionDate || Date.now()),
               completedTasks: data.deliverables || [] as any,
               // Set completed counters based on task type
-              pagesCompleted: data.taskType.toLowerCase() === 'page' ? 1 : 0,
-              blogsCompleted: data.taskType.toLowerCase() === 'blog' ? 1 : 0,
-              gbpPostsCompleted: data.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
-              improvementsCompleted: ['improvement', 'maintenance', 'seochange'].includes(data.taskType.toLowerCase()) ? 1 : 0
+              pagesCompleted: normalizeTaskType(data.taskType) === 'page' ? 1 : 0,
+              blogsCompleted: normalizeTaskType(data.taskType) === 'blog' ? 1 : 0,
+              gbpPostsCompleted: normalizeTaskType(data.taskType) === 'gbp_post' ? 1 : 0,
+              improvementsCompleted: normalizeTaskType(data.taskType) === 'improvement' ? 1 : 0
             },
             include: { users: true }
           })

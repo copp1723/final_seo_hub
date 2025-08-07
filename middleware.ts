@@ -45,4 +45,4 @@ export const config = {
   ]
 }
 
-export { middleware, config } from './middleware/simple-middleware'
+// Removed re-export to avoid duplicate export errors during build

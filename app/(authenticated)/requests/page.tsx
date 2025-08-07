@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import { DealershipSelector } from '@/components/layout/dealership-selector'
 
 interface Request {
   id: string
@@ -174,12 +175,15 @@ export default function RequestsPage() {
           <h1 className="text-2xl font-semibold text-gray-900">SEO Requests</h1>
           <p className="text-sm text-gray-600 mt-1">Track your monthly SEO package progress</p>
         </div>
-        <Link href="/focus-request">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Focus Request
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <DealershipSelector />
+          <Link href="/focus-request">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Focus Request
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Search and Filters */}

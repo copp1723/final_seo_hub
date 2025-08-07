@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { TaskList } from '@/components/tasks/task-list'
 import { LoadingSpinner } from '@/components/ui/loading'
+import { DealershipSelector } from '@/components/layout/dealership-selector'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -165,12 +166,15 @@ export default function TasksPage() {
           <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
           <p className="text-sm text-gray-600 mt-1">Manage and track all your SEO tasks</p>
         </div>
-        <Link href="/focus-request">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Focus Request
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <DealershipSelector />
+          <Link href="/focus-request">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Focus Request
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Task Statistics */}

@@ -16,7 +16,7 @@ export const createRequestSchema = z.object({
     .trim(),
   
   type: z
-    .enum(['page', 'blog', 'gbp_post', 'maintenance'], {
+    .enum(['page', 'blog', 'gbp_post', 'maintenance', 'seochange'], {
       errorMap: () => ({ message: 'Invalid request type' })
     }),
   

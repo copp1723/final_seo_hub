@@ -182,7 +182,7 @@ describe('Content Notifications Edge Cases', () => {
       expect(result.html).not.toContain('Pages Added:')
       expect(result.html).toContain('Blog Posts Published: <strong>3</strong>')
       expect(result.html).not.toContain('Google Business Posts:')
-      expect(result.html).toContain('Site Improvements: <strong>1</strong>')
+      expect(result.html).toContain('SEO Changes: <strong>1</strong>')
     })
 
     it('should show all progress items when all have values', () => {
@@ -205,7 +205,7 @@ describe('Content Notifications Edge Cases', () => {
       expect(result.html).toContain('Pages Added: <strong>4</strong>')
       expect(result.html).toContain('Blog Posts Published: <strong>8</strong>')
       expect(result.html).toContain('Google Business Posts: <strong>16</strong>')
-      expect(result.html).toContain('Site Improvements: <strong>2</strong>')
+      expect(result.html).toContain('SEO Changes: <strong>2</strong>')
     })
   })
 
@@ -283,7 +283,7 @@ describe('Content Notifications Edge Cases', () => {
       const result = contentAddedTemplate(baseRequest, baseUser, taskDetails)
 
       expect(result.html).toContain('New Content updated on Your Website!')
-      expect(result.html).toContain('Website Update')
+      expect(result.html).toContain('SEO Change')
     })
 
     it('should use "added to" for content types', () => {

@@ -58,8 +58,8 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
       { type: 'blog', expectedDisplay: 'Blog Post', expectedVerb: 'added to' },
       { type: 'gbp_post', expectedDisplay: 'Google Business Profile Post', expectedVerb: 'added to' },
       { type: 'gbp-post', expectedDisplay: 'Google Business Profile Post', expectedVerb: 'added to' },
-      { type: 'improvement', expectedDisplay: 'Website Improvement', expectedVerb: 'updated on' },
-      { type: 'maintenance', expectedDisplay: 'Website Update', expectedVerb: 'updated on' },
+      { type: 'improvement', expectedDisplay: 'SEO Change', expectedVerb: 'updated on' },
+      { type: 'maintenance', expectedDisplay: 'SEO Change', expectedVerb: 'updated on' },
       { type: 'unknown_type', expectedDisplay: 'Content', expectedVerb: 'added to' }
     ]
 
@@ -216,7 +216,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
       expect(result.html).toContain('Pages Added: <strong>3</strong>')
       expect(result.html).toContain('Blog Posts Published: <strong>5</strong>')
       expect(result.html).toContain('Google Business Posts: <strong>12</strong>')
-      expect(result.html).toContain('Site Improvements: <strong>2</strong>')
+      expect(result.html).toContain('SEO Changes: <strong>2</strong>')
     })
 
     it('should only show progress for completed items', () => {
@@ -239,7 +239,7 @@ describe('contentAddedTemplate - Comprehensive Testing', () => {
       expect(result.html).toContain('Pages Added: <strong>1</strong>')
       expect(result.html).not.toContain('Blog Posts Published:')
       expect(result.html).toContain('Google Business Posts: <strong>3</strong>')
-      expect(result.html).not.toContain('Site Improvements:')
+      expect(result.html).not.toContain('SEO Changes:')
     })
 
     it('should handle zero values correctly', () => {

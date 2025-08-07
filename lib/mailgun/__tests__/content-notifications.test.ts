@@ -148,6 +148,6 @@ describe('contentAddedTemplate', () => {
     const result = contentAddedTemplate(mockRequest, mockUser, taskDetails)
 
     expect(result.html).toContain('New Content updated on Your Website!')
-    expect(result.html).toContain('Website Improvement')
+    expect(result.html).toContain('SEO Change')
   })
 })

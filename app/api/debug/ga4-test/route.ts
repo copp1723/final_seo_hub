@@ -11,6 +11,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Disable in production for safety
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Debug route disabled in production' }, { status: 403 })
+    }
+
     const userId = session.user.id
     const dealershipId = 'dealer-acura-columbus'
     const propertyId = '284944578'
@@ -37,7 +42,7 @@ export async function GET(request: NextRequest) {
     let accessToken: string
     try {
       accessToken = decrypt(connection.accessToken)
-      console.log('✅ GA4 Debug - Token decrypted successfully, length:', accessToken.length)
+      console.log('✅ GA4 Debug - Token decrypted successfully')
     } catch (error) {
       console.error('❌ GA4 Debug - Token decryption failed:', error)
       return NextResponse.json({ 

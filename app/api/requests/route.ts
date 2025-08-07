@@ -8,6 +8,8 @@ import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { withApiMonitoring } from '@/lib/api-wrapper'
+import { csrfProtection } from '@/lib/csrf'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { safeDbOperation } from '@/lib/db-resilience'
 import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 
@@ -140,6 +142,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     })
     return rateLimitResponse
   }
+
+  // CSRF protection for session-authenticated requests
+  const csrfResult = await csrfProtection(request, () => SimpleAuth.getSessionFromRequest(request).then(s => s?.user.id || null))
+  if (csrfResult) {
+    return csrfResult
+  }
   
   const authResult = await requireAuth(request)
   if (!authResult.authenticated || !authResult.user) {
@@ -156,13 +164,14 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     agencyId: authResult.user.agencyId
   })
 
-  // Log the raw request body for debugging
+  // Read raw body without logging contents in production
   const rawBody = await request.text()
-  logger.info('Focus request raw body received', {
-    userId: authResult.user.id,
-    bodyLength: rawBody.length,
-    rawBody: rawBody
-  })
+  if (process.env.NODE_ENV !== 'production') {
+    logger.info('Focus request raw body received (dev)', {
+      userId: authResult.user.id,
+      bodyLength: rawBody.length
+    })
+  }
 
   // Re-create the request with the body for validation
   const requestWithBody = new Request(request.url, {
@@ -187,11 +196,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     
     logger.error('Focus request validation failed', {
       userId: authResult.user.id,
-      validationError: validation.error,
-      rawBody: rawBody,
-      errorDetails: errorDetails,
-      bodyParsed: JSON.parse(rawBody),
-      requestHeaders: Object.fromEntries(request.headers.entries())
+      errorDetails: errorDetails
     })
     return validation.error
   }

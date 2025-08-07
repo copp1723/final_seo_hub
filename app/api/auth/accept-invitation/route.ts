@@ -6,19 +6,22 @@ import { SimpleAuth } from '@/lib/auth-simple'
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  console.log('🎯 Accept Invitation GET endpoint hit!')
-  console.log('Request URL:', request.url)
-  console.log('Request headers:', Object.fromEntries(request.headers.entries()))
-  console.log('Environment check:')
-  console.log('- NODE_ENV:', process.env.NODE_ENV)
-  console.log('- NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
-  console.log('- NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET)
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('🎯 Accept Invitation GET endpoint hit!')
+    console.log('Request URL:', request.url)
+    console.log('Environment check:')
+    console.log('- NODE_ENV:', process.env.NODE_ENV)
+    console.log('- NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
+    console.log('- NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET)
+  }
   
   try {
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
     
-    console.log('Token received:', token)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Token received:', token)
+    }
 
     if (!token) {
       console.log('❌ No token provided')
@@ -26,7 +29,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Find user with this invitation token
-    console.log('🔍 Looking for user with token:', token)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔍 Looking for user with token:', token)
+    }
     const user = await prisma.users.findFirst({
       where: {
         invitationToken: token,
@@ -41,7 +46,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/error?error=InvalidToken', request.url))
     }
 
-    console.log('✅ User found:', user.email, user.id)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✅ User found:', user.email, user.id)
+    }
 
     // Clear the invitation token (one-time use)
     await prisma.users.update({
@@ -52,7 +59,9 @@ export async function GET(request: NextRequest) {
         emailVerified: new Date() // Mark email as verified
       }
     })
-    console.log('✅ Token cleared and email verified')
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✅ Token cleared and email verified')
+    }
 
     // Instead of manually creating sessions, use NextAuth's approach
     // Create a temporary account record that NextAuth can use
@@ -72,7 +81,9 @@ export async function GET(request: NextRequest) {
         providerAccountId: user.id
       }
     })
-    console.log('✅ Account record created/updated')
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✅ Account record created/updated')
+    }
 
     // Create session using NextAuth's PrismaAdapter approach
     const sessionToken = crypto.randomBytes(32).toString('hex')
@@ -85,7 +96,9 @@ export async function GET(request: NextRequest) {
         expires
       }
     })
-    console.log('✅ NextAuth-compatible session created:', sessionToken.substring(0, 20) + '...')
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✅ NextAuth-compatible session created:', sessionToken.substring(0, 20) + '...')
+    }
 
     // Set the session cookie using NextAuth's expected format
     const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
@@ -101,13 +114,15 @@ export async function GET(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === 'production'
     const useSecureCookies = baseUrl.startsWith('https://')
     
-    console.log('🍪 Cookie configuration:')
-    console.log('- isProduction:', isProduction)
-    console.log('- useSecureCookies:', useSecureCookies)
-    console.log('- sessionToken:', sessionToken.substring(0, 20) + '...')
-    console.log('- expires:', expires)
-    console.log('- baseUrl:', baseUrl)
-    console.log('- redirectUrl:', redirectUrl)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🍪 Cookie configuration:')
+      console.log('- isProduction:', isProduction)
+      console.log('- useSecureCookies:', useSecureCookies)
+      console.log('- sessionToken:', sessionToken.substring(0, 20) + '...')
+      console.log('- expires:', expires)
+      console.log('- baseUrl:', baseUrl)
+      console.log('- redirectUrl:', redirectUrl)
+    }
     
     // Set the session cookie with NextAuth's expected name and configuration
     response.cookies.set('next-auth.session-token', sessionToken, {
@@ -135,12 +150,10 @@ export async function GET(request: NextRequest) {
       maxAge: 30 * 24 * 60 * 60 // 30 days
     })
     
-    console.log('✅ NextAuth session cookie set: next-auth.session-token')
-    console.log('🎯 Redirecting to:', baseUrl + redirectUrl)
-    
-    // Log all response headers and cookies for debugging
-    console.log('📤 Response headers:', Object.fromEntries(response.headers.entries()))
-    console.log('📤 Response cookies:', response.cookies.getAll())
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✅ NextAuth session cookie set: next-auth.session-token')
+      console.log('🎯 Redirecting to:', baseUrl + redirectUrl)
+    }
 
     return response
 

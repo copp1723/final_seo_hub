@@ -10,6 +10,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Disable in production for safety
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Debug route disabled in production' }, { status: 403 })
+    }
+
     // Get user info
     const user = await prisma.users.findUnique({
       where: { id: session.user.id },

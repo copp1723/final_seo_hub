@@ -103,8 +103,7 @@ export async function POST(request: NextRequest) {
     const url = new URL(request.url)
     logger.info('Received Mailgun webhook for dealership CSV processing', {
       url: url.pathname,
-      method: request.method,
-      headers: Object.fromEntries(request.headers.entries())
+      method: request.method
     })
 
     // Verify Mailgun signature for security
@@ -134,10 +133,7 @@ export async function POST(request: NextRequest) {
     
     if (!skipVerification) {
       if (!signature || !timestamp || !token) {
-        logger.warn('Missing Mailgun signature headers', {
-          headers: Object.fromEntries(request.headers.entries()),
-          formDataKeys: Array.from(formData.keys())
-        })
+        logger.warn('Missing Mailgun signature headers')
         return errorResponse('Missing Mailgun signature headers', 400)
       }
 

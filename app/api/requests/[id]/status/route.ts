@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server'
+import { csrfProtection } from '@/lib/csrf'
+import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
@@ -21,6 +23,11 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // CSRF protection for session-authenticated requests
+  const csrfResult = await csrfProtection(request, () => SimpleAuth.getSessionFromRequest(request).then(s => s?.user.id || null))
+  if (csrfResult) {
+    return csrfResult
+  }
   // Apply rate limiting
   const rateLimitResponse = await rateLimits.api(request)
   if (rateLimitResponse) return rateLimitResponse

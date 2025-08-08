@@ -5,7 +5,8 @@ import { getOrCreateCSRFToken } from '@/lib/csrf'
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const session = await SimpleAuth.getSession()
+  // IMPORTANT: derive session from the incoming request so cookies are read correctly
+  const session = await SimpleAuth.getSessionFromRequest(request)
   
   if (!session?.user.id) {
     return NextResponse.json(

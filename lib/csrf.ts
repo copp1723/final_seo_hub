@@ -135,11 +135,13 @@ export async function validateCSRFToken(
     return false
   }
   
-  // Timing-safe comparison
-  return crypto.timingSafeEqual(
-    Buffer.from(headerToken),
-    Buffer.from(storedData.token)
-  )
+  // Timing-safe comparison with equal-length buffers to avoid RangeError
+  const incoming = Buffer.from(headerToken)
+  const expected = Buffer.from(storedData.token)
+  if (incoming.length !== expected.length) {
+    return false
+  }
+  return crypto.timingSafeEqual(incoming, expected)
 }
 
 /**
@@ -156,6 +158,12 @@ export async function csrfProtection(
   
   // Skip CSRF for webhook endpoints (they use API keys)
   if (request.url.includes('/webhook')) {
+    return null
+  }
+
+  // Temporary production mitigation: skip CSRF for requests endpoint due to multi-instance token store
+  // This endpoint is session-authenticated and rate-limited.
+  if (request.url.includes('/api/requests')) {
     return null
   }
   

@@ -47,6 +47,7 @@ interface SeoworksWebhookData {
   externalId: string;
   clientId?: string;
   clientEmail?: string;
+  customerId?: string;
   taskType: string;
   status: string;
   completionDate?: string;
@@ -545,6 +546,47 @@ export const POST = compose(
           })
         }
       }
+
+      // Strategy 5: If still no request and we have a SEOWorks customerId, map to dealership.clientId
+      if (!requestRecord && (data.customerId || data.clientId)) {
+        const dealership = await prisma.dealerships.findFirst({
+          where: { clientId: (data.customerId as string) || (data.clientId as string) }
+        })
+        if (dealership && eventType === 'task.completed') {
+          const ownerUser = await prisma.users.findFirst({
+            where: { dealershipId: dealership.id },
+            select: { id: true, agencyId: true, dealershipId: true }
+          })
+          if (ownerUser) {
+            requestRecord = await prisma.requests.create({
+              data: {
+                userId: ownerUser.id,
+                agencyId: ownerUser.agencyId || null,
+                dealershipId: ownerUser.dealershipId || dealership.id,
+                title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${normalizeTaskType(data.taskType)} Task`,
+                description: `Task created via SEOWorks customerId mapping\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
+                type: normalizeTaskType(data.taskType),
+                status: 'COMPLETED',
+                seoworksTaskId: data.externalId,
+                completedAt: new Date(data.completionDate || Date.now()),
+                completedTasks: data.deliverables || [] as any,
+                pagesCompleted: normalizeTaskType(data.taskType) === 'page' ? 1 : 0,
+                blogsCompleted: normalizeTaskType(data.taskType) === 'blog' ? 1 : 0,
+                gbpPostsCompleted: normalizeTaskType(data.taskType) === 'gbp_post' ? 1 : 0,
+                improvementsCompleted: normalizeTaskType(data.taskType) === 'improvement' ? 1 : 0
+              },
+              include: { users: true }
+            })
+            logger.info('Created request from SEOWorks customerId mapping', {
+              requestId: requestRecord.id,
+              seoworksTaskId: data.externalId,
+              dealershipId: dealership.id,
+              userId: ownerUser.id,
+              taskType: data.taskType
+            })
+          }
+        }
+      }
       
       if (!requestRecord) {
         // Store orphaned task data for later processing when dealership is onboarded
@@ -552,7 +594,7 @@ export const POST = compose(
           const orphanedTask = await prisma.orphaned_tasks.create({
             data: {
               externalId: data.externalId,
-              clientId: data.clientId,
+              clientId: (data.clientId as string) || (data.customerId as string),
               clientEmail: data.clientEmail,
               eventType,
               taskType: data.taskType,

@@ -386,6 +386,29 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       method: 'POST'
     })
     
+    // Trigger SEOworks focus request send after local request creation
+    // Skip in test to keep unit tests deterministic
+    if (process.env.NODE_ENV !== 'test') {
+      try {
+        const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL
+        if (baseUrl) {
+          await fetch(`${baseUrl}/api/seoworks/send-focus-request`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId: newRequest.id })
+          })
+        } else {
+          logger.warn('SEOWorks send-focus-request not triggered: base URL not set', {
+            envVarsPresent: !!process.env.NEXTAUTH_URL || !!process.env.NEXT_PUBLIC_APP_URL
+          })
+        }
+      } catch (triggerError) {
+        logger.error('Failed to trigger SEOWorks focus send', triggerError, {
+          requestId: newRequest.id
+        })
+      }
+    }
+
     return successResponse({ request: newRequest }, 201)
   } catch (error) {
     logger.error('Error creating request', error, {

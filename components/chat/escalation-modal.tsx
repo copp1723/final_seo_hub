@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { Send, X } from 'lucide-react'
+import { useCSRF } from '@/hooks/useCSRF'
 
 interface EscalationModalProps {
   open: boolean
@@ -21,13 +22,14 @@ export function EscalationModal({ open, onClose, context }: EscalationModalProps
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const { toast } = useToast()
+  const { secureRequest } = useCSRF()
 
   const handleSubmit = async () => {
     setSubmitting(true)
     
     try {
       // Create a request with the question and AI response
-      const response = await fetch('/api/requests', {
+      const response = await secureRequest('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

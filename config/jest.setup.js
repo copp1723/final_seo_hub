@@ -28,6 +28,7 @@ jest.mock('next/router', () => ({
 process.env.NODE_ENV = 'test'
 process.env.NEXTAUTH_SECRET = 'test-secret'
 process.env.NEXTAUTH_URL = 'http://localhost:3000'
+process.env.ENCRYPTION_KEY = '12345678901234567890123456789012secure-extra'
 
 // Increase timeout for Redis operations in tests
 jest.setTimeout(10000)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCSRF } from '@/hooks/useCSRF'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/app/simple-auth-provider'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import Link from 'next/link'
 export default function NewRequestPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const { secureRequest } = useCSRF()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -37,7 +39,7 @@ export default function NewRequestPage() {
     setError('')
 
     try {
-      const response = await fetch('/api/requests', {
+      const response = await secureRequest('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData,

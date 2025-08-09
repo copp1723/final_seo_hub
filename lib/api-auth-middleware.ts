@@ -90,7 +90,7 @@ export function requireAuth(
     // Log API call
     const responseTime = Date.now() - startTime
     apiMonitor.logRequest({
-      path: req.nextUrl.pathname,
+      path: (req as any)?.nextUrl?.pathname || 'unknown',
       method: req.method,
       statusCode,
       responseTime,
@@ -193,7 +193,7 @@ export function requireApiKey(expectedKeyEnvVar: string) {
       // Log API call
       const responseTime = Date.now() - startTime
       apiMonitor.logRequest({
-        path: req.nextUrl.pathname,
+        path: (req as any)?.nextUrl?.pathname || 'unknown',
         method: req.method,
         statusCode,
         responseTime,
@@ -283,7 +283,8 @@ export function rateLimit(maxRequests: number = 100, windowMs: number = 60000) {
                 'unknown'
       
       const now = Date.now()
-      const key = `${ip}:${req.nextUrl.pathname}`
+      const path = (req as any)?.nextUrl?.pathname || 'unknown'
+      const key = `${ip}:${path}`
       
       const current = rateLimitMap.get(key)
       
@@ -294,7 +295,7 @@ export function rateLimit(maxRequests: number = 100, windowMs: number = 60000) {
         // Rate limit exceeded
         logger.warn('Rate limit exceeded', {
           ip,
-          path: req.nextUrl.pathname,
+          path,
           method: req.method,
           count: current.count,
           maxRequests

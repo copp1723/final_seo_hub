@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
 
-const SEOWORKS_FOCUS_URL = 'https://api.seowerks.ai/rylie-focus.cfm'
+// NOTE: Correct domain spelling is "seoworks" (previously misspelled as seowerks)
+const SEOWORKS_FOCUS_URL = 'https://api.seoworks.ai/rylie-focus.cfm'
 
 interface FocusRequestData {
   requestId: string

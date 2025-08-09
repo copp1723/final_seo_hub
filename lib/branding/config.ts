@@ -1,86 +1,74 @@
-import { agencies } from '@prisma/client'
-
 export interface BrandingConfig {
   companyName: string
-  logoUrl?: string
   primaryColor: string
   secondaryColor: string
-  domain?: string
-  emailFromName: string
+  logo?: string
   supportEmail: string
-  websiteUrl?: string
-  favicon?: string
-  customCss?: string
+  websiteUrl: string
+  domain?: string
 }
 
 export const DEFAULT_BRANDING: BrandingConfig = {
   companyName: 'SEO Hub',
-  primaryColor: '#2563eb',
-  secondaryColor: '#1d4ed8',
-  emailFromName: 'SEO Hub',
-  supportEmail: 'support@seohub.com'
+  primaryColor: '#3b82f6',
+  secondaryColor: '#1e40af',
+  supportEmail: 'support@seohub.com',
+  websiteUrl: 'https://seohub.com',
 }
 
-export const AGENCY_BRANDINGS: Record<string, BrandingConfig> = {
-  'rylie': {
-    companyName: 'SEO Hub',
-    primaryColor: '#2563eb',
-    secondaryColor: '#1d4ed8',
-    emailFromName: 'SEO Hub',
-    supportEmail: 'support@seohub.com',
-    domain: 'rylie-seo-hub.onrender.com'
-  },
-  'sally': {
-    companyName: 'Sally SEO Solutions',
-    primaryColor: '#059669',
-    secondaryColor: '#047857',
-    emailFromName: 'Sally SEO',
-    supportEmail: 'support@sallyseo.com'
-  },
-  'default': DEFAULT_BRANDING
+// Domain-specific branding configurations
+const DOMAIN_BRANDING: Record<string, BrandingConfig> = {
+  'localhost': DEFAULT_BRANDING,
+  'seohub.com': DEFAULT_BRANDING,
+  'rylie-seo-hub.onrender.com': DEFAULT_BRANDING,
+  
+  // Add more domain-specific branding here as needed
+  // 'client1.com': {
+  //   companyName: 'Client 1 SEO',
+  //   primaryColor: '#ff6b35',
+  //   secondaryColor: '#d63031',
+  //   supportEmail: 'support@client1.com',
+  //   websiteUrl: 'https://client1.com',
+  //   domain: 'client1.com'
+  // }
 }
 
-export function getBrandingForAgency(agency?: agencies | null): BrandingConfig {
-  if (!agency) {
-    return DEFAULT_BRANDING
-  }
-
-  // Custom branding can be added here in the future when settings schema is updated
-  // For now, use predefined agency brandings
-
-  // Fallback to predefined agency brandings
-  const agencyKey = agency.name.toLowerCase().replace(/\s+/g, '')
-  return AGENCY_BRANDINGS[agencyKey] || DEFAULT_BRANDING
-}
-
-export function getBrandingFromDomain(domain: string): BrandingConfig {
-  // Find agency by domain
-  for (const [key, branding] of Object.entries(AGENCY_BRANDINGS)) {
-    if (branding.domain === domain) {
-      return branding
-    }
-  }
-  return DEFAULT_BRANDING
-}
-
-export function getBrandingFromRequest(request: Request): BrandingConfig {
-  const url = new URL(request.url)
-  return getBrandingFromDomain(url.hostname)
-}
-
-export async function getBrandingForCurrentRequest(): Promise<BrandingConfig> {
-  // In a server component, we can access headers to get the hostname
-  try {
-    const { headers } = await import('next/headers')
-    const headersList = await headers()
-    const host = headersList.get('host')
-    
-    if (host) {
-      return getBrandingFromDomain(host)
-    }
-  } catch (error) {
-    // If we can't get headers (e.g., in client component), return default
+export function getBrandingFromDomain(hostname: string): BrandingConfig {
+  // Remove port if present
+  const domain = hostname.split(':')[0]
+  
+  // Check for exact domain match
+  if (DOMAIN_BRANDING[domain]) {
+    return DOMAIN_BRANDING[domain]
   }
   
+  // Check for subdomain matches (e.g., app.client1.com -> client1.com)
+  const parts = domain.split('.')
+  if (parts.length > 2) {
+    const rootDomain = parts.slice(-2).join('.')
+    if (DOMAIN_BRANDING[rootDomain]) {
+      return DOMAIN_BRANDING[rootDomain]
+    }
+  }
+  
+  // Default fallback
   return DEFAULT_BRANDING
+}
+
+// Server-side helper to get branding from request
+export function getBrandingFromRequest(request: Request): BrandingConfig {
+  try {
+    const url = new URL(request.url)
+    return getBrandingFromDomain(url.hostname)
+  } catch {
+    return DEFAULT_BRANDING
+  }
+}
+
+// Helper to get branding colors as CSS variables
+export function getBrandingCSSVars(branding: BrandingConfig): Record<string, string> {
+  return {
+    '--brand-primary': branding.primaryColor,
+    '--brand-secondary': branding.secondaryColor,
+  }
 }

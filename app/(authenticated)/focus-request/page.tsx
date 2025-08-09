@@ -10,10 +10,12 @@ import { Badge } from '@/components/ui/badge'
 import { PackageType, RequestPriority } from '@prisma/client'
 import { ArrowLeft, Target, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { useCSRF } from '@/hooks/useCSRF'
 
 export default function FocusRequestPage() {
   const router = useRouter()
   const { user } = useAuth()
+  const { secureRequest } = useCSRF()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -80,7 +82,7 @@ export default function FocusRequestPage() {
       console.log('Focus Request - Sending request data:', requestPayload)
 
       // First create the request
-      const requestResponse = await fetch('/api/requests', {
+      const requestResponse = await secureRequest('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestPayload)

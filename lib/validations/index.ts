@@ -19,3 +19,16 @@ export function sanitizeForLog(data: unknown): unknown {
   
   return data
 }
+
+// Export webhook validation schemas
+export { seoworksWebhookSchema, type SEOWorksWebhookPayload } from './webhook'
+
+// Validation helper function
+export function validateRequest<T>(schema: any, data: unknown): { success: boolean; data?: T; error?: any } {
+  try {
+    const result = schema.safeParse(data)
+    return result
+  } catch (error) {
+    return { success: false, error }
+  }
+}

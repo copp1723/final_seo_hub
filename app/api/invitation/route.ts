@@ -66,6 +66,19 @@ export async function GET(request: NextRequest) {
 
     console.log('✅ User found:', user.email, user.id)
 
+    // Detect existing session conflict BEFORE consuming the token so the user can retry
+    try {
+      const existingSession = await SimpleAuth.getSessionFromRequest(request)
+      if (existingSession && existingSession.user.email !== user.email) {
+        console.log('⚠️ Session conflict detected. Redirecting to conflict page.')
+        const conflictUrl = new URL('/auth/session-conflict', request.url)
+        conflictUrl.searchParams.set('email', user.email)
+        return NextResponse.redirect(conflictUrl)
+      }
+    } catch (e) {
+      console.log('Session conflict check error (non-fatal):', e)
+    }
+
     // Clear the invitation token (one-time use)
     await prisma.users.update({
       where: { id: user.id },

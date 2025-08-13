@@ -17,6 +17,7 @@ interface AuthContextType {
   isLoading: boolean;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  switchUser: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   signOut: async () => {},
   refreshSession: async () => {},
+  switchUser: async () => {},
 });
 
 export function useAuth() {
@@ -62,15 +64,21 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
   const signOut = async () => {
     try {
-      await fetch('/api/auth/simple-signout', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      console.error('Logout error', e);
+    } finally {
       setUser(null);
       router.push('/auth/simple-signin');
-    } catch (error) {
-      console.error('Error in signOut:', error);
+    }
+  };
+
+  const switchUser = async (email: string) => {
+    try {
       setUser(null);
+      window.location.href = `/api/auth/switch-user?email=${encodeURIComponent(email)}`;
+    } catch (e) {
+      console.error('Switch user error', e);
       router.push('/auth/simple-signin');
     }
   };
@@ -112,7 +120,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   }, [mounted]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signOut, refreshSession }}>
+    <AuthContext.Provider value={{ user, isLoading, signOut, refreshSession, switchUser }}>
       {children}
     </AuthContext.Provider>
   );

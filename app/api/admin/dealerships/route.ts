@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
-const SEOWORKS_ONBOARD_URL = 'https://api.seoworks.ai/rylie-onboard.cfm'
+const SEOWORKS_ONBOARD_URL = 'https://api.seowerks.ai/rylie-onboard.cfm'
 
 const createDealershipSchema = z.object({
   name: z.string().min(1, 'Dealership name is required'),

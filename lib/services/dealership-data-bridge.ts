@@ -278,7 +278,7 @@ export class DealershipDataBridge {
       const agencyConnection = await prisma.ga4_connections.findFirst({
         where: { 
           dealershipId: { in: dealershipIds },
-          accessToken: { not: null }
+          accessToken: { not: "" }
         },
         orderBy: { updatedAt: 'desc' }
       })
@@ -290,7 +290,7 @@ export class DealershipDataBridge {
     return await prisma.ga4_connections.findFirst({
       where: { 
         userId,
-        accessToken: { not: null }
+        accessToken: { not: "" }
       },
       orderBy: { updatedAt: 'desc' }
     })
@@ -312,7 +312,7 @@ export class DealershipDataBridge {
       const agencyConnection = await prisma.search_console_connections.findFirst({
         where: { 
           dealershipId: { in: dealershipIds },
-          accessToken: { not: null }
+          accessToken: { not: "" }
         },
         orderBy: { updatedAt: 'desc' }
       })
@@ -324,7 +324,7 @@ export class DealershipDataBridge {
     return await prisma.search_console_connections.findFirst({
       where: { 
         userId,
-        accessToken: { not: null }
+        accessToken: { not: "" }
       },
       orderBy: { updatedAt: 'desc' }
     })

@@ -12,8 +12,8 @@ import {
 import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
 
 export const dynamic = 'force-dynamic';
-import { incrementUsage, TaskType } from '@/lib/package-utils'
-import { RequestStatus, PackageType } from '@prisma/client'
+import { incrementUsage } from '@/lib/package-utils'
+import { RequestStatus, PackageType, TaskStatus as DbTaskStatus, TaskType as DbTaskType, RequestPriority } from '@prisma/client'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
@@ -136,6 +136,58 @@ async function handleTaskCompleted(
       data: updateData
     })
 
+    // Ensure a Task record exists and is updated to COMPLETED so it appears on the Tasks page
+    const toDbTaskType = (t: string): DbTaskType | null => {
+      switch (t) {
+        case 'page': return DbTaskType.PAGE
+        case 'blog': return DbTaskType.BLOG
+        case 'gbp_post': return DbTaskType.GBP_POST
+        case 'improvement': return DbTaskType.IMPROVEMENT
+        default: return null
+      }
+    }
+
+    const dbTaskType = toDbTaskType(normalizedType)
+    if (dbTaskType) {
+      const existingTask = await prisma.tasks.findFirst({
+        where: { requestId: request.id, type: dbTaskType }
+      })
+
+      const completedAt = new Date(data.completionDate || Date.now())
+      const targetUrl = (completedTask as any).url || null
+      const title = (completedTask as any).title || `SEOWorks ${normalizedType} Task`
+
+      if (existingTask) {
+        await prisma.tasks.update({
+          where: { id: existingTask.id },
+          data: {
+            status: DbTaskStatus.COMPLETED,
+            completedAt,
+            targetUrl,
+            title,
+            updatedAt: new Date()
+          }
+        })
+      } else if (request?.users?.id) {
+        await prisma.tasks.create({
+          data: {
+            userId: request.users.id,
+            dealershipId: request.users.dealershipId || null,
+            agencyId: request.users.agencyId || null,
+            type: dbTaskType,
+            status: DbTaskStatus.COMPLETED,
+            title,
+            description: `Auto-created from SEOWorks webhook ${data.externalId}`,
+            priority: RequestPriority.MEDIUM,
+            targetUrl,
+            requestId: request.id,
+            completedAt,
+            keywords: Array.isArray(updatedRequest.keywords) ? (updatedRequest.keywords as any) : undefined
+          }
+        })
+      }
+    }
+
     // Increment usage for package tracking
     if (updatedRequest.userId) {
       let taskTypeForUsage: keyof typeof PACKAGE_LIMITS[keyof typeof PACKAGE_LIMITS] | null = null;
@@ -173,13 +225,14 @@ async function handleTaskCompleted(
       ? contentAddedTemplate(updatedRequest, request.users, completedTask)
       : taskCompletedTemplate(updatedRequest, request.users, completedTask)
     
-    await queueEmailWithPreferences(
+    // OPTIMIZED: Fire-and-forget email operations (don't await)
+    queueEmailWithPreferences(
       request.users.id,
       'taskCompleted',
       { ...emailTemplate,
         to: request.users.email
       }
-    )
+    ).catch(err => logger.warn('Email queue failed for taskCompleted', { error: getSafeErrorMessage(err) }))
 
     // If request was completed, send status change email too
     if (updateData.status === RequestStatus.COMPLETED) {
@@ -189,13 +242,13 @@ async function handleTaskCompleted(
         request.status,
         RequestStatus.COMPLETED
       )
-      await queueEmailWithPreferences(
+      queueEmailWithPreferences(
         request.users.id,
         'statusChanged',
         { ...statusTemplate,
           to: request.users.email
         }
-      )
+      ).catch(err => logger.warn('Email queue failed for statusChanged', { error: getSafeErrorMessage(err) }))
     }
 
     logger.info('Task completed webhook processed', {
@@ -223,6 +276,57 @@ async function handleTaskUpdated(
     taskType: data.taskType,
     status: data.status
   })
+
+  // Map webhook status to our DB TaskStatus and ensure a task exists
+  const normalizedType = normalizeTaskType(data.taskType)
+  const toDbTaskType = (t: string): DbTaskType | null => {
+    switch (t) {
+      case 'page': return DbTaskType.PAGE
+      case 'blog': return DbTaskType.BLOG
+      case 'gbp_post': return DbTaskType.GBP_POST
+      case 'improvement': return DbTaskType.IMPROVEMENT
+      default: return null
+    }
+  }
+  const mapStatus = (s?: string): DbTaskStatus => {
+    const v = (s || '').toLowerCase()
+    if (['completed', 'done', 'finished'].includes(v)) return DbTaskStatus.COMPLETED
+    if (['cancelled', 'canceled'].includes(v)) return DbTaskStatus.CANCELLED
+    if (['in_progress', 'in-progress', 'started', 'working'].includes(v)) return DbTaskStatus.IN_PROGRESS
+    return DbTaskStatus.PENDING
+  }
+
+  const dbTaskType = toDbTaskType(normalizedType)
+  if (!dbTaskType) return
+
+  const existingTask = await prisma.tasks.findFirst({
+    where: { requestId: request.id, type: dbTaskType }
+  })
+  const status = mapStatus(data.status)
+
+  if (existingTask) {
+    await prisma.tasks.update({
+      where: { id: existingTask.id },
+      data: {
+        status,
+        updatedAt: new Date()
+      }
+    })
+  } else if (request?.users?.id) {
+    await prisma.tasks.create({
+      data: {
+        userId: request.users.id,
+        dealershipId: request.users.dealershipId || null,
+        agencyId: request.users.agencyId || null,
+        type: dbTaskType,
+        status,
+        title: `SEOWorks ${normalizedType} Task`,
+        description: `Auto-created from SEOWorks webhook ${data.externalId}`,
+        priority: RequestPriority.MEDIUM,
+        requestId: request.id
+      }
+    })
+  }
 }
 
 // Handle task cancelled event
@@ -245,19 +349,52 @@ async function handleTaskCancelled(
         request.status,
         RequestStatus.CANCELLED
       )
-      await queueEmailWithPreferences(
+      queueEmailWithPreferences(
         request.users.id,
         'statusChanged',
         { ...statusTemplate,
           to: request.users.email
         }
-      )
+      ).catch(err => logger.warn('Email queue failed for cancelled status', { error: getSafeErrorMessage(err) }))
     }
 
     logger.info('Task cancelled webhook processed', {
       requestId: request.id,
       taskType: data.taskType
     })
+
+    // Reflect cancellation in Tasks list
+    const normalizedType = normalizeTaskType(data.taskType)
+    const toDbTaskType = (t: string): DbTaskType | null => {
+      switch (t) {
+        case 'page': return DbTaskType.PAGE
+        case 'blog': return DbTaskType.BLOG
+        case 'gbp_post': return DbTaskType.GBP_POST
+        case 'improvement': return DbTaskType.IMPROVEMENT
+        default: return null
+      }
+    }
+    const dbTaskType = toDbTaskType(normalizedType)
+    if (dbTaskType) {
+      const existingTask = await prisma.tasks.findFirst({ where: { requestId: request.id, type: dbTaskType } })
+      if (existingTask) {
+        await prisma.tasks.update({ where: { id: existingTask.id }, data: { status: DbTaskStatus.CANCELLED, updatedAt: new Date() } })
+      } else if (request?.users?.id) {
+        await prisma.tasks.create({
+          data: {
+            userId: request.users.id,
+            dealershipId: request.users.dealershipId || null,
+            agencyId: request.users.agencyId || null,
+            type: dbTaskType,
+            status: DbTaskStatus.CANCELLED,
+            title: `SEOWorks ${normalizedType} Task`,
+            description: `Auto-created (cancelled) from SEOWorks webhook ${data.externalId}`,
+            priority: RequestPriority.MEDIUM,
+            requestId: request.id
+          }
+        })
+      }
+    }
   } catch (error) {
     logger.error('Error handling task cancelled', error, {
       requestId: request.id,
@@ -418,6 +555,8 @@ export const POST = compose(
   let payload: SeoworksWebhookPayload | undefined; // Initialize payload to undefined and declare it outside the try block
 
   try {
+    const startTime = Date.now()
+    
     // Try JSON parse first for safe logging/fallback contexts
     let raw: any = null
     try {
@@ -425,11 +564,16 @@ export const POST = compose(
     } catch (_e) {
       // keep raw as null; validationRequest will handle JSON errors
     }
+    
+    logger.info('Webhook JSON parse time', { timeMs: Date.now() - startTime })
+    const validationStart = Date.now()
 
     // Validate request body (re-validate using raw if available to avoid double-read)
     const validation = raw
       ? seoworksWebhookSchema.safeParse(raw)
       : { success: false as const, error: new Error('No body parsed') }
+    
+    logger.info('Webhook validation time', { timeMs: Date.now() - validationStart })
 
     if (!validation.success) {
       logger.warn('Invalid webhook payload', {
@@ -443,61 +587,58 @@ export const POST = compose(
     payload = validation.data as SeoworksWebhookPayload; // Assign payload here
     const { eventType, data } = payload
 
-    // Find the request by external ID - try multiple lookup strategies
-    let requestRecord = null
-    
-    // Strategy 1: Direct lookup by our internal request ID
-    requestRecord = await prisma.requests.findFirst({
-      where: { id: data.externalId },
-      include: { users: true }
+    // OPTIMIZED: Single combined query to find request by multiple strategies
+    const dbQueryStart = Date.now()
+    let requestRecord = await prisma.requests.findFirst({
+      where: {
+        OR: [
+          { id: data.externalId },
+          { seoworksTaskId: data.externalId }
+        ]
+      },
+      include: { 
+        users: {
+          select: { id: true, email: true, dealershipId: true, agencyId: true }
+        }
+      }
     })
     
-    // Strategy 2: If not found, try lookup by SEOWorks task ID
-    if (!requestRecord) {
-      requestRecord = await prisma.requests.findFirst({
-        where: { seoworksTaskId: data.externalId },
-        include: { users: true }
-      })
-    }
+    logger.info('Webhook initial DB query time', { timeMs: Date.now() - dbQueryStart })
     
-    // Strategy 3: If still not found and we have clientId/clientEmail, try to match by client + task type
-    // This handles tasks created directly in SEOWorks without a focus request
+    // OPTIMIZED: Combined query to find user and their pending requests in one operation
     if (!requestRecord && (data.clientId || data.clientEmail)) {
-      // First, find the user
-      const user = await prisma.users.findFirst({
+      const userWithRequests = await prisma.users.findFirst({
         where: {
           OR: [
             data.clientId ? { id: data.clientId } : {},
             data.clientEmail ? { email: data.clientEmail } : {}
           ].filter(condition => Object.keys(condition).length > 0)
+        },
+        include: {
+          requests: {
+            where: {
+              type: data.taskType.toLowerCase(),
+              status: { in: ['PENDING', 'IN_PROGRESS'] },
+              seoworksTaskId: null
+            },
+            orderBy: { createdAt: 'asc' },
+            take: 1
+          }
         }
       })
       
-      if (user) {
-        // Look for a pending request of the same type for this user
-        requestRecord = await prisma.requests.findFirst({
-          where: {
-            userId: user.id,
-            type: data.taskType.toLowerCase(),
-            status: { in: ['PENDING', 'IN_PROGRESS'] },
-            seoworksTaskId: null // Not yet linked to a SEOWorks task
-          },
-          orderBy: { createdAt: 'asc' }, // Get the oldest unlinked request
-          include: { users: true }
+      if (userWithRequests?.requests[0]) {
+        // Link this SEOWorks task to the existing request
+        requestRecord = await prisma.requests.update({
+          where: { id: userWithRequests.requests[0].id },
+          data: { seoworksTaskId: data.externalId },
+          include: { users: { select: { id: true, email: true, dealershipId: true, agencyId: true } } }
         })
-        
-        // If found, link this SEOWorks task to our request
-        if (requestRecord) {
-          await prisma.requests.update({
-            where: { id: requestRecord.id },
-            data: { seoworksTaskId: data.externalId }
-          })
-          logger.info('Linked SEOWorks task to existing request', {
-            requestId: requestRecord.id,
-            seoworksTaskId: data.externalId,
-            userId: user.id
-          })
-        }
+        logger.info('Linked SEOWorks task to existing request', {
+          requestId: requestRecord.id,
+          seoworksTaskId: data.externalId,
+          userId: userWithRequests.id
+        })
       }
     }
 
@@ -547,22 +688,25 @@ export const POST = compose(
         }
       }
 
-      // Strategy 5: If still no request and we have a SEOWorks customerId, map to dealership.clientId
+      // OPTIMIZED: Combined dealership and user lookup in one query
       if (!requestRecord && (data.customerId || data.clientId)) {
-        const dealership = await prisma.dealerships.findFirst({
-          where: { clientId: (data.customerId as string) || (data.clientId as string) }
+        const dealershipWithUser = await prisma.dealerships.findFirst({
+          where: { clientId: (data.customerId as string) || (data.clientId as string) },
+          include: {
+            users: {
+              select: { id: true, agencyId: true, dealershipId: true },
+              take: 1
+            }
+          }
         })
-        if (dealership && eventType === 'task.completed') {
-          const ownerUser = await prisma.users.findFirst({
-            where: { dealershipId: dealership.id },
-            select: { id: true, agencyId: true, dealershipId: true }
-          })
+        if (dealershipWithUser?.users[0] && eventType === 'task.completed') {
+          const ownerUser = dealershipWithUser.users[0]
           if (ownerUser) {
             requestRecord = await prisma.requests.create({
               data: {
                 userId: ownerUser.id,
                 agencyId: ownerUser.agencyId || null,
-                dealershipId: ownerUser.dealershipId || dealership.id,
+                dealershipId: ownerUser.dealershipId || dealershipWithUser.id,
                 title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${normalizeTaskType(data.taskType)} Task`,
                 description: `Task created via SEOWorks customerId mapping\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
                 type: normalizeTaskType(data.taskType),
@@ -580,7 +724,7 @@ export const POST = compose(
             logger.info('Created request from SEOWorks customerId mapping', {
               requestId: requestRecord.id,
               seoworksTaskId: data.externalId,
-              dealershipId: dealership.id,
+              dealershipId: dealershipWithUser.id,
               userId: ownerUser.id,
               taskType: data.taskType
             })
@@ -589,24 +733,22 @@ export const POST = compose(
       }
       
       if (!requestRecord) {
-        // Store orphaned task data for later processing when dealership is onboarded
-        try {
-          const orphanedTask = await prisma.orphaned_tasks.create({
-            data: {
-              externalId: data.externalId,
-              clientId: (data.clientId as string) || (data.customerId as string),
-              clientEmail: data.clientEmail,
-              eventType,
-              taskType: data.taskType,
-              status: data.status,
-              completionDate: data.completionDate,
-              deliverables: data.deliverables as any,
-              rawPayload: payload as any,
-              processed: false,
-              notes: `Webhook received for unknown dealership - task orphaned for later processing`
-            }
-          })
-
+        // OPTIMIZED: Store orphaned task asynchronously (don't block webhook response)
+        prisma.orphaned_tasks.create({
+          data: {
+            externalId: data.externalId,
+            clientId: (data.clientId as string) || (data.customerId as string),
+            clientEmail: data.clientEmail,
+            eventType,
+            taskType: data.taskType,
+            status: data.status,
+            completionDate: data.completionDate,
+            deliverables: data.deliverables as any,
+            rawPayload: payload as any,
+            processed: false,
+            notes: `Webhook received for unknown dealership - task orphaned for later processing`
+          }
+        }).then(orphanedTask => {
           logger.info('Stored orphaned task for unknown dealership', {
             orphanedTaskId: orphanedTask.id,
             externalId: data.externalId,
@@ -616,28 +758,20 @@ export const POST = compose(
             path: '/api/seoworks/webhook',
             method: 'POST'
           })
-
-          // Align with GSEO.pdf "Success – Dealership Not Set Up Yet"
-          return successResponse({
-            message: 'Webhook received and task stored (dealership not yet set up)',
-            status: 'stored_for_later_processing',
-            seoworksTaskId: data.externalId
-          })
-        } catch (orphanError) {
+        }).catch(orphanError => {
           logger.error('Failed to store orphaned task', orphanError, {
             externalId: data.externalId,
             eventType,
-            clientId: data.clientId,
-            clientEmail: data.clientEmail
+            clientId: data.clientId
           })
-          
-          // Align fallback response with GSEO.pdf even if storage failed
-          return successResponse({
-            message: 'Webhook received and task stored (dealership not yet set up)',
-            status: 'stored_for_later_processing',
-            seoworksTaskId: data.externalId
-          })
-        }
+        })
+
+        // Return immediately without waiting for database insert
+        return successResponse({
+          message: 'Webhook received and task stored (dealership not yet set up)',
+          status: 'stored_for_later_processing',
+          seoworksTaskId: data.externalId
+        })
       }
     }
 

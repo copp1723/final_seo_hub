@@ -139,6 +139,14 @@ export async function POST(request: NextRequest) {
   const rateLimitResponse = await rateLimits.api(request)
   if (rateLimitResponse) return rateLimitResponse
 
+  // Declare variables outside try block for error logging
+  let name: string | undefined
+  let email: string | undefined
+  let role: string | undefined
+  let agencyId: string | null | undefined
+  let dealershipId: string | null | undefined
+  let inviterSession: any = null
+
   try {
     const body = await request.json()
 
@@ -157,10 +165,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { name, email, role, agencyId, dealershipId, expiresInHours } = validation.data
+    // Extract variables after validation
+    const validatedData = validation.data
+    name = validatedData.name
+    email = validatedData.email
+    role = validatedData.role
+    agencyId = validatedData.agencyId
+    dealershipId = validatedData.dealershipId
+    const expiresInHours = validatedData.expiresInHours
 
     // Ensure only SUPER_ADMIN can create ADMIN or SUPER_ADMIN invitations
-    const inviterSession = await SimpleAuth.getSessionFromRequest(request)
+    inviterSession = await SimpleAuth.getSessionFromRequest(request)
     if (!inviterSession || (role !== 'USER' && inviterSession.user.role !== 'SUPER_ADMIN')) {
       logger.error('Unauthorized attempt to create invitation', undefined, {
         inviterRole: inviterSession?.user.role,
@@ -195,7 +210,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name || null,
         email,
-        role,
+        role: role as any, // Cast to UserRole enum
         agencyId: agencyId || null,
         dealershipId: dealershipId || null,
         invitationToken: token,

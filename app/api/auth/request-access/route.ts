@@ -65,7 +65,14 @@ export async function POST(request: NextRequest) {
         // Send invitation email using existing email infrastructure
         console.log('🔄 Attempting to send email...')
         const emailSent = await sendInvitationEmail({
-          user,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || 'User', // Provide fallback for null name
+            role: user.role,
+            agencyId: user.agencyId,
+            onboardingCompleted: user.onboardingCompleted || false
+          },
           invitedBy: 'System',
           loginUrl,
           skipPreferences: true

@@ -14,10 +14,18 @@ const rateLimitStore: RateLimitStore = {}
 // Memory management constants
 const MAX_RATE_LIMIT_ENTRIES = 10000 // Maximum entries to prevent memory leaks
 const CLEANUP_INTERVAL = 5 * 60 * 1000 // Clean up every 5 minutes
+const AGGRESSIVE_CLEANUP_THRESHOLD = 8000 // Trigger more aggressive cleanup
 
-// Periodic cleanup to prevent memory leaks
-setInterval(() => {
-  const now = Date.now()
+// Track last cleanup time to ensure it doesn't run too frequently
+let lastCleanupTime = Date.now()
+
+// Cleanup function that can be called on-demand
+function performMemoryCleanup(now: number = Date.now()) {
+  // Skip if cleanup was performed recently (within 1 minute)
+  if (now - lastCleanupTime < 60 * 1000) {
+    return
+  }
+
   const keysToDelete: string[] = []
 
   for (const [key, entry] of Object.entries(rateLimitStore)) {
@@ -27,6 +35,7 @@ setInterval(() => {
   }
 
   keysToDelete.forEach(key => delete rateLimitStore[key])
+  lastCleanupTime = now
 
   // If still too many entries, remove oldest ones
   const remainingEntries = Object.entries(rateLimitStore)
@@ -39,7 +48,25 @@ setInterval(() => {
   if (keysToDelete.length > 0) {
     console.log(`[RATE LIMIT] Cleaned up ${keysToDelete.length} expired entries. Current size: ${Object.keys(rateLimitStore).length}`)
   }
-}, CLEANUP_INTERVAL)
+}
+
+// Only set up interval cleanup in non-serverless environments
+// In serverless, cleanup will happen on-demand during requests
+if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'development') {
+  // Check if we're likely in a long-running process (not serverless)
+  const cleanupInterval = setInterval(() => {
+    performMemoryCleanup()
+  }, CLEANUP_INTERVAL)
+
+  // Clean up interval on process exit
+  process.on('SIGTERM', () => {
+    clearInterval(cleanupInterval)
+  })
+  
+  process.on('SIGINT', () => {
+    clearInterval(cleanupInterval)
+  })
+}
 
 export interface RateLimitConfig {
   windowMs: number // Time window in milliseconds
@@ -53,8 +80,14 @@ export function createRateLimit(config: RateLimitConfig) {
     const clientId = getClientId(request)
     const now = Date.now()
 
-    // Clean up expired entries
-    cleanupExpiredEntries(now)
+    // Perform cleanup if memory usage is high or periodically
+    const currentSize = Object.keys(rateLimitStore).length
+    if (currentSize > AGGRESSIVE_CLEANUP_THRESHOLD) {
+      performMemoryCleanup(now)
+    } else {
+      // Light cleanup of just expired entries for this request
+      cleanupExpiredEntries(now)
+    }
 
     // Get or create rate limit entry
     const entry = rateLimitStore[clientId] || { count: 0, resetTime: now + config.windowMs }

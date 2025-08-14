@@ -23,10 +23,25 @@ export function sanitizeForLog(data: unknown): unknown {
 // Export webhook validation schemas
 export { seoworksWebhookSchema, type SEOWorksWebhookPayload } from './webhook'
 
+// Export request validation schemas
+export { createRequestSchema, updateRequestSchema, type CreateRequestInput, type UpdateRequestInput } from './request'
+
+// Export settings validation schemas
+export { 
+  updateProfileSchema,
+  notificationPreferencesSchema,
+  regenerateApiKeySchema,
+  userPreferencesSchema,
+  type UpdateProfileInput,
+  type NotificationPreferencesInput,
+  type UserPreferencesInput
+} from './settings'
+
 // Validation helper function
-export function validateRequest<T>(schema: any, data: unknown): { success: boolean; data?: T; error?: any } {
+export async function validateRequest<T>(request: Request, schema: any): Promise<{ success: boolean; data?: T; error?: any }> {
   try {
-    const result = schema.safeParse(data)
+    const body = await request.json()
+    const result = schema.safeParse(body)
     return result
   } catch (error) {
     return { success: false, error }

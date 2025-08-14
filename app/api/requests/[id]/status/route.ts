@@ -24,7 +24,8 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   // CSRF protection for session-authenticated requests
-  const csrfResult = await csrfProtection(request, () => SimpleAuth.getSessionFromRequest(request).then(s => s?.user.id || null))
+  const session = await SimpleAuth.getSessionFromRequest(request)
+  const csrfResult = await csrfProtection(request, () => session?.user.id || null)
   if (csrfResult) {
     return csrfResult
   }
@@ -40,6 +41,7 @@ export async function PATCH(
   if (!validation.success) return validation.error
   
   const { data } = validation
+  const typedData = data as z.infer<typeof updateStatusSchema>
   const { id: requestId } = await context.params
   
   try {
@@ -68,19 +70,19 @@ export async function PATCH(
     const updatedRequest = await prisma.requests.update({
       where: { id: requestId },
       data: {
-        status: data.status,
-        completedAt: data.status === RequestStatus.COMPLETED ? new Date() : null
+        status: typedData.status,
+        completedAt: typedData.status === RequestStatus.COMPLETED ? new Date() : null
       },
       include: { users: true }
     })
     
     // Send status change email if status actually changed
-    if (existingRequest.status !== data.status) {
+    if (existingRequest.status !== typedData.status) {
       const emailTemplate = statusChangedTemplate(
         updatedRequest,
         updatedRequest.users,
         existingRequest.status,
-        data.status
+        typedData.status
       )
       
       await queueEmailWithPreferences(
@@ -94,7 +96,7 @@ export async function PATCH(
       logger.info('Request status updated with email notification', {
         requestId,
         oldStatus: existingRequest.status,
-        newStatus: data.status,
+        newStatus: typedData.status,
         userId: updatedRequest.users?.id
       })
     }
@@ -106,7 +108,7 @@ export async function PATCH(
   } catch (error) {
     logger.error('Error updating request status', error, {
       requestId,
-      status: data.status
+      status: typedData.status
     })
     return errorResponse('Failed to update request status', 500)
   }

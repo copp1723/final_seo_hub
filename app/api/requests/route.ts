@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
 import { RequestStatus, Prisma, UserRole, TaskType, TaskStatus, RequestPriority } from '@prisma/client'
-import { validateRequest, createRequestSchema } from '@/lib/validations/index'
+import { validateRequest, createRequestSchema, CreateRequestInput } from '@/lib/validations/index'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
@@ -144,7 +144,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
 
   // CSRF protection for session-authenticated requests
-  const csrfResult = await csrfProtection(request, () => SimpleAuth.getSessionFromRequest(request).then(s => s?.user.id || null))
+  const session = await SimpleAuth.getSessionFromRequest(request)
+  const csrfResult = await csrfProtection(request, () => session?.user.id || null)
   if (csrfResult) {
     return csrfResult
   }
@@ -202,16 +203,17 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
   }
   
   const { data } = validation
+  const typedData = data as CreateRequestInput
   logger.info('Focus request validation successful', {
     userId: authResult.user.id,
     requestData: {
-      title: data.title,
-      type: data.type,
-      priority: data.priority,
-      packageType: data.packageType,
-      keywordsCount: data.keywords?.length || 0,
-      targetCitiesCount: data.targetCities?.length || 0,
-      targetModelsCount: data.targetModels?.length || 0
+      title: typedData.title,
+      type: typedData.type,
+      priority: typedData.priority,
+      packageType: typedData.packageType,
+      keywordsCount: typedData.keywords?.length || 0,
+      targetCitiesCount: typedData.targetCities?.length || 0,
+      targetModelsCount: typedData.targetModels?.length || 0
     }
   })
   
@@ -240,15 +242,15 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       userId: authResult.user.id,
       userDealershipId: user.dealershipId,
       requestData: {
-        title: data.title,
-        description: data.description,
-        type: data.type,
-        priority: data.priority,
-        packageType: data.packageType,
-        targetUrl: data.targetUrl,
-        keywords: data.keywords,
-        targetCities: data.targetCities,
-        targetModels: data.targetModels,
+        title: typedData.title,
+        description: typedData.description,
+        type: typedData.type,
+        priority: typedData.priority,
+        packageType: typedData.packageType,
+        targetUrl: typedData.targetUrl,
+        keywords: typedData.keywords,
+        targetCities: typedData.targetCities,
+        targetModels: typedData.targetModels,
         agencyId: user.agencyId,
         dealershipId: user.dealershipId,
         hasDealership: !!user.dealershipId
@@ -261,16 +263,16 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           userId: authResult.user.id,
           agencyId: user.agencyId || authResult.user.agencyId || null,
           dealershipId: user.dealershipId || null, // CRITICAL FIX: Now including dealershipId
-          title: data.title,
-          description: data.description,
-          type: data.type,
-          priority: data.priority,
+          title: typedData.title,
+          description: typedData.description,
+          type: typedData.type,
+          priority: typedData.priority,
           status: RequestStatus.PENDING,
-          packageType: data.packageType || null,
-          keywords: data.keywords || [],
-          targetUrl: data.targetUrl || null,
-          targetCities: data.targetCities || [],
-          targetModels: data.targetModels || []
+          packageType: typedData.packageType || null,
+          keywords: typedData.keywords || [],
+          targetUrl: typedData.targetUrl || null,
+          targetCities: typedData.targetCities || [],
+          targetModels: typedData.targetModels || []
         },
         include: {
           users: true,
@@ -380,8 +382,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     logger.info('Request created successfully', {
       userId: authResult.user.id,
       requestId: newRequest.id,
-      type: data.type,
-      priority: data.priority,
+      type: typedData.type,
+      priority: typedData.priority,
       path: '/api/requests',
       method: 'POST'
     })
@@ -414,9 +416,9 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     logger.error('Error creating request', error, {
       userId: authResult.user.id,
       requestData: {
-        title: data.title,
-        type: data.type,
-        priority: data.priority
+        title: typedData.title,
+        type: typedData.type,
+        priority: typedData.priority
       },
       path: '/api/requests',
       method: 'POST'

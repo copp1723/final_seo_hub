@@ -75,15 +75,16 @@ export async function PATCH(request: NextRequest) {
   if (!validation.success) return validation.error
   
   const { data } = validation
+  const typedData = data as z.infer<typeof updatePreferencesSchema>
   
   try {
     // Update or create preferences
     const preferences = await prisma.user_preferences.upsert({
       where: { userId: authResult.user.id },
-      update: data,
+      update: typedData,
       create: {
         userId: authResult.user.id,
-        ...data
+        ...typedData
       }
     })
     

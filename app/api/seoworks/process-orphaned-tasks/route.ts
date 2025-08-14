@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { withApiMonitoring } from '@/lib/api-wrapper'
 import { logger } from '@/lib/logger'
+import { TaskType as DbTaskType, TaskStatus as DbTaskStatus, RequestPriority } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,7 @@ async function handlePOST(request: NextRequest) {
         if (orphaned.eventType === 'task.completed') {
           // Determine the owning user
           let ownerUserId = userId
+          let ownerDetails: { id: string; dealershipId: string | null; agencyId: string | null } | null = null
           if (!ownerUserId) {
             const owner = await prisma.users.findFirst({
               where: {
@@ -56,9 +58,10 @@ async function handlePOST(request: NextRequest) {
                   orphaned.clientEmail ? { email: orphaned.clientEmail } : {},
                 ].filter((c) => Object.keys(c).length > 0),
               },
-              select: { id: true },
+              select: { id: true, dealershipId: true, agencyId: true },
             })
             ownerUserId = owner?.id
+            if (owner) ownerDetails = { id: owner.id, dealershipId: owner.dealershipId || null, agencyId: owner.agencyId || null }
           }
 
           if (!ownerUserId) {
@@ -70,9 +73,20 @@ async function handlePOST(request: NextRequest) {
             continue
           }
 
+          // Ensure we have owner details
+          if (!ownerDetails) {
+            const fetched = await prisma.users.findUnique({
+              where: { id: ownerUserId! },
+              select: { id: true, dealershipId: true, agencyId: true }
+            })
+            if (fetched) ownerDetails = { id: fetched.id, dealershipId: fetched.dealershipId || null, agencyId: fetched.agencyId || null }
+          }
+
           const newRequest = await prisma.requests.create({
             data: {
               userId: ownerUserId!,
+              dealershipId: ownerDetails?.dealershipId || null,
+              agencyId: ownerDetails?.agencyId || null,
               title: Array.isArray(orphaned.deliverables) && (orphaned.deliverables as any[])[0]?.title
                 ? (orphaned.deliverables as any[])[0].title
                 : `SEOWorks ${String(orphaned.taskType).toLowerCase()} Task`,
@@ -88,6 +102,37 @@ async function handlePOST(request: NextRequest) {
               improvementsCompleted: ['improvement', 'maintenance', 'seochange'].includes(String(orphaned.taskType).toLowerCase()) ? 1 : 0,
             },
           })
+
+          // Also create or update a Task entry so the Tasks page reflects it
+          const mapType = (t: string): DbTaskType | null => {
+            const v = String(t).toLowerCase()
+            if (v === 'page') return DbTaskType.PAGE
+            if (v === 'blog') return DbTaskType.BLOG
+            if (v === 'gbp_post') return DbTaskType.GBP_POST
+            if (['improvement', 'maintenance', 'seochange'].includes(v)) return DbTaskType.IMPROVEMENT
+            return null
+          }
+          const dbType = mapType(String(orphaned.taskType))
+          if (dbType) {
+            const first = Array.isArray(orphaned.deliverables) && (orphaned.deliverables as any[])[0] || null
+            const title = first?.title || `SEOWorks ${String(orphaned.taskType).toLowerCase()} Task`
+            const targetUrl = first?.url || null
+            await prisma.tasks.create({
+              data: {
+                userId: newRequest.userId,
+                dealershipId: ownerDetails?.dealershipId || null,
+                agencyId: ownerDetails?.agencyId || null,
+                type: dbType,
+                status: DbTaskStatus.COMPLETED,
+                title,
+                description: `Auto-created from orphaned SEOWorks task ${orphaned.externalId}`,
+                priority: RequestPriority.MEDIUM,
+                targetUrl,
+                requestId: newRequest.id,
+                completedAt: newRequest.completedAt || new Date(),
+              }
+            })
+          }
 
           await prisma.orphaned_tasks.update({
             where: { id: orphaned.id },

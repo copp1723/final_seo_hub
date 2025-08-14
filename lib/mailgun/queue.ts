@@ -48,7 +48,12 @@ class EmailQueue {
     
     // Start processing if not already running
     if (!this.processing) {
-      this.process()
+      this.process().catch(error => {
+        logger.error('Error starting email queue processing', error, {
+          to: email.to,
+          subject: email.subject
+        })
+      })
     }
   }
 
@@ -74,9 +79,21 @@ class EmailQueue {
           })
 
           setTimeout(() => {
-            this.queue.push(item)
-            if (!this.processing) {
-              this.process()
+            try {
+              this.queue.push(item)
+              if (!this.processing) {
+                this.process().catch(error => {
+                  logger.error('Error in email queue retry processing', error, {
+                    to: item.email.to,
+                    subject: item.email.subject
+                  })
+                })
+              }
+            } catch (error) {
+              logger.error('Error in email queue retry timeout', error, {
+                to: item.email.to,
+                subject: item.email.subject
+              })
             }
           }, delay)
         } else if (!success) {

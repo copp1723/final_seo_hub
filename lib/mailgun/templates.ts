@@ -1,7 +1,30 @@
 import { requests, users } from '@prisma/client'
 import { format } from 'date-fns'
 import { getUnsubscribeUrl } from './client'
-import { BrandingConfig, getBrandingFromDomain, DEFAULT_BRANDING } from '@/lib/branding/config'
+import { BrandingConfig, getBrandingFromDomain, getBrandingFromRequest, DEFAULT_BRANDING } from '@/lib/branding/config'
+
+// User invitation template data interface
+export interface UserInvitationData {
+  user: {
+    id: string
+    email: string
+    name: string
+    role: string
+    agencyId?: string | null
+    onboardingCompleted?: boolean
+  }
+  invitedBy: string
+  loginUrl: string
+  branding: BrandingConfig
+}
+
+// Helper to get branding for email templates
+export function getEmailBranding(request?: Request): BrandingConfig {
+  if (request) {
+    return getBrandingFromRequest(request)
+  }
+  return DEFAULT_BRANDING
+}
 
 // Base template with header and footer
 function baseTemplate(content: string, unsubscribeUrl?: string, branding?: BrandingConfig): string {
@@ -144,25 +167,53 @@ export function welcomeEmailTemplate(user: users, branding?: BrandingConfig): { 
   }
 }
 
-// User invitation email template
-export function userInvitationTemplate(user: users, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string } {
-  const config = branding || DEFAULT_BRANDING
+// User invitation email template (backwards compatibility)
+export function userInvitationTemplate(user: users, invitedBy: string, loginUrl?: string, branding?: BrandingConfig): { subject: string; html: string; text: string }
+// Overload for new interface  
+export function userInvitationTemplate(data: UserInvitationData): { subject: string; html: string; text: string }
+// Implementation
+export function userInvitationTemplate(
+  userOrData: users | UserInvitationData, 
+  invitedBy?: string, 
+  loginUrl?: string, 
+  branding?: BrandingConfig
+): { subject: string; html: string; text: string } {
+  // Handle both call signatures
+  let user: users | UserInvitationData['user']
+  let finalInvitedBy: string
+  let finalLoginUrl: string
+  let config: BrandingConfig
+  
+  if ('branding' in userOrData) {
+    // New interface
+    const data = userOrData as UserInvitationData
+    user = data.user
+    finalInvitedBy = data.invitedBy
+    finalLoginUrl = data.loginUrl
+    config = data.branding
+  } else {
+    // Legacy interface
+    user = userOrData as users
+    finalInvitedBy = invitedBy!
+    config = branding || DEFAULT_BRANDING
+    const appUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    finalLoginUrl = loginUrl || `${appUrl}/auth/signin`
+  }
+  
   const unsubscribeUrl = getUnsubscribeUrl(user.id, 'invitation')
-  const appUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   
   // Always use the provided loginUrl which contains the secure invitation token
   // If no loginUrl is provided, direct to signin page
   const isDealershipUser = user.role === 'USER' && user.agencyId
-  const finalLoginUrl = loginUrl || `${appUrl}/auth/signin`
   
   const content = `
     <h2>You've been invited to ${config.companyName}!</h2>
     <p>Hi ${user.name || 'there'},</p>
-    <p>You've been invited to join ${config.companyName} by <strong>${invitedBy}</strong>. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently</p>
+    <p>You've been invited to join ${config.companyName} by <strong>${finalInvitedBy}</strong>. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently</p>
     
     <h3>Getting Started</h3>
     ${isDealershipUser ? `
-      <p>As a dealership user, you'll need to complete your onboarding to get started with SEO services.Click the button below to begin:</p>
+      <p>As a dealership user, you'll need to complete your onboarding to get started with SEO services. Click the button below to begin:</p>
       
       <div style="text-align: center; margin: 32px 0;">
         <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${config.primaryColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
@@ -202,9 +253,40 @@ export function userInvitationTemplate(user: users, invitedBy: string, loginUrl?
       <strong>Note:</strong> If you didn't expect this invitation, you can safely ignore this email</p>
   `
 
+  // Generate plain text version
+  const textContent = `
+You've been invited to ${config.companyName}!
+
+Hi ${user.name || 'there'},
+
+You've been invited to join ${config.companyName} by ${finalInvitedBy}. ${config.companyName} is your AI-powered platform for managing SEO requests efficiently.
+
+Getting Started:
+${isDealershipUser ? 
+  `As a dealership user, you'll need to complete your onboarding to get started with SEO services. Visit: ${finalLoginUrl}` :
+  `To access your account, simply visit: ${finalLoginUrl}`
+}
+
+Your account details:
+- Email: ${user.email}
+- Role: ${user.role.replace('_', ' ')}
+${user.agencyId ? '- Agency: Assigned to your organization' : ''}
+
+What you can do with ${config.companyName}:
+- Create Requests: Submit SEO content requests for pages, blogs, and more
+- Track Progress: Monitor the status of your requests in real-time
+- AI Chat Assistant: Get instant help with SEO questions and strategies
+- Analytics Integration: Connect Google Analytics and Search Console for insights
+
+If you have any questions or need help getting started, our support team is here to assist you!
+
+Note: If you didn't expect this invitation, you can safely ignore this email.
+  `.trim()
+
   return {
     subject: `Welcome to ${config.companyName} - You've been invited!`,
-    html: baseTemplate(content, unsubscribeUrl, config)
+    html: baseTemplate(content, unsubscribeUrl, config),
+    text: textContent
   }
 }
 

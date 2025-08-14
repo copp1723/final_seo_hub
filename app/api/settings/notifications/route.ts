@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
-import { validateRequest, notificationPreferencesSchema } from '@/lib/validations'
+import { validateRequest, notificationPreferencesSchema, NotificationPreferencesInput } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic';
@@ -88,15 +88,16 @@ export async function PUT(request: NextRequest) {
   if (!validation.success) return validation.error
   
   const { data } = validation
+  const typedData = data as NotificationPreferencesInput
   
   try {
     const preferences = await prisma.user_preferences.upsert({
       where: { userId: authResult.user.id },
       create: {
         userId: authResult.user.id,
-        ...data
+        ...typedData
       },
-      update: data,
+      update: typedData,
       select: {
         emailNotifications: true,
         requestCreated: true,

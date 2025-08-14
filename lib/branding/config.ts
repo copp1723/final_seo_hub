@@ -3,6 +3,8 @@ export interface BrandingConfig {
   primaryColor: string
   secondaryColor: string
   logo?: string
+  favicon?: string
+  emailFromName?: string
   supportEmail: string
   websiteUrl: string
   domain?: string
@@ -12,6 +14,8 @@ export const DEFAULT_BRANDING: BrandingConfig = {
   companyName: 'SEO Hub',
   primaryColor: '#3b82f6',
   secondaryColor: '#1e40af',
+  favicon: '/favicon.ico',
+  emailFromName: 'SEO Hub',
   supportEmail: 'support@seohub.com',
   websiteUrl: 'https://seohub.com',
 }

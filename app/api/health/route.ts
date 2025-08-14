@@ -5,6 +5,19 @@ import { validateEnvironment } from '@/lib/env-validation'
 
 export const dynamic = 'force-dynamic';
 
+// Development-only logging functions
+const devLog = (message: string, ...args: any[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    devLog(message, ...args)
+  }
+}
+
+const devError = (message: string, ...args: any[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    devError(message, ...args)
+  }
+}
+
 export async function GET() {
   const startTime = Date.now()
   
@@ -56,66 +69,66 @@ export async function GET() {
     errors: [] as string[]
   }
   
-  // Log environment variables (safely)
-  console.log('🔍 DEPLOYMENT DIAGNOSTICS STARTING...')
-  console.log('Environment Variables Check:')
+  // Log environment variables (safely) - only in development
+  devLog('🔍 DEPLOYMENT DIAGNOSTICS STARTING...')
+  devLog('Environment Variables Check:')
   Object.entries(diagnostics.environment).forEach(([key, value]) => {
-    console.log(`  ${key}: ${value}`)
+    devLog(`  ${key}: ${value}`)
   })
   
   // Check environment validation results
   if (!envValidation.isValid) {
     diagnostics.errors.push(...envValidation.errors)
-    console.error('❌ Environment validation failed:')
-    envValidation.errors.forEach(error => console.error(`  - ${error}`))
+    devError('❌ Environment validation failed:')
+    envValidation.errors.forEach(error => devError(`  - ${error}`))
   } else {
-    console.log('✅ All environment variables are valid')
+    devLog('✅ All environment variables are valid')
   }
   
   if (envValidation.warnings.length > 0) {
-    console.warn('⚠️  Environment warnings:')
-    envValidation.warnings.forEach(warning => console.warn(`  - ${warning}`))
+    devError('⚠️  Environment warnings:')
+    envValidation.warnings.forEach(warning => devError(`  - ${warning}`))
   }
   
   try {
-    console.log('🔍 Testing database connection...')
+    devLog('🔍 Testing database connection...')
     // Test database connection
     await prisma.$connect()
     await prisma.$queryRaw`SELECT 1 as test`
     diagnostics.database.connection = 'SUCCESS'
-    console.log('✅ Database connected successfully')
+    devLog('✅ Database connected successfully')
     
     // Get counts
     try {
       diagnostics.database.userCount = await prisma.users.count()
-      console.log(`✅ User count: ${diagnostics.database.userCount}`)
+      devLog(`✅ User count: ${diagnostics.database.userCount}`)
     } catch (userError) {
       diagnostics.errors.push(`User count failed: ${getSafeErrorMessage(userError)}`)
-      console.error('❌ User count failed:', userError)
+      devError('❌ User count failed:', userError)
     }
     
     try {
       diagnostics.database.agencyCount = await prisma.agencies.count()
-      console.log(`✅ Agency count: ${diagnostics.database.agencyCount}`)
+      devLog(`✅ Agency count: ${diagnostics.database.agencyCount}`)
     } catch (agencyError) {
       diagnostics.errors.push(`Agency count failed: ${getSafeErrorMessage(agencyError)}`)
-      console.error('❌ Agency count failed:', agencyError)
+      devError('❌ Agency count failed:', agencyError)
     }
     
     try {
       diagnostics.database.accountCount = await prisma.accounts.count()
-      console.log(`✅ Account count: ${diagnostics.database.accountCount}`)
+      devLog(`✅ Account count: ${diagnostics.database.accountCount}`)
     } catch (accountError) {
       diagnostics.errors.push(`Account count failed: ${getSafeErrorMessage(accountError)}`)
-      console.error('❌ Account count failed:', accountError)
+      devError('❌ Account count failed:', accountError)
     }
     
     try {
       diagnostics.database.sessionCount = await prisma.sessions.count()
-      console.log(`✅ Session count: ${diagnostics.database.sessionCount}`)
+      devLog(`✅ Session count: ${diagnostics.database.sessionCount}`)
     } catch (sessionError) {
       diagnostics.errors.push(`Session count failed: ${getSafeErrorMessage(sessionError)}`)
-      console.error('❌ Session count failed:', sessionError)
+      devError('❌ Session count failed:', sessionError)
     }
     
     // Get sample users to check if any exist
@@ -130,20 +143,20 @@ export async function GET() {
         },
         orderBy: { createdAt: 'desc' }
       })
-      console.log(`✅ Found ${diagnostics.database.sampleUsers.length} sample users`)
+      devLog(`✅ Found ${diagnostics.database.sampleUsers.length} sample users`)
       diagnostics.database.sampleUsers.forEach(user => {
-        console.log(`  - ${user.email} (${user.role})`)
+        devLog(`  - ${user.email} (${user.role})`)
       })
     } catch (sampleError) {
       diagnostics.errors.push(`Sample users failed: ${getSafeErrorMessage(sampleError)}`)
-      console.error('❌ Sample users failed:', sampleError)
+      devError('❌ Sample users failed:', sampleError)
     }
     
   } catch (error) {
     diagnostics.database.connection = 'FAILED'
     diagnostics.database.error = getSafeErrorMessage(error)
     diagnostics.errors.push(`Database connection failed: ${getSafeErrorMessage(error)}`)
-    console.error('❌ Database connection failed:', error)
+    devError('❌ Database connection failed:', error)
   }
   
   // Check auth configuration
@@ -157,17 +170,17 @@ export async function GET() {
   diagnostics.status = diagnostics.errors.length === 0 ? 'healthy' : 'unhealthy'
   
   // Final summary
-  console.log('\n📊 DIAGNOSTIC SUMMARY:')
-  console.log(`Status: ${diagnostics.status === 'healthy' ? '✅ HEALTHY' : '❌ UNHEALTHY'}`)
-  console.log(`Database: ${diagnostics.database.connection}`)
-  console.log(`User Count: ${diagnostics.database.userCount}`)
-  console.log(`Agency Count: ${diagnostics.database.agencyCount}`)
-  console.log(`Account Count: ${diagnostics.database.accountCount}`)
-  console.log(`Session Count: ${diagnostics.database.sessionCount}`)
-  console.log(`Errors: ${diagnostics.errors.length}`)
+  devLog('\n📊 DIAGNOSTIC SUMMARY:')
+  devLog(`Status: ${diagnostics.status === 'healthy' ? '✅ HEALTHY' : '❌ UNHEALTHY'}`)
+  devLog(`Database: ${diagnostics.database.connection}`)
+  devLog(`User Count: ${diagnostics.database.userCount}`)
+  devLog(`Agency Count: ${diagnostics.database.agencyCount}`)
+  devLog(`Account Count: ${diagnostics.database.accountCount}`)
+  devLog(`Session Count: ${diagnostics.database.sessionCount}`)
+  devLog(`Errors: ${diagnostics.errors.length}`)
   if (diagnostics.errors.length > 0) {
     diagnostics.errors.forEach((error, index) => {
-      console.log(`  ${index + 1}. ${error}`)
+      devLog(`  ${index + 1}. ${error}`)
     })
   }
   

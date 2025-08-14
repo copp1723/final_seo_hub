@@ -99,12 +99,7 @@ export default function SimpleSignIn() {
           </form>
           
           <div className="mt-4 text-center text-sm text-gray-600">
-            <p>Authorized users only</p>
-            <p className="mt-2">Valid emails:</p>
-            <ul className="mt-1 space-y-1">
-              <li>josh.copp@onekeel.ai</li>
-              <li>access@seowerks.ai</li>
-            </ul>
+            <p>Enter your registered email address to access the platform</p>
           </div>
         </CardContent>
       </Card>

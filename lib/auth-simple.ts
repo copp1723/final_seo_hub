@@ -12,6 +12,14 @@ export interface SimpleUser {
 export interface SimpleSession {
   user: SimpleUser;
   expires: Date;
+  sessionId?: string;
+}
+
+export interface SessionRevocationEvent {
+  userId: string;
+  sessionId?: string; // If undefined, revoke all sessions for the user
+  reason: string;
+  timestamp: Date;
 }
 
 // Use NEXTAUTH_SECRET consistently for JWT operations
@@ -38,7 +46,7 @@ export class SimpleAuth {
   private static readonly JWT_SECRET = JWT_SECRET_STRING;
 
   // Web Crypto API for token generation (edge runtime compatible)
-  private static async generateToken(payload: any): Promise<string> {
+  public static async generateToken(payload: any): Promise<string> {
     const data = JSON.stringify(payload);
     const encodedData = Buffer.from(data).toString('base64');
     
@@ -130,7 +138,9 @@ export class SimpleAuth {
   }
 
   static async createSession(user: SimpleUser): Promise<string> {
+    const sessionId = crypto.randomUUID() // Generate unique session ID for revocation support
     const payload = {
+      sessionId,
       userId: user.id,
       email: user.email,
       role: user.role,
@@ -171,7 +181,8 @@ export class SimpleAuth {
           dealershipId: payload.dealershipId,
           name: payload.name
         },
-        expires: new Date(payload.exp * 1000)
+        expires: new Date(payload.exp * 1000),
+        sessionId: payload.sessionId
       };
     } catch (error) {
       console.error('Session retrieval error:', error);
@@ -289,7 +300,8 @@ export class SimpleAuth {
           dealershipId: payload.dealershipId,
           name: payload.name
         },
-        expires: new Date(payload.exp * 1000)
+        expires: new Date(payload.exp * 1000),
+        sessionId: payload.sessionId
       };
     } catch (error) {
       console.error('[AUTH DEBUG] Session retrieval error:', error);
@@ -309,6 +321,189 @@ export class SimpleAuth {
     }
   }
 
+}
+
+// Optional Session Revocation System
+// Configurable via environment variable SESSION_REVOCATION_ENABLED
+class SessionRevocation {
+  private static revokedSessions: Set<string> = new Set()
+  private static revokedUsers: Set<string> = new Set()
+  private static revocationEvents: SessionRevocationEvent[] = []
+  private static readonly MAX_REVOCATION_EVENTS = 1000 // Prevent memory buildup
+  private static readonly CLEANUP_INTERVAL = 60 * 60 * 1000 // 1 hour
+  private static lastCleanup = Date.now()
+
+  static isEnabled(): boolean {
+    return typeof window === 'undefined' && 
+           (process.env.SESSION_REVOCATION_ENABLED === 'true' || 
+            process.env.NODE_ENV === 'development')
+  }
+
+  static revokeSession(sessionId: string, userId: string, reason: string): void {
+    if (!this.isEnabled()) return
+
+    this.revokedSessions.add(sessionId)
+    this.addRevocationEvent({ userId, sessionId, reason, timestamp: new Date() })
+    
+    console.info(`[SESSION REVOCATION] Session ${sessionId} revoked for user ${userId}: ${reason}`)
+  }
+
+  static revokeAllUserSessions(userId: string, reason: string): void {
+    if (!this.isEnabled()) return
+
+    this.revokedUsers.add(userId)
+    this.addRevocationEvent({ userId, reason, timestamp: new Date() })
+    
+    console.info(`[SESSION REVOCATION] All sessions revoked for user ${userId}: ${reason}`)
+  }
+
+  static isSessionRevoked(sessionId: string | undefined, userId: string): boolean {
+    if (!this.isEnabled()) return false
+
+    this.performPeriodicCleanup()
+    
+    // Check if all user sessions are revoked
+    if (this.revokedUsers.has(userId)) {
+      return true
+    }
+    
+    // Check if specific session is revoked
+    if (sessionId && this.revokedSessions.has(sessionId)) {
+      return true
+    }
+    
+    return false
+  }
+
+  private static addRevocationEvent(event: SessionRevocationEvent): void {
+    this.revocationEvents.push(event)
+    
+    // Prevent memory buildup by removing old events
+    if (this.revocationEvents.length > this.MAX_REVOCATION_EVENTS) {
+      this.revocationEvents = this.revocationEvents.slice(-this.MAX_REVOCATION_EVENTS / 2)
+    }
+  }
+
+  private static performPeriodicCleanup(): void {
+    const now = Date.now()
+    
+    // Only perform cleanup once per hour to avoid performance impact
+    if (now - this.lastCleanup < this.CLEANUP_INTERVAL) {
+      return
+    }
+    
+    try {
+      // Clean up events older than 24 hours
+      const cutoffTime = new Date(now - 24 * 60 * 60 * 1000)
+      this.revocationEvents = this.revocationEvents.filter(event => event.timestamp > cutoffTime)
+      
+      this.lastCleanup = now
+      
+      if (this.revocationEvents.length > 0) {
+        console.info(`[SESSION REVOCATION] Cleanup completed. Active revocation events: ${this.revocationEvents.length}`)
+      }
+    } catch (error) {
+      console.error('[SESSION REVOCATION] Error during cleanup:', error)
+    }
+  }
+
+  // Admin function to get revocation history (for debugging)
+  static getRevocationHistory(userId?: string): SessionRevocationEvent[] {
+    if (!this.isEnabled()) return []
+    
+    if (userId) {
+      return this.revocationEvents.filter(event => event.userId === userId)
+    }
+    
+    return [...this.revocationEvents]
+  }
+
+  // Admin function to clear revocations (use with caution)
+  static clearRevocations(userId?: string): void {
+    if (!this.isEnabled()) return
+
+    if (userId) {
+      this.revokedUsers.delete(userId)
+      this.revocationEvents = this.revocationEvents.filter(event => event.userId !== userId)
+      
+      // Remove specific sessions for the user (harder without direct mapping)
+      console.info(`[SESSION REVOCATION] Cleared revocations for user ${userId}`)
+    } else {
+      this.revokedSessions.clear()
+      this.revokedUsers.clear()
+      this.revocationEvents = []
+      
+      console.info('[SESSION REVOCATION] All revocations cleared')
+    }
+  }
+}
+
+// Enhanced SimpleAuth with optional session revocation
+export class SimpleAuthWithRevocation extends SimpleAuth {
+  static async createSession(user: SimpleUser): Promise<string> {
+    const sessionId = crypto.randomUUID() // Generate unique session ID
+    const payload = {
+      sessionId,
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      agencyId: user.agencyId,
+      dealershipId: user.dealershipId,
+      exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days
+    };
+
+    const token = await this.generateToken(payload);
+    return token;
+  }
+
+  static async getSessionFromRequest(request: NextRequest): Promise<SimpleSession | null> {
+    const session = await super.getSessionFromRequest(request)
+    
+    if (!session) return null
+    
+    // Check if session is revoked (only if revocation is enabled)
+    if (SessionRevocation.isSessionRevoked(session.sessionId, session.user.id)) {
+      console.info(`[AUTH] Session access denied - revoked session for user ${session.user.id}`)
+      return null
+    }
+    
+    return session
+  }
+
+  static async getSession(): Promise<SimpleSession | null> {
+    const session = await super.getSession()
+    
+    if (!session) return null
+    
+    // Check if session is revoked (only if revocation is enabled)
+    if (SessionRevocation.isSessionRevoked(session.sessionId, session.user.id)) {
+      console.info(`[AUTH] Session access denied - revoked session for user ${session.user.id}`)
+      return null
+    }
+    
+    return session
+  }
+
+  // Session revocation methods
+  static revokeSession(sessionId: string, userId: string, reason: string): void {
+    SessionRevocation.revokeSession(sessionId, userId, reason)
+  }
+
+  static revokeAllUserSessions(userId: string, reason: string): void {
+    SessionRevocation.revokeAllUserSessions(userId, reason)
+  }
+
+  static getRevocationHistory(userId?: string): SessionRevocationEvent[] {
+    return SessionRevocation.getRevocationHistory(userId)
+  }
+
+  static clearRevocations(userId?: string): void {
+    SessionRevocation.clearRevocations(userId)
+  }
+
+  static isRevocationEnabled(): boolean {
+    return SessionRevocation.isEnabled()
+  }
 }
 
 // Export functions for compatibility with old auth system

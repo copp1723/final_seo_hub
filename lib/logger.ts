@@ -33,7 +33,7 @@ export class Logger {
       })
     } else {
       // In production, send to monitoring service
-      this.sendToMonitoring('error', sanitizedMessage, { ...errorDetails,
+      this.sendToMonitoring('error', String(sanitizedMessage), { ...errorDetails,
         context
       })
     }
@@ -48,7 +48,7 @@ export class Logger {
     if (this.isDevelopment) {
       console.warn(sanitizedMessage, context)
     } else {
-      this.sendToMonitoring('warn', sanitizedMessage, context)
+      this.sendToMonitoring('warn', String(sanitizedMessage), context)
     }
   }
   
@@ -61,7 +61,7 @@ export class Logger {
     if (this.isDevelopment) {
       console.log(sanitizedMessage, context)
     } else {
-      this.sendToMonitoring('info', sanitizedMessage, context)
+      this.sendToMonitoring('info', String(sanitizedMessage), context)
     }
   }
   
@@ -143,7 +143,7 @@ export function getSafeErrorMessage(error: unknown): string {
   // In development, provide more context
   if (error instanceof Error) {
     // Still sanitize in development to catch issues early
-    return sanitizeForLog(error.message, 500)
+    return String(sanitizeForLog(error.message))
   }
   
   return 'An unexpected error occurred.'

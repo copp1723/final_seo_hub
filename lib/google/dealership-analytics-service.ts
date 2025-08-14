@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger'
 import { refreshGA4TokenIfNeeded } from './ga4-token-refresh'
 import { GA4Service } from './ga4Service'
 import { features } from '@/lib/features'
-
+import { dealershipDataBridge } from '@/lib/services/dealership-data-bridge'
 import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access, DEALERSHIP_PROPERTY_MAPPINGS } from '@/lib/dealership-property-mapping'
 import { validateGA4Response } from '@/lib/validation/ga4-data-integrity'
 
@@ -105,24 +105,34 @@ export class DealershipAnalyticsService {
     let targetPropertyId: string | null = null
 
     try {
-      // Find GA4 connection - check dealership-level first, then user-level
-      let connection = null
-
-      if (dealershipId) {
-        connection = await prisma.ga4_connections.findFirst({
-          where: { dealershipId }
-        })
+      // Use the dealership data bridge to resolve the correct connection
+      if (!dealershipId) {
+        logger.warn('No dealership ID provided for GA4 data fetch', { userId })
+        return {
+          data: undefined,
+          error: 'No dealership specified',
+          hasConnection: false,
+          propertyId: undefined
+        }
       }
 
-      // Fallback to user-level connection if no dealership connection found
-      if (!connection) {
-        connection = await prisma.ga4_connections.findFirst({
-          where: { userId }
-        })
+      // Validate dealership access
+      const hasAccess = await dealershipDataBridge.validateDealershipAccess(userId, dealershipId)
+      if (!hasAccess) {
+        logger.warn('User does not have access to dealership', { userId, dealershipId })
+        return {
+          data: undefined,
+          error: 'Access denied to dealership',
+          hasConnection: false,
+          propertyId: undefined
+        }
       }
 
-      if (!connection) {
-        logger.info('No GA4 connection found', { userId, dealershipId })
+      // Resolve dealership connections using the data bridge
+      const dealershipConnections = await dealershipDataBridge.resolveDealershipConnections(userId, dealershipId)
+      
+      if (!dealershipConnections.ga4.hasConnection || !dealershipConnections.ga4.propertyId) {
+        logger.info('No GA4 connection available for dealership', { userId, dealershipId })
         return {
           data: undefined,
           error: 'No GA4 connection found - please connect your Google Analytics account',
@@ -131,80 +141,27 @@ export class DealershipAnalyticsService {
         }
       }
 
-      logger.info('GA4 connection found', {
+      targetPropertyId = dealershipConnections.ga4.propertyId
+      const connectionId = dealershipConnections.ga4.connectionId!
+
+      logger.info('GA4 connection resolved via data bridge', {
         userId,
         dealershipId,
-        connectionId: connection.id,
-        propertyId: connection.propertyId,
-        connectionType: connection.dealershipId ? 'dealership' : 'user'
+        connectionId,
+        propertyId: targetPropertyId,
+        source: dealershipConnections.ga4.source
       })
 
-      // Get dealership-specific GA4 property ID from mapping
-      let propertyId: string | null = null
-      let hasDealershipMapping = false
-
-      if (dealershipId) {
-        propertyId = getGA4PropertyId(dealershipId)
-        console.log(`🎯 [DIAGNOSTIC] GA4 Property mapping for ${dealershipId}:`, propertyId)
-        
-        // DIAGNOSTIC: Check what dealership name this maps to
-        const mapping = DEALERSHIP_PROPERTY_MAPPINGS.find(m => m.dealershipId === dealershipId)
-        console.log(`🔍 [DIAGNOSTIC] Dealership mapping found:`, {
-          dealershipId: mapping?.dealershipId,
-          dealershipName: mapping?.dealershipName,
-          ga4PropertyId: mapping?.ga4PropertyId,
-          hasAccess: mapping?.hasAccess
-        })
-
-        // Use dealership-specific property if it exists and has access
-        if (propertyId && hasGA4Access(dealershipId)) {
-          hasDealershipMapping = true
-          console.log(`✅ [DIAGNOSTIC] Using dealership-specific GA4 property ${propertyId} for ${dealershipId}`)
-        } else {
-          console.log(`⚠️ [DIAGNOSTIC] No dealership-specific GA4 mapping found for ${dealershipId}, falling back to user connection`)
-          propertyId = null // Reset to use user connection
-        }
-      }
-
-      // FIXED: Prefer dealership-specific mapping when available
-      // Falls back to user connection only if no mapping exists
-      // This prevents cross-dealership data contamination
-      targetPropertyId = propertyId || connection.propertyId
-
-      if (!targetPropertyId) {
+      // Get the actual connection for API calls
+      const connection = await dealershipDataBridge.getConnectionForApiCall(connectionId, 'ga4')
+      
+      if (!connection || !connection.accessToken) {
         return {
           data: undefined,
-          error: 'No GA4 property ID available',
-          hasConnection: false,
-          propertyId: undefined
+          error: 'No valid GA4 access token available',
+          hasConnection: true,
+          propertyId: targetPropertyId
         }
-      }
-
-      console.log(`📊 Using GA4 property ID: ${targetPropertyId} ${hasDealershipMapping ? '(from dealership mapping)' : '(from user connection)'}`)
-
-      console.log(`🔍 Using GA4 property ID: ${targetPropertyId} for dealership: ${dealershipId}`)
-
-      // Check if the connection has a valid access token
-      if (!connection.accessToken) {
-        console.log(`⚠️ GA4 connection ${connection.id} has no access token, falling back to user-level connection`)
-
-        // Fall back to user-level connection
-        const userConnection = await prisma.ga4_connections.findFirst({
-          where: { userId },
-          orderBy: { updatedAt: 'desc' }
-        })
-
-        if (!userConnection || !userConnection.accessToken) {
-          return {
-            data: undefined,
-            error: 'No valid GA4 access token available',
-            hasConnection: true, // Connection exists but no valid token
-            propertyId: targetPropertyId
-          }
-        }
-
-        console.log(`🔄 Using user-level GA4 connection ${userConnection.id} for authentication`)
-        connection = userConnection
       }
 
       // Use the connection's token
@@ -380,31 +337,38 @@ export class DealershipAnalyticsService {
     }
 
     try {
-      // Get dealership-specific Search Console URL from mapping
-      let siteUrl: string | null = null
-
-      if (dealershipId) {
-        siteUrl = getSearchConsoleUrl(dealershipId)
-        console.log(`🎯 Search Console URL mapping for ${dealershipId}:`, siteUrl)
+      // Use the dealership data bridge to resolve the correct connection
+      if (!dealershipId) {
+        logger.warn('No dealership ID provided for Search Console data fetch', { userId })
+        permissionStatus = 'not_connected'
+        return {
+          data: undefined,
+          error: 'No dealership specified',
+          hasConnection: false,
+          siteUrl: undefined,
+          permissionStatus
+        }
       }
 
-      // Find Search Console connection - check dealership-level first, then user-level
-      let connection = null
-
-      if (dealershipId) {
-        connection = await prisma.search_console_connections.findFirst({
-          where: { dealershipId }
-        })
+      // Validate dealership access
+      const hasAccess = await dealershipDataBridge.validateDealershipAccess(userId, dealershipId)
+      if (!hasAccess) {
+        logger.warn('User does not have access to dealership', { userId, dealershipId })
+        permissionStatus = 'no_permission'
+        return {
+          data: undefined,
+          error: 'Access denied to dealership',
+          hasConnection: false,
+          siteUrl: undefined,
+          permissionStatus
+        }
       }
 
-      if (!connection) {
-        connection = await prisma.search_console_connections.findFirst({
-          where: { userId }
-        })
-      }
-
-      if (!connection) {
-        logger.info('No Search Console connection found', { userId, dealershipId })
+      // Resolve dealership connections using the data bridge
+      const dealershipConnections = await dealershipDataBridge.resolveDealershipConnections(userId, dealershipId)
+      
+      if (!dealershipConnections.searchConsole.hasConnection || !dealershipConnections.searchConsole.siteUrl) {
+        logger.info('No Search Console connection available for dealership', { userId, dealershipId })
         permissionStatus = 'not_connected'
         return {
           data: undefined,
@@ -415,41 +379,46 @@ export class DealershipAnalyticsService {
         }
       }
 
-      logger.info('Search Console connection found', {
+      targetSiteUrl = dealershipConnections.searchConsole.siteUrl
+      const connectionId = dealershipConnections.searchConsole.connectionId!
+
+      logger.info('Search Console connection resolved via data bridge', {
         userId,
         dealershipId,
-        connectionId: connection.id,
-        siteUrl: connection.siteUrl,
-        connectionType: connection.dealershipId ? 'dealership' : 'user'
+        connectionId,
+        siteUrl: targetSiteUrl,
+        source: dealershipConnections.searchConsole.source
       })
 
-      // FIXED: Prefer dealership-specific mapping over user's generic connection
-      // This prevents cross-dealership data contamination
-      targetSiteUrl = siteUrl || connection.siteUrl
+      console.log(`🔍 [DIAGNOSTIC] Using Search Console URL: ${targetSiteUrl} for dealership: ${dealershipId}`)
+      console.log(`🔍 [DIAGNOSTIC] Connection resolved via data bridge:`, {
+        connectionId,
+        source: dealershipConnections.searchConsole.source,
+        siteUrl: targetSiteUrl
+      })
 
-      if (!targetSiteUrl) {
+      // Get the actual connection for API calls
+      const connection = await dealershipDataBridge.getConnectionForApiCall(connectionId, 'search_console')
+      
+      if (!connection || !connection.accessToken) {
         permissionStatus = 'not_connected'
         return {
           data: undefined,
-          error: 'No Search Console URL available',
-          hasConnection: false,
-          siteUrl: undefined,
+          error: 'No valid Search Console access token available',
+          hasConnection: true,
+          siteUrl: targetSiteUrl,
           permissionStatus
         }
       }
 
-      console.log(`🔍 [DIAGNOSTIC] Using Search Console URL: ${targetSiteUrl} for dealership: ${dealershipId}`)
-      console.log(`🔍 [DIAGNOSTIC] Connection details:`, {
-        connectionId: connection.id,
-        connectionDealershipId: connection.dealershipId,
-        connectionUserId: connection.userId,
-        connectionSiteUrl: connection.siteUrl,
-        mappedSiteUrl: siteUrl
-      })
-
-      const searchConsoleService = await this.getSearchConsoleService(userId)
-
       console.log(`🔍 Making Search Console API call to: ${targetSiteUrl}`)
+
+      // Create Search Console service using the resolved connection
+      const accessToken = decrypt(connection.accessToken)
+      const refreshToken = connection.refreshToken ? decrypt(connection.refreshToken) : undefined
+      
+      const { SearchConsoleService } = await import('./searchConsoleService')
+      const searchConsoleService = new SearchConsoleService(accessToken, refreshToken)
 
       // Fetch both summary data and top queries in parallel
       const [searchConsoleData, topQueriesData] = await Promise.all([

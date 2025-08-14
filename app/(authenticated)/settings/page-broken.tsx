@@ -356,7 +356,11 @@ export default function UnifiedSettingsPage() {
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-4">
-          <NotificationPreferencesComponent />
+          <NotificationPreferencesComponent
+            preferences={notifications}
+            onUpdate={setNotifications}
+            saving={saving}
+          />
         </TabsContent>
 
         {/* Integrations Tab - Same as original */}

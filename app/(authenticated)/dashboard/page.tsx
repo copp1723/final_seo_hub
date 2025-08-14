@@ -492,7 +492,7 @@ export default function DashboardPage() {
                       <div className="text-xs text-gray-500">Top 20 Rankings</div>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-violet-50/50 rounded-lg border border-purple-100">
-                      <div className="text-xl font-bold text-purple-700">{typeof rankingsData?.data?.data?.averagePosition === 'number' ? rankingsData.data.data.averagePosition.toFixed(1) : '-'}</div>
+                      <div className="text-xl font-bold text-purple-700">{typeof rankingsData?.data?.data?.averagePosition === 'number' ? rankingsData.data.data.averagePosition.toFixed(0) : '-'}</div>
                       <div className="text-xs text-gray-500">Avg Position</div>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-lg border border-orange-100">

@@ -422,8 +422,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     logger.info('Focus request API response structure', {
       requestId: newRequest.id,
       responseBodyPreview: JSON.stringify({ request: newRequest }).substring(0, 200),
-      successResponseFormat: 'data wrapper applied by successResponse',
-      expectedClientPath: 'response.data.request.id'
+      successResponseFormat: 'direct data (no wrapper)',
+      expectedClientPath: 'response.request.id'
     })
     
     return response

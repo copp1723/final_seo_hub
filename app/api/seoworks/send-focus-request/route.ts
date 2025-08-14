@@ -8,8 +8,10 @@ export const dynamic = 'force-dynamic';
 // SEOWorks API configuration
 const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
 
-// NOTE: Correct domain spelling is "seoworks" (previously misspelled as seowerks)
-const SEOWORKS_FOCUS_URL = 'https://api.seowerks.ai/rylie-focus.cfm'
+// Endpoint configuration is environment-driven to allow production overrides
+// Prefer SEOWORKS_FOCUS_URL; otherwise derive from SEOWORKS_API_URL
+const SEOWORKS_BASE_URL = (process.env.SEOWORKS_API_URL || '').replace(/\/+$/, '')
+const SEOWORKS_FOCUS_URL = process.env.SEOWORKS_FOCUS_URL || (SEOWORKS_BASE_URL ? `${SEOWORKS_BASE_URL}/rylie-focus.cfm` : '')
 
 interface FocusRequestData {
   requestId: string
@@ -53,6 +55,13 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
   }
 
   try {
+    if (!SEOWORKS_FOCUS_URL) {
+      logger.error('SEOWorks focus URL is not configured', {
+        derivedBaseUrl: SEOWORKS_BASE_URL,
+      })
+      throw new Error('SEOWorks focus URL not configured')
+    }
+
     const response = await fetch(SEOWORKS_FOCUS_URL, {
       method: 'POST',
       headers: {
@@ -62,22 +71,43 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
       body: JSON.stringify(seoworksPayload)
     })
 
-    const responseData = await response.json()
+    const contentType = response.headers.get('content-type') || ''
+    const rawBody = await response.text()
+
+    let parsedJson: any | null = null
+    try {
+      parsedJson = JSON.parse(rawBody)
+    } catch (_) {
+      parsedJson = null
+    }
 
     if (!response.ok) {
-      throw new Error(`SEOWorks API error: ${response.status} - ${JSON.stringify(responseData)}`)
+      logger.error('SEOWorks API error', {
+        status: response.status,
+        statusText: response.statusText,
+        url: SEOWORKS_FOCUS_URL,
+        contentType,
+        responsePreview: rawBody.slice(0, 500),
+        requestId: data.requestId,
+        title: data.title,
+        payload: seoworksPayload,
+      })
+      throw new Error(`SEOWorks API error: ${response.status} ${response.statusText} - ${rawBody.slice(0, 300)}`)
     }
 
     logger.info('Successfully sent focus request to SEOWorks', {
       requestId: data.requestId,
       title: data.title,
       type: data.type,
-      seoworksResponse: responseData
+      status: response.status,
+      contentType,
+      seoworksResponse: parsedJson ?? rawBody,
+      responseIsJson: !!parsedJson
     })
 
     return {
       success: true,
-      seoworksResponse: responseData
+      seoworksResponse: parsedJson ?? rawBody
     }
 
   } catch (error) {
@@ -85,7 +115,8 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
       error: error instanceof Error ? error.message : String(error),
       requestId: data.requestId,
       title: data.title,
-      payload: seoworksPayload
+      focusUrl: SEOWORKS_FOCUS_URL,
+      derivedBaseUrl: SEOWORKS_BASE_URL
     })
     throw error
   }

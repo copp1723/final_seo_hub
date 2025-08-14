@@ -99,8 +99,8 @@ export default function FocusRequestPage() {
       const requestData = await requestResponse.json()
       console.log('Focus Request - Full API response:', requestData)
       
-      // The correct path is requestData.data.requests.id based on successResponse structure
-      const requestId = requestData.data?.requests.id
+      // Correct path: successResponse wraps the created request as data.request
+      const requestId = requestData.data?.request?.id
       console.log('Focus Request - Extracted requestId:', requestId)
       
       if (!requestId) {

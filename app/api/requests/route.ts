@@ -385,7 +385,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       type: typedData.type,
       priority: typedData.priority,
       path: '/api/requests',
-      method: 'POST'
+      method: 'POST',
+      responseStructure: {
+        hasRequest: !!newRequest,
+        requestId: newRequest.id,
+        requestKeys: Object.keys(newRequest)
+      }
     })
     
     // Trigger SEOworks focus request send after local request creation
@@ -411,7 +416,17 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    return successResponse({ request: newRequest }, 201)
+    const response = successResponse({ request: newRequest }, 201)
+    
+    // Log what we're actually returning to help debug client-side parsing
+    logger.info('Focus request API response structure', {
+      requestId: newRequest.id,
+      responseBodyPreview: JSON.stringify({ request: newRequest }).substring(0, 200),
+      successResponseFormat: 'data wrapper applied by successResponse',
+      expectedClientPath: 'response.data.request.id'
+    })
+    
+    return response
   } catch (error) {
     logger.error('Error creating request', error, {
       userId: authResult.user.id,

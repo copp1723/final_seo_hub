@@ -38,16 +38,18 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
     const where: Prisma.requestsWhereInput = {}
 
     // CRITICAL FIX: Add dealership filtering for proper data isolation
-    const dealershipId = searchParams.get('dealershipId') || user.dealershipId
+    const dealershipIdParam = searchParams.get('dealershipId')
+    const dealershipId = dealershipIdParam && dealershipIdParam !== 'null' ? dealershipIdParam : user.dealershipId
 
     // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
     // Otherwise, fetch requests for the individual user.
     if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
       where.agencyId = user.agencyId
-      // CRITICAL FIX: Also filter by dealership if user has one
+      // CRITICAL FIX: Also filter by dealership if user has one (but allow null dealership requests)
       if (dealershipId) {
         where.dealershipId = dealershipId
       }
+      // For agency admins, if no specific dealership, include both dealership-specific and null dealership requests
     } else if (user.role === UserRole.SUPER_ADMIN) {
       // SUPER_ADMIN can see all requests if no specific agencyId is provided via a different route
       // For this route, we assume they want to see their own requests or all if not filtered by agency
@@ -64,17 +66,19 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       // If they are a SUPER_ADMIN and no agencyId, they see their own requests.
       // This behavior can be changed if SUPER_ADMINs should see *all* requests through this endpoint.
       where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views
-      // CRITICAL FIX: Also filter by dealership for SUPER_ADMIN if they have one
+      // CRITICAL FIX: Also filter by dealership for SUPER_ADMIN if they have one (but allow null dealership requests)
       if (dealershipId) {
         where.dealershipId = dealershipId
       }
     }
     else {
       where.userId = user.id
-      // CRITICAL FIX: Filter by dealership for regular users
+      // CRITICAL FIX: For regular users, if they have a dealership, filter by it
+      // But if no dealership is specified, show their requests regardless of dealership
       if (dealershipId) {
         where.dealershipId = dealershipId
       }
+      // Don't filter by dealership if none specified - show all user's requests
     }
 
     if (statusParam && statusParam !== 'all') {

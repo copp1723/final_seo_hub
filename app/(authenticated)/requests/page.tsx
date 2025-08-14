@@ -75,6 +75,11 @@ export default function RequestsPage() {
   )
 
   const fetchRequests = useCallback(async () => {
+    // Defensive guard: don't fetch if user is still loading or not authenticated
+    if (isLoading || !user?.id) {
+      return
+    }
+    
     setLoading(true)
     try {
       const query = createQueryString({
@@ -83,23 +88,32 @@ export default function RequestsPage() {
         type: typeFilter,
         sortBy: sortBy,
         sortOrder: sortOrder,
-        dealershipId: currentDealership?.id || null
+        ...(currentDealership?.id && { dealershipId: currentDealership.id })
       })
       const response = await fetch(`/api/requests?${query}`)
       const data = await response.json()
-      if (data.success) {
-        setRequests(data.data.requests || [])
+      
+      // Handle both wrapped and unwrapped response formats for backward compatibility
+      if (response.ok) {
+        // Check for new format (direct data) first, then legacy format (wrapped)
+        const requests = data.requests || data.data?.requests || []
+        setRequests(requests)
       } else {
-        console.error('Failed to fetch requests:', data.error)
+        const errorMsg = data.error || data.message || `HTTP ${response.status}`
+        console.error('Failed to fetch requests:', errorMsg)
         setRequests([])
       }
     } catch (error) {
-      console.error('Failed to fetch requests:', error)
+      // Defensive error handling - ensure we always have a meaningful error message
+      const errorMsg = error instanceof Error ? error.message : 
+                      error ? String(error) : 
+                      'Unknown error occurred'
+      console.error('Failed to fetch requests:', errorMsg)
       setRequests([])
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, currentDealership?.id, createQueryString])
+  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, currentDealership?.id, createQueryString, isLoading, user?.id])
 
   useEffect(() => {
     if (isLoading) return

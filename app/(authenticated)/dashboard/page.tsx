@@ -439,7 +439,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <StatCard
               title="Avg. Ranking"
-              value={typeof rankingsData?.data?.data?.data?.averagePosition === 'number' ? rankingsData.data.data.data.averagePosition.toFixed(0) : '-'}
+              value={typeof rankingsData?.data?.data?.averagePosition === 'number' ? rankingsData.data.data.averagePosition.toFixed(0) : '-'}
               subtitle="Average search position"
               loading={rankingsLoading}
               gradient="indigo"

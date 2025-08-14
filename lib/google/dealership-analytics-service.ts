@@ -513,36 +513,71 @@ export class DealershipAnalyticsService {
     let targetSiteUrl: string | null = null
 
     try {
-      // Prefer the user's actual SC connection siteUrl, falling back to mapping only if missing
-      // Reuse the permission-aware path by attempting to resolve via connection like getDealershipSearchConsoleData does
-      // Minimal duplication: first try to find a connection
-      let resolvedSiteUrl: string | null = null
-      if (dealershipId) {
-        const dealershipConn = await prisma.search_console_connections.findFirst({ where: { dealershipId } })
-        if (dealershipConn?.siteUrl) {
-          resolvedSiteUrl = dealershipConn.siteUrl
-        }
-      }
-      if (!resolvedSiteUrl) {
-        const userConn = await prisma.search_console_connections.findFirst({ where: { userId } })
-        if (userConn?.siteUrl) {
-          resolvedSiteUrl = userConn.siteUrl
-        }
-      }
-
-      // Fallback to hardcoded mapping only if no connection siteUrl
-      targetSiteUrl = resolvedSiteUrl || (dealershipId ? getSearchConsoleUrl(dealershipId) : null)
-
-      if (!targetSiteUrl) {
+      // Use the dealership data bridge to resolve the correct connection
+      if (!dealershipId) {
+        logger.warn('No dealership ID provided for Search Console rankings', { userId })
         return {
           data: undefined,
-          error: 'No Search Console URL available',
+          error: 'No dealership specified',
           hasConnection: false,
           siteUrl: undefined
         }
       }
 
-      const searchConsoleService = await this.getSearchConsoleService(userId)
+      // Validate dealership access
+      const hasAccess = await dealershipDataBridge.validateDealershipAccess(userId, dealershipId)
+      if (!hasAccess) {
+        logger.warn('User does not have access to dealership for rankings', { userId, dealershipId })
+        return {
+          data: undefined,
+          error: 'Access denied to dealership',
+          hasConnection: false,
+          siteUrl: undefined
+        }
+      }
+
+      // Resolve dealership connections using the data bridge
+      const dealershipConnections = await dealershipDataBridge.resolveDealershipConnections(userId, dealershipId)
+      
+      if (!dealershipConnections.searchConsole.hasConnection || !dealershipConnections.searchConsole.siteUrl) {
+        logger.info('No Search Console connection available for dealership rankings', { userId, dealershipId })
+        return {
+          data: undefined,
+          error: 'No Search Console connection found - please connect your Google Search Console account',
+          hasConnection: false,
+          siteUrl: undefined
+        }
+      }
+
+      targetSiteUrl = dealershipConnections.searchConsole.siteUrl
+      const connectionId = dealershipConnections.searchConsole.connectionId!
+
+      logger.info('Search Console rankings connection resolved via data bridge', {
+        userId,
+        dealershipId,
+        connectionId,
+        siteUrl: targetSiteUrl,
+        source: dealershipConnections.searchConsole.source
+      })
+
+      // Get the actual connection for API calls
+      const connection = await dealershipDataBridge.getConnectionForApiCall(connectionId, 'search_console')
+      
+      if (!connection || !connection.accessToken) {
+        return {
+          data: undefined,
+          error: 'No valid Search Console access token available',
+          hasConnection: true,
+          siteUrl: targetSiteUrl
+        }
+      }
+
+      // Create Search Console service using the resolved connection
+      const accessToken = decrypt(connection.accessToken)
+      const refreshToken = connection.refreshToken ? decrypt(connection.refreshToken) : undefined
+      
+      const { SearchConsoleService } = await import('./searchConsoleService')
+      const searchConsoleService = new SearchConsoleService(accessToken, refreshToken)
 
       // Use Search Analytics API for live queries. If no explicit dates provided, default to last 30 days
       const effectiveStart = startDate || new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)

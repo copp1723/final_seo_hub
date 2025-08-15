@@ -201,43 +201,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 4. Add some simulated analytics milestones (in production, these would come from real analytics)
-    const dealership = await prisma.dealerships.findUnique({
-      where: { id: effectiveDealershipId }
-    })
-
-    if (dealership) {
-      // Check for package usage milestones
-      const packageLimits: Record<string, any> = {
-        'SILVER': { pages: 5, blogs: 2, gbpPosts: 12, improvements: 5 },
-        'GOLD': { pages: 10, blogs: 4, gbpPosts: 24, improvements: 10 },
-        'PLATINUM': { pages: 20, blogs: 8, gbpPosts: 48, improvements: 20 }
-      }
-
-      const limits = packageLimits[dealership.activePackageType || 'SILVER']
-      
-      // Add milestone activities for 50% and 100% completion
-      const totalUsed = (dealership.pagesUsedThisPeriod || 0) + 
-                       (dealership.blogsUsedThisPeriod || 0) +
-                       (dealership.gbpPostsUsedThisPeriod || 0) +
-                       (dealership.improvementsUsedThisPeriod || 0)
-      
-      const totalLimit = limits.pages + limits.blogs + limits.gbpPosts + limits.improvements
-      const usagePercent = (totalUsed / totalLimit) * 100
-
-      if (usagePercent >= 50 && usagePercent < 60) {
-        activities.push({
-          id: `milestone-50-${dealership.id}`,
-          type: 'analytics_milestone',
-          title: 'Package milestone reached',
-          description: '50% of monthly package used',
-          timestamp: new Date(),
-          icon: 'Award',
-          color: 'yellow',
-          metadata: { percentage: 50 }
-        })
-      }
-    }
+    // Activities are now complete - all data comes from real database sources
 
     // Sort all activities by timestamp (most recent first)
     activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())

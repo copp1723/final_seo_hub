@@ -29,14 +29,12 @@ import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 // Type definitions
 interface DashboardData {
   packageProgress?: {
-    pagesUsed: number
-    pagesLimit: number
-    blogsUsed: number
-    blogsLimit: number
-    gbpPostsUsed: number
-    gbpPostsLimit: number
-    improvementsUsed: number
-    improvementsLimit: number
+    packageType: string
+    pages: { used: number; limit: number; percentage: number }
+    blogs: { used: number; limit: number; percentage: number }
+    gbpPosts: { used: number; limit: number; percentage: number }
+    improvements: { used: number; limit: number; percentage: number }
+    totalTasks: { completed: number; total: number }
   }
 }
 
@@ -565,26 +563,35 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <ProgressBar
-                      label="Pages Created"
-                      used={dashboardData?.packageProgress?.pagesUsed || 2}
-                      limit={dashboardData?.packageProgress?.pagesLimit || 5}
-                    />
-                    <ProgressBar
-                      label="Blog Posts"
-                      used={dashboardData?.packageProgress?.blogsUsed || 1}
-                      limit={dashboardData?.packageProgress?.blogsLimit || 2}
-                    />
-                    <ProgressBar
-                      label="GBP Posts"
-                      used={dashboardData?.packageProgress?.gbpPostsUsed || 8}
-                      limit={dashboardData?.packageProgress?.gbpPostsLimit || 12}
-                    />
-                    <ProgressBar
-                      label="SEO Changes"
-                      used={dashboardData?.packageProgress?.improvementsUsed || 3}
-                      limit={dashboardData?.packageProgress?.improvementsLimit || 5}
-                    />
+                    {dashboardData?.packageProgress ? (
+                      <>
+                        <ProgressBar
+                          label="Pages Created"
+                          used={dashboardData.packageProgress.pages.used}
+                          limit={dashboardData.packageProgress.pages.limit}
+                        />
+                        <ProgressBar
+                          label="Blog Posts"
+                          used={dashboardData.packageProgress.blogs.used}
+                          limit={dashboardData.packageProgress.blogs.limit}
+                        />
+                        <ProgressBar
+                          label="GBP Posts"
+                          used={dashboardData.packageProgress.gbpPosts.used}
+                          limit={dashboardData.packageProgress.gbpPosts.limit}
+                        />
+                        <ProgressBar
+                          label="SEO Changes"
+                          used={dashboardData.packageProgress.improvements.used}
+                          limit={dashboardData.packageProgress.improvements.limit}
+                        />
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-slate-500">
+                        <div className="text-sm">Package information not available</div>
+                        <div className="text-xs mt-1">Please ensure your dealership has an active package</div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

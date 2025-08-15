@@ -4,8 +4,8 @@ import { requireAuth, errorResponse } from '@/lib/api-auth'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { PackageType } from '@prisma/client'
 
-// Import package limits from central source
-import { getPackageLimits } from '@/lib/package-utils'
+// Import package utilities from central source
+import { getDealershipPackageProgress } from '@/lib/package-utils'
 
 export const dynamic = 'force-dynamic';
 
@@ -63,47 +63,8 @@ export async function GET(request: NextRequest) {
         improvements: completedThisMonth.filter(r => r.type === 'improvement').length
       }
 
-      // Get package details
-      const packageType = dealership.activePackageType || PackageType.SILVER
-      const limits = getPackageLimits(packageType)
-      
-      // Calculate package progress
-      const packageProgress = {
-        packageType,
-        pages: {
-          completed: dealership.pagesUsedThisPeriod,
-          total: limits.pages,
-          used: dealership.pagesUsedThisPeriod,
-          limit: limits.pages,
-          percentage: Math.round((dealership.pagesUsedThisPeriod / limits.pages) * 100)
-        },
-        blogs: {
-          completed: dealership.blogsUsedThisPeriod,
-          total: limits.blogs,
-          used: dealership.blogsUsedThisPeriod,
-          limit: limits.blogs,
-          percentage: Math.round((dealership.blogsUsedThisPeriod / limits.blogs) * 100)
-        },
-        gbpPosts: {
-          completed: dealership.gbpPostsUsedThisPeriod,
-          total: limits.gbpPosts,
-          used: dealership.gbpPostsUsedThisPeriod,
-          limit: limits.gbpPosts,
-          percentage: Math.round((dealership.gbpPostsUsedThisPeriod / limits.gbpPosts) * 100)
-        },
-        improvements: {
-          completed: dealership.improvementsUsedThisPeriod,
-          total: limits.improvements,
-          used: dealership.improvementsUsedThisPeriod,
-          limit: limits.improvements,
-          percentage: Math.round((dealership.improvementsUsedThisPeriod / limits.improvements) * 100)
-        },
-        totalTasks: {
-          completed: dealership.pagesUsedThisPeriod + dealership.blogsUsedThisPeriod + 
-                    dealership.gbpPostsUsedThisPeriod + dealership.improvementsUsedThisPeriod,
-          total: limits.pages + limits.blogs + limits.gbpPosts + limits.improvements
-        }
-      }
+      // Get package progress using centralized helper function
+      const packageProgress = await getDealershipPackageProgress(dealershipId)
 
       // Check GA4 connection
       const ga4Connection = await prisma.ga4_connections.findFirst({
@@ -152,8 +113,8 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      const totalCompleted = packageProgress.totalTasks.completed
-      const totalTasks = packageProgress.totalTasks.total
+      const totalCompleted = packageProgress?.totalTasks.completed || 0
+      const totalTasks = packageProgress?.totalTasks.total || 0
 
       return NextResponse.json({
         activeRequests,
@@ -163,11 +124,11 @@ export async function GET(request: NextRequest) {
         gaConnected: !!ga4Connection,
         packageProgress,
         latestRequest: {
-          packageType,
-          pagesCompleted: dealership.pagesUsedThisPeriod,
-          blogsCompleted: dealership.blogsUsedThisPeriod,
-          gbpPostsCompleted: dealership.gbpPostsUsedThisPeriod,
-          improvementsCompleted: dealership.improvementsUsedThisPeriod
+          packageType: packageProgress?.packageType || PackageType.SILVER,
+          pagesCompleted: dealership.pagesUsedThisPeriod || 0,
+          blogsCompleted: dealership.blogsUsedThisPeriod || 0,
+          gbpPostsCompleted: dealership.gbpPostsUsedThisPeriod || 0,
+          improvementsCompleted: dealership.improvementsUsedThisPeriod || 0
         },
         dealershipId,
         recentActivity

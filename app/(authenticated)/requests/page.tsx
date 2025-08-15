@@ -275,11 +275,7 @@ export default function RequestsPage() {
               icon={<FileText className="h-12 w-12" />}
               title="No active SEO packages"
               description="Start by submitting your target cities, models, and dealers during onboarding"
-              action={
-                <Button variant="primary">
-                  Complete Onboarding
-                </Button>
-              }/>
+            />
           </CardContent>
         </Card>
       ) : (

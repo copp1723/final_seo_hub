@@ -19,21 +19,24 @@ import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
 
 // Normalize inbound task types from SEOWorks into our canonical set
-function normalizeTaskType(raw: string): 'page' | 'blog' | 'gbp_post' | 'improvement' | string {
+// Returns database enum values: 'PAGE', 'BLOG', 'GBP_POST', 'IMPROVEMENT'
+function normalizeTaskType(raw: string): 'PAGE' | 'BLOG' | 'GBP_POST' | 'IMPROVEMENT' {
   const t = (raw || '').toString().toLowerCase().replace(/-/g, '_').trim()
   if (['gbp', 'gbp_post', 'gbp_posting', 'gbp_posts', 'gmb', 'google_my_business'].includes(t)) {
-    return 'gbp_post'
+    return 'GBP_POST'
   }
   if (['improvement', 'seochange', 'seo_change', 'seochg', 'seo_chg', 'maintenance', 'seo_update'].includes(t)) {
-    return 'improvement'
+    return 'IMPROVEMENT'
   }
   if (['page', 'landing_page', 'vdp', 'content_page'].includes(t)) {
-    return 'page'
+    return 'PAGE'
   }
   if (['blog', 'article', 'post'].includes(t)) {
-    return 'blog'
+    return 'BLOG'
   }
-  return t
+  // Default fallback - log warning for unknown types
+  logger.warn(`Unknown task type received from SEOWorks: ${raw}, defaulting to IMPROVEMENT`)
+  return 'IMPROVEMENT'
 }
 
 interface SeoworksDeliverable {
@@ -60,11 +63,14 @@ interface SeoworksWebhookPayload {
   data: SeoworksWebhookData;
 }
 
-// Package limits definition - duplicated here to avoid circular dependency with @/lib/package-utils
+// Import standardized package limits from central source
+import { SEO_KNOWLEDGE_BASE } from '@/lib/seo-knowledge'
+
+// Convert to format expected by this module
 const PACKAGE_LIMITS: Record<string, { pages: number; blogs: number; gbpPosts: number; improvements: number }> = {
-  SILVER: { pages: 3, blogs: 4, gbpPosts: 8, improvements: 8 },
-  GOLD: { pages: 6, blogs: 8, gbpPosts: 16, improvements: 10 },
-  PLATINUM: { pages: 9, blogs: 12, gbpPosts: 20, improvements: 20 }
+  SILVER: SEO_KNOWLEDGE_BASE.packages.silver,
+  GOLD: SEO_KNOWLEDGE_BASE.packages.gold,
+  PLATINUM: SEO_KNOWLEDGE_BASE.packages.platinum
 }
 
 // --- Type-safe deliverables validation ---
@@ -72,9 +78,52 @@ function validateDeliverables(deliverables: SeoworksDeliverable[] | undefined): 
   if (!deliverables || !Array.isArray(deliverables)) return true // Allow empty
   return deliverables.every(d =>
     d && typeof d === 'object' &&
-    typeof d.title === 'string' &&
-    (!d.url || typeof d.url === 'string')
+    typeof d.title === 'string' && d.title.length > 0 &&
+    (!d.url || (typeof d.url === 'string' && d.url.length > 0))
   )
+}
+
+// --- Comprehensive webhook payload validation ---
+function validateWebhookPayload(data: SeoworksWebhookData): { valid: boolean; error?: string } {
+  // Required fields validation
+  if (!data.externalId || typeof data.externalId !== 'string') {
+    return { valid: false, error: 'Missing or invalid externalId' }
+  }
+  
+  if (!data.taskType || typeof data.taskType !== 'string') {
+    return { valid: false, error: 'Missing or invalid taskType' }
+  }
+  
+  if (!data.status || typeof data.status !== 'string') {
+    return { valid: false, error: 'Missing or invalid status' }
+  }
+  
+  // Validate task type is known
+  try {
+    normalizeTaskType(data.taskType)
+  } catch (error) {
+    return { valid: false, error: `Unknown task type: ${data.taskType}` }
+  }
+  
+  // Validate deliverables if present
+  if (data.deliverables && !validateDeliverables(data.deliverables)) {
+    return { valid: false, error: 'Invalid deliverables format' }
+  }
+  
+  // Validate completion date if provided
+  if (data.completionDate) {
+    const date = new Date(data.completionDate)
+    if (isNaN(date.getTime())) {
+      return { valid: false, error: 'Invalid completionDate format' }
+    }
+  }
+  
+  // Validate client identification - at least one must be present
+  if (!data.clientId && !data.clientEmail && !data.customerId) {
+    return { valid: false, error: 'Missing client identification (clientId, clientEmail, or customerId required)' }
+  }
+  
+  return { valid: true }
 }
 
 // Handle task completed event
@@ -91,22 +140,27 @@ async function handleTaskCompleted(
       })
       data.deliverables = [] // Use empty array as fallback
     }
+    
+    // Additional safety check for request object
+    if (!request || !request.id) {
+      throw new Error('Invalid request object provided to handleTaskCompleted')
+    }
     // Update request progress based on task type
     const updateData: Record<string, unknown> = {}
     
     // Normalize and increment the appropriate counter
     const normalizedType = normalizeTaskType(data.taskType)
     switch (normalizedType) {
-      case 'page':
+      case 'PAGE':
         updateData.pagesCompleted = { increment: 1 }
         break
-      case 'blog':
+      case 'BLOG':
         updateData.blogsCompleted = { increment: 1 }
         break
-      case 'gbp_post':
+      case 'GBP_POST':
         updateData.gbpPostsCompleted = { increment: 1 }
         break
-      case 'improvement':
+      case 'IMPROVEMENT':
         updateData.improvementsCompleted = { increment: 1 }
         break
     }
@@ -125,7 +179,7 @@ async function handleTaskCompleted(
 
     // Update status if this completes the request
     // This logic can be customized based on package requirements
-    if (shouldMarkRequestAsCompleted(request, data)) {
+    if (await shouldMarkRequestAsCompleted(request, data)) {
       updateData.status = RequestStatus.COMPLETED
       updateData.completedAt = new Date()
     }
@@ -139,10 +193,10 @@ async function handleTaskCompleted(
     // Ensure a Task record exists and is updated to COMPLETED so it appears on the Tasks page
     const toDbTaskType = (t: string): DbTaskType | null => {
       switch (t) {
-        case 'page': return DbTaskType.PAGE
-        case 'blog': return DbTaskType.BLOG
-        case 'gbp_post': return DbTaskType.GBP_POST
-        case 'improvement': return DbTaskType.IMPROVEMENT
+        case 'PAGE': return DbTaskType.PAGE
+        case 'BLOG': return DbTaskType.BLOG
+        case 'GBP_POST': return DbTaskType.GBP_POST
+        case 'IMPROVEMENT': return DbTaskType.IMPROVEMENT
         default: return null
       }
     }
@@ -188,38 +242,70 @@ async function handleTaskCompleted(
       }
     }
 
-    // Increment usage for package tracking
+    // Increment usage for package tracking with deduplication
     if (updatedRequest.userId) {
-      let taskTypeForUsage: keyof typeof PACKAGE_LIMITS[keyof typeof PACKAGE_LIMITS] | null = null;
-      switch (normalizedType) {
-        case 'page':
-          taskTypeForUsage = 'pages'
-          break
-        case 'blog':
-          taskTypeForUsage = 'blogs'
-          break
-        case 'gbp_post':
-          taskTypeForUsage = 'gbpPosts'
-          break
-        case 'improvement':
-          taskTypeForUsage = 'improvements'
-          break
-      }
-
-      if (taskTypeForUsage) {
-        try {
-          await incrementUsage(updatedRequest.userId, taskTypeForUsage)
-          logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`)
-        } catch (usageError) {
-          logger.error(`Failed to increment usage for user ${updatedRequest.userId}`, usageError)
-          // Continue processing even if usage tracking fails
+      // Check if usage has already been incremented for this specific SEOWorks task
+      const existingUsageRecord = await prisma.seoworks_task_mappings.findFirst({
+        where: { 
+          seoworksTaskId: data.externalId,
+          status: 'usage_counted'
         }
+      })
+      
+      if (!existingUsageRecord) {
+        let taskTypeForUsage: keyof typeof PACKAGE_LIMITS[keyof typeof PACKAGE_LIMITS] | null = null;
+        switch (normalizedType) {
+          case 'PAGE':
+            taskTypeForUsage = 'pages'
+            break
+          case 'BLOG':
+            taskTypeForUsage = 'blogs'
+            break
+          case 'GBP_POST':
+            taskTypeForUsage = 'gbpPosts'
+            break
+          case 'IMPROVEMENT':
+            taskTypeForUsage = 'improvements'
+            break
+        }
+
+        if (taskTypeForUsage) {
+          try {
+            await incrementUsage(updatedRequest.userId, taskTypeForUsage)
+            
+            // Mark this task as usage counted to prevent future double-counting
+            await prisma.seoworks_task_mappings.upsert({
+              where: { seoworksTaskId: data.externalId },
+              create: {
+                requestId: updatedRequest.id,
+                seoworksTaskId: data.externalId,
+                taskType: normalizedType,
+                status: 'usage_counted',
+                metadata: { usageCountedAt: new Date().toISOString() }
+              },
+              update: {
+                status: 'usage_counted',
+                metadata: { usageCountedAt: new Date().toISOString() }
+              }
+            })
+            
+            logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`, {
+              seoworksTaskId: data.externalId,
+              taskType: normalizedType
+            })
+          } catch (usageError) {
+            logger.error(`Failed to increment usage for user ${updatedRequest.userId}`, usageError)
+            // Continue processing even if usage tracking fails
+          }
+        }
+      } else {
+        logger.info(`Usage already counted for SEOWorks task ${data.externalId}, skipping increment`)
       }
     }
 
     // Send task completion email
     // Use content-specific template for pages, blogs, and GBP posts
-    const isContentTask = ['page', 'blog', 'gbp_post', 'gbp-post'].includes(normalizedType)
+    const isContentTask = ['PAGE', 'BLOG', 'GBP_POST'].includes(normalizedType)
     
     const emailTemplate = isContentTask
       ? contentAddedTemplate(updatedRequest, request.users, completedTask)
@@ -281,10 +367,10 @@ async function handleTaskUpdated(
   const normalizedType = normalizeTaskType(data.taskType)
   const toDbTaskType = (t: string): DbTaskType | null => {
     switch (t) {
-      case 'page': return DbTaskType.PAGE
-      case 'blog': return DbTaskType.BLOG
-      case 'gbp_post': return DbTaskType.GBP_POST
-      case 'improvement': return DbTaskType.IMPROVEMENT
+      case 'PAGE': return DbTaskType.PAGE
+      case 'BLOG': return DbTaskType.BLOG
+      case 'GBP_POST': return DbTaskType.GBP_POST
+      case 'IMPROVEMENT': return DbTaskType.IMPROVEMENT
       default: return null
     }
   }
@@ -367,10 +453,10 @@ async function handleTaskCancelled(
     const normalizedType = normalizeTaskType(data.taskType)
     const toDbTaskType = (t: string): DbTaskType | null => {
       switch (t) {
-        case 'page': return DbTaskType.PAGE
-        case 'blog': return DbTaskType.BLOG
-        case 'gbp_post': return DbTaskType.GBP_POST
-        case 'improvement': return DbTaskType.IMPROVEMENT
+        case 'PAGE': return DbTaskType.PAGE
+        case 'BLOG': return DbTaskType.BLOG
+        case 'GBP_POST': return DbTaskType.GBP_POST
+        case 'IMPROVEMENT': return DbTaskType.IMPROVEMENT
         default: return null
       }
     }
@@ -436,16 +522,16 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
               userId: userId,
               title: (Array.isArray(orphanedTask.deliverables) && orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0] === 'object' && orphanedTask.deliverables[0] !== null && 'title' in orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0].title === 'string') ? orphanedTask.deliverables[0].title : `SEOWorks ${orphanedTask.taskType} Task`,
               description: `Task created from orphaned SEOWorks task\n\nOriginal Task ID: ${orphanedTask.externalId}\nCompleted: ${orphanedTask.completionDate || new Date().toISOString()}\n\nOriginal Notes: ${orphanedTask.notes || ''}`,
-              type: orphanedTask.taskType.toLowerCase(),
+              type: normalizeTaskType(orphanedTask.taskType).toLowerCase(),
               status: 'COMPLETED',
               seoworksTaskId: orphanedTask.externalId,
               completedAt: orphanedTask.completionDate ? new Date(orphanedTask.completionDate) : new Date(),
               completedTasks: orphanedTask.deliverables || [] as any,
               // Set completed counters based on task type
-              pagesCompleted: orphanedTask.taskType.toLowerCase() === 'page' ? 1 : 0,
-              blogsCompleted: orphanedTask.taskType.toLowerCase() === 'blog' ? 1 : 0,
-              gbpPostsCompleted: orphanedTask.taskType.toLowerCase() === 'gbp_post' ? 1 : 0,
-              improvementsCompleted: ['improvement', 'maintenance', 'seochange'].includes(orphanedTask.taskType.toLowerCase()) ? 1 : 0
+              pagesCompleted: normalizeTaskType(orphanedTask.taskType) === 'PAGE' ? 1 : 0,
+              blogsCompleted: normalizeTaskType(orphanedTask.taskType) === 'BLOG' ? 1 : 0,
+              gbpPostsCompleted: normalizeTaskType(orphanedTask.taskType) === 'GBP_POST' ? 1 : 0,
+              improvementsCompleted: normalizeTaskType(orphanedTask.taskType) === 'IMPROVEMENT' ? 1 : 0
             }
           })
 
@@ -503,7 +589,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
 }
 
 // Determine if request should be marked as completed
-function shouldMarkRequestAsCompleted(request: any, data: SeoworksWebhookData): boolean {
+async function shouldMarkRequestAsCompleted(request: any, data: SeoworksWebhookData): Promise<boolean> {
   // This is a simplified logic - adjust based on your business rules
   // For example, check if all required tasks for the package are completed
   
@@ -512,11 +598,12 @@ function shouldMarkRequestAsCompleted(request: any, data: SeoworksWebhookData): 
     return true
   }
 
-  // Package-based logic (customize based on your packages)
+  // Package-based logic using standardized limits
+  const { SEO_KNOWLEDGE_BASE } = await import('@/lib/seo-knowledge')
   const packageRequirements: Record<string, { pages: number; blogs: number; gbpPosts: number }> = {
-    SILVER: { pages: 1, blogs: 2, gbpPosts: 4 },
-    GOLD: { pages: 2, blogs: 4, gbpPosts: 8 },
-    PLATINUM: { pages: 4, blogs: 8, gbpPosts: 16 }
+    SILVER: { pages: SEO_KNOWLEDGE_BASE.packages.silver.pages, blogs: SEO_KNOWLEDGE_BASE.packages.silver.blogs, gbpPosts: SEO_KNOWLEDGE_BASE.packages.silver.gbpPosts },
+    GOLD: { pages: SEO_KNOWLEDGE_BASE.packages.gold.pages, blogs: SEO_KNOWLEDGE_BASE.packages.gold.blogs, gbpPosts: SEO_KNOWLEDGE_BASE.packages.gold.gbpPosts },
+    PLATINUM: { pages: SEO_KNOWLEDGE_BASE.packages.platinum.pages, blogs: SEO_KNOWLEDGE_BASE.packages.platinum.blogs, gbpPosts: SEO_KNOWLEDGE_BASE.packages.platinum.gbpPosts }
   }
 
   const requirements = packageRequirements[request.packageType]
@@ -586,6 +673,17 @@ export const POST = compose(
 
     payload = validation.data as SeoworksWebhookPayload; // Assign payload here
     const { eventType, data } = payload
+    
+    // Validate webhook payload structure and content
+    const payloadValidation = validateWebhookPayload(data)
+    if (!payloadValidation.valid) {
+      logger.warn('Invalid webhook payload structure', {
+        error: payloadValidation.error,
+        externalId: data.externalId,
+        taskType: data.taskType
+      })
+      return badRequestResponse(`Invalid payload: ${payloadValidation.error}`)
+    }
 
     // OPTIMIZED: Single combined query to find request by multiple strategies
     const dbQueryStart = Date.now()
@@ -665,16 +763,16 @@ export const POST = compose(
               dealershipId: user.dealershipId || null,
               title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${normalizeTaskType(data.taskType)} Task`,
               description: `Task created directly in SEOWorks\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
-              type: normalizeTaskType(data.taskType),
+              type: normalizeTaskType(data.taskType).toLowerCase(),
               status: 'COMPLETED',
               seoworksTaskId: data.externalId,
               completedAt: new Date(data.completionDate || Date.now()),
               completedTasks: data.deliverables || [] as any,
               // Set completed counters based on task type
-              pagesCompleted: normalizeTaskType(data.taskType) === 'page' ? 1 : 0,
-              blogsCompleted: normalizeTaskType(data.taskType) === 'blog' ? 1 : 0,
-              gbpPostsCompleted: normalizeTaskType(data.taskType) === 'gbp_post' ? 1 : 0,
-              improvementsCompleted: normalizeTaskType(data.taskType) === 'improvement' ? 1 : 0
+              pagesCompleted: normalizeTaskType(data.taskType) === 'PAGE' ? 1 : 0,
+              blogsCompleted: normalizeTaskType(data.taskType) === 'BLOG' ? 1 : 0,
+              gbpPostsCompleted: normalizeTaskType(data.taskType) === 'GBP_POST' ? 1 : 0,
+              improvementsCompleted: normalizeTaskType(data.taskType) === 'IMPROVEMENT' ? 1 : 0
             },
             include: { users: true }
           })
@@ -709,15 +807,15 @@ export const POST = compose(
                 dealershipId: ownerUser.dealershipId || dealershipWithUser.id,
                 title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${normalizeTaskType(data.taskType)} Task`,
                 description: `Task created via SEOWorks customerId mapping\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
-                type: normalizeTaskType(data.taskType),
+                type: normalizeTaskType(data.taskType).toLowerCase(),
                 status: 'COMPLETED',
                 seoworksTaskId: data.externalId,
                 completedAt: new Date(data.completionDate || Date.now()),
                 completedTasks: data.deliverables || [] as any,
-                pagesCompleted: normalizeTaskType(data.taskType) === 'page' ? 1 : 0,
-                blogsCompleted: normalizeTaskType(data.taskType) === 'blog' ? 1 : 0,
-                gbpPostsCompleted: normalizeTaskType(data.taskType) === 'gbp_post' ? 1 : 0,
-                improvementsCompleted: normalizeTaskType(data.taskType) === 'improvement' ? 1 : 0
+                pagesCompleted: normalizeTaskType(data.taskType) === 'PAGE' ? 1 : 0,
+                blogsCompleted: normalizeTaskType(data.taskType) === 'BLOG' ? 1 : 0,
+                gbpPostsCompleted: normalizeTaskType(data.taskType) === 'GBP_POST' ? 1 : 0,
+                improvementsCompleted: normalizeTaskType(data.taskType) === 'IMPROVEMENT' ? 1 : 0
               },
               include: { users: true }
             })

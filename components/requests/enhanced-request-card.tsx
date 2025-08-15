@@ -49,7 +49,6 @@ interface EnhancedRequestCardProps {
     improvementsCompleted: number
     targetCities?: string[]
     targetModels?: string[]
-    // Mock tasks for demonstration
     tasks?: Task[]
   }
 }
@@ -88,41 +87,10 @@ const priorityColors = {
   HIGH: 'bg-red-100 text-red-800'
 }
 
-// Mock tasks data
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Create Austin dealership landing page',
-    type: 'PAGE',
-    status: 'IN_PROGRESS',
-    targetCity: 'Austin, TX',
-    targetModel: 'Ford F-150'
-  },
-  {
-    id: '2',
-    title: 'Write F-150 maintenance guide blog',
-    type: 'BLOG',
-    status: 'PENDING',
-    targetModel: 'Ford F-150'
-  },
-  {
-    id: '3',
-    title: 'Update GBP with holiday hours',
-    type: 'GBP_POST',
-    status: 'COMPLETED',
-    completedUrl: 'https://google.com/maps/example',
-    targetCity: 'Dallas, TX'
-  },
-  {
-    id: '4',
-    title: 'Optimize meta descriptions',
-    type: 'IMPROVEMENT',
-    status: 'PENDING'
-  }
-]
+// Tasks are fetched from database - no mock data needed
 
 export function EnhancedRequestCard({ request }: EnhancedRequestCardProps) {
-  const tasks = request.tasks || mockTasks
+  const tasks = request.tasks || []
   const totalTasks = tasks.length
   const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length
   const inProgressTasks = tasks.filter(t => t.status === 'IN_PROGRESS').length

@@ -1,30 +1,36 @@
-// SEO Package definitions - MUST remain exactly as specified
+// Import standardized package limits from central source
+import { SEO_KNOWLEDGE_BASE } from '@/lib/seo-knowledge'
+
+// SEO Package definitions - synchronized with knowledge base
 export const SEO_PACKAGES = {
   SILVER: {
     name: 'Silver',
-    totalTasks: 24,
+    totalTasks: SEO_KNOWLEDGE_BASE.packages.silver.pages + SEO_KNOWLEDGE_BASE.packages.silver.blogs + SEO_KNOWLEDGE_BASE.packages.silver.gbpPosts + SEO_KNOWLEDGE_BASE.packages.silver.improvements,
     breakdown: {
-      pages: 3,
-      blogs: 4,
-      gbpPosts: 8
+      pages: SEO_KNOWLEDGE_BASE.packages.silver.pages,
+      blogs: SEO_KNOWLEDGE_BASE.packages.silver.blogs,
+      gbpPosts: SEO_KNOWLEDGE_BASE.packages.silver.gbpPosts,
+      improvements: SEO_KNOWLEDGE_BASE.packages.silver.improvements
     }
   },
   GOLD: {
     name: 'Gold',
-    totalTasks: 42,
+    totalTasks: SEO_KNOWLEDGE_BASE.packages.gold.pages + SEO_KNOWLEDGE_BASE.packages.gold.blogs + SEO_KNOWLEDGE_BASE.packages.gold.gbpPosts + SEO_KNOWLEDGE_BASE.packages.gold.improvements,
     breakdown: {
-      pages: 6,
-      blogs: 8,
-      gbpPosts: 16
+      pages: SEO_KNOWLEDGE_BASE.packages.gold.pages,
+      blogs: SEO_KNOWLEDGE_BASE.packages.gold.blogs,
+      gbpPosts: SEO_KNOWLEDGE_BASE.packages.gold.gbpPosts,
+      improvements: SEO_KNOWLEDGE_BASE.packages.gold.improvements
     }
   },
   PLATINUM: {
     name: 'Platinum',
-    totalTasks: 61,
+    totalTasks: SEO_KNOWLEDGE_BASE.packages.platinum.pages + SEO_KNOWLEDGE_BASE.packages.platinum.blogs + SEO_KNOWLEDGE_BASE.packages.platinum.gbpPosts + SEO_KNOWLEDGE_BASE.packages.platinum.improvements,
     breakdown: {
-      pages: 9,
-      blogs: 12,
-      gbpPosts: 20
+      pages: SEO_KNOWLEDGE_BASE.packages.platinum.pages,
+      blogs: SEO_KNOWLEDGE_BASE.packages.platinum.blogs,
+      gbpPosts: SEO_KNOWLEDGE_BASE.packages.platinum.gbpPosts,
+      improvements: SEO_KNOWLEDGE_BASE.packages.platinum.improvements
     }
   }
 } as const
@@ -40,6 +46,7 @@ export interface PackageProgress {
     pages: { total: number; completed: number }
     blogs: { total: number; completed: number }
     gbpPosts: { total: number; completed: number }
+    improvements: { total: number; completed: number }
   }
 }
 
@@ -57,7 +64,8 @@ export function calculatePackageProgress(
     breakdown: {
       pages: { total: pkg.breakdown.pages, completed: 0 },
       blogs: { total: pkg.breakdown.blogs, completed: 0 },
-      gbpPosts: { total: pkg.breakdown.gbpPosts, completed: 0 }
+      gbpPosts: { total: pkg.breakdown.gbpPosts, completed: 0 },
+      improvements: { total: pkg.breakdown.improvements, completed: 0 }
     }
   }
   
@@ -74,6 +82,9 @@ export function calculatePackageProgress(
           break
         case 'gbp_post':
           progress.breakdown.gbpPosts.completed++
+          break
+        case 'improvement':
+          progress.breakdown.improvements.completed++
           break
       }
     }

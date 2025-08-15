@@ -53,4 +53,4 @@ prisma/*.db-journal
 .vscode/
 .idea/
 *.swp
-*.swo
+*.swodealerships_backup_*.txt

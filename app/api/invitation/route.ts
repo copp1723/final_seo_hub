@@ -106,9 +106,9 @@ export async function GET(request: NextRequest) {
     
     // Redirect dealership users who haven't completed onboarding to the onboarding page
     const redirectUrl = (user.role === 'USER' && user.agencyId && !user.onboardingCompleted)
-      ? '/onboarding/seoworks?invited=true'
+      ? `/onboarding/seoworks?invited=true&token=${user.id}`
       : '/dashboard'
-    
+
     const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
     
     // Set SimpleAuth session cookie manually on the response

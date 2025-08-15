@@ -484,11 +484,11 @@ export default function DashboardPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div className="text-center p-3 bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-lg border border-emerald-100">
-                      <div className="text-xl font-bold text-emerald-700">{typeof rankingsData?.data?.data?.data?.top10Count === 'number' ? rankingsData.data.data.data.top10Count : '-'}</div>
+                      <div className="text-xl font-bold text-emerald-700">{typeof rankingsData?.data?.data?.top10Count === 'number' ? rankingsData.data.data.top10Count : '-'}</div>
                       <div className="text-xs text-gray-500">Top 10 Rankings</div>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-lg border border-blue-100">
-                      <div className="text-xl font-bold text-blue-700">{typeof rankingsData?.data?.data?.data?.top20Count === 'number' ? rankingsData.data.data.data.top20Count : '-'}</div>
+                      <div className="text-xl font-bold text-blue-700">{typeof rankingsData?.data?.data?.top20Count === 'number' ? rankingsData.data.data.top20Count : '-'}</div>
                       <div className="text-xs text-gray-500">Top 20 Rankings</div>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-violet-50/50 rounded-lg border border-purple-100">
@@ -496,7 +496,7 @@ export default function DashboardPage() {
                       <div className="text-xs text-gray-500">Avg Position</div>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-lg border border-orange-100">
-                      <div className="text-xl font-bold text-orange-700">{typeof rankingsData?.data?.data?.data?.totalKeywords === 'number' ? rankingsData.data.data.data.totalKeywords : '-'}</div>
+                      <div className="text-xl font-bold text-orange-700">{typeof rankingsData?.data?.data?.totalKeywords === 'number' ? rankingsData.data.data.totalKeywords : '-'}</div>
                       <div className="text-xs text-gray-500">Total Keywords</div>
                     </div>
                   </div>

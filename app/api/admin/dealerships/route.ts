@@ -14,26 +14,35 @@ const SEOWORKS_API_KEY = process.env.SEOWORKS_API_KEY
 const SEOWORKS_ONBOARD_URL = 'https://api.seowerks.ai/rylie-onboard.cfm'
 
 const createDealershipSchema = z.object({
-  name: z.string().min(1, 'Dealership name is required'),
-  website: z.string().url().optional().or(z.literal('')),
-  address: z.string().optional(),
+  // Basic Information
+  name: z.string().min(2, 'Dealership name must be at least 2 characters'),
+  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  address: z.string().min(1, 'Address is required'),
   city: z.string().min(1, 'City is required'),
-  state: z.string().min(2).max(2, 'State must be 2 characters'),
-  zipCode: z.string().min(1, 'ZIP code is required'),
+  state: z.string().length(2, 'State must be 2 characters'),
+  zipCode: z.string().min(5, 'ZIP code must be at least 5 characters'),
   phone: z.string().optional(),
   agencyId: z.string().min(1, 'Agency is required'),
   activePackageType: z.enum(['SILVER', 'GOLD', 'PLATINUM']).default('GOLD'),
   clientId: z.string().optional(),
   mainBrand: z.string().min(1, 'Main brand is required'),
   otherBrand: z.string().optional(),
-  contactName: z.string().min(1, 'Contact name is required'),
+  
+  // Contact Information
+  contactName: z.string().min(2, 'Contact name must be at least 2 characters'),
   contactTitle: z.string().optional(),
-  email: z.string().email('Valid email is required'),
-  billingEmail: z.string().email().optional().or(z.literal('')),
+  email: z.string().email('Please enter a valid email address'),
+  billingEmail: z.string().email('Please enter a valid billing email').optional().or(z.literal('')),
+  
+  // Technical Information
   siteAccessNotes: z.string().optional(),
-  targetVehicleModels: z.array(z.string()).optional().default([]),
-  targetCities: z.array(z.string()).optional().default([]),
-  targetDealers: z.array(z.string()).optional().default([]),
+  
+  // Target Markets - require minimum entries
+  targetVehicleModels: z.array(z.string().min(1)).min(3, 'Please add at least 3 vehicle models'),
+  targetCities: z.array(z.string().min(1)).min(3, 'Please add at least 3 target cities'),
+  targetDealers: z.array(z.string().min(1)).min(3, 'Please add at least 3 competitor dealers'),
+  
+  // Administrative
   notes: z.string().optional()
 })
 
@@ -106,7 +115,7 @@ async function sendToSEOWorks(data: z.infer<typeof createDealershipSchema>, gene
   }
 }
 
-// Create a new dealership (SUPER_ADMIN only)
+// Create a new dealership (SUPER_ADMIN and AGENCY_ADMIN)
 export async function POST(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)
@@ -115,8 +124,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (session.user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json({ error: 'Access denied. Super Admin required.' }, { status: 403 })
+    // Allow both SUPER_ADMIN and AGENCY_ADMIN
+    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'AGENCY_ADMIN') {
+      return NextResponse.json({ error: 'Access denied. Admin access required.' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -127,6 +137,18 @@ export async function POST(request: NextRequest) {
         error: 'Validation failed',
         details: validation.error.issues
       }, { status: 400 })
+    }
+
+    // Additional validation for AGENCY_ADMIN users
+    if (session.user.role === 'AGENCY_ADMIN') {
+      if (!session.user.agencyId) {
+        return NextResponse.json({ error: 'Agency admin must be associated with an agency' }, { status: 403 })
+      }
+      
+      // Ensure agency admin can only create dealerships for their own agency
+      if (validation.data.agencyId !== session.user.agencyId) {
+        return NextResponse.json({ error: 'Cannot create dealership for other agencies' }, { status: 403 })
+      }
     }
 
     const { 
@@ -313,12 +335,40 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    logger.error('Error creating dealership', error)
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Dealership name already exists' }, { status: 409 })
+    logger.error('Error creating dealership', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      dealershipName: validation?.success ? validation.data?.name : 'unknown',
+      agencyId: validation?.success ? validation.data?.agencyId : 'unknown',
+      userId: session?.user?.id || 'unknown'
+    })
+
+    // Handle specific database constraint errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      switch (error.code) {
+        case 'P2002':
+          const target = (error as any).meta?.target
+          if (target?.includes('clientId')) {
+            return NextResponse.json({ error: 'Client ID already exists. Please try a different name.' }, { status: 409 })
+          }
+          return NextResponse.json({ error: 'Dealership with this information already exists' }, { status: 409 })
+        case 'P2003':
+          return NextResponse.json({ error: 'Invalid agency reference' }, { status: 400 })
+        default:
+          break
+      }
     }
+
+    // Handle validation errors from external APIs
+    if (error instanceof Error && error.message.includes('SEOWorks')) {
+      return NextResponse.json({
+        error: 'Dealership created but SEO service integration failed. Please contact support.',
+        partial: true
+      }, { status: 207 }) // Multi-status for partial success
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create dealership. Please try again.' },
       { status: 500 }
     )
   }

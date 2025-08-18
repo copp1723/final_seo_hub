@@ -101,8 +101,9 @@ export async function GET(request: NextRequest) {
     })
     console.log('✅ SimpleAuth session created')
 
-    // Set the session cookie - use NEXTAUTH_URL for proper production redirects
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://rylie-seo-hub.onrender.com'
+    // Set the session cookie - use request origin for proper production redirects
+    const requestUrl = new URL(request.url)
+    const baseUrl = process.env.NEXTAUTH_URL || `${requestUrl.protocol}//${requestUrl.host}`
     
     // Redirect dealership users who haven't completed onboarding to the onboarding page
     const redirectUrl = (user.role === 'USER' && user.agencyId && !user.onboardingCompleted)

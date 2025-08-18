@@ -166,7 +166,7 @@ export default function AgencyDealershipOnboarding({ agencyId, agencyName }: Age
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  
+  const [isClient, setIsClient] = useState(false)
   const [formData, setFormData] = useState<DealershipOnboardingData>({
     name: '',
     website: '',
@@ -190,9 +190,8 @@ export default function AgencyDealershipOnboarding({ agencyId, agencyName }: Age
     notes: ''
   })
 
-  // Auto-save functionality
+  // Auto-save functionality with SSR safety
   const saveKey = `agency-dealership-onboarding-${agencyId}`
-  const [isClient, setIsClient] = useState(false)
   
   // Ensure we're on client side before accessing localStorage
   useEffect(() => {

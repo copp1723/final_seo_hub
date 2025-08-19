@@ -366,7 +366,7 @@ export class SimpleAuth {
           ]
         },
         include: {
-          dealership: {
+          dealerships: {
             include: {
               agencies: {
                 select: {
@@ -382,10 +382,10 @@ export class SimpleAuth {
 
       const availableAccess: DealershipAccess[] = dealershipAccess.map(access => ({
         dealershipId: access.dealershipId,
-        dealershipName: access.dealership.name,
+        dealershipName: access.dealerships.name,
         accessLevel: access.accessLevel as 'READ' | 'WRITE' | 'ADMIN',
-        agencyId: access.dealership.agencyId,
-        agencyName: access.dealership.agencies.name
+        agencyId: access.dealerships.agencyId,
+        agencyName: access.dealerships.agencies.name
       }));
 
       return {

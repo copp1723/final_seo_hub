@@ -81,11 +81,13 @@ export async function POST(request: NextRequest) {
     // Create the mapping
     const mapping = await prisma.seoworks_task_mappings.create({
       data: {
+        id: crypto.randomUUID(),
         requestId,
         seoworksTaskId,
         taskType,
         metadata: metadata || {},
-        status: 'active'
+        status: 'active',
+        updatedAt: new Date()
       }
     })
 
@@ -146,7 +148,7 @@ export async function GET(request: NextRequest) {
     if (seoworksTaskId) {
       mapping = await prisma.seoworks_task_mappings.findUnique({
         where: { seoworksTaskId },
-        include: { request: {
+        include: { requests: {
             include: { users: true }
           }
         }
@@ -154,7 +156,7 @@ export async function GET(request: NextRequest) {
     } else if (requestId) {
       mapping = await prisma.seoworks_task_mappings.findFirst({
         where: { requestId },
-        include: { request: {
+        include: { requests: {
             include: { users: true }
           }
         }
@@ -169,7 +171,7 @@ export async function GET(request: NextRequest) {
       success: true,
       mapping: {
         id: mapping.id,
-        requestId: mapping.request.id,
+        requestId: mapping.requests.id,
         seoworksTaskId: mapping.seoworksTaskId,
         taskType: mapping.taskType,
         status: mapping.status,
@@ -178,11 +180,11 @@ export async function GET(request: NextRequest) {
         updatedAt: mapping.updatedAt
       },
       request: {
-        id: mapping.request.id,
-        title: mapping.request.title,
-        status: mapping.request.status,
-        clientId: mapping.request.users.id,
-        clientEmail: mapping.request.users.email
+        id: mapping.requests.id,
+        title: mapping.requests.title,
+        status: mapping.requests.status,
+        clientId: mapping.requests.users.id,
+        clientEmail: mapping.requests.users.email
       }
     })
   } catch (error) {

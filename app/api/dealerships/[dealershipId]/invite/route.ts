@@ -95,7 +95,7 @@ export async function POST(
         updatedAt: new Date()
       },
       include: {
-        dealerships: {
+        dealerships_users_dealershipIdTodealerships: {
           select: { name: true }
         },
         agencies: {
@@ -143,7 +143,7 @@ export async function POST(
         email: newUser.email,
         name: newUser.name,
         role: newUser.role,
-        dealership: newUser.dealerships?.name,
+        dealership: newUser.dealerships_users_dealershipIdTodealerships?.name,
         agency: newUser.agencies?.name
       },
       invitationSent

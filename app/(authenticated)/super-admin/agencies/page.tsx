@@ -307,7 +307,7 @@ export default function SuperAdminAgenciesPage() {
                         <li key={d.id} className="text-sm text-gray-700 flex items-center justify-between">
                           <span className="truncate">{d.name}</span>
                           <Link href={`/admin/dealerships?highlight=${d.id}`}>
-                            <Button variant="ghost" size="xs" className="text-xs px-2">View</Button>
+                            <Button variant="ghost" size="sm" className="text-xs px-2">View</Button>
                           </Link>
                         </li>
                       ))}

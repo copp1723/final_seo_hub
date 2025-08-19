@@ -495,7 +495,12 @@ export async function GET(request: NextRequest) {
             where: {
               id: dealershipId || undefined,
               OR: [
-                { users: { some: { id: session.user.id } } },
+                { 
+                  OR: [
+                    { users_users_currentDealershipIdTodealerships: { some: { id: session.user.id } } },
+                    { users_users_dealershipIdTodealerships: { some: { id: session.user.id } } }
+                  ]
+                },
                 ...(user.agencyId ? [{ agencyId: user.agencyId }] : [])
               ]
             }

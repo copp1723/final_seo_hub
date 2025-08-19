@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { errorResponse, successResponse } from '@/lib/api-auth'
 import { PackageType } from '@prisma/client'
+import crypto from 'crypto'
 
 // Process orphaned tasks for a newly onboarded user
 async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
@@ -33,6 +34,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
         if (orphanedTask.eventType === 'task.completed') {
           const newRequest = await prisma.requests.create({
             data: {
+              id: crypto.randomUUID(),
               userId: userId,
               title: (Array.isArray(orphanedTask.deliverables) && orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0] === 'object' && orphanedTask.deliverables[0] !== null && 'title' in orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0].title === 'string') ? orphanedTask.deliverables[0].title : `SEOWorks ${orphanedTask.taskType} Task`,
               description: `Task created from orphaned SEOWorks task\n\nOriginal Task ID: ${orphanedTask.externalId}\nCompleted: ${orphanedTask.completionDate || new Date().toISOString()}\n\nOriginal Notes: ${orphanedTask.notes || ''}`,
@@ -41,6 +43,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
               seoworksTaskId: orphanedTask.externalId,
               completedAt: orphanedTask.completionDate ? new Date(orphanedTask.completionDate) : new Date(),
               completedTasks: orphanedTask.deliverables || [] as any,
+              updatedAt: new Date(),
               // Set completed counters based on task type
               pagesCompleted: orphanedTask.taskType.toLowerCase() === 'page' ? 1 : 0,
               blogsCompleted: orphanedTask.taskType.toLowerCase() === 'blog' ? 1 : 0,
@@ -220,7 +223,7 @@ export async function POST(request: NextRequest) {
       where: { id: dealerData.userId },
       include: {
         agencies: true,
-        dealerships: true
+        dealerships_users_dealershipIdTodealerships: true
       }
     })
 
@@ -232,7 +235,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('User has already completed onboarding', 400)
     }
 
-    if (!existingUser.dealerships?.id) {
+    if (!existingUser.dealerships_users_dealershipIdTodealerships?.id) {
       return errorResponse('User has no dealership assigned', 400)
     }
 
@@ -249,7 +252,7 @@ export async function POST(request: NextRequest) {
 
     // Update dealership package info
     await prisma.dealerships.update({
-      where: { id: existingUser.dealerships?.id },
+      where: { id: existingUser.dealerships_users_dealershipIdTodealerships?.id },
       data: {
         activePackageType: dealerData.package as PackageType,
         currentBillingPeriodStart: new Date(),
@@ -264,8 +267,9 @@ export async function POST(request: NextRequest) {
     // Create initial request
     const setupRequest = await prisma.requests.create({
       data: {
+        id: crypto.randomUUID(),
         userId: existingUser.id,
-        dealershipId: existingUser.dealerships?.id,
+        dealershipId: existingUser.dealerships_users_dealershipIdTodealerships?.id,
         agencyId: existingUser.agencies?.id,
         title: `SEO Package Setup - ${dealerData.businessName}`,
         description: `Initial SEO setup for ${dealerData.businessName} (${dealerData.mainBrand})\n\nSEOWorks Client ID: ${seoworksResult.clientId}\nManaged by Agency: ${existingUser.agencies?.name || 'N/A'}`,
@@ -274,7 +278,8 @@ export async function POST(request: NextRequest) {
         targetUrl: dealerData.websiteUrl,
         keywords: dealerData.targetVehicleModels,
         targetCities: dealerData.targetCities,
-        targetModels: dealerData.targetVehicleModels
+        targetModels: dealerData.targetVehicleModels,
+        updatedAt: new Date()
       }
     })
 

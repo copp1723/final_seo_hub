@@ -206,7 +206,8 @@ export async function GET(request: NextRequest) {
               expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
               propertyId,
               propertyName,
-              email: user.email
+              email: user.email,
+              updatedAt: new Date()
             }
           })
           logger.info('GA4 OAuth: New connection created', { connectionId: connection.id })

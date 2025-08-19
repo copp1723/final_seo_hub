@@ -207,7 +207,8 @@ export async function POST(
         accessLevel,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
         grantedBy: session.user.id,
-        isActive: true
+        isActive: true,
+        updatedAt: new Date()
       },
       include: {
         dealerships: {

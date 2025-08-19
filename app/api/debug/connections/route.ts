@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         dealershipId: true,
-        dealerships: {
+        dealerships_users_dealershipIdTodealerships: {
           select: {
             id: true,
             name: true

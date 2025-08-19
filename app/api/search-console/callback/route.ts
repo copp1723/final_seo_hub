@@ -214,7 +214,8 @@ export async function GET(req: NextRequest) {
               expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
               siteUrl,
               siteName,
-              email: user?.email
+              email: user?.email,
+              updatedAt: new Date()
             }
           })
           logger.info('Search Console: New connection created', { connectionId: connection.id })

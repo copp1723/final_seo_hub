@@ -99,7 +99,7 @@ model conversations {
 }
 
 model dealership_onboardings {
-  id                  String    @id
+  id                  String    @id @default(cuid())
   agencyId            String
   businessName        String
   package             String
@@ -132,7 +132,7 @@ model dealership_onboardings {
 }
 
 model dealerships {
-  id                                           String                       @id
+  id                                           String                       @id @default(cuid())
   name                                         String
   agencyId                                     String
   website                                      String?
@@ -205,7 +205,7 @@ model feature_flag_overrides {
 }
 
 model ga4_connections {
-  id           String       @id
+  id           String       @id @default(cuid())
   userId       String
   dealershipId String?
   accessToken  String
@@ -378,7 +378,7 @@ model requests {
 }
 
 model search_console_connections {
-  id           String       @id
+  id           String       @id @default(cuid())
   userId       String
   dealershipId String?
   accessToken  String
@@ -441,7 +441,7 @@ model seoworks_tasks {
 }
 
 model sessions {
-  id           String   @id
+  id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
   expires      DateTime
@@ -526,7 +526,7 @@ model usage_metrics {
 }
 
 model user_dealership_access {
-  id                                            String                    @id
+  id                                            String                    @id @default(cuid())
   userId                                        String
   dealershipId                                  String
   accessLevel                                   UserDealershipAccessLevel @default(READ)

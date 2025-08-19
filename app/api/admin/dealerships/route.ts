@@ -283,7 +283,8 @@ export async function POST(request: NextRequest) {
         submittedBy: session.user.email || 'system',
         status: seoworksResult.success ? 'submitted' : 'pending',
         seoworksResponse: seoworksResult.seoworksResponse || null,
-        submittedAt: seoworksResult.success ? new Date() : null
+        submittedAt: seoworksResult.success ? new Date() : null,
+        updatedAt: new Date()
       }
     })
 
@@ -401,7 +402,8 @@ export async function GET(request: NextRequest) {
         },
         _count: {
           select: {
-            users: true
+            users_users_currentDealershipIdTodealerships: true,
+            users_users_dealershipIdTodealerships: true
           }
         }
       },
@@ -423,7 +425,7 @@ export async function GET(request: NextRequest) {
           id: d.agencies.id,
           name: d.agencies.name
         },
-        userCount: d._count.users,
+        userCount: (d._count.users_users_currentDealershipIdTodealerships || 0) + (d._count.users_users_dealershipIdTodealerships || 0),
         createdAt: d.createdAt,
         updatedAt: d.updatedAt
       }))

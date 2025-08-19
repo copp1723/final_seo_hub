@@ -114,10 +114,8 @@ export async function GET(request: NextRequest) {
   // Set the session cookie - prefer NEXTAUTH_URL (production/staging)
   const baseUrl = getBaseUrl(request)
     
-    // Redirect dealership users who haven't completed onboarding to the onboarding page
-    const redirectUrl = (user.role === 'USER' && user.agencyId && !user.onboardingCompleted)
-      ? `/onboarding/seoworks?invited=true&token=${user.id}`
-      : '/dashboard'
+    // All users go directly to dashboard after accepting invitation
+    const redirectUrl = '/dashboard'
 
   const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
     
@@ -272,19 +270,16 @@ export async function POST(request: NextRequest) {
       // Note: invitationToken is not returned for security reasons
     })
   } catch (error: any) {
-    logger.error('Generate invitation token error:', error, {
+    logger.error('Generate invitation error', {
+      error: error instanceof Error ? error.message : String(error),
       email,
       role,
-      agencyId,
-      dealershipId,
-      inviterEmail: inviterSession?.user?.email
+      inviterUserId: inviterSession?.user?.id
     })
 
-    return NextResponse.json({
-      error: error.message || 'Failed to generate invitation',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    }, {
-      status: 500
-    })
+    return NextResponse.json(
+      { error: 'Failed to create invitation' },
+      { status: 500 }
+    )
   }
 }

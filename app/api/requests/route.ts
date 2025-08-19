@@ -8,6 +8,7 @@ import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { requestCreatedTemplate, welcomeEmailTemplate } from '@/lib/mailgun/templates'
 import { logger, getSafeErrorMessage } from '@/lib/logger'
 import { withApiMonitoring } from '@/lib/api-wrapper'
+import crypto from 'crypto'
 import { csrfProtection } from '@/lib/csrf'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { safeDbOperation } from '@/lib/db-resilience'
@@ -264,6 +265,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     const newRequest = await safeDbOperation(() =>
       prisma.requests.create({
         data: {
+          id: crypto.randomUUID(),
           userId: authResult.user.id,
           agencyId: user.agencyId || authResult.user.agencyId || null,
           dealershipId: user.dealershipId || null, // CRITICAL FIX: Now including dealershipId
@@ -276,7 +278,8 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
           keywords: typedData.keywords || [],
           targetUrl: typedData.targetUrl || null,
           targetCities: typedData.targetCities || [],
-          targetModels: typedData.targetModels || []
+          targetModels: typedData.targetModels || [],
+          updatedAt: new Date()
         },
         include: {
           users: true,
@@ -297,6 +300,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
     // Create associated tasks
     try {
       const tasksToCreate: Array<{
+        id: string;
         userId: string;
         dealershipId: string | null;
         agencyId: string | null;
@@ -308,10 +312,12 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         keywords?: Prisma.InputJsonValue;
         requestId: string;
         status: TaskStatus;
+        updatedAt: Date;
       }> = [];
       // Create a single task based on the request type
       // CRITICAL FIX: Use dealershipId from user, not from newRequest
       const taskData: any = {
+        id: crypto.randomUUID(),
         userId: newRequest.userId,
         dealershipId: user.dealershipId || null, // FIX: Use dealershipId from user object
         agencyId: newRequest.agencyId || null,
@@ -322,6 +328,7 @@ async function handlePOST(request: NextRequest): Promise<NextResponse> {
         targetUrl: newRequest.targetUrl || null,
         requestId: newRequest.id, // Link to the newly created request
         status: TaskStatus.PENDING, // Default status for new tasks
+        updatedAt: new Date()
       }
       
       // Only add keywords if they exist and are not empty

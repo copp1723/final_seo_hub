@@ -30,8 +30,8 @@ export const seoworksWebhookSchema = z.object({
         z.object({
           type: z.string(),
           title: z.string(),
-          // url is optional in the PDF and our receiver already guards for undefined
-          url: z.string().url().optional(),
+          // url is optional and can be with or without protocol (backward compatibility)
+          url: z.string().min(1).optional(),
           publishedDate: z.string().datetime().optional(),
         })
       )

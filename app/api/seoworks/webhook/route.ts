@@ -18,6 +18,21 @@ import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
 
+// Normalize URLs to ensure they have a protocol (backward compatibility)
+function normalizeUrl(url?: string): string | undefined {
+  if (!url || typeof url !== 'string' || url.length === 0) {
+    return undefined;
+  }
+  
+  // If URL already has a protocol, return as-is
+  if (url.match(/^https?:\/\//)) {
+    return url;
+  }
+  
+  // Add https:// if missing (backward compatibility for SEOWorks)
+  return `https://${url}`;
+}
+
 // Normalize inbound task types from SEOWorks into our canonical set
 // Returns database enum values: 'PAGE', 'BLOG', 'GBP_POST', 'IMPROVEMENT'
 function normalizeTaskType(raw: string): 'PAGE' | 'BLOG' | 'GBP_POST' | 'IMPROVEMENT' {
@@ -170,7 +185,7 @@ async function handleTaskCompleted(
     const completedTask = {
       title: (firstDeliverable && 'title' in firstDeliverable && typeof firstDeliverable.title === 'string') ? firstDeliverable.title : data.taskType,
       type: normalizedType,
-      url: (firstDeliverable && 'url' in firstDeliverable && typeof firstDeliverable.url === 'string') ? firstDeliverable.url : undefined,
+      url: (firstDeliverable && 'url' in firstDeliverable && typeof firstDeliverable.url === 'string') ? normalizeUrl(firstDeliverable.url) : undefined,
       completedAt: data.completionDate || new Date().toISOString()
     }
 
@@ -208,7 +223,7 @@ async function handleTaskCompleted(
       })
 
       const completedAt = new Date(data.completionDate || Date.now())
-      const targetUrl = (completedTask as any).url || null
+      const targetUrl = normalizeUrl((completedTask as any).url) || null
       const title = (completedTask as any).title || `SEOWorks ${normalizedType} Task`
 
       if (existingTask) {

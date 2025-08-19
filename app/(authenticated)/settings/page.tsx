@@ -195,6 +195,9 @@ export default function UnifiedSettingsPage() {
               const data = await intRes.json()
               const integrationsData = data.data?.integrations || data.integrations
               setIntegrations(integrationsData)
+            } else {
+              console.error('Integrations API error:', intRes.status, await intRes.text())
+              setMessage({ type: 'error', text: 'Failed to load integrations data' })
             }
             break
             
@@ -479,26 +482,25 @@ export default function UnifiedSettingsPage() {
                 </div>
               ) : (
                 user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? (
-                  integrations && (
                     <>
                       <div className="p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <h4 className="font-medium">Google Analytics 4</h4>
                             <p className="text-sm text-gray-600 mt-1">
-                              {integrations.ga4.connected 
+                              {integrations?.ga4?.connected 
                                 ? `Connected to ${integrations.ga4.propertyName || 'GA4 Property'}`
                                 : 'Not connected'
                               }
                             </p>
-                            {integrations.ga4.connected && (
+                            {integrations?.ga4?.connected && (
                               <p className="text-xs text-gray-500 mt-1">
                                 Connected on {formatDate(integrations.ga4.connectedAt)}
                               </p>
                             )}
                           </div>
                           <div className="flex gap-2">
-                            {integrations.ga4.connected && (
+                            {integrations?.ga4?.connected && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -508,16 +510,16 @@ export default function UnifiedSettingsPage() {
                               </Button>
                             )}
                             <Button
-                              variant={integrations.ga4.connected ? 'secondary' : 'primary'}
+                              variant={integrations?.ga4?.connected ? 'secondary' : 'primary'}
                               size="sm"
                               onClick={() => router.push('/api/ga4/auth/connect')}
                             >
-                              {integrations.ga4.connected ? 'Reconnect' : 'Connect'}
+                              {integrations?.ga4?.connected ? 'Reconnect' : 'Connect'}
                             </Button>
                           </div>
                         </div>
                         {/* Property Selector */}
-                        {integrations.ga4.connected && showPropertySelector && (
+                        {integrations?.ga4?.connected && showPropertySelector && (
                           <div className="mt-4 p-4 bg-gray-50 rounded border">
                             <h5 className="font-medium mb-3">Select GA4 Property</h5>
                             <div className="space-y-3">
@@ -573,23 +575,23 @@ export default function UnifiedSettingsPage() {
                           <div>
                             <h4 className="font-medium">Google Search Console</h4>
                             <p className="text-sm text-gray-600 mt-1">
-                              {integrations.searchConsole.connected 
+                              {integrations?.searchConsole?.connected 
                                 ? `Connected to ${integrations.searchConsole.siteName || 'Search Console'}`
                                 : 'Not connected'
                               }
                             </p>
-                            {integrations.searchConsole.connected && (
+                            {integrations?.searchConsole?.connected && (
                               <p className="text-xs text-gray-500 mt-1">
                                 Connected on {formatDate(integrations.searchConsole.connectedAt)}
                               </p>
                             )}
                           </div>
                           <Button
-                            variant={integrations.searchConsole.connected ? 'secondary' : 'primary'}
+                            variant={integrations?.searchConsole?.connected ? 'secondary' : 'primary'}
                             size="sm"
                             onClick={() => router.push('/api/search-console/connect')}
                           >
-                            {integrations.searchConsole.connected ? 'Reconnect' : 'Connect'}
+                            {integrations?.searchConsole?.connected ? 'Reconnect' : 'Connect'}
                           </Button>
                         </div>
                       </div>

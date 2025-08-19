@@ -7,6 +7,9 @@ import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic';
 
+// Schema sync fix - ensure email field is recognized
+// Updated: 2025-08-19 to fix production Prisma client sync
+
 export async function GET(req: NextRequest) {
   // Get session from auth
   const session = await SimpleAuth.getSessionFromRequest(req)

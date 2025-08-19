@@ -44,12 +44,6 @@ export async function GET(
             name: true
           }
         },
-        dealerships: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
         currentDealership: {
           select: {
             id: true,

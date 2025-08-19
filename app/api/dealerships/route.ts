@@ -59,7 +59,7 @@ export const GET = withErrorBoundary(async (request: NextRequest) => {
         },
         _count: {
           select: {
-            users: true
+            user_dealership_access: true
           }
         }
       },

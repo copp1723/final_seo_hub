@@ -326,6 +326,12 @@ export default function SuperAdminAgenciesPage() {
                         Users
                       </Button>
                     </Link>
+                    <Link href={`/admin/dealerships/create?agencyId=${agency.id}&agencyName=${encodeURIComponent(agency.name)}`}>
+                      <Button size="sm" className="flex-1">
+                        <PlusCircle className="h-3 w-3 mr-1" />
+                        Create Dealership
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </CardContent>

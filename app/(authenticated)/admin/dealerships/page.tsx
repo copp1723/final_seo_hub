@@ -35,16 +35,38 @@ export default function DealershipsPage() {
     email: ''
   })
   const [isInviting, setIsInviting] = useState(false)
+  const [highlightId, setHighlightId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchDealerships()
   }, [])
 
+  // Read highlight param for optional card highlight and scroll
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const id = params.get('highlight')
+      if (id) setHighlightId(id)
+    } catch (_) {
+      // no-op
+    }
+  }, [])
+  // After data loads, scroll to the highlighted dealership if present
+  useEffect(() => {
+    if (!highlightId || isLoading || !dealerships.length) return
+    const el = document.getElementById(`dl-${highlightId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // remove highlight after a short delay
+      setTimeout(() => setHighlightId(null), 2500)
+    }
+  }, [highlightId, isLoading, dealerships])
+
   const fetchDealerships = async () => {
     try {
       setIsLoading(true)
       const response = await fetch('/api/dealerships')
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch dealerships')
       }
@@ -61,7 +83,7 @@ export default function DealershipsPage() {
 
   const handleInviteUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!selectedDealership) return
 
     try {
@@ -81,11 +103,11 @@ export default function DealershipsPage() {
 
       const data = await response.json()
       toast.success(data.invitationSent ? 'Invitation sent successfully!' : 'User created but email failed to send')
-      
+
       setIsInviteModalOpen(false)
       setInviteForm({ name: '', email: '' })
       setSelectedDealership(null)
-      
+
       // Refresh dealerships to update user count
       fetchDealerships()
     } catch (error: any) {
@@ -176,7 +198,11 @@ export default function DealershipsPage() {
       {/* Dealerships Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {dealerships.map((dealership) => (
-          <Card key={dealership.id} className="hover:shadow-lg transition-shadow">
+          <Card
+            key={dealership.id}
+            id={`dl-${dealership.id}`}
+            className={`hover:shadow-lg transition-shadow ${highlightId === dealership.id ? 'ring-2 ring-blue-400' : ''}`}
+          >
             <CardHeader>
               <CardTitle className="text-lg">{dealership.name}</CardTitle>
               <CardDescription>
@@ -192,8 +218,8 @@ export default function DealershipsPage() {
                     {dealership._count.users}
                   </Badge>
                 </div>
-                
-                <Button 
+
+                <Button
                   onClick={() => openInviteModal(dealership)}
                   className="w-full"
                   size="sm"
@@ -251,9 +277,9 @@ export default function DealershipsPage() {
               </div>
             </div>
             <div className="flex justify-end space-x-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setIsInviteModalOpen(false)}
                 disabled={isInviting}
               >

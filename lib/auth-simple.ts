@@ -157,7 +157,7 @@ export class SimpleAuth {
   }
 
   static async createSession(user: SimpleUser): Promise<string> {
-    const sessionId = crypto.randomUUID() // Generate unique session ID for revocation support
+    const sessionId = crypto.randomUUID(); // Generate unique session ID for revocation support
     const payload = {
       sessionId,
       userId: user.id,
@@ -581,7 +581,7 @@ class SessionRevocation {
 // Enhanced SimpleAuth with optional session revocation
 export class SimpleAuthWithRevocation extends SimpleAuth {
   static async createSession(user: SimpleUser): Promise<string> {
-    const sessionId = crypto.randomUUID() // Generate unique session ID
+    const sessionId = crypto.randomUUID(); // Generate unique session ID
     const payload = {
       sessionId,
       userId: user.id,

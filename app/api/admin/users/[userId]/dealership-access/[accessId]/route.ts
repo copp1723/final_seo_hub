@@ -50,7 +50,7 @@ export async function PATCH(
         userId
       },
       include: {
-        dealership: {
+        dealerships: {
           include: {
             agencies: {
               select: { name: true }
@@ -73,7 +73,7 @@ export async function PATCH(
         updatedAt: new Date()
       },
       include: {
-        dealership: {
+        dealerships: {
           include: {
             agencies: {
               select: { name: true }
@@ -87,7 +87,7 @@ export async function PATCH(
       accessId,
       userId,
       dealershipId: existingAccess.dealershipId,
-      dealershipName: existingAccess.dealership.name,
+      dealershipName: existingAccess.dealerships.name,
       oldAccessLevel: existingAccess.accessLevel,
       newAccessLevel: updateData.accessLevel || existingAccess.accessLevel,
       updatedBy: session.user.id,
@@ -141,7 +141,7 @@ export async function DELETE(
         userId
       },
       include: {
-        dealership: {
+        dealerships: {
           select: {
             id: true,
             name: true
@@ -188,7 +188,7 @@ export async function DELETE(
       accessId,
       userId,
       dealershipId: existingAccess.dealershipId,
-      dealershipName: existingAccess.dealership.name,
+      dealershipName: existingAccess.dealerships.name,
       revokedBy: session.user.id,
       wasCurrentDealership: user?.currentDealershipId === existingAccess.dealershipId
     })

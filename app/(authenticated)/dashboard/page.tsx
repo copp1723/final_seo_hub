@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   RefreshCw,
   Loader2,
@@ -152,6 +153,7 @@ export default function DashboardPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(true)
   const [rankingsLoading, setRankingsLoading] = useState(true)
   const [previousDealershipId, setPreviousDealershipId] = useState<string | null>(null)
+  const [dateRange, setDateRange] = useState('30days')
 
   // Clear data when dealership changes
   useEffect(() => {
@@ -199,7 +201,7 @@ export default function DashboardPage() {
 
       const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
-        dateRange: '30days'
+        dateRange
       })
       if (dealershipId) params.append('dealershipId', dealershipId)
 
@@ -221,7 +223,7 @@ export default function DashboardPage() {
     } finally {
       setAnalyticsLoading(false)
     }
-  }, [user, currentDealership?.id])
+  }, [user, currentDealership?.id, dateRange])
 
   // Fetch rankings data
   const fetchRankingsData = useCallback(async () => {
@@ -312,6 +314,18 @@ export default function DashboardPage() {
               </div>
               <div className="mt-6 lg:mt-0 flex items-center gap-3">
                 <DealershipSelector />
+                <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger className="w-40 bg-white border-slate-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7days">Last 7 days</SelectItem>
+                    <SelectItem value="30days">Last 30 days</SelectItem>
+                    <SelectItem value="90days">Last 90 days</SelectItem>
+                    <SelectItem value="thisMonth">This month</SelectItem>
+                    <SelectItem value="thisYear">This year</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   variant="outline"
                   size="sm"
@@ -380,14 +394,14 @@ export default function DashboardPage() {
                     <StatCard
                       title="Sessions"
                       value={analyticsData?.ga4Data?.sessions?.toLocaleString() ?? '-'}
-                      subtitle="Last 30 days"
+                      subtitle={dateRange === '7days' ? 'Last 7 days' : dateRange === '30days' ? 'Last 30 days' : dateRange === '90days' ? 'Last 90 days' : dateRange === 'thisMonth' ? 'This month' : dateRange === 'thisYear' ? 'This year' : 'Selected period'}
                       loading={analyticsLoading}
                       gradient="emerald"
                     />
                     <StatCard
                       title="Users"
                       value={analyticsData?.ga4Data?.users?.toLocaleString() ?? '-'}
-                      subtitle="Last 30 days"
+                      subtitle={dateRange === '7days' ? 'Last 7 days' : dateRange === '30days' ? 'Last 30 days' : dateRange === '90days' ? 'Last 90 days' : dateRange === 'thisMonth' ? 'This month' : dateRange === 'thisYear' ? 'This year' : 'Selected period'}
                       loading={analyticsLoading}
                       gradient="blue"
                     />
@@ -416,14 +430,14 @@ export default function DashboardPage() {
                     <StatCard
                       title="Clicks"
                       value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() ?? '-'}
-                      subtitle="Last 30 days"
+                      subtitle={dateRange === '7days' ? 'Last 7 days' : dateRange === '30days' ? 'Last 30 days' : dateRange === '90days' ? 'Last 90 days' : dateRange === 'thisMonth' ? 'This month' : dateRange === 'thisYear' ? 'This year' : 'Selected period'}
                       loading={analyticsLoading}
                       gradient="purple"
                     />
                     <StatCard
                       title="Impressions"
                       value={analyticsData?.searchConsoleData?.impressions?.toLocaleString() ?? '-'}
-                      subtitle="Last 30 days"
+                      subtitle={dateRange === '7days' ? 'Last 7 days' : dateRange === '30days' ? 'Last 30 days' : dateRange === '90days' ? 'Last 90 days' : dateRange === 'thisMonth' ? 'This month' : dateRange === 'thisYear' ? 'This year' : 'Selected period'}
                       loading={analyticsLoading}
                       gradient="orange"
                     />

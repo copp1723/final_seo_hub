@@ -57,7 +57,7 @@ export async function GET(
         isActive: true
       },
       include: {
-        dealership: {
+        dealerships: {
           include: {
             agencies: {
               select: {
@@ -174,7 +174,7 @@ export async function POST(
           grantedAt: new Date()
         },
         include: {
-          dealership: {
+          dealerships: {
             include: {
               agencies: {
                 select: { name: true }
@@ -210,7 +210,7 @@ export async function POST(
         isActive: true
       },
       include: {
-        dealership: {
+        dealerships: {
           include: {
             agencies: {
               select: { name: true }

@@ -19,13 +19,13 @@ interface UserDealershipAccess {
   grantedAt: string
   expiresAt?: string
   isActive: boolean
-  dealership: {
+  dealerships: {
     id: string
     name: string
     agencyId: string
     agencies: {
       name: string
-    }
+    } | null
   }
 }
 
@@ -45,7 +45,7 @@ interface Dealership {
   agencyId: string
   agencies: {
     name: string
-  }
+  } | null
 }
 
 export default function UserDealershipAccessPage() {
@@ -264,7 +264,7 @@ export default function UserDealershipAccessPage() {
                 <SelectContent>
                   {availableForGrant.map(dealership => (
                     <SelectItem key={dealership.id} value={dealership.id}>
-                      {dealership.name} ({dealership.agencies.name})
+                      {dealership.name} ({dealership.agencies?.name || 'Unknown Agency'})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -330,8 +330,8 @@ export default function UserDealershipAccessPage() {
                     <div className="flex items-center space-x-3">
                       <Building2 className="h-5 w-5 text-gray-400" />
                       <div>
-                        <h3 className="font-semibold">{access.dealership.name}</h3>
-                        <p className="text-sm text-gray-600">{access.dealership.agencies.name}</p>
+                        <h3 className="font-semibold">{access.dealerships.name}</h3>
+                        <p className="text-sm text-gray-600">{access.dealerships.agencies?.name || 'Unknown Agency'}</p>
                       </div>
                     </div>
                   </div>

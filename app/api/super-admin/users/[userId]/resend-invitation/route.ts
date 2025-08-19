@@ -44,7 +44,10 @@ export async function POST(
         agencies: {
           select: { name: true }
         },
-        dealerships: {
+        dealerships_users_dealershipIdTodealerships: {
+          select: { name: true }
+        },
+        dealerships_users_currentDealershipIdTodealerships: {
           select: { name: true }
         }
       }
@@ -77,7 +80,10 @@ export async function POST(
         agencies: {
           select: { name: true }
         },
-        dealerships: {
+        dealerships_users_dealershipIdTodealerships: {
+          select: { name: true }
+        },
+        dealerships_users_currentDealershipIdTodealerships: {
           select: { name: true }
         }
       }

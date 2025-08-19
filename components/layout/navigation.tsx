@@ -17,6 +17,7 @@ import {
   Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import DealershipSwitcher from '@/components/ui/dealership-switcher'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -147,7 +148,10 @@ export function Navigation() {
           </div>
 
           {/* User Menu */}
-          <div className="flex items-center gap-1 lg:gap-2">
+          <div className="flex items-center gap-1 lg:gap-4">
+            
+            {/* Dealership Switcher */}
+            <DealershipSwitcher />
             
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>

@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
       email: user.email,
       role: user.role,
       agencyId: user.agencyId,
-      dealershipId: user.dealershipId,
+      dealershipId: user.dealershipId,  // Keep for backwards compatibility
+      currentDealershipId: user.currentDealershipId,  // New multi-dealership field
       name: user.name
     });
 

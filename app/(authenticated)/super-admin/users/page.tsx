@@ -34,7 +34,8 @@ import {
   UserPlus,
   Check,
   X,
-  Send
+  Send,
+  Building2
 } from 'lucide-react'
 import { useAuth } from '@/app/simple-auth-provider'
 import { useRouter } from 'next/navigation'
@@ -462,6 +463,13 @@ export default function UsersManagement() {
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Edit User
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => router.push(`/admin/users/${user.id}/dealership-access`)}
+                            className="text-purple-600"
+                          >
+                            <Building2 className="h-4 w-4 mr-2" />
+                            Manage Dealership Access
                           </DropdownMenuItem>
                           {(!user.onboardingCompleted || !user.password) && (
                             <DropdownMenuItem

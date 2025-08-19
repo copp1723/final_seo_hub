@@ -8,7 +8,8 @@ interface User {
   email: string;
   role: string;
   agencyId: string | null;
-  dealershipId: string | null;
+  dealershipId: string | null;  // Keep for backwards compatibility
+  currentDealershipId: string | null;  // Current active dealership for multi-access
   name?: string | null;
 }
 

@@ -5,8 +5,27 @@ export interface SimpleUser {
   email: string;
   role: string;
   agencyId: string | null;
-  dealershipId: string | null;
+  dealershipId: string | null;  // Kept for backwards compatibility
+  currentDealershipId: string | null;  // Current active dealership
   name?: string | null;
+}
+
+export interface DealershipAccess {
+  dealershipId: string;
+  dealershipName: string;
+  accessLevel: 'READ' | 'WRITE' | 'ADMIN';
+  agencyId: string;
+  agencyName: string;
+}
+
+export interface EnhancedSimpleSession {
+  user: SimpleUser;
+  dealershipAccess: {
+    current: string | null;
+    available: DealershipAccess[];
+  };
+  expires: Date;
+  sessionId?: string;
 }
 
 export interface SimpleSession {
@@ -145,7 +164,8 @@ export class SimpleAuth {
       email: user.email,
       role: user.role,
       agencyId: user.agencyId,
-      dealershipId: user.dealershipId,
+      dealershipId: user.dealershipId,  // Keep for backwards compatibility
+      currentDealershipId: user.currentDealershipId,  // New multi-dealership field
       exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days
     };
 
@@ -178,7 +198,8 @@ export class SimpleAuth {
           email: payload.email,
           role: payload.role,
           agencyId: payload.agencyId,
-          dealershipId: payload.dealershipId,
+          dealershipId: payload.dealershipId,  // Keep for backwards compatibility
+          currentDealershipId: payload.currentDealershipId,  // New multi-dealership field
           name: payload.name
         },
         expires: new Date(payload.exp * 1000),
@@ -297,7 +318,8 @@ export class SimpleAuth {
           email: payload.email,
           role: payload.role,
           agencyId: payload.agencyId,
-          dealershipId: payload.dealershipId,
+          dealershipId: payload.dealershipId,  // Keep for backwards compatibility
+          currentDealershipId: payload.currentDealershipId,  // New multi-dealership field
           name: payload.name
         },
         expires: new Date(payload.exp * 1000),
@@ -318,6 +340,124 @@ export class SimpleAuth {
       cookieStore.delete(this.COOKIE_NAME);
     } catch (error) {
       console.error('Session deletion error:', error);
+    }
+  }
+
+  // Multi-dealership access methods
+  static async getEnhancedSession(request?: NextRequest): Promise<EnhancedSimpleSession | null> {
+    try {
+      const session = request 
+        ? await this.getSessionFromRequest(request)
+        : await this.getSession();
+      
+      if (!session) {
+        return null;
+      }
+
+      // Fetch user's dealership access from database
+      const { prisma } = await import('@/lib/prisma');
+      const dealershipAccess = await prisma.user_dealership_access.findMany({
+        where: {
+          userId: session.user.id,
+          isActive: true,
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } }
+          ]
+        },
+        include: {
+          dealership: {
+            include: {
+              agencies: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { grantedAt: 'desc' }
+      });
+
+      const availableAccess: DealershipAccess[] = dealershipAccess.map(access => ({
+        dealershipId: access.dealershipId,
+        dealershipName: access.dealership.name,
+        accessLevel: access.accessLevel as 'READ' | 'WRITE' | 'ADMIN',
+        agencyId: access.dealership.agencyId,
+        agencyName: access.dealership.agencies.name
+      }));
+
+      return {
+        user: session.user,
+        dealershipAccess: {
+          current: session.user.currentDealershipId,
+          available: availableAccess
+        },
+        expires: session.expires,
+        sessionId: session.sessionId
+      };
+    } catch (error) {
+      console.error('Enhanced session retrieval error:', error);
+      return null;
+    }
+  }
+
+  static async switchDealership(userId: string, newDealershipId: string): Promise<boolean> {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      // Verify user has access to the dealership
+      const access = await prisma.user_dealership_access.findFirst({
+        where: {
+          userId,
+          dealershipId: newDealershipId,
+          isActive: true,
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } }
+          ]
+        }
+      });
+
+      if (!access) {
+        return false;
+      }
+
+      // Update user's current dealership
+      await prisma.users.update({
+        where: { id: userId },
+        data: { currentDealershipId: newDealershipId }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Dealership switch error:', error);
+      return false;
+    }
+  }
+
+  static async getUserDealershipAccess(userId: string, dealershipId: string): Promise<'READ' | 'WRITE' | 'ADMIN' | null> {
+    try {
+      const { prisma } = await import('@/lib/prisma');
+      
+      const access = await prisma.user_dealership_access.findFirst({
+        where: {
+          userId,
+          dealershipId,
+          isActive: true,
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } }
+          ]
+        },
+        select: { accessLevel: true }
+      });
+
+      return access ? (access.accessLevel as 'READ' | 'WRITE' | 'ADMIN') : null;
+    } catch (error) {
+      console.error('Access level check error:', error);
+      return null;
     }
   }
 

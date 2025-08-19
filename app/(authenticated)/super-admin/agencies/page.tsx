@@ -33,9 +33,14 @@ interface Agency {
     email: string
     role: string
   }>
+  dealerships?: Array<{
+    id: string
+    name: string
+  }>
   _count: {
     users: number
     requests: number
+    dealerships?: number
   }
 }
 
@@ -278,7 +283,7 @@ export default function SuperAdminAgenciesPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="text-sm">{agency._count.users} Users</span>
@@ -287,8 +292,29 @@ export default function SuperAdminAgenciesPage() {
                     <FileText className="h-4 w-4 text-gray-500" />
                     <span className="text-sm">{agency._count.requests} Requests</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm">{agency._count.dealerships || (agency.dealerships?.length || 0)} Dealerships</span>
+                  </div>
                 </div>
-                
+
+                {/* Dealership list */}
+                {agency.dealerships && agency.dealerships.length > 0 && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-xs font-medium text-gray-500 mb-2">Dealerships</p>
+                    <ul className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                      {agency.dealerships.map((d) => (
+                        <li key={d.id} className="text-sm text-gray-700 flex items-center justify-between">
+                          <span className="truncate">{d.name}</span>
+                          <Link href={`/admin/dealerships?highlight=${d.id}`}>
+                            <Button variant="ghost" size="xs" className="text-xs px-2">View</Button>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="pt-2 border-t space-y-2">
                   <p className="text-xs text-gray-500">
                     Created: {new Date(agency.createdAt).toLocaleDateString()}
@@ -298,6 +324,12 @@ export default function SuperAdminAgenciesPage() {
                       <Button variant="outline" size="sm" className="flex-1">
                         <Users className="h-3 w-3 mr-1" />
                         Users
+                      </Button>
+                    </Link>
+                    <Link href={`/admin/dealerships/create?agencyId=${agency.id}&agencyName=${encodeURIComponent(agency.name)}`}>
+                      <Button size="sm" className="flex-1">
+                        <PlusCircle className="h-3 w-3 mr-1" />
+                        Create Dealership
                       </Button>
                     </Link>
                   </div>

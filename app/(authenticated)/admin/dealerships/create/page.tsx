@@ -19,7 +19,7 @@ export default function CreateDealershipPage() {
 
   useEffect(() => {
     if (!user) return
-    
+
     // Check user permissions
     if (user.role !== 'SUPER_ADMIN' && user.role !== 'AGENCY_ADMIN') {
       router.push('/admin')
@@ -28,6 +28,21 @@ export default function CreateDealershipPage() {
 
     fetchAgencies()
   }, [user, router])
+
+  // Preselect agency from query params if provided
+  useEffect(() => {
+    if (!user) return
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const agencyId = params.get('agencyId')
+      const agencyName = params.get('agencyName')
+      if (agencyId) {
+        setCurrentAgency({ id: agencyId, name: agencyName || 'Selected Agency' })
+      }
+    } catch (_) {
+      // no-op
+    }
+  }, [user])
 
   const fetchAgencies = async () => {
     try {

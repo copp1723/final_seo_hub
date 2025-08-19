@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { google } from 'googleapis'
 import { logger } from '@/lib/logger'
+import { oauthDealershipResolver } from '@/lib/services/oauth-dealership-resolver'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,17 @@ export async function GET(req: NextRequest) {
   logger.info('Search Console connect: Valid session found', { userId: session.user.id })
 
   try {
+    // Get current dealership context from query params
+    const url = new URL(req.url)
+    const currentDealershipId = url.searchParams.get('dealershipId') || undefined
+    
+    // Prepare OAuth state with dealership context
+    const state = oauthDealershipResolver.prepareOAuthState(session.user.id, currentDealershipId)
+    logger.info('Search Console OAuth initiated with enhanced state', {
+      userId: session.user.id,
+      dealershipId: currentDealershipId
+    })
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -34,22 +46,15 @@ export async function GET(req: NextRequest) {
         'https://www.googleapis.com/auth/siteverification.verify_only'
       ],
       prompt: 'consent',
-      state: session.user.id, // Pass user ID for security
-    })
-
-    logger.info('Search Console OAuth initiated', {
-      userId: session.user.id,
-      callbackUrl: `${process.env.NEXTAUTH_URL}/api/search-console/callback`
+      state, // Pass enhanced state with dealership context
     })
 
     // Best-effort cache clear for current dealership context to avoid stale empties on new connection
     try {
       const { analyticsCoordinator } = await import('@/lib/analytics/analytics-coordinator')
-      const url = new URL(req.url)
-      const dealershipId = url.searchParams.get('dealershipId') || undefined
-      await analyticsCoordinator.invalidateDealershipCache(session.user.id, dealershipId)
+      await analyticsCoordinator.invalidateDealershipCache(session.user.id, currentDealershipId)
       if (process.env.NODE_ENV !== 'production') {
-        logger.info('Search Console connect pre-emptive cache invalidation', { userId: session.user.id, dealershipId })
+        logger.info('Search Console connect pre-emptive cache invalidation', { userId: session.user.id, dealershipId: currentDealershipId })
       }
     } catch (e) {
       logger.warn('Search Console connect cache invalidation failed (non-fatal)', { error: e, userId: session.user.id })

@@ -55,14 +55,18 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
   }
 
   try {
-    if (!SEOWORKS_FOCUS_URL) {
+    // Derive endpoint at runtime so tests that set env after import still work
+    const RUNTIME_BASE_URL = (process.env.SEOWORKS_API_URL || '').replace(/\/+$/, '')
+    const RUNTIME_FOCUS_URL = process.env.SEOWORKS_FOCUS_URL || (RUNTIME_BASE_URL ? `${RUNTIME_BASE_URL}/rylie-focus.cfm` : '')
+
+    if (!RUNTIME_FOCUS_URL) {
       logger.error('SEOWorks focus URL is not configured', {
-        derivedBaseUrl: SEOWORKS_BASE_URL,
+        derivedBaseUrl: RUNTIME_BASE_URL,
       })
       throw new Error('SEOWorks focus URL not configured')
     }
 
-    const response = await fetch(SEOWORKS_FOCUS_URL, {
+    const response = await fetch(RUNTIME_FOCUS_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +75,9 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
       body: JSON.stringify(seoworksPayload)
     })
 
-    const contentType = response.headers.get('content-type') || ''
+    const contentType = (response as any)?.headers && typeof (response as any).headers.get === 'function'
+      ? (response as any).headers.get('content-type') || ''
+      : ''
     const rawBody = await response.text()
 
     let parsedJson: any | null = null
@@ -85,7 +91,7 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
       logger.error('SEOWorks API error', {
         status: response.status,
         statusText: response.statusText,
-        url: SEOWORKS_FOCUS_URL,
+        url: RUNTIME_FOCUS_URL,
         contentType,
         responsePreview: rawBody.slice(0, 500),
         requestId: data.requestId,
@@ -115,8 +121,8 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
       error: error instanceof Error ? error.message : String(error),
       requestId: data.requestId,
       title: data.title,
-      focusUrl: SEOWORKS_FOCUS_URL,
-      derivedBaseUrl: SEOWORKS_BASE_URL
+      focusUrl: RUNTIME_FOCUS_URL,
+      derivedBaseUrl: RUNTIME_BASE_URL
     })
     throw error
   }

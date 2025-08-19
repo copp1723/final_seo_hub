@@ -11,6 +11,14 @@ import { secureCompare, generateSecureToken } from '@/lib/crypto-utils'
 
 export const dynamic = 'force-dynamic';
 
+// Prefer NEXTAUTH_URL for any externally-visible redirects/links.
+function getBaseUrl(request: NextRequest): string {
+  const envUrl = process.env.NEXTAUTH_URL
+  if (envUrl && envUrl.length > 0) return envUrl
+  const u = new URL(request.url)
+  return `${u.protocol}//${u.host}`
+}
+
 // Validation schema for invitation creation
 const createInvitationSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
@@ -64,14 +72,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/error?error=InvalidToken', request.url))
     }
 
-    console.log('✅ User found:', user.email, user.id)
+  console.log('✅ User found:', user.email, user.id)
 
-    // Detect existing session conflict BEFORE consuming the token so the user can retry
+  // Detect existing session conflict BEFORE consuming the token so the user can retry
+
     try {
       const existingSession = await SimpleAuth.getSessionFromRequest(request)
       if (existingSession && existingSession.user.email !== user.email) {
         console.log('⚠️ Session conflict detected. Redirecting to conflict page.')
-        const conflictUrl = new URL('/auth/session-conflict', request.url)
+  const conflictUrl = new URL('/auth/session-conflict', getBaseUrl(request))
         conflictUrl.searchParams.set('email', user.email)
         return NextResponse.redirect(conflictUrl)
       }
@@ -102,27 +111,25 @@ export async function GET(request: NextRequest) {
     })
     console.log('✅ SimpleAuth session created')
 
-    // Set the session cookie - use request origin for proper production redirects
-    const requestUrl = new URL(request.url)
-    const baseUrl = process.env.NEXTAUTH_URL || `${requestUrl.protocol}//${requestUrl.host}`
+  // Set the session cookie - prefer NEXTAUTH_URL (production/staging)
+  const baseUrl = getBaseUrl(request)
     
     // Redirect dealership users who haven't completed onboarding to the onboarding page
     const redirectUrl = (user.role === 'USER' && user.agencyId && !user.onboardingCompleted)
       ? `/onboarding/seoworks?invited=true&token=${user.id}`
       : '/dashboard'
 
-    const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
+  const response = NextResponse.redirect(new URL(redirectUrl, baseUrl))
     
     // Set SimpleAuth session cookie manually on the response
     response.cookies.set('seo-hub-session', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // Secure if our base URL is https
+      secure: baseUrl.startsWith('https://'),
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60, // 30 days
       path: '/',
     })
-    
-    console.log('✅ SimpleAuth cookie set')
     console.log('🎯 Redirecting to:', baseUrl + redirectUrl)
 
     return response
@@ -167,14 +174,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Extract variables after validation
-    const validatedData = validation.data
-    name = validatedData.name
-    email = validatedData.email
-    role = validatedData.role
-    agencyId = validatedData.agencyId
-    dealershipId = validatedData.dealershipId
-    const expiresInHours = validatedData.expiresInHours
+  // Extract variables after validation
+  const validatedData = validation.data
+  name = validatedData.name
+  email = validatedData.email
+  role = validatedData.role
+  agencyId = validatedData.agencyId
+  dealershipId = validatedData.dealershipId
+  const expiresInHours = validatedData.expiresInHours
 
     // Ensure only SUPER_ADMIN can create ADMIN or SUPER_ADMIN invitations
     inviterSession = await SimpleAuth.getSessionFromRequest(request)
@@ -208,8 +215,9 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date()
     expiresAt.setHours(expiresAt.getHours() + (expiresInHours || 72))
 
-    const newUser = await prisma.users.create({
+  const newUser = await prisma.users.create({
       data: {
+    id: crypto.randomUUID(),
         name: name || null,
         email,
         role: role as any, // Cast to UserRole enum
@@ -217,12 +225,14 @@ export async function POST(request: NextRequest) {
         dealershipId: dealershipId || null,
         invitationToken: token,
         invitationTokenExpires: expiresAt,
-        onboardingCompleted: role !== 'USER', // Only dealership users (USER role) need onboarding
+    onboardingCompleted: role !== 'USER', // Only dealership users (USER role) need onboarding
+    createdAt: new Date(),
+    updatedAt: new Date(),
       },
     })
 
     // Generate the magic link URL
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const baseUrl = getBaseUrl(request)
     const magicLinkUrl = `${baseUrl}/api/invitation?token=${token}`
 
     // Send invitation email to the new user with magic link

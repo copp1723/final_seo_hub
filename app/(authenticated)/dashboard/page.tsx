@@ -571,7 +571,7 @@ export default function DashboardPage() {
                       Package Progress
                     </span>
                     <Badge variant="outline" className="text-xs border-slate-300">
-                      {currentDealership?.activePackageType || 'SILVER'}
+                      {dashboardData?.packageProgress?.packageType || 'SILVER'}
                     </Badge>
                   </CardTitle>
                 </CardHeader>

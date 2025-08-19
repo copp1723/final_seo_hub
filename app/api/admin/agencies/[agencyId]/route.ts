@@ -9,8 +9,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { agencyId: string } }
 ) {
+  let session: any = null;
+  
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -35,9 +37,6 @@ export async function GET(
       select: {
         id: true,
         name: true,
-        website: true,
-        phone: true,
-        email: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -63,9 +62,6 @@ export async function GET(
       agency: {
         id: agency.id,
         name: agency.name,
-        website: agency.website,
-        phone: agency.phone,
-        email: agency.email,
         dealershipCount: agency._count.dealerships,
         userCount: agency._count.users,
         createdAt: agency.createdAt,

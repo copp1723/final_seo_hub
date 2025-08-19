@@ -17,8 +17,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { userId: string; accessId: string } }
 ) {
+  let session: any = null;
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -118,8 +119,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { userId: string; accessId: string } }
 ) {
+  let session: any = null;
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

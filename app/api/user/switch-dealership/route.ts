@@ -10,8 +10,9 @@ const switchDealershipSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  let session: any = null;
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -69,8 +70,9 @@ export async function POST(request: NextRequest) {
 
 // GET - Get current dealership context and available dealerships
 export async function GET(request: NextRequest) {
+  let session: any = null;
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

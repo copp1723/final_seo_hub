@@ -140,6 +140,7 @@ export async function GET(request: NextRequest) {
       role: user.role,
       agencyId: user.agencyId,
       dealershipId: user.dealershipId,
+      currentDealershipId: user.currentDealershipId,
       name: user.name
     })
     response.cookies.set(SimpleAuth.COOKIE_NAME, seoHubToken, {

@@ -242,12 +242,11 @@ export function shouldMarkRequestAsCompleted(request: any, data: SeoworksWebhook
     return true
   }
 
-  // Package-based logic using standardized limits
-  const { SEO_KNOWLEDGE_BASE } = await import('@/lib/seo-knowledge')
+  // Package-based logic using hard-coded limits to avoid async/await
   const packageRequirements: Record<string, { pages: number; blogs: number; gbpPosts: number }> = {
-    SILVER: { pages: SEO_KNOWLEDGE_BASE.packages.silver.pages, blogs: SEO_KNOWLEDGE_BASE.packages.silver.blogs, gbpPosts: SEO_KNOWLEDGE_BASE.packages.silver.gbpPosts },
-    GOLD: { pages: SEO_KNOWLEDGE_BASE.packages.gold.pages, blogs: SEO_KNOWLEDGE_BASE.packages.gold.blogs, gbpPosts: SEO_KNOWLEDGE_BASE.packages.gold.gbpPosts },
-    PLATINUM: { pages: SEO_KNOWLEDGE_BASE.packages.platinum.pages, blogs: SEO_KNOWLEDGE_BASE.packages.platinum.blogs, gbpPosts: SEO_KNOWLEDGE_BASE.packages.platinum.gbpPosts }
+    SILVER: { pages: 2, blogs: 2, gbpPosts: 4 },
+    GOLD: { pages: 4, blogs: 4, gbpPosts: 8 },
+    PLATINUM: { pages: 6, blogs: 6, gbpPosts: 12 }
   }
 
   const requirements = packageRequirements[request.packageType]

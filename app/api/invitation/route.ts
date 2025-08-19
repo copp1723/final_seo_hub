@@ -97,7 +97,8 @@ export async function GET(request: NextRequest) {
       name: user.name,
       role: user.role,
       agencyId: user.agencyId,
-      dealershipId: user.dealershipId
+      dealershipId: user.dealershipId,
+      currentDealershipId: user.currentDealershipId
     })
     console.log('✅ SimpleAuth session created')
 

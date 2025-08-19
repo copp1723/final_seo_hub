@@ -17,8 +17,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
+  let session: any = null;
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -102,8 +103,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
+  let session: any = null;
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

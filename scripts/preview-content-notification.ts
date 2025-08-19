@@ -13,6 +13,7 @@ const sampleUser: users = {
   role: 'USER',
   agencyId: 'agency_123',
   dealershipId: 'dealership_123',
+  currentDealershipId: 'dealership_123',
   apiKey: null,
   apiKeyCreatedAt: null,
   onboardingCompleted: true,
@@ -21,7 +22,8 @@ const sampleUser: users = {
   createdAt: new Date(),
   updatedAt: new Date(),
   theme: null,
-  isSuperAdmin: false
+  isSuperAdmin: false,
+  password: null
 }
 
 const sampleRequest: requests = {

@@ -117,8 +117,11 @@ async function sendToSEOWorks(data: z.infer<typeof createDealershipSchema>, gene
 
 // Create a new dealership (SUPER_ADMIN and AGENCY_ADMIN)
 export async function POST(request: NextRequest) {
+  let validation: any = null;
+  let session: any = null;
+  
   try {
-    const session = await SimpleAuth.getSessionFromRequest(request)
+    session = await SimpleAuth.getSessionFromRequest(request)
     
     if (!session?.user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -130,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const validation = createDealershipSchema.safeParse(body)
+    validation = createDealershipSchema.safeParse(body)
 
     if (!validation.success) {
       return NextResponse.json({

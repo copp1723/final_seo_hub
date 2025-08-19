@@ -103,6 +103,8 @@ export default function UnifiedSettingsPage() {
   useEffect(() => {
     const error = searchParams.get('error')
     const success = searchParams.get('success')
+    const status = searchParams.get('status')
+    const service = searchParams.get('service')
 
     if (error) {
       let errorMessage = 'An error occurred'
@@ -123,6 +125,12 @@ export default function UnifiedSettingsPage() {
         case 'session_expired':
           errorMessage = 'Your session has expired. Please log out and log back in, then try connecting again.'
           break
+        case 'invalid_state':
+          errorMessage = 'OAuth session expired. Please try connecting again.'
+          break
+        case 'Unable to determine dealership context':
+          errorMessage = 'Unable to determine dealership context. Please try again or contact support.'
+          break
         default:
           errorMessage = `Error: ${error.replace(/_/g, ' ')}`
       }
@@ -131,26 +139,49 @@ export default function UnifiedSettingsPage() {
       setActiveTab('integrations')
     }
 
-    if (success) {
+    if (success || status === 'success') {
       let successMessage = 'Operation completed successfully'
 
-      switch (success) {
+      switch (success || service) {
         case 'search_console_connected':
+        case 'search_console':
           successMessage = 'Search Console connected successfully!'
           break
+        case 'ga4':
+          successMessage = 'Google Analytics connected successfully!'
+          break
         default:
-          successMessage = success.replace(/_/g, ' ')
+          successMessage = success?.replace(/_/g, ' ') || 'Connection successful'
       }
 
       setMessage({ type: 'success', text: successMessage })
       setActiveTab('integrations')
+      
+      // Refresh integrations data after successful OAuth
+      setTimeout(() => {
+        const fetchIntegrations = async () => {
+          try {
+            const intRes = await fetch('/api/settings/integrations', { credentials: 'include' })
+            if (intRes.ok) {
+              const data = await intRes.json()
+              const integrationsData = data.data?.integrations || data.integrations
+              setIntegrations(integrationsData)
+            }
+          } catch (error) {
+            console.warn('Failed to refresh integrations after OAuth success:', error)
+          }
+        }
+        fetchIntegrations()
+      }, 1000) // Small delay to ensure backend has processed the connection
     }
 
     // Clear URL parameters after showing message
-    if (error || success) {
+    if (error || success || status) {
       const newUrl = new URL(window.location.href)
       newUrl.searchParams.delete('error')
       newUrl.searchParams.delete('success')
+      newUrl.searchParams.delete('status')
+      newUrl.searchParams.delete('service')
       window.history.replaceState({}, '', newUrl.toString())
     }
   }, [searchParams])
@@ -193,6 +224,19 @@ export default function UnifiedSettingsPage() {
             break
             
           case 'integrations':
+            // First, validate and clean up user connections
+            try {
+              await fetch('/api/admin/validate-connections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ autoFix: true, userId: user?.id }),
+                credentials: 'include'
+              })
+            } catch (error) {
+              console.warn('Connection validation failed (non-fatal):', error)
+            }
+            
+            // Then fetch integrations status
             const intRes = await fetch('/api/settings/integrations', { credentials: 'include' })
             if (intRes.ok) {
               const data = await intRes.json()
@@ -403,7 +447,13 @@ export default function UnifiedSettingsPage() {
                         <Button
                           variant={integrations?.ga4?.connected ? "outline" : "default"}
                           size="sm"
-                          onClick={() => router.push('/api/ga4/auth/connect')}
+                          onClick={() => {
+                            const dealershipId = user?.currentDealershipId || user?.dealershipId
+                            const connectUrl = dealershipId 
+                              ? `/api/ga4/auth/connect?dealershipId=${dealershipId}`
+                              : '/api/ga4/auth/connect'
+                            router.push(connectUrl)
+                          }}
                         >
                           {integrations?.ga4?.connected ? 'Reconnect' : 'Connect'}
                         </Button>
@@ -431,7 +481,13 @@ export default function UnifiedSettingsPage() {
                       <Button
                         variant={integrations?.searchConsole?.connected ? "outline" : "default"}
                         size="sm"
-                        onClick={() => router.push('/api/search-console/connect')}
+                        onClick={() => {
+                          const dealershipId = user?.currentDealershipId || user?.dealershipId
+                          const connectUrl = dealershipId 
+                            ? `/api/search-console/connect?dealershipId=${dealershipId}`
+                            : '/api/search-console/connect'
+                          router.push(connectUrl)
+                        }}
                       >
                         {integrations?.searchConsole?.connected ? 'Reconnect' : 'Connect'}
                       </Button>

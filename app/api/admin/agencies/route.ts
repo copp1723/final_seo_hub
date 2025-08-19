@@ -36,8 +36,12 @@ export async function GET(request: NextRequest) {
         users: {
           select: { id: true, name: true, email: true, role: true }
         },
+        dealerships: {
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' }
+        },
         _count: {
-          select: { users: true, requests: true }
+          select: { users: true, requests: true, dealerships: true }
         }
       },
       orderBy: { createdAt: 'desc' }

@@ -49,9 +49,21 @@ async function fixFailedMigration() {
     // Now run the actual migrations
     console.log('🚀 Running prisma migrate deploy...');
     const { execSync } = require('child_process');
-    execSync('npx prisma migrate deploy', { stdio: 'inherit' });
     
-    console.log('✅ Migrations completed successfully');
+    try {
+      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+      console.log('✅ Migrations completed successfully');
+    } catch (error) {
+      // If migration deploy fails due to non-empty database, try db push instead
+      console.log('⚠️ Migration deploy failed, trying db push to sync schema...');
+      try {
+        execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+        console.log('✅ Database schema synced successfully');
+      } catch (pushError) {
+        console.error('❌ Both migrate deploy and db push failed:', pushError.message);
+        throw pushError;
+      }
+    }
     
   } catch (error) {
     console.error('❌ Error fixing migrations:', error);

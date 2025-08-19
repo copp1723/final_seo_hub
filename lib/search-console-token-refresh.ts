@@ -5,10 +5,39 @@ import { encrypt, decrypt } from '@/lib/encryption'
 
 export async function refreshSearchConsoleToken(userId: string): Promise<string | null> {
   try {
-    const connection = await prisma.search_console_connections.findFirst({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' }
+    // Get user info to check for agency/dealership associations
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { agencyId: true, dealershipId: true, role: true }
     });
+
+    // Try to find connection using the same logic as GA4Service
+    let connection = null;
+
+    // For agency admins, try to find any connection in their agency
+    if (user?.role === 'AGENCY_ADMIN' && user.agencyId) {
+      connection = await prisma.search_console_connections.findFirst({
+        where: {
+          users: {
+            agencyId: user.agencyId
+          }
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+    }
+
+    // Fallback: check for direct user or dealership connection
+    if (!connection) {
+      connection = await prisma.search_console_connections.findFirst({
+        where: {
+          OR: [
+            { userId: userId },
+            { dealershipId: user?.dealershipId }
+          ]
+        },
+        orderBy: { updatedAt: 'desc' }
+      });
+    }
 
     if (!connection?.refreshToken) {
       logger.error('No refresh token found for Search Console connection', undefined, { userId });
@@ -22,6 +51,17 @@ export async function refreshSearchConsoleToken(userId: string): Promise<string 
     );
 
     const decryptedRefreshToken = decrypt(connection.refreshToken);
+    
+    // Check if this is a test/dummy token
+    if (decryptedRefreshToken.startsWith('test_') || decryptedRefreshToken.length < 50) {
+      logger.warn('Invalid or test refresh token detected for Search Console', { 
+        userId, 
+        connectionId: connection.id, 
+        tokenPreview: decryptedRefreshToken.substring(0, 20) + '...' 
+      })
+      return null
+    }
+    
     oauth2Client.setCredentials({
       refresh_token: decryptedRefreshToken
     });

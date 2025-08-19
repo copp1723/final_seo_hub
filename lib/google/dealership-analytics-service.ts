@@ -3,6 +3,7 @@ import { decrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { refreshGA4TokenIfNeeded } from './ga4-token-refresh'
+import { refreshSearchConsoleToken } from '../search-console-token-refresh'
 import { GA4Service } from './ga4Service'
 import { features } from '@/lib/features'
 import { dealershipDataBridge } from '@/lib/services/dealership-data-bridge'
@@ -162,6 +163,46 @@ export class DealershipAnalyticsService {
           hasConnection: true,
           propertyId: targetPropertyId
         }
+      }
+
+      // Check if token is expired and try to refresh it
+      const now = new Date()
+      const isExpired = connection.expiresAt && connection.expiresAt <= now
+      const isExpiringSoon = connection.expiresAt && connection.expiresAt <= new Date(now.getTime() + 5 * 60 * 1000) // 5 minutes
+
+      if (isExpired || isExpiringSoon) {
+        logger.info('GA4 token is expired or expiring soon, attempting refresh', {
+          userId,
+          dealershipId,
+          connectionId,
+          expiresAt: connection.expiresAt?.toISOString(),
+          isExpired,
+          isExpiringSoon
+        })
+
+        const refreshSuccess = await refreshGA4TokenIfNeeded(userId)
+        if (!refreshSuccess) {
+          return {
+            data: undefined,
+            error: 'GA4 connection expired and needs to be re-authorized. Please go to Settings to reconnect your Google Analytics account.',
+            hasConnection: true,
+            propertyId: targetPropertyId
+          }
+        }
+
+        // Re-fetch the connection after refresh
+        const refreshedConnection = await dealershipDataBridge.getConnectionForApiCall(connectionId, 'ga4')
+        if (!refreshedConnection || !refreshedConnection.accessToken) {
+          return {
+            data: undefined,
+            error: 'Failed to get refreshed GA4 token',
+            hasConnection: true,
+            propertyId: targetPropertyId
+          }
+        }
+        
+        // Update connection reference
+        Object.assign(connection, refreshedConnection)
       }
 
       // Use the connection's token
@@ -409,6 +450,50 @@ export class DealershipAnalyticsService {
           siteUrl: targetSiteUrl,
           permissionStatus
         }
+      }
+
+      // Check if token is expired and try to refresh it
+      const now = new Date()
+      const isExpired = connection.expiresAt && connection.expiresAt <= now
+      const isExpiringSoon = connection.expiresAt && connection.expiresAt <= new Date(now.getTime() + 5 * 60 * 1000) // 5 minutes
+
+      if (isExpired || isExpiringSoon) {
+        logger.info('Search Console token is expired or expiring soon, attempting refresh', {
+          userId,
+          dealershipId,
+          connectionId,
+          expiresAt: connection.expiresAt?.toISOString(),
+          isExpired,
+          isExpiringSoon
+        })
+
+        const refreshedToken = await refreshSearchConsoleToken(userId)
+        if (!refreshedToken) {
+          permissionStatus = 'not_connected'
+          return {
+            data: undefined,
+            error: 'Search Console connection expired and needs to be re-authorized. Please go to Settings to reconnect your Google Search Console account.',
+            hasConnection: true,
+            siteUrl: targetSiteUrl,
+            permissionStatus
+          }
+        }
+
+        // Re-fetch the connection after refresh
+        const refreshedConnection = await dealershipDataBridge.getConnectionForApiCall(connectionId, 'search_console')
+        if (!refreshedConnection || !refreshedConnection.accessToken) {
+          permissionStatus = 'not_connected'
+          return {
+            data: undefined,
+            error: 'Failed to get refreshed Search Console token',
+            hasConnection: true,
+            siteUrl: targetSiteUrl,
+            permissionStatus
+          }
+        }
+        
+        // Update connection reference
+        Object.assign(connection, refreshedConnection)
       }
 
       console.log(`🔍 Making Search Console API call to: ${targetSiteUrl}`)

@@ -87,8 +87,21 @@ export async function refreshGA4TokenIfNeeded(userId: string): Promise<boolean> 
       process.env.NEXTAUTH_URL + '/api/ga4/auth/callback'
     )
 
+    // Decrypt the refresh token
+    const refreshToken = decrypt(connection.refreshToken)
+    
+    // Check if this is a test/dummy token
+    if (refreshToken.startsWith('test_') || refreshToken.length < 50) {
+      logger.warn('Invalid or test refresh token detected', { 
+        userId, 
+        connectionId: connection.id, 
+        tokenPreview: refreshToken.substring(0, 20) + '...' 
+      })
+      return false
+    }
+
     oauth2Client.setCredentials({
-      refresh_token: decrypt(connection.refreshToken)
+      refresh_token: refreshToken
     })
 
     // Get new access token

@@ -23,6 +23,8 @@ model accounts {
   users             users   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([provider, providerAccountId], map: "idx_accounts_provider_account")
+  @@index([userId], map: "idx_accounts_user_id")
 }
 
 model agencies {
@@ -70,6 +72,8 @@ model audit_logs {
 
   @@index([entityType, entityId])
   @@index([userEmail, createdAt])
+  @@index([entityType, entityId], map: "idx_audit_logs_entity")
+  @@index([userEmail, createdAt], map: "idx_audit_logs_user_created")
 }
 
 model conversations {
@@ -90,6 +94,8 @@ model conversations {
 
   @@index([agencyId, updatedAt])
   @@index([agencyId, userId])
+  @@index([agencyId, updatedAt], map: "idx_conversations_agency_updated")
+  @@index([agencyId, userId], map: "idx_conversations_agency_user")
 }
 
 model dealership_onboardings {
@@ -183,6 +189,8 @@ model messages {
 
   @@index([agencyId, conversationId])
   @@index([agencyId, createdAt])
+  @@index([agencyId, conversationId], map: "idx_messages_agency_conversation")
+  @@index([agencyId, createdAt], map: "idx_messages_agency_created")
 }
 
 model orders {
@@ -209,6 +217,8 @@ model orders {
 
   @@index([agencyId, status])
   @@index([userEmail, status])
+  @@index([agencyId, status], map: "idx_orders_agency_status")
+  @@index([userEmail, status], map: "idx_orders_user_status")
 }
 
 model report_schedules {
@@ -254,6 +264,9 @@ model seoworks_tasks {
   @@index([agencyId, status])
   @@index([externalId])
   @@index([taskType, status])
+  @@index([agencyId, status], map: "idx_seoworks_tasks_agency_status")
+  @@index([externalId], map: "idx_seoworks_tasks_external_id")
+  @@index([taskType, status], map: "idx_seoworks_tasks_type_status")
 }
 
 model sessions {
@@ -262,6 +275,9 @@ model sessions {
   userId       String
   expires      DateTime
   users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionToken], map: "idx_sessions_token")
+  @@index([userId], map: "idx_sessions_user_id")
 }
 
 model themes {
@@ -323,6 +339,8 @@ model user_invites {
   @@unique([email, agencyId])
   @@index([email, status])
   @@index([token])
+  @@index([email, status], map: "idx_user_invites_email_status")
+  @@index([token], map: "idx_user_invites_token")
 }
 
 model user_search_console_tokens {
@@ -346,8 +364,8 @@ model users {
   emailVerified              DateTime?
   image                      String?
   agencyId                   String?
-  dealershipId               String?                      // Kept for backwards compatibility
-  currentDealershipId        String?                      // Current active dealership for multi-access users
+  dealershipId               String?
+  currentDealershipId        String?
   role                       UserRole                     @default(USER)
   theme                      String?
   createdAt                  DateTime                     @default(now())
@@ -372,15 +390,15 @@ model users {
   search_console_connections search_console_connections[]
   sessions                   sessions[]
   tasks                      tasks[]
+  grantedAccess              user_dealership_access[]     @relation("GrantedAccess")
+  dealershipAccess           user_dealership_access[]
   user_ga4_tokens            user_ga4_tokens?
   user_invites               user_invites[]
   user_preferences           user_preferences?
   user_search_console_tokens user_search_console_tokens?
   agencies                   agencies?                    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
-  dealerships                dealerships?                 @relation("UserDealership", fields: [dealershipId], references: [id])
   currentDealership          dealerships?                 @relation("UserCurrentDealership", fields: [currentDealershipId], references: [id])
-  dealershipAccess           user_dealership_access[]     // Many-to-many access to dealerships
-  grantedAccess              user_dealership_access[]     @relation("GrantedAccess")     // Access grants made by this user
+  dealerships                dealerships?                 @relation("UserDealership", fields: [dealershipId], references: [id])
 
   @@index([dealershipId])
   @@index([currentDealershipId])
@@ -418,28 +436,27 @@ model dealerships {
   ga4_connections            ga4_connections[]
   monthly_usage              monthly_usage[]
   search_console_connections search_console_connections[]
-  users                      users[]                      @relation("UserDealership")          // Keep for backwards compatibility
-  currentUsers               users[]                      @relation("UserCurrentDealership")   // Users who have this as current dealership
-  userAccess                 user_dealership_access[]     // Many-to-many access to users
+  userAccess                 user_dealership_access[]
+  currentUsers               users[]                      @relation("UserCurrentDealership")
+  users                      users[]                      @relation("UserDealership")
 
   @@index([agencyId])
 }
 
 model user_dealership_access {
-  id           String                  @id @default(cuid())
+  id           String                    @id @default(cuid())
   userId       String
   dealershipId String
   accessLevel  UserDealershipAccessLevel @default(READ)
-  grantedBy    String?                 // SUPER_ADMIN who granted access
-  grantedAt    DateTime                @default(now())
-  expiresAt    DateTime?               // Optional expiration
-  isActive     Boolean                 @default(true)
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
-  
-  user         users                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dealership   dealerships             @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
-  grantor      users?                  @relation("GrantedAccess", fields: [grantedBy], references: [id], onDelete: SetNull)
+  grantedBy    String?
+  grantedAt    DateTime                  @default(now())
+  expiresAt    DateTime?
+  isActive     Boolean                   @default(true)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  dealership   dealerships               @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  grantor      users?                    @relation("GrantedAccess", fields: [grantedBy], references: [id])
+  user         users                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, dealershipId])
   @@index([userId])
@@ -480,6 +497,9 @@ model requests {
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
+  @@index([agencyId, status], map: "idx_requests_agency_status")
+  @@index([status, createdAt], map: "idx_requests_status_created")
+  @@index([userId, status], map: "idx_requests_user_status")
 }
 
 model ga4_connections {
@@ -491,9 +511,9 @@ model ga4_connections {
   expiresAt    DateTime?
   propertyId   String?
   propertyName String?
-  email        String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+  email        String?
   dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
   users        users        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -511,9 +531,9 @@ model search_console_connections {
   expiresAt    DateTime?
   siteUrl      String?
   siteName     String?
-  email        String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+  email        String?
   dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
   users        users        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -538,6 +558,7 @@ model user_preferences {
   users              users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId], map: "idx_user_preferences_user_id")
 }
 
 model system_settings {
@@ -603,6 +624,9 @@ model tasks {
   @@index([userId, status])
   @@index([agencyId, status])
   @@index([status, createdAt])
+  @@index([agencyId, status], map: "idx_tasks_agency_status")
+  @@index([status, createdAt], map: "idx_tasks_status_created")
+  @@index([userId, status], map: "idx_tasks_user_status")
 }
 
 model seoworks_task_mappings {
@@ -618,6 +642,8 @@ model seoworks_task_mappings {
 
   @@index([requestId])
   @@index([seoworksTaskId])
+  @@index([requestId], map: "idx_seoworks_mappings_request")
+  @@index([seoworksTaskId], map: "idx_seoworks_mappings_task")
 }
 
 model orphaned_tasks {

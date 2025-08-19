@@ -6,7 +6,7 @@ import { safeDbOperation } from '@/lib/db-resilience'
 export const dynamic = 'force-dynamic'
 
 // Activity type definitions
-type ActivityType = 'connection_created' | 'user_joined' | 'analytics_connected' | 'search_console_connected'
+type ActivityType = 'connection_created' | 'user_joined' | 'analytics_connected' | 'search_console_connected' | 'request_created' | 'task_completed' | 'order_placed'
 
 interface Activity {
   id: string
@@ -137,7 +137,124 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 3. Get recent user activity (new users joining the dealership)
+      // 3. Get recent requests
+      const recentRequests = await safeDbOperation(() =>
+        prisma.requests.findMany({
+          where: {
+            OR: [
+              { agencyId: user.agencyId || '' },
+              { dealershipId: effectiveDealershipId }
+            ],
+            ...dateFilter
+          },
+          orderBy: { createdAt: 'desc' },
+          take: Math.floor(limit / 5),
+          include: {
+            users: {
+              select: { name: true, email: true }
+            }
+          }
+        })
+      ) || []
+
+      // Convert requests to activities
+      recentRequests.forEach(request => {
+        activities.push({
+          id: `request-created-${request.id}`,
+          type: 'request_created',
+          title: 'New Request Created',
+          description: `${request.title} (${request.type})`,
+          timestamp: request.createdAt,
+          icon: 'FileText',
+          color: 'blue',
+          metadata: {
+            requestId: request.id,
+            type: request.type,
+            status: request.status,
+            priority: request.priority,
+            createdBy: request.users?.name || request.users?.email
+          }
+        })
+      })
+
+      // 4. Get recent completed tasks
+      const recentTasks = await safeDbOperation(() =>
+        prisma.tasks.findMany({
+          where: {
+            OR: [
+              { agencyId: user.agencyId || '' },
+              { dealershipId: effectiveDealershipId }
+            ],
+            status: 'COMPLETED',
+            ...dateFilter
+          },
+          orderBy: { completedAt: 'desc' },
+          take: Math.floor(limit / 5),
+          include: {
+            users: {
+              select: { name: true, email: true }
+            }
+          }
+        })
+      ) || []
+
+      // Convert completed tasks to activities
+      recentTasks.forEach(task => {
+        activities.push({
+          id: `task-completed-${task.id}`,
+          type: 'task_completed',
+          title: 'Task Completed',
+          description: `${task.title} (${task.type})`,
+          timestamp: task.completedAt || task.updatedAt,
+          icon: 'CheckCircle',
+          color: 'green',
+          metadata: {
+            taskId: task.id,
+            type: task.type,
+            priority: task.priority,
+            completedBy: task.users?.name || task.users?.email
+          }
+        })
+      })
+
+      // 5. Get recent orders
+      const recentOrders = await safeDbOperation(() =>
+        prisma.orders.findMany({
+          where: {
+            agencyId: user.agencyId || '',
+            ...dateFilter
+          },
+          orderBy: { createdAt: 'desc' },
+          take: Math.floor(limit / 5),
+          include: {
+            users: {
+              select: { name: true, email: true }
+            }
+          }
+        })
+      ) || []
+
+      // Convert orders to activities
+      recentOrders.forEach(order => {
+        activities.push({
+          id: `order-placed-${order.id}`,
+          type: 'order_placed',
+          title: 'New Order Placed',
+          description: `${order.title} - ${order.taskType}`,
+          timestamp: order.createdAt,
+          icon: 'ShoppingCart',
+          color: 'orange',
+          metadata: {
+            orderId: order.id,
+            taskType: order.taskType,
+            status: order.status,
+            estimatedHours: order.estimatedHours,
+            assignedTo: order.assignedTo
+          }
+        })
+      })
+
+      // 6. Get recent user activity (new users joining the dealership)
       if (!since) { // Only show user activity on initial load, not on polling
         const recentUsers = await safeDbOperation(() =>
           prisma.users.findMany({

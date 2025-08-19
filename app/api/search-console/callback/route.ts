@@ -4,8 +4,25 @@ import { google } from 'googleapis'
 import { encrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { oauthDealershipResolver } from '@/lib/services/oauth-dealership-resolver'
 
 export const dynamic = 'force-dynamic';
+
+// OAuth error mapping for user-friendly messages
+function mapOAuthErrorToUserMessage(error: string): string {
+  const errorMappings: Record<string, string> = {
+    'access_denied': 'Permission denied. Please grant access to continue.',
+    'invalid_request': 'Invalid request. Please try again.',
+    'invalid_client': 'Authentication error. Please contact support.',
+    'invalid_grant': 'Authentication expired. Please try again.',
+    'unsupported_response_type': 'Configuration error. Please contact support.',
+    'invalid_scope': 'Permission error. Please contact support.',
+    'server_error': 'Google services temporarily unavailable. Please try again.',
+    'temporarily_unavailable': 'Google services temporarily unavailable. Please try again.'
+  }
+  
+  return errorMappings[error] || 'Connection failed. Please try again.'
+}
 
 // Schema sync fix - ensure email field is recognized
 // Updated: 2025-08-19 to fix production Prisma client sync
@@ -33,9 +50,38 @@ export async function GET(req: NextRequest) {
     userId: session.user.id 
   })
   
+  // Parse OAuth state to get dealership context if available
+  let stateData = null
+  if (state) {
+    stateData = oauthDealershipResolver.parseOAuthState(state)
+    
+    // Enhanced state validation
+    if (!stateData) {
+      logger.error('Search Console OAuth: Failed to parse state')
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&error=invalid_request`)
+    }
+    
+    // Verify state matches current session for security
+    if (stateData.userId && stateData.userId !== session.user.id) {
+      logger.error('Search Console OAuth: State userId mismatch', {
+        sessionUserId: session.user.id,
+        stateUserId: stateData.userId
+      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&error=invalid_request`)
+    }
+    
+    // Validate userId format
+    if (stateData.userId && (typeof stateData.userId !== 'string' || stateData.userId.length < 8)) {
+      logger.error('Search Console OAuth: Invalid userId format in state')
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&error=invalid_request`)
+    }
+  }
+  
   if (error) {
     logger.error('Search Console OAuth error from Google', { error, userId: session.user.id })
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent(error)}`)
+    // Map specific OAuth errors to user-friendly messages
+    const userFriendlyError = mapOAuthErrorToUserMessage(error)
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent(userFriendlyError)}`)
   }
 
   if (!code) {
@@ -99,71 +145,112 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent('Database error')}`)
     }
 
-    const dealershipId = user?.dealershipId || user?.currentDealershipId || null
-    logger.info('Creating Search Console connection', { 
+    // Resolve correct dealership for this OAuth connection
+    const dealershipResolution = await oauthDealershipResolver.resolveDealershipForCallback(session.user.id, stateData)
+    
+    if (!dealershipResolution.isValid) {
+      logger.error('Search Console OAuth: Invalid dealership resolution', {
+        userId: session.user.id,
+        reason: dealershipResolution.reason
+      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=access_denied`)
+    }
+
+    const dealershipId = dealershipResolution.dealershipId
+    logger.info('Creating Search Console connection with resolved dealership', { 
       userId: session.user.id, 
       dealershipId, 
       siteUrl, 
       siteName 
     })
 
-    // Manually upsert connection
-    let connection = null
+    // Use transaction for consistent connection management
+    let connection: any = null
     try {
-      connection = await prisma.search_console_connections.findFirst({
-        where: { userId: session.user.id, dealershipId }
-      })
-      logger.info('Search Console: Existing connection lookup', { found: !!connection, userId: session.user.id, dealershipId })
+      await prisma.$transaction(async (tx) => {
+        // Clean up any orphaned connections first
+        try {
+          await oauthDealershipResolver.cleanupOrphanedConnections(session.user.id)
+        } catch (cleanupError) {
+          // Log cleanup failure but don't fail the transaction
+          logger.warn('Search Console: Failed to cleanup orphaned connections', { 
+            userId: session.user.id, 
+            error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error' 
+          })
+        }
 
-      if (connection) {
-        connection = await prisma.search_console_connections.update({
-          where: { id: connection.id },
-          data: {
-            accessToken: encrypt(tokens.access_token),
-            refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-            siteUrl,
-            siteName,
-            updatedAt: new Date()
-          }
+        // Validate dealership access within transaction
+        const userContext = await oauthDealershipResolver.getUserContext(session.user.id)
+        if (dealershipId && userContext && !(await oauthDealershipResolver.validateDealershipAccess(userContext, dealershipId))) {
+          throw new Error('User no longer has access to the specified dealership')
+        }
+
+        // Find existing connection
+        connection = await tx.search_console_connections.findFirst({
+          where: { userId: session.user.id, dealershipId }
         })
-        logger.info('Search Console: Connection updated', { connectionId: connection.id })
-      } else {
-        connection = await prisma.search_console_connections.create({
-          data: {
-            userId: session.user.id,
-            dealershipId,
-            accessToken: encrypt(tokens.access_token),
-            refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-            siteUrl,
-            siteName,
-            email: user?.email
-          }
-        })
-        logger.info('Search Console: New connection created', { connectionId: connection.id })
-      }
+        logger.info('Search Console: Existing connection lookup', { found: !!connection, userId: session.user.id, dealershipId })
+
+        if (connection) {
+          connection = await tx.search_console_connections.update({
+            where: { id: connection.id },
+            data: {
+              accessToken: encrypt(tokens.access_token!),
+              refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+              expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+              siteUrl,
+              siteName,
+              updatedAt: new Date()
+            }
+          })
+          logger.info('Search Console: Connection updated', { connectionId: connection.id })
+        } else {
+          connection = await tx.search_console_connections.create({
+            data: {
+              userId: session.user.id,
+              dealershipId,
+              accessToken: encrypt(tokens.access_token!),
+              refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+              expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+              siteUrl,
+              siteName,
+              email: user?.email
+            }
+          })
+          logger.info('Search Console: New connection created', { connectionId: connection.id })
+        }
+      })
     } catch (dbError) {
-      logger.error('Search Console: Database error during connection upsert', { 
+      logger.error('Search Console: Transaction failed during connection upsert', { 
         userId: session.user.id,
         dealershipId,
         error: dbError instanceof Error ? dbError.message : 'Unknown database error',
-        stack: dbError instanceof Error ? dbError.stack : undefined 
+        // Don't log stack trace in production to avoid information disclosure
+        ...(process.env.NODE_ENV === 'development' && { stack: dbError instanceof Error ? dbError.stack : undefined })
       })
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent('Failed to save connection')}`)
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=connection_failed`)
     }
 
     logger.info('Search Console connection updated successfully', {
       userId: session.user.id,
-      connectionId: connection.id,
-      siteUrl: connection.siteUrl,
-      siteName: connection.siteName
+      connectionId: connection?.id,
+      siteUrl: connection?.siteUrl,
+      siteName: connection?.siteName,
+      dealershipId: connection?.dealershipId
     })
 
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=success&service=search_console`)
 
   } catch (error) {
-    logger.error('Search Console OAuth callback error', { error, userId: session.user.id })
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent('Connection failed')}`)
+    // Log detailed error server-side only
+    logger.error('Search Console OAuth callback error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userId: session.user.id,
+      // Only include stack trace in development
+      ...(process.env.NODE_ENV === 'development' && { stack: error instanceof Error ? error.stack : undefined })
+    })
+    
+    // Return generic error message to user
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=connection_failed`)
   }
 }

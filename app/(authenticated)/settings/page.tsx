@@ -120,6 +120,9 @@ export default function UnifiedSettingsPage() {
         case 'search_console_invalid_grant':
           errorMessage = 'Search Console authorization expired. Please reconnect.'
           break
+        case 'session_expired':
+          errorMessage = 'Your session has expired. Please log out and log back in, then try connecting again.'
+          break
         default:
           errorMessage = `Error: ${error.replace(/_/g, ' ')}`
       }

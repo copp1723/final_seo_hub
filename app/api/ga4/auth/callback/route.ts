@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         stateType: typeof state,
         stateLength: state?.length 
       })
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent('User not found')}`)
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&error=session_expired`)
     }
     
     console.log('[GA4 CALLBACK] Retrieved user from database', { userId: user.id, email: user.email })

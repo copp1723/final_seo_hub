@@ -136,7 +136,7 @@ export class DealershipAnalyticsService {
         logger.info('No GA4 connection available for dealership', { userId, dealershipId })
         return {
           data: undefined,
-          error: 'No GA4 connection found - please connect your Google Analytics account',
+          error: 'No Google Analytics connection found. Please go to Settings > Integrations and connect your Google Analytics account to view data.',
           hasConnection: false,
           propertyId: undefined
         }
@@ -157,9 +157,10 @@ export class DealershipAnalyticsService {
       const connection = await dealershipDataBridge.getConnectionForApiCall(connectionId, 'ga4')
       
       if (!connection || !connection.accessToken) {
+        logger.warn('GA4 connection exists but has no valid access token', { userId, dealershipId, connectionId })
         return {
           data: undefined,
-          error: 'No valid GA4 access token available',
+          error: 'Google Analytics connection is invalid. Please go to Settings > Integrations and reconnect your Google Analytics account.',
           hasConnection: true,
           propertyId: targetPropertyId
         }
@@ -182,9 +183,10 @@ export class DealershipAnalyticsService {
 
         const refreshSuccess = await refreshGA4TokenIfNeeded(userId)
         if (!refreshSuccess) {
+          logger.warn('GA4 token refresh failed, requiring user re-authorization', { userId, dealershipId, connectionId })
           return {
             data: undefined,
-            error: 'GA4 connection expired and needs to be re-authorized. Please go to Settings to reconnect your Google Analytics account.',
+            error: 'Your Google Analytics connection has expired. Please go to Settings > Integrations and reconnect your Google Analytics account.',
             hasConnection: true,
             propertyId: targetPropertyId
           }
@@ -413,7 +415,7 @@ export class DealershipAnalyticsService {
         permissionStatus = 'not_connected'
         return {
           data: undefined,
-          error: 'No Search Console connection found - please connect your Google Search Console account',
+          error: 'No Google Search Console connection found. Please go to Settings > Integrations and connect your Google Search Console account to view data.',
           hasConnection: false,
           siteUrl: undefined,
           permissionStatus
@@ -442,10 +444,11 @@ export class DealershipAnalyticsService {
       const connection = await dealershipDataBridge.getConnectionForApiCall(connectionId, 'search_console')
       
       if (!connection || !connection.accessToken) {
+        logger.warn('Search Console connection exists but has no valid access token', { userId, dealershipId, connectionId })
         permissionStatus = 'not_connected'
         return {
           data: undefined,
-          error: 'No valid Search Console access token available',
+          error: 'Google Search Console connection is invalid. Please go to Settings > Integrations and reconnect your Google Search Console account.',
           hasConnection: true,
           siteUrl: targetSiteUrl,
           permissionStatus
@@ -469,10 +472,11 @@ export class DealershipAnalyticsService {
 
         const refreshedToken = await refreshSearchConsoleToken(userId)
         if (!refreshedToken) {
+          logger.warn('Search Console token refresh failed, requiring user re-authorization', { userId, dealershipId, connectionId })
           permissionStatus = 'not_connected'
           return {
             data: undefined,
-            error: 'Search Console connection expired and needs to be re-authorized. Please go to Settings to reconnect your Google Search Console account.',
+            error: 'Your Google Search Console connection has expired. Please go to Settings > Integrations and reconnect your Google Search Console account.',
             hasConnection: true,
             siteUrl: targetSiteUrl,
             permissionStatus

@@ -371,37 +371,66 @@ export default function UnifiedSettingsPage() {
               <CardDescription>Manage your third-party service connections</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? (
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? (
                 <>
                   <div className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <h4 className="font-medium">Google Analytics 4</h4>
-                        <p className="text-sm text-gray-600 mt-1">Not connected</p>
+                        {integrations?.ga4?.connected ? (
+                          <div className="mt-1">
+                            <p className="text-sm text-green-600 font-medium">✓ Connected</p>
+                            <p className="text-sm text-gray-500">{integrations.ga4.propertyName}</p>
+                            {integrations.ga4.connectedAt && (
+                              <p className="text-xs text-gray-400">
+                                Connected {new Date(integrations.ga4.connectedAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-600 mt-1">Not connected</p>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button
-                          variant="primary"
+                          variant={integrations?.ga4?.connected ? "outline" : "default"}
                           size="sm"
                           onClick={() => router.push('/api/ga4/auth/connect')}
                         >
-                          Connect
+                          {integrations?.ga4?.connected ? 'Reconnect' : 'Connect'}
                         </Button>
                       </div>
                     </div>
                   </div>
                   <div className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-medium">Google Search Console</h4>
-                        <p className="text-sm text-gray-600 mt-1">Not connected</p>
+                        {integrations?.searchConsole?.connected ? (
+                          <div className="mt-1">
+                            <p className="text-sm text-green-600 font-medium">✓ Connected</p>
+                            <p className="text-sm text-gray-500">{integrations.searchConsole.siteName}</p>
+                            {integrations.searchConsole.connectedAt && (
+                              <p className="text-xs text-gray-400">
+                                Connected {new Date(integrations.searchConsole.connectedAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-600 mt-1">Not connected</p>
+                        )}
                       </div>
                       <Button
-                        variant="primary"
+                        variant={integrations?.searchConsole?.connected ? "outline" : "default"}
                         size="sm"
                         onClick={() => router.push('/api/search-console/connect')}
                       >
-                        Connect
+                        {integrations?.searchConsole?.connected ? 'Reconnect' : 'Connect'}
                       </Button>
                     </div>
                   </div>

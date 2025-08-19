@@ -491,6 +491,7 @@ model ga4_connections {
   expiresAt    DateTime?
   propertyId   String?
   propertyName String?
+  email        String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
@@ -510,6 +511,7 @@ model search_console_connections {
   expiresAt    DateTime?
   siteUrl      String?
   siteName     String?
+  email        String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   dealerships  dealerships? @relation(fields: [dealershipId], references: [id], onDelete: Cascade)

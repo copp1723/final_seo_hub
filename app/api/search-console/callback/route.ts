@@ -81,12 +81,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Get user's dealership for proper connection
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      include: { dealerships: true }
-    })
+    let user = null
+    try {
+      user = await prisma.users.findUnique({
+        where: { id: session.user.id }
+      })
+      logger.info('Search Console: User lookup result', { userId: session.user.id, found: !!user })
+    } catch (dbError) {
+      logger.error('Search Console: Database error during user lookup', { 
+        userId: session.user.id,
+        error: dbError instanceof Error ? dbError.message : 'Unknown database error',
+        stack: dbError instanceof Error ? dbError.stack : undefined 
+      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent('Database error')}`)
+    }
 
-    const dealershipId = user?.dealerships?.id || null
+    const dealershipId = user?.dealershipId || user?.currentDealershipId || null
     logger.info('Creating Search Console connection', { 
       userId: session.user.id, 
       dealershipId, 
@@ -95,34 +105,49 @@ export async function GET(req: NextRequest) {
     })
 
     // Manually upsert connection
-    let connection = await prisma.search_console_connections.findFirst({
-      where: { userId: session.user.id, dealershipId }
-    })
+    let connection = null
+    try {
+      connection = await prisma.search_console_connections.findFirst({
+        where: { userId: session.user.id, dealershipId }
+      })
+      logger.info('Search Console: Existing connection lookup', { found: !!connection, userId: session.user.id, dealershipId })
 
-    if (connection) {
-      connection = await prisma.search_console_connections.update({
-        where: { id: connection.id },
-        data: {
-          accessToken: encrypt(tokens.access_token),
-          refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          siteUrl,
-          siteName,
-          updatedAt: new Date()
-        }
+      if (connection) {
+        connection = await prisma.search_console_connections.update({
+          where: { id: connection.id },
+          data: {
+            accessToken: encrypt(tokens.access_token),
+            refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            siteUrl,
+            siteName,
+            updatedAt: new Date()
+          }
+        })
+        logger.info('Search Console: Connection updated', { connectionId: connection.id })
+      } else {
+        connection = await prisma.search_console_connections.create({
+          data: {
+            userId: session.user.id,
+            dealershipId,
+            accessToken: encrypt(tokens.access_token),
+            refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
+            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            siteUrl,
+            siteName,
+            email: user?.email
+          }
+        })
+        logger.info('Search Console: New connection created', { connectionId: connection.id })
+      }
+    } catch (dbError) {
+      logger.error('Search Console: Database error during connection upsert', { 
+        userId: session.user.id,
+        dealershipId,
+        error: dbError instanceof Error ? dbError.message : 'Unknown database error',
+        stack: dbError instanceof Error ? dbError.stack : undefined 
       })
-    } else {
-      connection = await prisma.search_console_connections.create({
-        data: {
-          userId: session.user.id,
-          dealershipId,
-          accessToken: encrypt(tokens.access_token),
-          refreshToken: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          siteUrl,
-          siteName
-        }
-      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent('Failed to save connection')}`)
     }
 
     logger.info('Search Console connection updated successfully', {

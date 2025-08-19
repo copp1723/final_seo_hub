@@ -78,19 +78,33 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user from database using state (userId) from OAuth flow
-    const user = await prisma.users.findUnique({
-      where: { id: state },
-      include: { dealerships: true }
-    })
+    let user = null
+    try {
+      user = await prisma.users.findUnique({
+        where: { id: state }
+      })
+      logger.info('GA4 OAuth: User lookup result', { userId: state, found: !!user })
+    } catch (dbError) {
+      logger.error('GA4 OAuth: Database error during user lookup', { 
+        userId: state, 
+        error: dbError instanceof Error ? dbError.message : 'Unknown database error',
+        stack: dbError instanceof Error ? dbError.stack : undefined 
+      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent('Database error')}`)
+    }
 
     if (!user) {
-      logger.error('GA4 OAuth: User not found', { userId: state })
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=User not found`)
+      logger.error('GA4 OAuth: User not found in database', { 
+        userId: state,
+        stateType: typeof state,
+        stateLength: state?.length 
+      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent('User not found')}`)
     }
     
     console.log('[GA4 CALLBACK] Retrieved user from database', { userId: user.id, email: user.email })
 
-    const dealershipId = user.dealerships?.id || null
+    const dealershipId = user.dealershipId || user.currentDealershipId || null
     logger.info('Creating GA4 connection', { userId: state, dealershipId, propertyId })
 
     // Encrypt tokens before storing
@@ -98,34 +112,49 @@ export async function GET(request: NextRequest) {
     const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null
 
     // Manually upsert to avoid composite key name issues
-    let connection = await prisma.ga4_connections.findFirst({
-      where: { userId: state, dealershipId }
-    })
+    let connection = null
+    try {
+      connection = await prisma.ga4_connections.findFirst({
+        where: { userId: state, dealershipId }
+      })
+      logger.info('GA4 OAuth: Existing connection lookup', { found: !!connection, userId: state, dealershipId })
 
-    if (connection) {
-      connection = await prisma.ga4_connections.update({
-        where: { id: connection.id },
-        data: {
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          propertyId,
-          propertyName,
-          updatedAt: new Date()
-        }
+      if (connection) {
+        connection = await prisma.ga4_connections.update({
+          where: { id: connection.id },
+          data: {
+            accessToken: encryptedAccessToken,
+            refreshToken: encryptedRefreshToken,
+            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            propertyId,
+            propertyName,
+            updatedAt: new Date()
+          }
+        })
+        logger.info('GA4 OAuth: Connection updated', { connectionId: connection.id })
+      } else {
+        connection = await prisma.ga4_connections.create({
+          data: {
+            userId: state,
+            dealershipId,
+            accessToken: encryptedAccessToken,
+            refreshToken: encryptedRefreshToken,
+            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            propertyId,
+            propertyName,
+            email: user.email
+          }
+        })
+        logger.info('GA4 OAuth: New connection created', { connectionId: connection.id })
+      }
+    } catch (dbError) {
+      logger.error('GA4 OAuth: Database error during connection upsert', { 
+        userId: state,
+        dealershipId,
+        error: dbError instanceof Error ? dbError.message : 'Unknown database error',
+        stack: dbError instanceof Error ? dbError.stack : undefined 
       })
-    } else {
-      connection = await prisma.ga4_connections.create({
-        data: {
-          userId: state,
-          dealershipId,
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          propertyId,
-          propertyName
-        }
-      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent('Failed to save connection')}`)
     }
 
     logger.info('GA4 connection updated successfully', {

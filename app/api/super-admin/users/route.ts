@@ -171,6 +171,7 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
         role,
         agencyId: agencyId || null,
         dealershipId: dealershipId || null,
+        currentDealershipId: dealershipId || null, // Set current dealership same as dealership for backwards compatibility
         invitationToken,
         invitationTokenExpires,
         onboardingCompleted: role !== 'USER', // Only dealership users (USER role) need onboarding

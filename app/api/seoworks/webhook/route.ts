@@ -744,20 +744,70 @@ export const POST = compose(
       // Strategy 4: If still no request found, this might be a task created directly in SEOWorks
       // Create a new request to track it if we can identify the user
       if (data.clientId || data.clientEmail) {
-        const user = await prisma.users.findFirst({
-          where: {
-            OR: [
-              data.clientId ? { id: data.clientId } : {},
-              data.clientEmail ? { email: data.clientEmail } : {}
-            ].filter(condition => Object.keys(condition).length > 0)
-          },
-          select: { id: true, email: true, dealershipId: true, agencyId: true }
-        })
+        // FIXED: Look up users by dealership access, not direct ID matching
+        let user = null;
+        
+        if (data.clientEmail) {
+          // Direct email lookup
+          user = await prisma.users.findFirst({
+            where: { email: data.clientEmail },
+            select: { id: true, email: true, dealershipId: true, agencyId: true }
+          });
+        }
+        
+        if (!user && data.clientId) {
+          // Find users who have access to this dealership via clientId
+          const usersWithAccess = await prisma.users.findMany({
+            where: {
+              user_dealership_access_user_dealership_access_userIdTousers: {
+                some: {
+                  isActive: true,
+                  dealerships: {
+                    clientId: data.clientId
+                  }
+                }
+              }
+            },
+            select: { 
+              id: true, 
+              email: true, 
+              dealershipId: true, 
+              agencyId: true,
+              user_dealership_access_user_dealership_access_userIdTousers: {
+                where: {
+                  isActive: true,
+                  dealerships: {
+                    clientId: data.clientId
+                  }
+                },
+                select: {
+                  dealerships: {
+                    select: { id: true, name: true }
+                  }
+                }
+              }
+            },
+            take: 1
+          });
+          
+          if (usersWithAccess.length > 0) {
+            user = usersWithAccess[0];
+            // Use the dealership from the access record
+            const dealershipAccess = user.user_dealership_access_user_dealership_access_userIdTousers[0];
+            if (dealershipAccess) {
+              user.dealershipId = dealershipAccess.dealerships.id;
+            }
+            // Clean up the access data from the user object
+            const { user_dealership_access_user_dealership_access_userIdTousers, ...cleanUser } = user;
+            user = cleanUser;
+          }
+        }
         
         if (user && eventType === 'task.completed') {
           // Create a new request to track this externally created task
           requestRecord = await prisma.requests.create({
             data: {
+              id: `req_${data.externalId}`,
               userId: user.id,
               agencyId: user.agencyId || null,
               dealershipId: user.dealershipId || null,
@@ -768,6 +818,7 @@ export const POST = compose(
               seoworksTaskId: data.externalId,
               completedAt: new Date(data.completionDate || Date.now()),
               completedTasks: data.deliverables || [] as any,
+              updatedAt: new Date(),
               // Set completed counters based on task type
               pagesCompleted: normalizeTaskType(data.taskType) === 'PAGE' ? 1 : 0,
               blogsCompleted: normalizeTaskType(data.taskType) === 'BLOG' ? 1 : 0,
@@ -834,6 +885,7 @@ export const POST = compose(
         // OPTIMIZED: Store orphaned task asynchronously (don't block webhook response)
         prisma.orphaned_tasks.create({
           data: {
+            id: `orphan_${data.externalId}`,
             externalId: data.externalId,
             clientId: (data.clientId as string) || (data.customerId as string),
             clientEmail: data.clientEmail,
@@ -844,6 +896,7 @@ export const POST = compose(
             deliverables: data.deliverables as any,
             rawPayload: payload as any,
             processed: false,
+            updatedAt: new Date(),
             notes: `Webhook received for unknown dealership - task orphaned for later processing`
           }
         }).then(orphanedTask => {

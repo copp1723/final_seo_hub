@@ -113,16 +113,55 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       })
     )
 
+    // Fetch completed tasks for all requests
+    const requestIds = requests.map(req => req.id)
+    const completedTasks = requestIds.length > 0 ? await safeDbOperation(() =>
+      prisma.tasks.findMany({
+        where: {
+          requestId: { in: requestIds },
+          status: 'COMPLETED'
+        },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          targetUrl: true,
+          completedAt: true,
+          requestId: true
+        }
+      })
+    ) : []
+
+    // Group completed tasks by requestId
+    const tasksByRequest = completedTasks.reduce((acc, task) => {
+      if (!acc[task.requestId!]) acc[task.requestId!] = []
+      acc[task.requestId!].push({
+        id: task.id,
+        title: task.title,
+        type: task.type.toLowerCase(),
+        url: task.targetUrl,
+        completedAt: task.completedAt
+      })
+      return acc
+    }, {} as Record<string, any[]>)
+
+    // Merge completed tasks into requests
+    const requestsWithTasks = requests.map(request => ({
+      ...request,
+      completedTasks: tasksByRequest[request.id] || []
+    }))
+
     logger.info('Requests fetched successfully', {
       userId: authResult.user.id,
       dealershipId: dealershipId,
-      count: requests.length,
+      count: requestsWithTasks.length,
+      completedTasksCount: completedTasks.length,
       filters: { status: statusParam, type, searchQuery, sortBy, sortOrder },
       path: '/api/requests',
       method: 'GET'
     })
     
-    return successResponse({ requests })
+    return successResponse({ requests: requestsWithTasks })
   } catch (error) {
     logger.error('Error fetching requests', error, {
       userId: authResult.user.id,

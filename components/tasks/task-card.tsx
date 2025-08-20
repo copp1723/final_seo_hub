@@ -140,8 +140,8 @@ export function TaskCard({ task, onStatusChange, onViewDetails, className }: Tas
 
   return (
     <Card className={cn(
-      "hover:shadow-lg transition-all duration-200 border-2",
-      task.status === 'COMPLETED' && "opacity-75",
+      "hover-lift card-modern border-0 shadow-soft hover:shadow-elegant",
+      task.status === 'COMPLETED' && "opacity-90",
       className
     )}>
       <CardHeader className="pb-3">
@@ -149,10 +149,10 @@ export function TaskCard({ task, onStatusChange, onViewDetails, className }: Tas
           {/* Type Icon and Title */}
           <div className="flex items-start gap-3 flex-1">
             <div className={cn(
-              "p-2 rounded-lg",
+              "p-3 rounded-xl shadow-soft",
               typeInfo.bgColor
             )}>
-              <TypeIcon className={cn("h-5 w-5", typeInfo.textColor)} />
+              <TypeIcon className={cn("h-6 w-6", typeInfo.textColor)} />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg line-clamp-2">{task.title}</h3>

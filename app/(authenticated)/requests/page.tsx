@@ -187,7 +187,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
   }
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-blue-500">
+    <Card className="card-modern hover-lift border-l-4 border-l-violet-500 shadow-elegant">
       {/* Enhanced Header with Better Spacing */}
       <CardHeader className="pb-4">
         <div className="flex justify-between items-start">
@@ -281,9 +281,9 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                     </span>
                     <span className="font-semibold">{progress.pages.completed} of {progress.pages.total}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="progress-modern h-3">
                     <div 
-                      className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                      className="progress-fill bg-gradient-to-r from-blue-500 to-blue-600 shadow-glow"
                       style={{ width: `${(progress.pages.completed / progress.pages.total) * 100}%` }}
                     />
                   </div>
@@ -296,9 +296,9 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                     </span>
                     <span className="font-semibold">{progress.blogs.completed} of {progress.blogs.total}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="progress-modern h-3">
                     <div 
-                      className="bg-green-600 h-3 rounded-full transition-all duration-300"
+                      className="progress-fill bg-gradient-to-r from-emerald-500 to-green-600 shadow-glow-emerald"
                       style={{ width: `${(progress.blogs.completed / progress.blogs.total) * 100}%` }}
                     />
                   </div>
@@ -313,9 +313,9 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                     </span>
                     <span className="font-semibold">{progress.gbpPosts.completed} of {progress.gbpPosts.total}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="progress-modern h-3">
                     <div 
-                      className="bg-purple-600 h-3 rounded-full transition-all duration-300"
+                      className="progress-fill bg-gradient-to-r from-purple-500 to-violet-600 shadow-glow-violet"
                       style={{ width: `${(progress.gbpPosts.completed / progress.gbpPosts.total) * 100}%` }}
                     />
                   </div>
@@ -328,9 +328,9 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                     </span>
                     <span className="font-semibold">{progress.improvements.completed} of {progress.improvements.total}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="progress-modern h-3">
                     <div 
-                      className="bg-orange-600 h-3 rounded-full transition-all duration-300"
+                      className="progress-fill bg-gradient-to-r from-orange-500 to-red-600"
                       style={{ width: `${(progress.improvements.completed / progress.improvements.total) * 100}%` }}
                     />
                   </div>
@@ -358,7 +358,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
               {request.completedTasks.slice(0, 5).map((task: any, index: number) => (
                 <div 
                   key={index} 
-                  className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow duration-200"
+                  className="flex items-center justify-between p-4 card-modern hover-lift"
                 >
                   <div className="flex items-start gap-3 flex-1">
                     <div className="p-2 bg-gray-100 rounded-lg">

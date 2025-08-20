@@ -48,7 +48,7 @@ export default function RequestAccessPage() {
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="text-center">
             <Link href="/" className="text-2xl font-bold text-gray-900">
-              GGSEO Hub
+              GSEO Hub
             </Link>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function RequestAccessPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <Link href="/" className="text-2xl font-bold text-gray-900">
-            GGSEO Hub
+            GSEO Hub
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Request Access

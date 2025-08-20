@@ -11,11 +11,11 @@ export interface BrandingConfig {
 }
 
 export const DEFAULT_BRANDING: BrandingConfig = {
-  companyName: 'SEO Hub',
+  companyName: 'GSEO Hub',
   primaryColor: '#3b82f6',
   secondaryColor: '#1e40af',
   favicon: '/favicon.ico',
-  emailFromName: 'SEO Hub',
+  emailFromName: 'GSEO Hub',
   supportEmail: 'support@seohub.com',
   websiteUrl: 'https://seohub.com',
 }

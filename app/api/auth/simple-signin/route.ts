@@ -56,6 +56,9 @@ export async function GET(request: NextRequest) {
       )
     }
     
+    // Update last login timestamp (best-effort)
+    // Note: lastLoginAt field not present in current schema; skipping DB update.
+
     // Create session
     const sessionToken = await SimpleAuth.createSession({
       id: user.id,

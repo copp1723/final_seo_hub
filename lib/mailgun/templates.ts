@@ -213,15 +213,15 @@ export function userInvitationTemplate(
     
     <h3>Getting Started</h3>
     ${isDealershipUser ? `
-      <p>As a dealership user, you'll need to complete your onboarding to get started with SEO services. Click the button below to begin:</p>
+      <p>As a dealership user, your account has been set up and is ready to use. Click the button below to access your dashboard:</p>
       
       <div style="text-align: center; margin: 32px 0;">
         <a href="${finalLoginUrl}" class="button" style="display: inline-block; padding: 16px 32px; background-color: ${config.primaryColor}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-          Complete Dealership Onboarding
+          Access Your Dashboard
         </a>
       </div>
       
-      <p style="font-size: 14px; color: #6b7280;">This will set up your SEO package and connect you with our SEO Works platform</p>
+      <p style="font-size: 14px; color: #6b7280;">Your SEO package has been configured and you're ready to start managing your SEO requests</p>
     ` : `
       <p>To access your account, simply click the button below and sign in with your email address:</p>
       
@@ -263,7 +263,7 @@ You've been invited to join ${config.companyName} by ${finalInvitedBy}. ${config
 
 Getting Started:
 ${isDealershipUser ? 
-  `As a dealership user, you'll need to complete your onboarding to get started with SEO services. Visit: ${finalLoginUrl}` :
+  `As a dealership user, your account is ready to use. Visit: ${finalLoginUrl}` :
   `To access your account, simply visit: ${finalLoginUrl}`
 }
 

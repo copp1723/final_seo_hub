@@ -8,13 +8,13 @@ export const dynamic = 'force-dynamic';
 // Development-only logging functions
 const devLog = (message: string, ...args: any[]) => {
   if (process.env.NODE_ENV === 'development') {
-    devLog(message, ...args)
+    console.log(message, ...args)
   }
 }
 
 const devError = (message: string, ...args: any[]) => {
   if (process.env.NODE_ENV === 'development') {
-    devError(message, ...args)
+    console.error(message, ...args)
   }
 }
 

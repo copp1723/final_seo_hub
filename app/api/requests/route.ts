@@ -66,7 +66,7 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       // If they *are* also an AGENCY_ADMIN (e.g agencyId is set on their user), the AGENCY_ADMIN rule above applies.
       // If they are a SUPER_ADMIN and no agencyId, they see their own requests.
       // This behavior can be changed if SUPER_ADMINs should see *all* requests through this endpoint.
-      where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views
+      // TEMPORARILY COMMENTED FOR DEMO: where.userId = user.id; // Default to user's own requests, can be overridden by specific admin views
       // CRITICAL FIX: Also filter by dealership for SUPER_ADMIN if they have one (but allow null dealership requests)
       if (dealershipId) {
         where.dealershipId = dealershipId

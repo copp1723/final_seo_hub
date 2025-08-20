@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)
-    
+
     if (!session?.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
         }
       })
     }
+
+
 
     // Get user profile from database
     const user = await prisma.users.findUnique({
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await SimpleAuth.getSessionFromRequest(request)
-    
+
     if (!session?.user.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -96,10 +98,10 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { name, email } = body
 
-    // Handle super admin user (can't update hardcoded user)
-    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
+    // Prevent modifying the original seeded super admin only
+    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371') {
       return NextResponse.json(
-        { error: 'Cannot update super admin profile' },
+        { error: 'Cannot update seeded super admin profile' },
         { status: 403 }
       )
     }

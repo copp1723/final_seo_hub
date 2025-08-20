@@ -166,6 +166,7 @@ export class SimpleAuth {
       agencyId: user.agencyId,
       dealershipId: user.dealershipId,  // Keep for backwards compatibility
       currentDealershipId: user.currentDealershipId,  // New multi-dealership field
+      name: user.name ?? null,
       exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days
     };
 

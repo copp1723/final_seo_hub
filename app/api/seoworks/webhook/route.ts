@@ -240,6 +240,7 @@ async function handleTaskCompleted(
       } else if (request?.users?.id) {
         await prisma.tasks.create({
           data: {
+            id: `task_${data.externalId}_${Date.now()}`,
             userId: request.users.id,
             dealershipId: request.users.dealershipId || null,
             agencyId: request.users.agencyId || null,
@@ -251,7 +252,9 @@ async function handleTaskCompleted(
             targetUrl,
             requestId: request.id,
             completedAt,
-            keywords: Array.isArray(updatedRequest.keywords) ? (updatedRequest.keywords as any) : undefined
+            keywords: Array.isArray(updatedRequest.keywords) ? (updatedRequest.keywords as any) : undefined,
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         })
       }
@@ -416,6 +419,7 @@ async function handleTaskUpdated(
   } else if (request?.users?.id) {
     await prisma.tasks.create({
       data: {
+        id: `task_${data.externalId}_${Date.now()}`,
         userId: request.users.id,
         dealershipId: request.users.dealershipId || null,
         agencyId: request.users.agencyId || null,
@@ -424,7 +428,9 @@ async function handleTaskUpdated(
         title: `SEOWorks ${normalizedType} Task`,
         description: `Auto-created from SEOWorks webhook ${data.externalId}`,
         priority: RequestPriority.MEDIUM,
-        requestId: request.id
+        requestId: request.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     })
   }
@@ -483,6 +489,7 @@ async function handleTaskCancelled(
       } else if (request?.users?.id) {
         await prisma.tasks.create({
           data: {
+            id: `task_${data.externalId}_cancelled_${Date.now()}`,
             userId: request.users.id,
             dealershipId: request.users.dealershipId || null,
             agencyId: request.users.agencyId || null,
@@ -491,7 +498,9 @@ async function handleTaskCancelled(
             title: `SEOWorks ${normalizedType} Task`,
             description: `Auto-created (cancelled) from SEOWorks webhook ${data.externalId}`,
             priority: RequestPriority.MEDIUM,
-            requestId: request.id
+            requestId: request.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         })
       }

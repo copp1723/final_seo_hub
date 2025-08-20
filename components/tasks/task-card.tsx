@@ -14,7 +14,8 @@ import {
   ExternalLink,
   PlayCircle,
   MoreVertical,
-  Calendar
+  Calendar,
+  Eye
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -303,17 +304,18 @@ export function TaskCard({ task, onStatusChange, onViewDetails, className }: Tas
             </div>
           )}
 
-          {/* Completed URL */}
-          {task.completedUrl && (
-            <a 
-              href={task.completedUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+          {/* Prominent View Work Button for Completed Tasks */}
+          {task.status === 'COMPLETED' && task.targetUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 font-medium px-4 py-2"
+              onClick={() => window.open(task.targetUrl!, '_blank', 'noopener,noreferrer')}
             >
-              View Result
-              <ExternalLink className="h-3 w-3" />
-            </a>
+              <Eye className="h-4 w-4 mr-2" />
+              View Work
+              <ExternalLink className="h-3 w-3 ml-1" />
+            </Button>
           )}
         </div>
       </CardContent>

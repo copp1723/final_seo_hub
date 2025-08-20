@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/app/simple-auth-provider'
+import { useBranding } from '@/hooks/use-branding'
 import {
   LayoutDashboard,
   FileText,
@@ -34,6 +36,7 @@ const adminNavItems = [
 export function Navigation() {
   const pathname = usePathname()
   const { user, signOut, isLoading } = useAuth()
+  const branding = useBranding()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
@@ -68,9 +71,24 @@ export function Navigation() {
           <div className="flex justify-between h-18 items-center">
             <div className="flex items-center gap-2 lg:gap-6 flex-1">
               <div className="flex-shrink-0 flex items-center">
-                <div className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
-                  GSEO Hub
-                </div>
+                {branding.logo ? (
+                  <div className="flex items-center gap-2">
+                    <Image 
+                      src={branding.logo} 
+                      alt={branding.companyName}
+                      width={40}
+                      height={40}
+                      className="h-8 w-auto"
+                    />
+                    <div className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight">
+                      {branding.companyName}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight">
+                    {branding.companyName}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 lg:gap-4">
@@ -95,8 +113,25 @@ export function Navigation() {
           <div className="flex items-center gap-2 lg:gap-6 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight hover:scale-105 transition-all duration-300">
-                GSEO Hub
+              <Link href="/dashboard" className="flex items-center gap-2 hover:scale-105 transition-all duration-300">
+                {branding.logo ? (
+                  <>
+                    <Image 
+                      src={branding.logo} 
+                      alt={branding.companyName}
+                      width={40}
+                      height={40}
+                      className="h-8 w-auto"
+                    />
+                    <div className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight">
+                      {branding.companyName}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight">
+                    {branding.companyName}
+                  </div>
+                )}
               </Link>
             </div>
 

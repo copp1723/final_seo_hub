@@ -87,14 +87,14 @@ export function Navigation() {
   )
 
   return (
-    <nav className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-elegant sticky top-0 z-50">
+    <nav className="bg-gradient-brand backdrop-blur-xl border-b border-brand-medium/30 shadow-brand sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-18 items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center gap-2 lg:gap-6 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight hover:scale-105 transition-all duration-300">
+              <Link href="/dashboard" className="text-xl lg:text-2xl font-bold text-white tracking-tight hover:scale-105 transition-all duration-300">
                 GSEO Hub
               </Link>
             </div>
@@ -111,10 +111,10 @@ export function Navigation() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative hover:scale-105 active:scale-95',
+                      'inline-flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative hover-lift hover-scale',
                       isActive
-                        ? 'text-violet-700 bg-gradient-to-r from-violet-50 to-violet-100 shadow-sm border border-violet-200/50 backdrop-blur-sm'
-                        : 'text-slate-600 hover:text-slate-800 hover:bg-slate-50/80 hover:shadow-sm'
+                        ? 'text-brand-dark bg-gradient-to-r from-white/90 to-white/70 shadow-brand border border-brand-light/50 backdrop-blur-sm'
+                        : 'text-white/90 hover:text-white hover:bg-white/10 hover:shadow-soft'
                     )}
                   >
                     <Icon className="h-4 w-4 mr-3 flex-shrink-0" />

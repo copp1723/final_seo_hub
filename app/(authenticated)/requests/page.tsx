@@ -187,7 +187,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
   }
 
   return (
-    <Card className="card-modern hover-lift border-l-4 border-l-violet-500 shadow-elegant">
+    <Card className="card-modern hover-lift border-l-4 border-l-brand-medium shadow-brand">
       {/* Enhanced Header with Better Spacing */}
       <CardHeader className="pb-4">
         <div className="flex justify-between items-start">
@@ -277,13 +277,13 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="flex items-center gap-2 font-medium">
-                      <FileText className="h-4 w-4 text-blue-600" /> Pages
+                      <FileText className="h-4 w-4 text-brand-dark" /> Pages
                     </span>
                     <span className="font-semibold">{progress.pages.completed} of {progress.pages.total}</span>
                   </div>
                   <div className="progress-modern h-3">
                     <div 
-                      className="progress-fill bg-gradient-to-r from-blue-500 to-blue-600 shadow-glow"
+                      className="progress-fill bg-gradient-brand-reverse shadow-brand"
                       style={{ width: `${(progress.pages.completed / progress.pages.total) * 100}%` }}
                     />
                   </div>
@@ -292,13 +292,13 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="flex items-center gap-2 font-medium">
-                      <MessageSquare className="h-4 w-4 text-green-600" /> Blogs
+                      <MessageSquare className="h-4 w-4 text-brand-dark" /> Blogs
                     </span>
                     <span className="font-semibold">{progress.blogs.completed} of {progress.blogs.total}</span>
                   </div>
                   <div className="progress-modern h-3">
                     <div 
-                      className="progress-fill bg-gradient-to-r from-emerald-500 to-green-600 shadow-glow-emerald"
+                      className="progress-fill bg-gradient-brand-reverse shadow-brand"
                       style={{ width: `${(progress.blogs.completed / progress.blogs.total) * 100}%` }}
                     />
                   </div>
@@ -309,13 +309,13 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="flex items-center gap-2 font-medium">
-                      <Globe className="h-4 w-4 text-purple-600" /> GBP Posts
+                      <Globe className="h-4 w-4 text-brand-dark" /> GBP Posts
                     </span>
                     <span className="font-semibold">{progress.gbpPosts.completed} of {progress.gbpPosts.total}</span>
                   </div>
                   <div className="progress-modern h-3">
                     <div 
-                      className="progress-fill bg-gradient-to-r from-purple-500 to-violet-600 shadow-glow-violet"
+                      className="progress-fill bg-gradient-brand-reverse shadow-brand"
                       style={{ width: `${(progress.gbpPosts.completed / progress.gbpPosts.total) * 100}%` }}
                     />
                   </div>
@@ -324,13 +324,13 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="flex items-center gap-2 font-medium">
-                      <Wrench className="h-4 w-4 text-orange-600" /> SEO Changes
+                      <Wrench className="h-4 w-4 text-brand-dark" /> SEO Changes
                     </span>
                     <span className="font-semibold">{progress.improvements.completed} of {progress.improvements.total}</span>
                   </div>
                   <div className="progress-modern h-3">
                     <div 
-                      className="progress-fill bg-gradient-to-r from-orange-500 to-red-600"
+                      className="progress-fill bg-gradient-brand-reverse shadow-brand"
                       style={{ width: `${(progress.improvements.completed / progress.improvements.total) * 100}%` }}
                     />
                   </div>

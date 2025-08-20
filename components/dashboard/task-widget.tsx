@@ -51,7 +51,7 @@ const typeIcons = {
 const typeColors = {
   PAGE: 'text-blue-600',
   BLOG: 'text-green-600',
-  GBP_POST: 'text-purple-400',
+  GBP_POST: 'text-brand-dark',
   IMPROVEMENT: 'text-orange-600'
 }
 
@@ -107,7 +107,7 @@ export function TaskWidget({
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold text-slate-900">Tasks</CardTitle>
           <div className="flex items-center gap-3 text-body-sm">
-            <span className="px-2 py-1 rounded-full bg-violet-50 text-violet-700">{pendingTasks + inProgressTasks} Active</span>
+            <span className="px-2 py-1 rounded-full bg-brand-light/30 text-brand-dark">{pendingTasks + inProgressTasks} Active</span>
             <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">{tasks.filter(t => t.status === 'COMPLETED').length} Complete</span>
           </div>
         </div>

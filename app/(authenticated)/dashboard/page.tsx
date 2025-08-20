@@ -75,12 +75,12 @@ const StatCard = ({ title, value, subtitle, loading = false, gradient = 'blue' }
   value: string | number
   subtitle: string
   loading?: boolean
-  gradient?: 'blue' | 'emerald' | 'purple' | 'orange' | 'indigo'
+  gradient?: 'blue' | 'emerald' | 'brand' | 'orange' | 'indigo'
 }) => {
   const gradientClasses = {
     blue: 'bg-gradient-to-br from-blue-50 to-indigo-50/50 border-blue-100',
     emerald: 'bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-100',
-    purple: 'bg-gradient-to-br from-purple-50 to-violet-50/50 border-purple-100',
+    brand: 'bg-gradient-to-br from-brand-light/30 to-brand-light/50 border-brand-medium/30',
     orange: 'bg-gradient-to-br from-orange-50 to-amber-50/50 border-orange-100',
     indigo: 'bg-gradient-to-br from-indigo-50 to-blue-50/50 border-indigo-100'
   }
@@ -88,7 +88,7 @@ const StatCard = ({ title, value, subtitle, loading = false, gradient = 'blue' }
   const textClasses = {
     blue: 'text-blue-700',
     emerald: 'text-emerald-700',
-    purple: 'text-purple-700',
+    brand: 'text-brand-dark',
     orange: 'text-orange-700',
     indigo: 'text-indigo-700'
   }
@@ -134,7 +134,7 @@ const ProgressBar = ({ label, used, limit }: {
       </div>
       <div className="w-full bg-gray-200 rounded-full h-1.5">
         <div
-          className="h-1.5 rounded-full transition-all bg-gradient-to-r from-blue-500 to-indigo-500"
+          className="h-1.5 rounded-full transition-all bg-gradient-brand"
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                   <div className="p-2.5 bg-blue-100/50 rounded-lg">
                     <BarChart3 className="h-5 w-5 text-blue-700" />
                   </div>
-                  <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
+                  <h1 className="text-2xl font-semibold text-slate-900">GSEO HUB</h1>
                 </div>
                 <p className="text-slate-600 text-base">
                   Welcome back! Here's what's happening with your SEO.
@@ -403,7 +403,7 @@ export default function DashboardPage() {
                       value={analyticsData?.ga4Data?.users?.toLocaleString() ?? '-'}
                       subtitle={dateRange === '7days' ? 'Last 7 days' : dateRange === '30days' ? 'Last 30 days' : dateRange === '90days' ? 'Last 90 days' : dateRange === 'thisMonth' ? 'This month' : dateRange === 'thisYear' ? 'This year' : 'Selected period'}
                       loading={analyticsLoading}
-                      gradient="blue"
+                      gradient="brand"
                     />
                   </div>
                 )}
@@ -432,14 +432,14 @@ export default function DashboardPage() {
                       value={analyticsData?.searchConsoleData?.clicks?.toLocaleString() ?? '-'}
                       subtitle={dateRange === '7days' ? 'Last 7 days' : dateRange === '30days' ? 'Last 30 days' : dateRange === '90days' ? 'Last 90 days' : dateRange === 'thisMonth' ? 'This month' : dateRange === 'thisYear' ? 'This year' : 'Selected period'}
                       loading={analyticsLoading}
-                      gradient="purple"
+                      gradient="brand"
                     />
                     <StatCard
                       title="Impressions"
                       value={analyticsData?.searchConsoleData?.impressions?.toLocaleString() ?? '-'}
                       subtitle={dateRange === '7days' ? 'Last 7 days' : dateRange === '30days' ? 'Last 30 days' : dateRange === '90days' ? 'Last 90 days' : dateRange === 'thisMonth' ? 'This month' : dateRange === 'thisYear' ? 'This year' : 'Selected period'}
                       loading={analyticsLoading}
-                      gradient="orange"
+                      gradient="emerald"
                     />
                   </div>
                 )}
@@ -454,7 +454,7 @@ export default function DashboardPage() {
               value={typeof rankingsData?.data?.data?.data?.averagePosition === 'number' ? rankingsData.data.data.data.averagePosition.toFixed(0) : '-'}
               subtitle="Average search position"
               loading={rankingsLoading}
-              gradient="indigo"
+              gradient="brand"
             />
             <StatCard
               title="CTR"
@@ -469,7 +469,7 @@ export default function DashboardPage() {
                 (analyticsData.ga4Data.pageviews / analyticsData.ga4Data.sessions).toFixed(1) : '-'}
               subtitle="Content depth"
               loading={analyticsLoading}
-              gradient="purple"
+              gradient="brand"
             />
           </div>
 
@@ -503,8 +503,8 @@ export default function DashboardPage() {
                       <div className="text-xl font-bold text-blue-700">{typeof rankingsData?.data?.data?.data?.top20Count === 'number' ? rankingsData.data.data.data.top20Count : '-'}</div>
                       <div className="text-xs text-gray-500">Top 20 Rankings</div>
                     </div>
-                    <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-violet-50/50 rounded-lg border border-purple-100">
-                      <div className="text-xl font-bold text-purple-700">{typeof rankingsData?.data?.data?.data?.averagePosition === 'number' ? rankingsData.data.data.data.averagePosition.toFixed(0) : '-'}</div>
+                    <div className="text-center p-3 bg-gradient-to-br from-brand-light/30 to-brand-light/50 rounded-lg border border-brand-medium/30">
+                      <div className="text-xl font-bold text-brand-dark">{typeof rankingsData?.data?.data?.data?.averagePosition === 'number' ? rankingsData.data.data.data.averagePosition.toFixed(0) : '-'}</div>
                       <div className="text-xs text-gray-500">Avg Position</div>
                     </div>
                     <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-amber-50/50 rounded-lg border border-orange-100">
@@ -530,7 +530,7 @@ export default function DashboardPage() {
                           const colors = [
                             'from-green-50 to-emerald-50/50 border-green-100 bg-green-100 text-green-800',
                             'from-blue-50 to-sky-50/50 border-blue-100 bg-blue-100 text-blue-800',
-                            'from-purple-50 to-violet-50/50 border-purple-100 bg-purple-100 text-purple-800'
+                            'from-brand-light/30 to-brand-light/50 border-brand-medium/30 bg-brand-light text-brand-dark'
                           ]
                           const colorClass = colors[index % 3]
                           const [bgClass, badgeClass] = colorClass.split(' bg-')

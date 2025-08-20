@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <style>
+      .onekeel-text {
+        font-family: Arial, sans-serif;
+        font-weight: 300;
+        fill: #7C9FC2;
+      }
+      .onekeel-wave {
+        fill: none;
+        stroke: #7C9FC2;
+        stroke-width: 8;
+        stroke-linecap: round;
+      }
+    </style>
+  </defs>
+  
+  <!-- OneKeel.ai Text -->
+  <text x="20" y="45" class="onekeel-text" font-size="42">OneKeel.ai</text>
+  
+  <!-- Wave/Flow design element -->
+  <path class="onekeel-wave" d="M20 65 Q100 75 180 65 T340 65" />
+  <path class="onekeel-wave" d="M40 75 Q120 85 200 75 T360 75" opacity="0.6" stroke-width="6" />
+</svg>

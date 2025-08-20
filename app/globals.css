@@ -517,7 +517,7 @@
   }
   
   .progress-fill {
-    @apply h-full bg-gradient-to-r from-violet-500 to-violet-600 rounded-full transition-all duration-500 ease-out;
+    @apply h-full bg-gradient-brand-reverse rounded-full transition-all duration-500 ease-out;
   }
   
   /* Responsive utilities */
@@ -623,5 +623,9 @@
 
   .bg-gradient-brand-reverse {
     background: linear-gradient(135deg, rgb(var(--brand-medium)), rgb(var(--brand-dark)));
+  }
+
+  .bg-gradient-brand-hover {
+    background: linear-gradient(135deg, rgb(var(--brand-medium) / 0.9), rgb(var(--brand-dark) / 0.9));
   }
 }

@@ -36,7 +36,7 @@ export function EnhancedStatCard({
   const colorClasses = {
     blue: 'text-blue-600 bg-gradient-to-br from-blue-50 to-blue-100',
     green: 'text-emerald-600 bg-gradient-to-br from-emerald-50 to-emerald-100',
-    purple: 'text-violet-600 bg-gradient-to-br from-violet-50 to-violet-100',
+    purple: 'text-brand-dark bg-gradient-to-br from-brand-light/50 to-brand-light',
     orange: 'text-orange-600 bg-gradient-to-br from-orange-50 to-orange-100',
     red: 'text-red-600 bg-gradient-to-br from-red-50 to-red-100'
   }

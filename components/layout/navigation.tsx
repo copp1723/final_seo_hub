@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import DealershipSwitcher from '@/components/ui/dealership-switcher'
+import { Logo } from '@/components/ui/logo'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -67,9 +68,7 @@ export function Navigation() {
           <div className="flex justify-between h-18 items-center">
             <div className="flex items-center gap-2 lg:gap-6 flex-1">
               <div className="flex-shrink-0 flex items-center">
-                <div className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
-                  GSEO Hub
-                </div>
+                <Logo size="md" />
               </div>
             </div>
             <div className="flex items-center gap-2 lg:gap-4">
@@ -94,8 +93,8 @@ export function Navigation() {
           <div className="flex items-center gap-2 lg:gap-6 flex-1">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-xl lg:text-2xl font-bold text-white tracking-tight hover:scale-105 transition-all duration-300">
-                GSEO Hub
+              <Link href="/dashboard" className="hover:scale-105 transition-all duration-300">
+                <Logo size="md" />
               </Link>
             </div>
 
@@ -134,7 +133,7 @@ export function Navigation() {
                     className={cn(
                       'inline-flex items-center px-4 py-2 rounded-lg text-sm font-normal transition-all duration-200 relative',
                       isActive
-                        ? 'text-purple-700 bg-purple-50/80 shadow-sm border border-purple-200/50'
+                        ? 'text-brand-dark bg-brand-light/30 shadow-sm border border-brand-medium/30'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
                     )}
                   >
@@ -156,10 +155,10 @@ export function Navigation() {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50/80 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:ring-offset-2 hover:scale-105 active:scale-95"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-light/30 focus:ring-offset-2 hover:scale-105 active:scale-95"
               >
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-100 to-violet-200 flex items-center justify-center ring-2 ring-white shadow-elegant">
-                  <User className="h-4 w-4 text-violet-600" />
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-brand-light/50 to-brand-light flex items-center justify-center ring-2 ring-white shadow-elegant">
+                  <User className="h-4 w-4 text-brand-dark" />
                 </div>
                 <div className="hidden lg:block text-left">
                   <div className="text-sm font-medium text-gray-700">
@@ -236,7 +235,7 @@ export function Navigation() {
                   className={cn(
                     'flex items-center px-4 py-3 rounded-xl text-base font-medium transition-all duration-300',
                     isActive
-                      ? 'text-violet-700 bg-violet-50/80 shadow-sm border border-violet-200/50'
+                      ? 'text-brand-dark bg-brand-light/30 shadow-sm border border-brand-medium/30'
                       : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50/80 hover:shadow-sm'
                   )}
                 >
@@ -258,7 +257,7 @@ export function Navigation() {
                   className={cn(
                     'flex items-center px-3 py-2 rounded-lg text-base font-medium transition-colors duration-200',
                     isActive
-                      ? 'text-purple-700 bg-purple-50/80'
+                      ? 'text-brand-dark bg-brand-light/30'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50/80'
                   )}
                 >

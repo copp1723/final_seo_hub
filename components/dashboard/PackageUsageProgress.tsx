@@ -51,15 +51,15 @@ const PackageUsageProgress: React.FC<PackageUsageProgressProps> = ({ usageData }
                 <div key={index}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-medium text-gray-700 flex items-center">
-                      <item.icon className="h-4 w-4 mr-2 text-indigo-600" />
+                      <item.icon className="h-4 w-4 mr-2 text-brand-dark" />
                       {item.name}
                     </span>
-                    <span className="text-sm font-semibold text-indigo-600">{item.value}</span>
+                    <span className="text-sm font-semibold text-brand-dark">{item.value}</span>
                   </div>
                   {/* Basic representation of usage amount.Could be a real progress bar if max is known. */}
                   <div className="h-2 bg-gray-200 rounded-full">
                     <div
-                      className="h-2 bg-indigo-600 rounded-full"
+                      className="h-2 bg-gradient-brand-reverse rounded-full"
                       style={{ width: `${item.value > 0 ? '100%' : '0%'}` }} // Shows full bar for any usage, as no 'max'
                       // Example if max was available: style={{ width: `${(item.value / (item.max || item.value)) * 100}%` }}
                     ></div>

@@ -56,8 +56,8 @@ const iconMap: Record<string, any> = {
 const colorClasses: Record<string, string> = {
   'blue': 'text-blue-500 bg-blue-50 border-blue-200',
   'green': 'text-green-500 bg-green-50 border-green-200',
-  'purple': 'text-purple-500 bg-purple-50 border-purple-200',
-  'indigo': 'text-indigo-500 bg-indigo-50 border-indigo-200',
+  'purple': 'text-brand-dark bg-brand-light/30 border-brand-medium/30',
+  'indigo': 'text-brand-dark bg-brand-light/30 border-brand-medium/30',
   'orange': 'text-orange-500 bg-orange-50 border-orange-200',
   'emerald': 'text-emerald-500 bg-emerald-50 border-emerald-200',
   'amber': 'text-amber-500 bg-amber-50 border-amber-200',

@@ -12,7 +12,7 @@ function Badge({ className, variant = "default", ...props }: BadgeProps) {
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 backdrop-blur-sm border",
         {
-          "border-violet-200/60 bg-gradient-to-r from-violet-50 to-violet-100 text-violet-700 hover:from-violet-100 hover:to-violet-200 shadow-sm":
+          "border-brand-medium/30 bg-gradient-to-r from-brand-light/30 to-brand-light/50 text-brand-dark hover:from-brand-light/50 hover:to-brand-light/70 shadow-sm":
             variant === "default",
           "border-slate-200/60 bg-gradient-to-r from-slate-50 to-slate-100 text-slate-700 hover:from-slate-100 hover:to-slate-200 shadow-sm":
             variant === "secondary",

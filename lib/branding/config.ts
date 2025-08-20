@@ -14,7 +14,6 @@ export const DEFAULT_BRANDING: BrandingConfig = {
   companyName: 'GSEO Hub',
   primaryColor: '#3b82f6',
   secondaryColor: '#1e40af',
-  logo: '/onekeel-logo.jpg',
   favicon: '/favicon.ico',
   emailFromName: 'GSEO Hub',
   supportEmail: 'support@seohub.com',

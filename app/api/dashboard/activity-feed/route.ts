@@ -302,7 +302,7 @@ export async function GET(request: NextRequest) {
         activities.push({
           id: 'welcome-activity',
           type: 'connection_created',
-          title: 'Welcome to SEO Hub',
+          title: 'Welcome to GSEO Hub',
           description: 'Connect Google Analytics and Search Console to see live activity here',
           timestamp: new Date(),
           icon: 'Activity',

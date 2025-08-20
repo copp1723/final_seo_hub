@@ -223,7 +223,8 @@ export default function UsersManagement() {
           userId: editingUser.id,
           name: editingUser.name,
           role: editingUser.role,
-          agencyId: editingUser.agencyId
+          // Send agencyId only if present; avoid sending null which fails validation
+          agencyId: editingUser.agencyId || undefined
         }),
       })
 
@@ -529,7 +530,7 @@ export default function UsersManagement() {
           <DialogHeader>
             <DialogTitle>Invite New User</DialogTitle>
             <DialogDescription>
-              Send an invitation to join the SEO Hub platform
+              Send an invitation to join the GSEO Hub platform
             </DialogDescription>
           </DialogHeader>
           

@@ -69,7 +69,7 @@ export function Navigation() {
             <div className="flex items-center gap-2 lg:gap-6 flex-1">
               <div className="flex-shrink-0 flex items-center">
                 <div className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
-                  SEO Hub
+                  GSEO Hub
                 </div>
               </div>
             </div>
@@ -96,7 +96,7 @@ export function Navigation() {
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
               <Link href="/dashboard" className="text-xl lg:text-2xl font-bold gradient-text-primary tracking-tight hover:scale-105 transition-all duration-300">
-                SEO Hub
+                GSEO Hub
               </Link>
             </div>
 

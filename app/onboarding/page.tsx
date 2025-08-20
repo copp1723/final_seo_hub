@@ -231,7 +231,7 @@ export default function OnboardingPage() {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">
-            Welcome to SEO Hub
+            Welcome to GSEO Hub
           </CardTitle>
           <p className="text-center text-gray-600 mt-2">
             Let's get your dealership set up for SEO success

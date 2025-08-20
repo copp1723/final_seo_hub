@@ -48,7 +48,7 @@ export default function RequestAccessPage() {
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="text-center">
             <Link href="/" className="text-2xl font-bold text-gray-900">
-              SEO Hub
+              GGSEO Hub
             </Link>
           </div>
         </div>
@@ -63,7 +63,7 @@ export default function RequestAccessPage() {
                 Access Request Sent!
               </CardTitle>
               <CardDescription className="mt-2 text-gray-600">
-                We've sent you an email with a login link. Check your inbox and click the link to access SEO Hub.
+                We've sent you an email with a login link. Check your inbox and click the link to access GSEO Hub.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -94,7 +94,7 @@ export default function RequestAccessPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <Link href="/" className="text-2xl font-bold text-gray-900">
-            SEO Hub
+            GGSEO Hub
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Request Access
@@ -108,7 +108,7 @@ export default function RequestAccessPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>Request Access to SEO Hub</CardTitle>
+            <CardTitle>Request Access to GSEO Hub</CardTitle>
             <CardDescription>
               We'll send you an email with a secure login link.
             </CardDescription>
@@ -183,7 +183,7 @@ export default function RequestAccessPage() {
                 <div>
                   <h4 className="text-sm font-medium text-blue-900">How it works</h4>
                   <p className="text-sm text-blue-700 mt-1">
-                    Enter your email and we'll send you a secure login link. No password required - just click the link in your email to access SEO Hub.
+                    Enter your email and we'll send you a secure login link. No password required - just click the link in your email to access GSEO Hub.
                   </p>
                 </div>
               </div>

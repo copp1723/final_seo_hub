@@ -64,7 +64,7 @@ function ErrorContent() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <Link href="/" className="text-2xl font-bold text-gray-900">
-            SEO Hub
+            GSEO Hub
           </Link>
         </div>
       </div>

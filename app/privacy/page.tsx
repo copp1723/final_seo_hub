@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Information We Collect</h2>
           <p className="mb-4">
-            When you use SEO Hub, we collect the following information:
+            When you use GSEO Hub, we collect the following information:
           </p>
           <ul className="list-disc pl-6 mb-4">
             <li>Basic profile information from your Google account (name, email, profile picture)</li>

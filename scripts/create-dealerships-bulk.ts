@@ -156,7 +156,8 @@ async function createDealerships() {
           name: dealershipData.name,
           website: dealershipData.website,
           agencyId: agency.id,
-          settings: {}
+          settings: {},
+          updatedAt: new Date()
         }
       })
 

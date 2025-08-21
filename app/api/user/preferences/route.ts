@@ -5,6 +5,7 @@ import { rateLimits } from '@/lib/rate-limit'
 import { z } from 'zod'
 import { validateRequest } from '@/lib/validations'
 import { logger } from '@/lib/logger'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     if (!preferences) {
       preferences = await prisma.user_preferences.create({
         data: {
+          id: crypto.randomUUID(),
           userId: authResult.user.id,
           emailNotifications: true,
           requestCreated: true,
@@ -47,7 +49,8 @@ export async function GET(request: NextRequest) {
           weeklySummary: true,
           marketingEmails: false,
           timezone: 'America/New_York',
-          language: 'en'
+          language: 'en',
+          updatedAt: new Date()
         }
       })
     }
@@ -83,7 +86,9 @@ export async function PATCH(request: NextRequest) {
       where: { userId: authResult.user.id },
       update: typedData,
       create: {
+        id: crypto.randomUUID(),
         userId: authResult.user.id,
+        updatedAt: new Date(),
         ...typedData
       }
     })

@@ -155,7 +155,7 @@ export function DealershipProvider({ children }: { children: ReactNode }) {
 
       const result = await response.json()
       
-      // Update current dealership immediately for instant UI feedback
+      // Update current dealership only after successful API response
       const newDealership = availableDealerships.find(d => d.id === dealershipId)
       if (newDealership) {
         console.log('🔄 DEALERSHIP SWITCH - Context Update:', {

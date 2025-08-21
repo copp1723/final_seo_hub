@@ -146,7 +146,7 @@ const ProgressBar = ({ label, used, limit }: {
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
-  const { currentDealership } = useDealership()
+  const { currentDealership, isSwitching } = useDealership()
 
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
@@ -174,13 +174,19 @@ export default function DashboardPage() {
 
   // Fetch dashboard data
   const fetchDashboardData = useCallback(async () => {
-    if (!user) return
+    if (!user || isSwitching) return
+
+    const dealershipId = currentDealership?.id
+    if (!dealershipId) {
+      console.log('No dealership selected, skipping dashboard data fetch')
+      setLoading(false)
+      return
+    }
 
     try {
       setLoading(true)
-      const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams()
-      if (dealershipId) params.append('dealershipId', dealershipId)
+      params.append('dealershipId', dealershipId)
 
       const response = await fetch(`/api/dashboard?${params}`, {
         credentials: 'include'
@@ -195,20 +201,26 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [user, currentDealership?.id])
+  }, [user, currentDealership?.id, isSwitching])
 
   // Fetch analytics data
   const fetchAnalyticsData = useCallback(async () => {
-    if (!user) return
+    if (!user || isSwitching) return
+
+    const dealershipId = currentDealership?.id
+    if (!dealershipId) {
+      console.log('No dealership selected, skipping analytics data fetch')
+      setAnalyticsLoading(false)
+      return
+    }
 
     try {
       setAnalyticsLoading(true)
 
-      const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
-        dateRange
+        dateRange,
+        dealershipId
       })
-      if (dealershipId) params.append('dealershipId', dealershipId)
 
       const response = await fetch(`/api/dashboard/analytics?${params}`, {
         credentials: 'include'
@@ -228,18 +240,24 @@ export default function DashboardPage() {
     } finally {
       setAnalyticsLoading(false)
     }
-  }, [user, currentDealership?.id, dateRange])
+  }, [user, currentDealership?.id, dateRange, isSwitching])
 
   // Fetch rankings data
   const fetchRankingsData = useCallback(async () => {
-    if (!user) return
+    if (!user || isSwitching) return
+
+    const dealershipId = currentDealership?.id
+    if (!dealershipId) {
+      console.log('No dealership selected, skipping rankings data fetch')
+      setRankingsLoading(false)
+      return
+    }
 
     try {
       setRankingsLoading(true)
 
-      const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams()
-      if (dealershipId) params.append('dealershipId', dealershipId)
+      params.append('dealershipId', dealershipId)
 
       const response = await fetch(`/api/dashboard/rankings?${params}`, {
         credentials: 'include'
@@ -259,7 +277,7 @@ export default function DashboardPage() {
     } finally {
       setRankingsLoading(false)
     }
-  }, [user, currentDealership?.id])
+  }, [user, currentDealership?.id, isSwitching])
 
   // Load data on component mount and when dependencies change
   useEffect(() => {
@@ -319,6 +337,19 @@ export default function DashboardPage() {
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show dealership switching state
+  if (isSwitching) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Switching dealership...</p>
+          <p className="text-gray-500 text-sm mt-2">Please wait while we load the new dealership data</p>
         </div>
       </div>
     )

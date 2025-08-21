@@ -64,7 +64,7 @@ export default function ReportingPage() {
   const [dateRange, setDateRange] = useState('30days')
   const [previousDealershipId, setPreviousDealershipId] = useState<string | null>(null)
 
-  const { currentDealership } = useDealership()
+  const { currentDealership, isSwitching } = useDealership()
 
   // Clear data when dealership changes
   useEffect(() => {
@@ -78,13 +78,21 @@ export default function ReportingPage() {
 
   // Fetch analytics data
   const fetchAnalyticsData = async (forceRefresh = false) => {
+    if (isSwitching) return
+    
+    const dealershipId = currentDealership?.id
+    if (!dealershipId) {
+      console.log('No dealership selected, skipping analytics data fetch')
+      setDataLoading(false)
+      return
+    }
+    
     try {
       setDataLoading(true)
 
-      const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
         dateRange,
-        ...(dealershipId && { dealershipId }),
+        dealershipId,
         ...(forceRefresh && { clearCache: 'true' })
       })
 
@@ -113,8 +121,10 @@ export default function ReportingPage() {
 
   // Load data on component mount and when dependencies change
   useEffect(() => {
-    fetchAnalyticsData()
-  }, [currentDealership?.id, dateRange])
+    if (!isSwitching) {
+      fetchAnalyticsData()
+    }
+  }, [currentDealership?.id, dateRange, isSwitching])
 
   const handleRefresh = () => {
     setLoading(true)
@@ -125,11 +135,16 @@ export default function ReportingPage() {
   }
 
   const handleExport = async () => {
+    const dealershipId = currentDealership?.id
+    if (!dealershipId) {
+      toast.error('Please select a dealership to export data')
+      return
+    }
+
     try {
-      const dealershipId = currentDealership?.id || localStorage.getItem('selectedDealershipId')
       const params = new URLSearchParams({
         dateRange,
-        ...(dealershipId && { dealershipId })
+        dealershipId
       })
 
       const response = await fetch(`/api/reporting/export-csv?${params}`, {
@@ -163,6 +178,19 @@ export default function ReportingPage() {
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-gray-600">Loading analytics data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show dealership switching state
+  if (isSwitching) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-gray-600">Switching dealership...</p>
+          <p className="text-gray-500 text-sm mt-2">Please wait while we load the new dealership analytics</p>
         </div>
       </div>
     )

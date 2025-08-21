@@ -4,7 +4,7 @@ import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
 import { taskCompletedTemplate, statusChangedTemplate } from '@/lib/mailgun/templates'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { RequestStatus } from '@prisma/client'
-import { incrementUsage, TaskType } from '@/lib/package-utils'
+import { incrementUsage, incrementDealershipUsage, TaskType } from '@/lib/package-utils'
 
 // --- Types for SEOWorks Webhook Payloads ---
 export interface SeoworksDeliverable {
@@ -121,10 +121,18 @@ export async function handleTaskCompleted(
 
       if (taskTypeForUsage) {
         try {
-          await incrementUsage(updatedRequest.userId, taskTypeForUsage)
-          logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`)
+          // Prefer incrementing by dealership when available (some requests are created without a user)
+          if (updatedRequest.dealershipId) {
+            await incrementDealershipUsage(updatedRequest.dealershipId, taskTypeForUsage)
+            logger.info(`Successfully incremented ${taskTypeForUsage} usage for dealership ${updatedRequest.dealershipId}`)
+          } else if (updatedRequest.userId) {
+            await incrementUsage(updatedRequest.userId, taskTypeForUsage)
+            logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`)
+          } else {
+            logger.warn('No dealershipId or userId available to increment usage for request', { requestId: updatedRequest.id })
+          }
         } catch (usageError) {
-          logger.error(`Failed to increment usage for user ${updatedRequest.userId}`, usageError)
+          logger.error('Failed to increment usage for request', usageError)
           // Continue processing even if usage tracking fails
         }
       }

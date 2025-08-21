@@ -12,7 +12,7 @@ import {
 import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
 
 export const dynamic = 'force-dynamic';
-import { incrementUsage } from '@/lib/package-utils'
+import { incrementUsage, incrementDealershipUsage } from '@/lib/package-utils'
 import crypto from 'crypto'
 import { RequestStatus, PackageType, TaskStatus as DbTaskStatus, TaskType as DbTaskType, RequestPriority } from '@prisma/client'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
@@ -290,8 +290,21 @@ async function handleTaskCompleted(
 
         if (taskTypeForUsage) {
           try {
-            await incrementUsage(updatedRequest.userId, taskTypeForUsage)
-            
+            // Prefer dealership-level increment when request is associated to a dealership
+            if (updatedRequest.dealershipId) {
+              await incrementDealershipUsage(updatedRequest.dealershipId, taskTypeForUsage)
+              logger.info(`Successfully incremented ${taskTypeForUsage} usage for dealership ${updatedRequest.dealershipId}`, {
+                seoworksTaskId: data.externalId,
+                taskType: normalizedType
+              })
+            } else {
+              await incrementUsage(updatedRequest.userId, taskTypeForUsage)
+              logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`, {
+                seoworksTaskId: data.externalId,
+                taskType: normalizedType
+              })
+            }
+
             // Mark this task as usage counted to prevent future double-counting
             await prisma.seoworks_task_mappings.upsert({
               where: { seoworksTaskId: data.externalId },
@@ -309,13 +322,8 @@ async function handleTaskCompleted(
                 metadata: { usageCountedAt: new Date().toISOString() }
               }
             })
-            
-            logger.info(`Successfully incremented ${taskTypeForUsage} usage for user ${updatedRequest.userId}`, {
-              seoworksTaskId: data.externalId,
-              taskType: normalizedType
-            })
           } catch (usageError) {
-            logger.error(`Failed to increment usage for user ${updatedRequest.userId}`, usageError)
+            logger.error('Failed to increment usage for request', usageError)
             // Continue processing even if usage tracking fails
           }
         }

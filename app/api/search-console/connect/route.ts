@@ -33,10 +33,18 @@ export async function GET(req: NextRequest) {
       dealershipId: currentDealershipId
     })
 
+    // Check if this is a popup-based OAuth flow
+    const isPopup = url.searchParams.get('popup') === 'true'
+
+    // Add popup parameter to callback URL if needed
+    const callbackUrl = isPopup
+      ? `${process.env.NEXTAUTH_URL}/api/search-console/callback?popup=true`
+      : `${process.env.NEXTAUTH_URL}/api/search-console/callback`
+
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      `${process.env.NEXTAUTH_URL}/api/search-console/callback`
+      callbackUrl
     )
 
     const authUrl = oauth2Client.generateAuthUrl({

@@ -86,7 +86,9 @@ export async function GET(req: NextRequest) {
 
   if (!code) {
     logger.error('Search Console callback: No authorization code received', { userId: session.user.id })
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=No authorization code`)
+    // Enhanced error message for browser compatibility issues
+    const browserError = 'Browser privacy settings may be blocking the connection. Try disabling ad blockers or using incognito mode.'
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent(browserError)}`)
   }
 
   try {
@@ -240,6 +242,14 @@ export async function GET(req: NextRequest) {
       dealershipId: connection?.dealershipId
     })
 
+    // Check if this is a popup-based OAuth flow
+    const { searchParams } = new URL(request.url)
+    const isPopup = searchParams.get('popup') === 'true'
+
+    if (isPopup) {
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/api/oauth/popup-callback?success=true&service=search_console`)
+    }
+
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=success&service=search_console`)
 
   } catch (error) {
@@ -252,6 +262,14 @@ export async function GET(req: NextRequest) {
     })
     
     // Return generic error message to user
+    // Check if this is a popup-based OAuth flow
+    const { searchParams } = new URL(request.url)
+    const isPopup = searchParams.get('popup') === 'true'
+
+    if (isPopup) {
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/api/oauth/popup-callback?success=false&service=search_console&error=${encodeURIComponent('connection_failed')}`)
+    }
+
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=connection_failed`)
   }
 }

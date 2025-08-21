@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set(SimpleAuth.COOKIE_NAME, sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for OAuth compatibility in production
       maxAge: 30 * 24 * 60 * 60, // 30 days
       path: '/',
     });

@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set(SimpleAuth.COOKIE_NAME, seoHubToken, {
       httpOnly: true,
       secure: useSecureCookies,
-      sameSite: 'lax',
+      sameSite: useSecureCookies ? 'none' : 'lax', // 'none' for OAuth compatibility when secure
       path: '/',
       maxAge: 30 * 24 * 60 * 60 // 30 days
     })

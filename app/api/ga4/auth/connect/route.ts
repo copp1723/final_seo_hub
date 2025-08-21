@@ -29,9 +29,18 @@ export async function GET(request: NextRequest) {
     'https://www.googleapis.com/auth/analytics.manage.users'
   ]
 
+  // Check if this is a popup-based OAuth flow
+  const isPopup = url.searchParams.get('popup') === 'true'
+
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   authUrl.searchParams.set('client_id', process.env.GOOGLE_CLIENT_ID!)
-  authUrl.searchParams.set('redirect_uri', `${process.env.NEXTAUTH_URL}/api/ga4/auth/callback`)
+
+  // Add popup parameter to callback URL if needed
+  const callbackUrl = isPopup
+    ? `${process.env.NEXTAUTH_URL}/api/ga4/auth/callback?popup=true`
+    : `${process.env.NEXTAUTH_URL}/api/ga4/auth/callback`
+
+  authUrl.searchParams.set('redirect_uri', callbackUrl)
   authUrl.searchParams.set('response_type', 'code')
   authUrl.searchParams.set('scope', SCOPES.join(' '))
   authUrl.searchParams.set('access_type', 'offline')

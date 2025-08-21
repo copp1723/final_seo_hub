@@ -42,7 +42,11 @@ export async function GET(request: NextRequest) {
 
     if (!code || !state) {
       logger.error('GA4 OAuth missing parameters', { hasCode: !!code, hasState: !!state })
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=Missing authorization code`)
+      // Enhanced error message for browser compatibility issues
+      const browserError = !state
+        ? 'Browser privacy settings may be blocking the connection. Try disabling ad blockers or using incognito mode.'
+        : 'Missing authorization code'
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=${encodeURIComponent(browserError)}`)
     }
 
     // Exchange code for tokens
@@ -232,6 +236,14 @@ export async function GET(request: NextRequest) {
       dealershipId: connection?.dealershipId
     })
 
+    // Check if this is a popup-based OAuth flow
+    const { searchParams } = new URL(request.url)
+    const isPopup = searchParams.get('popup') === 'true'
+
+    if (isPopup) {
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/api/oauth/popup-callback?success=true&service=ga4`)
+    }
+
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=success&service=ga4`)
 
   } catch (error) {
@@ -260,6 +272,14 @@ export async function GET(request: NextRequest) {
     }
     
     // Return generic error message to user
+    // Check if this is a popup-based OAuth flow
+    const { searchParams } = new URL(request.url)
+    const isPopup = searchParams.get('popup') === 'true'
+
+    if (isPopup) {
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/api/oauth/popup-callback?success=false&service=ga4&error=${encodeURIComponent('connection_failed')}`)
+    }
+
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=ga4&error=connection_failed`)
   }
 }

@@ -282,24 +282,31 @@ export class DealershipDataBridge {
    * Find a valid GA4 connection for agency or user
    */
   private async findValidGA4Connection(agencyId: string | null, userId: string) {
-    // First try agency connections
+    // FIXED: Only look for true agency-level connections, not random dealership connections
     if (agencyId) {
-      const agencyDealerships = await prisma.dealerships.findMany({
-        where: { agencyId },
-        select: { id: true }
-      })
-
-      const dealershipIds = agencyDealerships.map(d => d.id)
-      
+      // Look for agency-level connections (not tied to specific dealerships)
       const agencyConnection = await prisma.ga4_connections.findFirst({
         where: { 
-          dealershipId: { in: dealershipIds },
-          accessToken: { not: "" }
+          dealershipId: null, // Only agency-level connections
+          accessToken: { not: "" },
+          userId: { 
+            in: await prisma.users.findMany({
+              where: { agencyId, role: { in: ['AGENCY_ADMIN', 'SUPER_ADMIN'] } },
+              select: { id: true }
+            }).then(users => users.map(u => u.id))
+          }
         },
         orderBy: { updatedAt: 'desc' }
       })
 
-      if (agencyConnection) return agencyConnection
+      if (agencyConnection) {
+        logger.info('Found valid agency-level GA4 connection for mapping', {
+          agencyId,
+          connectionId: agencyConnection.id,
+          propertyId: agencyConnection.propertyId
+        })
+        return agencyConnection
+      }
     }
 
     // Fallback to user connection
@@ -316,24 +323,31 @@ export class DealershipDataBridge {
    * Find a valid Search Console connection for agency or user
    */
   private async findValidSearchConsoleConnection(agencyId: string | null, userId: string) {
-    // First try agency connections
+    // FIXED: Only look for true agency-level connections, not random dealership connections
     if (agencyId) {
-      const agencyDealerships = await prisma.dealerships.findMany({
-        where: { agencyId },
-        select: { id: true }
-      })
-
-      const dealershipIds = agencyDealerships.map(d => d.id)
-      
+      // Look for agency-level connections (not tied to specific dealerships)
       const agencyConnection = await prisma.search_console_connections.findFirst({
         where: { 
-          dealershipId: { in: dealershipIds },
-          accessToken: { not: "" }
+          dealershipId: null, // Only agency-level connections
+          accessToken: { not: "" },
+          userId: { 
+            in: await prisma.users.findMany({
+              where: { agencyId, role: { in: ['AGENCY_ADMIN', 'SUPER_ADMIN'] } },
+              select: { id: true }
+            }).then(users => users.map(u => u.id))
+          }
         },
         orderBy: { updatedAt: 'desc' }
       })
 
-      if (agencyConnection) return agencyConnection
+      if (agencyConnection) {
+        logger.info('Found valid agency-level Search Console connection for mapping', {
+          agencyId,
+          connectionId: agencyConnection.id,
+          siteUrl: agencyConnection.siteUrl
+        })
+        return agencyConnection
+      }
     }
 
     // Fallback to user connection

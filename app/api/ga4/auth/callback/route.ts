@@ -237,7 +237,6 @@ export async function GET(request: NextRequest) {
     })
 
     // Check if this is a popup-based OAuth flow
-    const { searchParams } = new URL(request.url)
     const isPopup = searchParams.get('popup') === 'true'
 
     if (isPopup) {

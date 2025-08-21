@@ -4,6 +4,7 @@ import { requireAuth, errorResponse, successResponse } from '@/lib/api-auth'
 import { rateLimits } from '@/lib/rate-limit'
 import { validateRequest, notificationPreferencesSchema, NotificationPreferencesInput } from '@/lib/validations'
 import { logger } from '@/lib/logger'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic';
 
@@ -94,7 +95,9 @@ export async function PUT(request: NextRequest) {
     const preferences = await prisma.user_preferences.upsert({
       where: { userId: authResult.user.id },
       create: {
+        id: crypto.randomUUID(),
         userId: authResult.user.id,
+        updatedAt: new Date(),
         ...typedData
       },
       update: typedData,

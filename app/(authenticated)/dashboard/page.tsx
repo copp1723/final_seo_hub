@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   RefreshCw,
   Loader2,
@@ -154,6 +156,9 @@ export default function DashboardPage() {
   const [rankingsLoading, setRankingsLoading] = useState(true)
   const [previousDealershipId, setPreviousDealershipId] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState('30days')
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false)
+  const [lastDataUpdate, setLastDataUpdate] = useState<Date | null>(null)
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
 
   // Clear data when dealership changes
   useEffect(() => {
@@ -262,8 +267,45 @@ export default function DashboardPage() {
       fetchDashboardData()
       fetchAnalyticsData()
       fetchRankingsData()
+      setLastDataUpdate(new Date())
     }
   }, [user, currentDealership?.id, fetchDashboardData, fetchAnalyticsData, fetchRankingsData])
+
+  // Auto-refresh logic for traffic metrics (conservative 5-minute interval)
+  useEffect(() => {
+    if (!autoRefreshEnabled || !user) return
+
+    const refreshInterval = setInterval(async () => {
+      console.log('Auto-refreshing traffic metrics...')
+      try {
+        // Only refresh analytics and rankings data, not dashboard data
+        await fetchAnalyticsData()
+        await fetchRankingsData()
+        setLastDataUpdate(new Date())
+      } catch (error) {
+        console.error('Auto-refresh error:', error)
+      }
+    }, 5 * 60 * 1000) // 5 minutes
+
+    return () => clearInterval(refreshInterval)
+  }, [autoRefreshEnabled, user, fetchAnalyticsData, fetchRankingsData])
+
+  // Enhanced manual refresh handler
+  const handleManualRefresh = useCallback(async () => {
+    setIsManualRefreshing(true)
+    try {
+      await Promise.all([
+        fetchDashboardData(),
+        fetchAnalyticsData(),
+        fetchRankingsData()
+      ])
+      setLastDataUpdate(new Date())
+    } catch (error) {
+      console.error('Manual refresh error:', error)
+    } finally {
+      setIsManualRefreshing(false)
+    }
+  }, [fetchDashboardData, fetchAnalyticsData, fetchRankingsData])
 
   // Redirect if not authenticated
   if (!isLoading && !user) {
@@ -326,23 +368,56 @@ export default function DashboardPage() {
                     <SelectItem value="thisYear">This year</SelectItem>
                   </SelectContent>
                 </Select>
+                
+                {/* Auto-refresh toggle */}
+                <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-300">
+                  <Switch
+                    id="auto-refresh"
+                    checked={autoRefreshEnabled}
+                    onCheckedChange={setAutoRefreshEnabled}
+                  />
+                  <Label htmlFor="auto-refresh" className="text-xs text-slate-600 cursor-pointer">
+                    Auto-refresh
+                    {autoRefreshEnabled && (
+                      <span className="ml-1 text-green-600">(5min)</span>
+                    )}
+                  </Label>
+                </div>
+
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    fetchDashboardData()
-                    fetchAnalyticsData()
-                    fetchRankingsData()
-                  }}
-                  disabled={loading || analyticsLoading || rankingsLoading}
+                  onClick={handleManualRefresh}
+                  disabled={loading || analyticsLoading || rankingsLoading || isManualRefreshing}
                   className="border-slate-300 hover:bg-slate-50"
                 >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${(loading || analyticsLoading || rankingsLoading) ? 'animate-spin' : ''}`} />
-                  Refresh
+                  <RefreshCw className={`h-4 w-4 mr-2 ${(loading || analyticsLoading || rankingsLoading || isManualRefreshing) ? 'animate-spin' : ''}`} />
+                  {isManualRefreshing ? 'Updating...' : 'Refresh'}
                 </Button>
               </div>
             </div>
           </div>
+
+          {/* Data Freshness Indicator */}
+          {lastDataUpdate && (
+            <div className="mb-4 flex items-center justify-between bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${autoRefreshEnabled ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                <span className="text-sm text-slate-600">
+                  Last updated: {lastDataUpdate.toLocaleTimeString()}
+                  {autoRefreshEnabled && (
+                    <span className="ml-2 text-xs text-green-600 font-medium">Auto-refresh enabled</span>
+                  )}
+                </span>
+              </div>
+              {(analyticsLoading || rankingsLoading || isManualRefreshing) && (
+                <div className="flex items-center gap-2 text-xs text-blue-600">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Updating data...</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Connection Status Alert */}
           {analyticsData?.metadata?.connectionStatus && (

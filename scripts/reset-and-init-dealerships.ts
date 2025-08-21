@@ -62,7 +62,8 @@ async function resetAndInitDealerships() {
           pagesUsedThisPeriod: 0,
           blogsUsedThisPeriod: 0,
           gbpPostsUsedThisPeriod: 0,
-          improvementsUsedThisPeriod: 0
+          improvementsUsedThisPeriod: 0,
+          updatedAt: new Date()
         }
       })
       createdDealerships.push(dealership)

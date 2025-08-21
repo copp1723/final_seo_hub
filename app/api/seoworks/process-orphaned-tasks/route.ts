@@ -84,6 +84,7 @@ async function handlePOST(request: NextRequest) {
 
           const newRequest = await prisma.requests.create({
             data: {
+              id: crypto.randomUUID(),
               userId: ownerUserId!,
               dealershipId: ownerDetails?.dealershipId || null,
               agencyId: ownerDetails?.agencyId || null,
@@ -100,6 +101,7 @@ async function handlePOST(request: NextRequest) {
               blogsCompleted: String(orphaned.taskType).toLowerCase() === 'blog' ? 1 : 0,
               gbpPostsCompleted: String(orphaned.taskType).toLowerCase() === 'gbp_post' ? 1 : 0,
               improvementsCompleted: ['improvement', 'maintenance', 'seochange'].includes(String(orphaned.taskType).toLowerCase()) ? 1 : 0,
+              updatedAt: new Date()
             },
           })
 
@@ -119,6 +121,7 @@ async function handlePOST(request: NextRequest) {
             const targetUrl = first?.url || null
             await prisma.tasks.create({
               data: {
+                id: crypto.randomUUID(),
                 userId: newRequest.userId,
                 dealershipId: ownerDetails?.dealershipId || null,
                 agencyId: ownerDetails?.agencyId || null,
@@ -130,6 +133,7 @@ async function handlePOST(request: NextRequest) {
                 targetUrl,
                 requestId: newRequest.id,
                 completedAt: newRequest.completedAt || new Date(),
+                updatedAt: new Date()
               }
             })
           }

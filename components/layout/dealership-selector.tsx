@@ -108,7 +108,7 @@ export function DealershipSelector({ showOnAllPages = false }: DealershipSelecto
         )}
         <div className="flex items-center min-w-0">
           <span className="text-xs text-gray-600 max-w-[80px] lg:max-w-[120px] truncate font-normal">
-            {currentDealership?.name || 'Select Dealership'}
+            {isSwitching ? 'Switching...' : (currentDealership?.name || 'Select Dealership')}
           </span>
         </div>
         

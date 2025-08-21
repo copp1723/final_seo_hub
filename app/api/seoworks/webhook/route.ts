@@ -13,6 +13,7 @@ import { validateRequest, seoworksWebhookSchema } from '@/lib/validations/index'
 
 export const dynamic = 'force-dynamic';
 import { incrementUsage } from '@/lib/package-utils'
+import crypto from 'crypto'
 import { RequestStatus, PackageType, TaskStatus as DbTaskStatus, TaskType as DbTaskType, RequestPriority } from '@prisma/client'
 import { contentAddedTemplate } from '@/lib/mailgun/content-notifications'
 import { queueEmailWithPreferences } from '@/lib/mailgun/queue'
@@ -295,11 +296,13 @@ async function handleTaskCompleted(
             await prisma.seoworks_task_mappings.upsert({
               where: { seoworksTaskId: data.externalId },
               create: {
+                id: crypto.randomUUID(),
                 requestId: updatedRequest.id,
                 seoworksTaskId: data.externalId,
                 taskType: normalizedType,
                 status: 'usage_counted',
-                metadata: { usageCountedAt: new Date().toISOString() }
+                metadata: { usageCountedAt: new Date().toISOString() },
+                updatedAt: new Date()
               },
               update: {
                 status: 'usage_counted',
@@ -543,6 +546,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
         if (orphanedTask.eventType === 'task.completed') {
           const newRequest = await prisma.requests.create({
             data: {
+              id: crypto.randomUUID(),
               userId: userId,
               title: (Array.isArray(orphanedTask.deliverables) && orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0] === 'object' && orphanedTask.deliverables[0] !== null && 'title' in orphanedTask.deliverables[0] && typeof orphanedTask.deliverables[0].title === 'string') ? orphanedTask.deliverables[0].title : `SEOWorks ${orphanedTask.taskType} Task`,
               description: `Task created from orphaned SEOWorks task\n\nOriginal Task ID: ${orphanedTask.externalId}\nCompleted: ${orphanedTask.completionDate || new Date().toISOString()}\n\nOriginal Notes: ${orphanedTask.notes || ''}`,
@@ -551,6 +555,7 @@ async function processOrphanedTasksForUser(userId: string, userEmail?: string) {
               seoworksTaskId: orphanedTask.externalId,
               completedAt: orphanedTask.completionDate ? new Date(orphanedTask.completionDate) : new Date(),
               completedTasks: orphanedTask.deliverables || [] as any,
+              updatedAt: new Date(),
               // Set completed counters based on task type
               pagesCompleted: normalizeTaskType(orphanedTask.taskType) === 'PAGE' ? 1 : 0,
               blogsCompleted: normalizeTaskType(orphanedTask.taskType) === 'BLOG' ? 1 : 0,
@@ -861,25 +866,27 @@ export const POST = compose(
         }
       }
 
-      // OPTIMIZED: Combined dealership and user lookup in one query
+      // OPTIMIZED: Find dealership and associated user separately
       if (!requestRecord && (data.customerId || data.clientId)) {
-        const dealershipWithUser = await prisma.dealerships.findFirst({
-          where: { clientId: (data.customerId as string) || (data.clientId as string) },
-          include: {
-            users: {
-              select: { id: true, agencyId: true, dealershipId: true },
-              take: 1
-            }
-          }
+        const dealership = await prisma.dealerships.findFirst({
+          where: { clientId: (data.customerId as string) || (data.clientId as string) }
         })
-        if (dealershipWithUser?.users[0] && eventType === 'task.completed') {
-          const ownerUser = dealershipWithUser.users[0]
+        
+        if (dealership && eventType === 'task.completed') {
+          // Find a user associated with this dealership
+          const ownerUser = await prisma.users.findFirst({
+            where: { dealershipId: dealership.id },
+            select: { id: true, agencyId: true, dealershipId: true, email: true }
+          })
+          
           if (ownerUser) {
             requestRecord = await prisma.requests.create({
               data: {
+                id: crypto.randomUUID(),
                 userId: ownerUser.id,
                 agencyId: ownerUser.agencyId || null,
-                dealershipId: ownerUser.dealershipId || dealershipWithUser.id,
+                dealershipId: ownerUser.dealershipId || dealership.id,
+                updatedAt: new Date(),
                 title: (Array.isArray(data.deliverables) && data.deliverables[0] && typeof data.deliverables[0] === 'object' && data.deliverables[0] !== null && 'title' in data.deliverables[0] && typeof data.deliverables[0].title === 'string') ? data.deliverables[0].title : `SEOWorks ${normalizeTaskType(data.taskType)} Task`,
                 description: `Task created via SEOWorks customerId mapping\n\nTask ID: ${data.externalId}\nCompleted: ${data.completionDate || new Date().toISOString()}`,
                 type: normalizeTaskType(data.taskType).toLowerCase(),
@@ -891,16 +898,17 @@ export const POST = compose(
                 blogsCompleted: normalizeTaskType(data.taskType) === 'BLOG' ? 1 : 0,
                 gbpPostsCompleted: normalizeTaskType(data.taskType) === 'GBP_POST' ? 1 : 0,
                 improvementsCompleted: normalizeTaskType(data.taskType) === 'IMPROVEMENT' ? 1 : 0
-              },
-              include: { users: true }
+              }
             })
-            logger.info('Created request from SEOWorks customerId mapping', {
-              requestId: requestRecord.id,
-              seoworksTaskId: data.externalId,
-              dealershipId: dealershipWithUser.id,
-              userId: ownerUser.id,
-              taskType: data.taskType
-            })
+            if (requestRecord) {
+              logger.info('Created request from SEOWorks customerId mapping', {
+                requestId: requestRecord.id,
+                seoworksTaskId: data.externalId,
+                dealershipId: dealership.id,
+                userId: ownerUser.id,
+                taskType: data.taskType
+              })
+            }
           }
         }
       }

@@ -121,8 +121,8 @@ async function sendFocusRequestToSEOWorks(data: FocusRequestData) {
       error: error instanceof Error ? error.message : String(error),
       requestId: data.requestId,
       title: data.title,
-      focusUrl: RUNTIME_FOCUS_URL,
-      derivedBaseUrl: RUNTIME_BASE_URL
+      focusUrl: process.env.RUNTIME_FOCUS_URL || 'not-configured',
+      derivedBaseUrl: process.env.RUNTIME_BASE_URL || process.env.NEXTAUTH_URL || 'not-configured'
     })
     throw error
   }

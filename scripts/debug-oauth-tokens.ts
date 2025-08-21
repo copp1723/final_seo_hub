@@ -63,7 +63,7 @@ async function debugOAuthTokens() {
         console.log(`  Is Test Token: ${refreshToken?.startsWith('test_') ? 'YES' : 'NO'}`)
         console.log(`  Updated: ${conn.updatedAt}`)
       } catch (decryptError) {
-        console.log(`\n❌ Failed to decrypt tokens for ${conn.id}:`, decryptError.message)
+        console.log(`\n❌ Failed to decrypt tokens for ${conn.id}:`, decryptError instanceof Error ? decryptError.message : String(decryptError))
       }
     }
     
@@ -98,7 +98,7 @@ async function debugOAuthTokens() {
         console.log(`  Is Test Token: ${refreshToken?.startsWith('test_') ? 'YES' : 'NO'}`)
         console.log(`  Updated: ${conn.updatedAt}`)
       } catch (decryptError) {
-        console.log(`\n❌ Failed to decrypt tokens for ${conn.id}:`, decryptError.message)
+        console.log(`\n❌ Failed to decrypt tokens for ${conn.id}:`, decryptError instanceof Error ? decryptError.message : String(decryptError))
       }
     }
     

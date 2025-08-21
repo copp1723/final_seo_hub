@@ -127,7 +127,11 @@ export async function POST(request: NextRequest) {
       dealership: {
         id: dealership.id,
         name: dealership.name
-      }
+      },
+      // Add validation information (safe, non-breaking addition)
+      switchedFromDealershipId: previousDealershipId,
+      userId: session.user.id,
+      timestamp: Date.now()
     })
 
   }, {
@@ -237,7 +241,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       currentDealership,
-      availableDealerships
+      availableDealerships,
+      // Add validation information (safe, non-breaking addition)
+      userId: session.user.id,
+      userRole: session.user.role,
+      agencyId: currentUser?.agencies?.id,
+      timestamp: Date.now()
     })
 
   } catch (error) {

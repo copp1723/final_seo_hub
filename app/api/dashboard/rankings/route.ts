@@ -50,7 +50,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       data: rankingsData,
       cached: false,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      // Add dealership ID for verification (safe, non-breaking addition)
+      dealershipId: dealershipId,
+      userId: session.user.id
     })
 
   } catch (error) {

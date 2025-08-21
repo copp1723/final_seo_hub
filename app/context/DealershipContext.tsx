@@ -79,6 +79,12 @@ export function DealershipProvider({ children }: { children: ReactNode }) {
         // Clear localStorage if no dealerships available
         localStorage.removeItem('selectedDealershipId')
       } else {
+        console.log('📋 DEALERSHIP FETCH - Available Dealerships:', {
+          count: data.availableDealerships.length,
+          dealerships: data.availableDealerships.map((d: Dealership) => ({ id: d.id, name: d.name })),
+          serverCurrentDealership: data.currentDealership,
+          timestamp: new Date().toISOString()
+        })
         setAvailableDealerships(data.availableDealerships)
         
         // If no current dealership from server, check localStorage
@@ -98,6 +104,11 @@ export function DealershipProvider({ children }: { children: ReactNode }) {
             setCurrentDealership(data.currentDealership)
           }
         } else {
+          console.log('🎯 DEALERSHIP FETCH - Setting Current Dealership:', {
+            dealership: data.currentDealership,
+            source: 'server',
+            timestamp: new Date().toISOString()
+          })
           setCurrentDealership(data.currentDealership)
           // Sync localStorage with server's current dealership
           if (data.currentDealership?.id) {
@@ -147,22 +158,27 @@ export function DealershipProvider({ children }: { children: ReactNode }) {
       // Update current dealership immediately for instant UI feedback
       const newDealership = availableDealerships.find(d => d.id === dealershipId)
       if (newDealership) {
+        console.log('🔄 DEALERSHIP SWITCH - Context Update:', {
+          from: { id: currentDealership?.id, name: currentDealership?.name },
+          to: { id: newDealership.id, name: newDealership.name },
+          availableCount: availableDealerships.length,
+          timestamp: new Date().toISOString()
+        })
         setCurrentDealership(newDealership)
         // Save to localStorage for persistence across page loads and API calls
         localStorage.setItem('selectedDealershipId', dealershipId)
       }
 
       // Dispatch event for components that need to react to dealership changes
-      // Add a small delay to ensure state has propagated
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('dealershipChanged', {
-          detail: { 
-            dealership: result.dealership,
-            previousDealership: currentDealership,
-            invalidateCache: true
-          }
-        }))
-      }, 50)
+      // Make synchronous to avoid race conditions with data fetching
+      window.dispatchEvent(new CustomEvent('dealershipChanged', {
+        detail: { 
+          dealership: result.dealership,
+          previousDealership: currentDealership,
+          invalidateCache: true,
+          timestamp: Date.now()
+        }
+      }))
 
       logger.info('Dealership switched successfully', {
         from: currentDealership?.id,

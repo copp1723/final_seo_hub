@@ -3,6 +3,7 @@
 import { PrismaClient } from '@prisma/client'
 import { generateSecureToken } from '../lib/crypto-utils'
 import { sendInvitationEmail } from '../lib/mailgun/invitation'
+import crypto from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -48,6 +49,7 @@ async function sendInvitationToJohn() {
       // Create new SUPER_ADMIN user
       existingUser = await prisma.users.create({
         data: {
+          id: crypto.randomUUID(),
           email: targetEmail,
           name: 'John Customer Scout',
           role: 'SUPER_ADMIN',
@@ -96,6 +98,7 @@ async function sendInvitationToJohn() {
     console.log('\n📝 Logging to audit trail...')
     await prisma.audit_logs.create({
       data: {
+        id: crypto.randomUUID(),
         action: 'INVITATION_SENT',
         entityType: 'USER',
         entityId: existingUser.id,

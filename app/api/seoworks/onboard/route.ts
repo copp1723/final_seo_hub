@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
     // Create initial request with onboarding data
     const setupRequest = await prisma.requests.create({
       data: {
+        id: crypto.randomUUID(),
         userId: user.id,
         // Note: agencyId and dealershipId are null for legacy onboarding
         agencyId: null,
@@ -160,7 +161,8 @@ export async function POST(req: NextRequest) {
           targetDealers: targetDealers,
           onboardedAt: payload.timestamp,
           source: 'seoworks_onboarding'
-        }]
+        }],
+        updatedAt: new Date()
       }
     })
 

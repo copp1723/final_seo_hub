@@ -73,7 +73,7 @@ async function fixOAuthTestTokens(): Promise<CleanupStats> {
     console.log(`📊 Found ${ga4Connections.length} GA4 connections`)
 
     // Check each GA4 connection for test tokens
-    const testGA4Connections = []
+    const testGA4Connections: Array<any> = []
     for (const conn of ga4Connections) {
       const hasTestAccessToken = isTestToken(conn.accessToken)
       const hasTestRefreshToken = isTestToken(conn.refreshToken)
@@ -117,7 +117,7 @@ async function fixOAuthTestTokens(): Promise<CleanupStats> {
     console.log(`🔍 Found ${scConnections.length} Search Console connections`)
 
     // Check each SC connection for test tokens
-    const testSCConnections = []
+    const testSCConnections: Array<any> = []
     for (const conn of scConnections) {
       const hasTestAccessToken = isTestToken(conn.accessToken)
       const hasTestRefreshToken = isTestToken(conn.refreshToken)

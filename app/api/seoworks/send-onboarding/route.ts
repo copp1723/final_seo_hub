@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
     // Create initial request
     const setupRequest = await prisma.requests.create({
       data: {
+        id: crypto.randomUUID(),
         userId: user.id,
         // Note: agencyId and dealershipId are null for standalone users
         agencyId: null,
@@ -157,7 +158,8 @@ export async function POST(request: NextRequest) {
         targetUrl: dealerData.websiteUrl,
         keywords: dealerData.targetVehicleModels,
         targetCities: dealerData.targetCities,
-        targetModels: dealerData.targetVehicleModels
+        targetModels: dealerData.targetVehicleModels,
+        updatedAt: new Date()
       }
     })
 

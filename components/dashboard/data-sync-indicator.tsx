@@ -13,6 +13,7 @@ interface DataSyncIndicatorProps {
   dealershipName?: string
   onRefresh?: () => void
   className?: string
+  isSwitchingDealership?: boolean
 }
 
 interface DataSource {
@@ -31,7 +32,8 @@ export function DataSyncIndicator({
   hasSearchConsoleConnection,
   dealershipName,
   onRefresh,
-  className
+  className,
+  isSwitchingDealership
 }: DataSyncIndicatorProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -65,6 +67,7 @@ export function DataSyncIndicator({
   }
 
   const getStatusMessage = () => {
+    if (isSwitchingDealership) return 'Switching dealership...'
     if (isLoading) return 'Loading data...'
     if (allDataLoaded) return 'All data synchronized'
     if (partialData) return 'Partial data available'
@@ -73,7 +76,7 @@ export function DataSyncIndicator({
   }
 
   const getStatusColor = () => {
-    if (isLoading) return 'text-blue-600'
+    if (isSwitchingDealership || isLoading) return 'text-blue-600'
     if (allDataLoaded) return 'text-emerald-600'
     if (partialData) return 'text-yellow-600'
     return 'text-red-600'
@@ -82,7 +85,7 @@ export function DataSyncIndicator({
   return (
     <div className={cn(
       "flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all duration-300",
-      isLoading ? "bg-blue-50/60 border-blue-200/60" :
+      (isSwitchingDealership || isLoading) ? "bg-blue-50/60 border-blue-200/60" :
       allDataLoaded ? "bg-emerald-50/60 border-emerald-200/60" :
       partialData ? "bg-yellow-50/60 border-yellow-200/60" :
       "bg-red-50/60 border-red-200/60",
@@ -90,7 +93,7 @@ export function DataSyncIndicator({
     )}>
       {/* Status Icon */}
       <div className="flex-shrink-0">
-        {isLoading || isRefreshing ? (
+        {isSwitchingDealership || isLoading || isRefreshing ? (
           <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
         ) : allDataLoaded ? (
           <CheckCircle className="h-4 w-4 text-emerald-500" />

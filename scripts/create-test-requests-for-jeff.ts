@@ -48,7 +48,8 @@ async function createTestRequestsForJeff() {
           packageType: PackageType.GOLD,
           targetCities: ['Pittsburg', 'Joplin', 'Parsons'],
           targetModels: ['Chevrolet Silverado', 'Chevrolet Equinox'],
-          keywords: ['chevrolet dealer', 'new cars pittsburg']
+          keywords: ['chevrolet dealer', 'new cars pittsburg'],
+          updatedAt: new Date()
         }
       })
       requests.push(request)
@@ -68,7 +69,8 @@ async function createTestRequestsForJeff() {
           priority: RequestPriority.MEDIUM,
           packageType: PackageType.GOLD,
           targetCities: ['Pittsburg', 'Joplin'],
-          keywords: ['car maintenance', 'automotive tips']
+          keywords: ['car maintenance', 'automotive tips'],
+          updatedAt: new Date()
         }
       })
       requests.push(request)
@@ -87,7 +89,8 @@ async function createTestRequestsForJeff() {
           status: RequestStatus.IN_PROGRESS,
           priority: RequestPriority.MEDIUM,
           packageType: PackageType.GOLD,
-          targetCities: ['Pittsburg']
+          targetCities: ['Pittsburg'],
+          updatedAt: new Date()
         }
       })
       requests.push(request)

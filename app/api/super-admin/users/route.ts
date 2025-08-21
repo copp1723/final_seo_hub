@@ -343,6 +343,25 @@ export const DELETE = withErrorBoundary(async (request: NextRequest) => {
   }
 
   await safeDbOperation(async () => {
+    // First check if user has any requests
+    const requestCount = await prisma.requests.count({
+      where: { userId: userId }
+    })
+    
+    if (requestCount > 0) {
+      // Set userId to null in all their requests (preserve the request data)
+      await prisma.requests.updateMany({
+        where: { userId: userId },
+        data: { userId: null }
+      })
+      
+      logger.info('Unlinked user from requests before deletion', {
+        userId,
+        requestCount
+      })
+    }
+    
+    // Now safely delete the user
     return prisma.users.delete({
       where: { id: userId }
     })

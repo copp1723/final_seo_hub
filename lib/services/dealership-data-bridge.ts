@@ -126,21 +126,29 @@ export class DealershipDataBridge {
       }
     }
 
-    // 3. Check for agency-level GA4 connection
+    // 3. Check for agency-level GA4 connection (ONLY as a fallback when dealership has no specific connection)
+    // This should NOT return random data from other dealerships in the same agency
     if (user.agencyId) {
-      const agencyDealerships = await prisma.dealerships.findMany({
-        where: { agencyId: user.agencyId },
-        select: { id: true }
-      })
-
-      const dealershipIds = agencyDealerships.map(d => d.id)
-      
+      // Look for a general agency connection (not tied to specific dealerships)
       const agencyGA4 = await prisma.ga4_connections.findFirst({
-        where: { dealershipId: { in: dealershipIds } },
+        where: { 
+          dealershipId: null, // Agency-level connection, not tied to specific dealership
+          userId: { 
+            in: await prisma.users.findMany({
+              where: { agencyId: user.agencyId, role: { in: ['AGENCY_ADMIN', 'SUPER_ADMIN'] } },
+              select: { id: true }
+            }).then(users => users.map(u => u.id))
+          }
+        },
         orderBy: { updatedAt: 'desc' }
       })
 
       if (agencyGA4 && agencyGA4.accessToken && agencyGA4.propertyId) {
+        logger.info('Using agency-level GA4 connection for dealership', { 
+          dealershipId, 
+          connectionId: agencyGA4.id,
+          propertyId: agencyGA4.propertyId
+        })
         return {
           hasConnection: true,
           propertyId: agencyGA4.propertyId,
@@ -215,21 +223,29 @@ export class DealershipDataBridge {
       }
     }
 
-    // 3. Check for agency-level Search Console connection
+    // 3. Check for agency-level Search Console connection (ONLY as a fallback when dealership has no specific connection)
+    // This should NOT return random data from other dealerships in the same agency
     if (user.agencyId) {
-      const agencyDealerships = await prisma.dealerships.findMany({
-        where: { agencyId: user.agencyId },
-        select: { id: true }
-      })
-
-      const dealershipIds = agencyDealerships.map(d => d.id)
-      
+      // Look for a general agency connection (not tied to specific dealerships)
       const agencySC = await prisma.search_console_connections.findFirst({
-        where: { dealershipId: { in: dealershipIds } },
+        where: { 
+          dealershipId: null, // Agency-level connection, not tied to specific dealership
+          userId: { 
+            in: await prisma.users.findMany({
+              where: { agencyId: user.agencyId, role: { in: ['AGENCY_ADMIN', 'SUPER_ADMIN'] } },
+              select: { id: true }
+            }).then(users => users.map(u => u.id))
+          }
+        },
         orderBy: { updatedAt: 'desc' }
       })
 
       if (agencySC && agencySC.accessToken && agencySC.siteUrl) {
+        logger.info('Using agency-level Search Console connection for dealership', { 
+          dealershipId, 
+          connectionId: agencySC.id,
+          siteUrl: agencySC.siteUrl
+        })
         return {
           hasConnection: true,
           siteUrl: agencySC.siteUrl,

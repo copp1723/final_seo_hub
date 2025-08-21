@@ -19,6 +19,7 @@ async function setupOneKeelAgency() {
     } else {
       agency = await prisma.agencies.create({
         data: {
+          id: crypto.randomUUID(),
           name: 'OneKeel.ai',
           slug: 'onekeel-ai',
           domain: 'onekeel.ai',
@@ -27,7 +28,8 @@ async function setupOneKeelAgency() {
           plan: 'enterprise',
           status: 'active',
           maxUsers: 50,
-          maxConversations: 1000
+          maxConversations: 1000,
+          updatedAt: new Date()
         }
       })
       console.log('✅ Created OneKeel.ai agency:', agency.id)
@@ -54,6 +56,7 @@ async function setupOneKeelAgency() {
     } else {
       adminUser = await prisma.users.create({
         data: {
+          id: crypto.randomUUID(),
           email: adminEmail,
           name: 'OneKeel Agency Admin',
           role: 'AGENCY_ADMIN',

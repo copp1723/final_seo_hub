@@ -107,13 +107,37 @@ export async function POST(request: NextRequest) {
     })
 
     // Verify Mailgun signature for security
-    // Mailgun may send headers with different casing or in form data
+    // Mailgun may send different content types, handle them appropriately
+    const contentType = request.headers.get('content-type') || ''
     let formData: FormData
+    let requestBody: any
+    
     try {
-      formData = await request.formData()
+      if (contentType.includes('application/json')) {
+        // Handle JSON webhook data
+        requestBody = await request.json()
+        // Convert JSON to FormData-like object for compatibility
+        formData = new FormData()
+        Object.entries(requestBody).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            formData.append(key, String(value))
+          }
+        })
+      } else if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+        // Handle standard form data
+        formData = await request.formData()
+      } else {
+        // Try form data as fallback, but log the content type
+        logger.warn('Unexpected Content-Type from Mailgun webhook', { contentType })
+        formData = await request.formData()
+      }
     } catch (error) {
-      logger.error('Failed to parse form data from Mailgun webhook', error)
-      return errorResponse('Invalid form data', 400)
+      logger.error('Failed to parse request data from Mailgun webhook', { 
+        error, 
+        contentType,
+        hasBody: request.body !== null
+      })
+      return errorResponse('Invalid request data format', 400)
     }
     
     // Try to get signature from headers first, then from form data

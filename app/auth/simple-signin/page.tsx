@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,14 +13,16 @@ export default function SimpleSignIn() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, isLoading: authLoading } = useAuth()
+  const isLogout = searchParams?.get('logout') === 'true'
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but not if we're logging out)
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !isLogout) {
       router.push('/dashboard')
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, isLogout])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,7 +58,7 @@ export default function SimpleSignIn() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Sign in to GSEO Hub</CardTitle>
           <CardDescription className="text-center">
-            Enter your email to access the platform
+            {isLogout ? 'You have been signed out successfully' : 'Enter your email to access the platform'}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -33,10 +33,13 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+const SESSION_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
 export function SimpleAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
 
   const checkSession = async () => {
@@ -48,7 +51,16 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       if (response.ok) {
         const data = await response.json();
         if (data.authenticated && data.user) {
-          setUser(data.user);
+          // Only set user if we're not in the middle of a logout process
+          const isLogoutRedirect = typeof window !== 'undefined' && 
+            window.location.pathname.includes('/auth/simple-signin') && 
+            window.location.search.includes('logout=true');
+          
+          if (!isLogoutRedirect) {
+            setUser(data.user);
+          } else {
+            setUser(null);
+          }
         } else {
           setUser(null);
         }
@@ -64,18 +76,23 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   };
 
   const signOut = async () => {
+    if (isSigningOut) return; // Prevent multiple simultaneous calls
+    
     try {
-      // Clear user state immediately to prevent UI issues
+      setIsSigningOut(true);
       setUser(null);
       
-      // Try to call logout API, but don't let it block the logout flow
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      const response = await fetch('/api/auth/logout', { 
+        method: 'POST', 
+        credentials: 'include' 
+      });
+      
+      window.location.href = '/auth/simple-signin?logout=true';
     } catch (e) {
       console.error('Logout error', e);
-      // Don't throw - let logout continue even if API fails
+      window.location.href = '/auth/simple-signin?logout=true';
     } finally {
-      // Always redirect to signin, regardless of API success/failure
-      window.location.href = '/auth/simple-signin';
+      setIsSigningOut(false);
     }
   };
 
@@ -109,7 +126,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     checkSession();
 
     // Check session every 5 minutes
-    const interval = setInterval(checkSession, 5 * 60 * 1000);
+    const interval = setInterval(checkSession, SESSION_CHECK_INTERVAL);
 
     // Check session on window focus - only if window is available
     const handleFocus = () => checkSession();

@@ -15,15 +15,29 @@ function getCookieDomain(host?: string | null) {
 }
 
 function clearSessionCookie(response: NextResponse, host?: string | null) {
-  const domain = process.env.NODE_ENV === 'production' ? getCookieDomain(host) : undefined
-  response.cookies.set(SimpleAuth.COOKIE_NAME, '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,
-    path: '/',
-    domain
-  })
+  const cookieName = SimpleAuth.COOKIE_NAME;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Clear cookie with all possible domain variations
+  const domains = [];
+  if (isProduction && host) {
+    const baseDomain = getCookieDomain(host);
+    if (baseDomain) domains.push(baseDomain);
+    domains.push(host.split(':')[0]); // Without port
+  }
+  domains.push(undefined); // No domain
+  
+  // Clear cookie with all domain variations
+  domains.forEach(domain => {
+    response.cookies.set(cookieName, '', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/',
+      ...(domain && { domain })
+    });
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -37,8 +51,11 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     logger.error('Logout error', error)
-    // Always clear cookies even if there's an error
-    const response = NextResponse.json({ success: true })
+    // Clear cookies even if there's an error but return proper error response
+    const response = NextResponse.json({ 
+      success: false, 
+      error: 'Logout failed' 
+    }, { status: 500 })
     clearSessionCookie(response, request.headers.get('host'))
     return response
   }
@@ -55,6 +72,8 @@ export async function GET(request: NextRequest) {
     return redirect
   } catch (error) {
     logger.error('Logout error', error)
-    return NextResponse.redirect(new URL('/auth/error?error=Configuration', request.url))
+    const redirect = NextResponse.redirect(new URL('/auth/simple-signin?error=logout_failed', request.url))
+    clearSessionCookie(redirect, request.headers.get('host'))
+    return redirect
   }
 }

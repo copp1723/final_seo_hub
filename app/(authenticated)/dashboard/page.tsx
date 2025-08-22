@@ -481,7 +481,7 @@ export default function DashboardPage() {
                       <p>• Google Search Console is not connected for this dealership</p>
                     )}
                     <p className="mt-2 text-xs">
-                      Connect these services in Settings to see real analytics data for this dealership.
+                      Connect these services in Settings by providing your agency access or contact our team for help.
                     </p>
                   </div>
                 </div>
@@ -504,7 +504,7 @@ export default function DashboardPage() {
                 {analyticsData?.metadata?.connectionStatus?.ga4.connected === false ? (
                   <div className="text-center py-8 text-slate-500">
                     <div className="text-sm">Google Analytics 4 not connected</div>
-                    <div className="text-xs mt-1">Connect GA4 in Settings to see traffic data</div>
+                    <div className="text-xs mt-1">Connect GA4 in Settings by providing agency access or contact our team</div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-6">
@@ -540,7 +540,7 @@ export default function DashboardPage() {
                 {analyticsData?.metadata?.connectionStatus?.searchConsole.connected === false ? (
                   <div className="text-center py-8 text-slate-500">
                     <div className="text-sm">Google Search Console not connected</div>
-                    <div className="text-xs mt-1">Connect Search Console in Settings to see search data</div>
+                    <div className="text-xs mt-1">Connect Search Console in Settings by providing agency access or contact our team</div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-6">
@@ -638,7 +638,7 @@ export default function DashboardPage() {
                     {analyticsData?.metadata?.connectionStatus?.searchConsole.connected === false ? (
                       <div className="text-center py-4 text-slate-500">
                         <div className="text-sm">Search Console not connected</div>
-                        <div className="text-xs mt-1">Connect Search Console in Settings to see keyword data</div>
+                        <div className="text-xs mt-1">Connect Search Console in Settings by providing agency access or contact our team</div>
                       </div>
                     ) : analyticsData?.searchConsoleData?.topQueries && analyticsData.searchConsoleData.topQueries.length > 0 ? (
                       analyticsData.searchConsoleData.topQueries

@@ -5,6 +5,7 @@ import { encrypt } from '@/lib/encryption'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { oauthDealershipResolver } from '@/lib/services/oauth-dealership-resolver'
+import { getSearchConsoleUrl } from '@/lib/dealership-property-mapping'
 
 export const dynamic = 'force-dynamic';
 
@@ -115,8 +116,23 @@ export async function GET(req: NextRequest) {
     oauth2Client.setCredentials(tokens)
     const searchConsole = google.searchconsole({ version: 'v1', auth: oauth2Client })
     
-    let siteUrl = 'https://jayhatfieldchevrolet.com/'
-    let siteName = 'jayhatfieldchevrolet.com'
+    // Resolve correct dealership for this OAuth connection first
+    const dealershipResolution = await oauthDealershipResolver.resolveDealershipForCallback(session.user.id, stateData)
+    
+    if (!dealershipResolution.isValid) {
+      logger.error('Search Console OAuth: Invalid dealership resolution', {
+        userId: session.user.id,
+        reason: dealershipResolution.reason
+      })
+      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=access_denied`)
+    }
+
+    const dealershipId = dealershipResolution.dealershipId
+    
+    // Get dealership-specific Search Console URL as default
+    const mappedUrl = getSearchConsoleUrl(dealershipId)
+    let siteUrl = mappedUrl || 'https://example.com/'
+    let siteName = mappedUrl ? mappedUrl.replace(/https?:\/\//, '').replace(/\/$/, '') : 'example.com'
     
     try {
       // Try to get user's Search Console sites
@@ -146,19 +162,6 @@ export async function GET(req: NextRequest) {
       })
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=${encodeURIComponent('Database error')}`)
     }
-
-    // Resolve correct dealership for this OAuth connection
-    const dealershipResolution = await oauthDealershipResolver.resolveDealershipForCallback(session.user.id, stateData)
-    
-    if (!dealershipResolution.isValid) {
-      logger.error('Search Console OAuth: Invalid dealership resolution', {
-        userId: session.user.id,
-        reason: dealershipResolution.reason
-      })
-      return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/settings?tab=integrations&status=error&service=search_console&error=access_denied`)
-    }
-
-    const dealershipId = dealershipResolution.dealershipId
     logger.info('Creating Search Console connection with resolved dealership', { 
       userId: session.user.id, 
       dealershipId, 

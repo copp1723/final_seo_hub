@@ -127,7 +127,10 @@ export class DealershipDataBridge {
     }
 
     // 3. Check for agency-level GA4 connection (ONLY as a fallback when dealership has no specific connection)
-    // This should NOT return random data from other dealerships in the same agency
+    // DISABLED: Agency-level GA4 fallback causes data contamination
+    // This was returning wrong dealership data when specific connections existed but were corrupted
+    // Keep this disabled until we have proper dealership validation in place
+    /*
     if (user.agencyId) {
       // Look for a general agency connection (not tied to specific dealerships)
       const agencyGA4 = await prisma.ga4_connections.findFirst({
@@ -157,6 +160,7 @@ export class DealershipDataBridge {
         }
       }
     }
+    */
 
     // 4. Fallback to user-level connection
     const userGA4 = await prisma.ga4_connections.findFirst({
@@ -198,9 +202,25 @@ export class DealershipDataBridge {
     })
 
     if (dealershipSC && dealershipSC.accessToken && dealershipSC.siteUrl) {
+      // VALIDATION: Check if the stored siteUrl matches the expected URL for this dealership
+      const expectedUrl = getSearchConsoleUrl(dealershipId)
+      let validatedSiteUrl = dealershipSC.siteUrl
+      
+      if (expectedUrl && dealershipSC.siteUrl !== expectedUrl) {
+        // The stored URL doesn't match what this dealership should have
+        // This indicates database corruption from previous hard-coded defaults
+        logger.warn('Search Console URL mismatch detected - using correct mapping', {
+          dealershipId,
+          storedUrl: dealershipSC.siteUrl,
+          expectedUrl,
+          connectionId: dealershipSC.id
+        })
+        validatedSiteUrl = expectedUrl
+      }
+      
       return {
         hasConnection: true,
-        siteUrl: dealershipSC.siteUrl,
+        siteUrl: validatedSiteUrl,
         connectionId: dealershipSC.id,
         source: 'dealership' as const
       }

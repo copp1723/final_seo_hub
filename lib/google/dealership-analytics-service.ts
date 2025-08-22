@@ -628,9 +628,7 @@ export class DealershipAnalyticsService {
       }
 
       // Validate dealership access
-      console.log('🔍 [RANKINGS DEBUG] About to call validateDealershipAccess:', { userId, dealershipId })
       const hasAccess = await dealershipDataBridge.validateDealershipAccess(userId, dealershipId)
-      console.log('🔍 [RANKINGS DEBUG] validateDealershipAccess result:', hasAccess)
       if (!hasAccess) {
         logger.warn('User does not have access to dealership for rankings', { userId, dealershipId })
         return {

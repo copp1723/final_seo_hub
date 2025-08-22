@@ -17,7 +17,7 @@ import {
   Shield
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import DealershipSwitcher from '@/components/ui/dealership-switcher'
+// import DealershipSwitcher from '@/components/ui/dealership-switcher'
 import { Logo } from '@/components/ui/logo'
 
 const navItems = [
@@ -148,8 +148,8 @@ export function Navigation() {
           {/* User Menu */}
           <div className="flex items-center gap-1 lg:gap-4">
             
-            {/* Dealership Switcher */}
-            <DealershipSwitcher />
+            {/* Dealership Switcher - Temporarily disabled */}
+            {/* <DealershipSwitcher /> */}
             
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>

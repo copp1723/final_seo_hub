@@ -289,6 +289,17 @@ export default function DashboardPage() {
     }
   }, [user, currentDealership?.id, fetchDashboardData, fetchAnalyticsData, fetchRankingsData])
 
+  // Trigger data fetch when dealership switching completes
+  useEffect(() => {
+    if (!isSwitching && user && currentDealership?.id) {
+      console.log('Dealership switching completed, refreshing data for:', currentDealership.name)
+      fetchDashboardData()
+      fetchAnalyticsData()
+      fetchRankingsData()
+      setLastDataUpdate(new Date())
+    }
+  }, [isSwitching, user, currentDealership?.id, currentDealership?.name, fetchDashboardData, fetchAnalyticsData, fetchRankingsData])
+
   // Auto-refresh logic for traffic metrics (conservative 5-minute interval)
   useEffect(() => {
     if (!autoRefreshEnabled || !user) return
@@ -327,7 +338,7 @@ export default function DashboardPage() {
 
   // Redirect if not authenticated
   if (!isLoading && !user) {
-    redirect('/login')
+    redirect('/auth/simple-signin')
   }
 
   // Show loading state

@@ -49,10 +49,10 @@ interface User {
   isActive: boolean
   emailVerified: boolean
   agencyId: string | null
-  agency?: {
+  agencies?: {
     id: string
     name: string
-  }
+  } | null
   dealershipId: string | null
   dealership?: {
     id: string
@@ -414,7 +414,7 @@ export default function UsersManagement() {
                     </td>
                     <td className="p-3">
                       <div className="text-sm">
-                        {user.agency?.name || 'No agency'}
+                        {user.agencies?.name || 'No agency'}
                         {user.dealership && (
                           <div className="text-xs text-gray-500">{user.dealership.name}</div>
                         )}

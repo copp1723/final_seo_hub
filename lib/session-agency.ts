@@ -32,13 +32,17 @@ export class SessionAgencyManager {
       throw new Error('Agency not found')
     }
 
+    // We need to store the agency selection without violating foreign key constraints
+    // For now, we'll store it in a way that doesn't conflict with the dealership FK
     await prisma.users.update({
       where: { id: userId },
       data: { 
-        // Store in currentDealershipId temporarily - we'll use this field for session agency
-        // This is a temporary solution until we create proper session table
-        currentDealershipId: `agency:${agencyId}`,
-        dealershipId: null // Clear current dealership when switching agencies
+        // Clear current dealership when switching agencies
+        currentDealershipId: null,
+        dealershipId: null,
+        // Store agency selection in a field that doesn't have FK constraints
+        // We'll use the agencyId field temporarily for session selection
+        agencyId: agencyId
       }
     })
   }
@@ -54,13 +58,13 @@ export class SessionAgencyManager {
     try {
       const user = await prisma.users.findUnique({
         where: { id: userId },
-        select: { currentDealershipId: true }
+        select: { agencyId: true, role: true }
       })
 
-      // Extract agency ID from the stored format
-      const storedValue = user?.currentDealershipId
-      if (storedValue && storedValue.startsWith('agency:')) {
-        return storedValue.replace('agency:', '')
+      // For SUPER_ADMIN users, the agencyId represents their session selection
+      // For other users, agencyId is their permanent assignment
+      if (user?.role === 'SUPER_ADMIN' && user.agencyId) {
+        return user.agencyId
       }
 
       return null
@@ -76,7 +80,11 @@ export class SessionAgencyManager {
   static async clearSelectedAgency(userId: string): Promise<void> {
     await prisma.users.update({
       where: { id: userId },
-      data: { currentDealershipId: null }
+      data: { 
+        agencyId: null,
+        currentDealershipId: null,
+        dealershipId: null
+      }
     })
   }
 

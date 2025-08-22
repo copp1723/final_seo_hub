@@ -31,20 +31,35 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { dealershipId } = switchDealershipSchema.parse(body)
 
-    // Handle super admin user
+    // Get current user for agency check
+    const currentUser = await prisma.users.findUnique({
+      where: { id: session.user.id }
+    })
+
+    // Handle super admin user - but only allow access to their agency if they have one
     if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
+      const whereClause = (currentUser?.agencyId) 
+        ? { id: dealershipId, agencyId: currentUser.agencyId } // SUPER_ADMIN with agency can only access their agency
+        : { id: dealershipId } // Only unassigned SUPER_ADMIN can access any dealership
+        
       const dealership = await safeDbOperation(() => 
         prisma.dealerships.findUnique({
-          where: { id: dealershipId }
+          where: whereClause
         })
       )
       
       if (!dealership) {
         return NextResponse.json(
-          { error: 'Dealership not found' },
+          { error: 'Dealership not found or access denied' },
           { status: 404 }
         )
       }
+      
+      // Update user's dealership assignment
+      await prisma.users.update({
+        where: { id: session.user.id },
+        data: { dealershipId: dealership.id }
+      })
       
       return NextResponse.json({
         success: true,
@@ -54,11 +69,6 @@ export async function POST(request: NextRequest) {
         }
       })
     }
-
-    // Get current user
-    const currentUser = await prisma.users.findUnique({
-      where: { id: session.user.id }
-    })
 
     // SUPER_ADMIN users don't need an agencyId, but other users do
     if (!currentUser?.agencyId && session.user.role !== 'SUPER_ADMIN') {
@@ -162,9 +172,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Handle super admin user
+    // Get current user first for agency check
+    const currentUser = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      include: {
+        agencies: true
+      }
+    })
+
+    // Handle super admin user - but respect agency boundaries if they have an agency
     if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
+      const whereClause = (currentUser?.agencyId) 
+        ? { agencyId: currentUser.agencyId } // SUPER_ADMIN with agency sees only their agency
+        : {} // Only unassigned SUPER_ADMIN sees all dealerships
+        
       const dealerships = await prisma.dealerships.findMany({
+        where: whereClause,
         orderBy: { name: 'asc' }
       })
 
@@ -173,21 +196,28 @@ export async function GET(request: NextRequest) {
         name: dealership.name
       }))
 
-      // Super admins don't need to persist dealershipId; just return
+      // Determine current dealership
+      let currentDealership = null
+      if (currentUser?.dealershipId) {
+        const userDealership = dealerships.find(d => d.id === currentUser.dealershipId)
+        if (userDealership) {
+          currentDealership = {
+            id: userDealership.id,
+            name: userDealership.name
+          }
+        }
+      }
+      
+      // Fallback to first available dealership if no current one is set
+      if (!currentDealership && availableDealerships.length > 0) {
+        currentDealership = availableDealerships[0]
+      }
 
       return NextResponse.json({
-        currentDealership: availableDealerships.length > 0 ? availableDealerships[0] : null,
+        currentDealership,
         availableDealerships
       })
     }
-
-    // Get current user
-    const currentUser = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      include: {
-        agencies: true
-      }
-    })
 
     // SUPER_ADMIN users don't need an agencyId, but other users do
     if (!currentUser?.agencies?.id && session.user.role !== 'SUPER_ADMIN') {
@@ -198,11 +228,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all dealerships for the agency
+    // FIXED: SUPER_ADMIN users with agency assignment should only see their agency's dealerships
     const dealerships = await prisma.dealerships.findMany({
-      where: session.user.role === 'SUPER_ADMIN'
-        ? {} // SUPER_ADMIN can see all dealerships
+      where: (session.user.role === 'SUPER_ADMIN' && !currentUser?.agencyId)
+        ? {} // Only unassigned SUPER_ADMIN can see all dealerships
         : {
-            agencyId: currentUser?.agencies?.id
+            agencyId: currentUser?.agencies?.id || currentUser?.agencyId
           },
       orderBy: { name: 'asc' }
     });

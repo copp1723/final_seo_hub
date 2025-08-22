@@ -31,7 +31,10 @@ console.log(`[Middleware] Path: ${pathname}`);
   }
 
   // Protect all app routes except explicitly public ones
-  const isPublic = pathname === '/' || pathname.startsWith('/privacy') || pathname.startsWith('/terms')
+  // NOTE: Do not treat the root path '/' as public — if a user has no session
+  // we should send them to the sign-in page instead of serving a missing
+  // root page (which caused a 404 after clearing browser cache).
+  const isPublic = pathname.startsWith('/privacy') || pathname.startsWith('/terms')
   const isApi = pathname.startsWith('/api')
 
   if (!isPublic && !isApi && !session) {

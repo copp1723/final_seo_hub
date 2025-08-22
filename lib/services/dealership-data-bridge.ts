@@ -162,18 +162,47 @@ export class DealershipDataBridge {
     }
     */
 
-    // 4. Fallback to user-level connection
+    // 4. Fallback to user-level connection (with property validation)
     const userGA4 = await prisma.ga4_connections.findFirst({
       where: { userId },
       orderBy: { updatedAt: 'desc' }
     })
 
     if (userGA4 && userGA4.accessToken && userGA4.propertyId) {
-      return {
-        hasConnection: true,
-        propertyId: userGA4.propertyId,
-        connectionId: userGA4.id,
-        source: 'user' as const
+      // ROOT FIX: Apply same property validation to user connections
+      const expectedPropertyId = getGA4PropertyId(dealershipId)
+      
+      if (expectedPropertyId) {
+        // We have a mapping - ALWAYS use it, ignore user connection property
+        if (userGA4.propertyId !== expectedPropertyId) {
+          logger.warn('User GA4 property override - enforcing correct dealership property', {
+            dealershipId,
+            userPropertyId: userGA4.propertyId,
+            correctPropertyId: expectedPropertyId,
+            connectionId: userGA4.id
+          })
+        }
+        
+        return {
+          hasConnection: true,
+          propertyId: expectedPropertyId, // ALWAYS use the mapped property
+          connectionId: userGA4.id,
+          source: 'user' as const
+        }
+      } else {
+        // No mapping exists - use user connection property but warn
+        logger.warn('No GA4 mapping found for dealership - using user connection property', {
+          dealershipId,
+          userPropertyId: userGA4.propertyId,
+          connectionId: userGA4.id
+        })
+        
+        return {
+          hasConnection: true,
+          propertyId: userGA4.propertyId,
+          connectionId: userGA4.id,
+          source: 'user' as const
+        }
       }
     }
 

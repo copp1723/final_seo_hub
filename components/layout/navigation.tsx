@@ -23,7 +23,7 @@ import { Logo } from '@/components/ui/logo'
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/chat', label: 'SEO Chat', icon: MessageSquare },
-  { href: '/requests', label: 'Requests', icon: FileText },
+  { href: '/requests', label: 'SEO Center', icon: FileText },
   { href: '/reporting', label: 'Insights', icon: TrendingUp }
 ]
 

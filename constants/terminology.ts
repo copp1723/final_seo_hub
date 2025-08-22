@@ -1,12 +1,12 @@
 // Terminology constants - MUST use "requests" not "orders"
 export const TERMINOLOGY = {
   // Page titles
-  REQUEST_PAGE_TITLE: 'SEO Requests',
+  REQUEST_PAGE_TITLE: 'SEO Center',
   REQUEST_CREATE_TITLE: 'New Request',
   
   // Labels
   REQUEST_LABEL: 'Request',
-  REQUESTS_LABEL: 'Requests',
+  REQUESTS_LABEL: 'SEO Center',
   TASKS_COMPLETED_LABEL: 'Tasks Completed',
   ACTIVE_TASKS_LABEL: 'Active Tasks',
   

@@ -724,8 +724,8 @@ export default function RequestsPageEnhanced() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Requests</h1>
-            <p className="text-gray-600 mt-2">Manage and track all your SEO requests</p>
+            <h1 className="text-3xl font-bold text-gray-900">SEO Center</h1>
+            <p className="text-gray-600 mt-2">Track completed work and manage SEO requests</p>
           </div>
           <div className="flex gap-3">
             <AgencySelector />
@@ -825,7 +825,7 @@ export default function RequestsPageEnhanced() {
           <CardContent className="py-12">
             <EmptyState
               icon={<FileText className="h-12 w-12" />}
-              title={requests.length === 0 ? "No active SEO packages" : "No requests match your filters"}
+              title={requests.length === 0 ? "No active SEO packages" : "No items match your filters"}
               description={requests.length === 0 ? "Start by submitting your target cities, models, and dealers during onboarding" : "Try adjusting your search or filter criteria"}
             />
           </CardContent>
@@ -833,7 +833,7 @@ export default function RequestsPageEnhanced() {
       ) : (
         <div className="space-y-6">
           <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-            Showing {filteredAndSortedRequests.length} {filteredAndSortedRequests.length === 1 ? "request" : "requests"} {requests.length !== filteredAndSortedRequests.length && `of ${requests.length} total`}
+            Showing {filteredAndSortedRequests.length} {filteredAndSortedRequests.length === 1 ? "package" : "packages"} {requests.length !== filteredAndSortedRequests.length && `of ${requests.length} total`}
           </div>
           
           {/* Enhanced Request Cards */}

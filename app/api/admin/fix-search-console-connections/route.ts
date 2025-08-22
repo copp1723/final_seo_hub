@@ -29,26 +29,27 @@ async function handleFix(req: NextRequest) {
     const connections = await prisma.search_console_connections.findMany({
       where: {
         dealershipId: { not: null }
-      },
-      include: {
-        dealerships: {
-          select: { id: true, name: true }
-        }
       }
     })
 
     logger.info('Found Search Console connections to check', { count: connections.length })
 
     for (const connection of connections) {
-      if (!connection.dealershipId || !connection.dealerships) continue
+      if (!connection.dealershipId) continue
 
       const correctUrl = getSearchConsoleUrl(connection.dealershipId)
       
       if (correctUrl && connection.siteUrl !== correctUrl) {
+        // Get dealership name separately
+        const dealership = await prisma.dealerships.findUnique({
+          where: { id: connection.dealershipId },
+          select: { name: true }
+        })
+        
         logger.info('Fixing Search Console connection URL mismatch', {
           connectionId: connection.id,
           dealershipId: connection.dealershipId,
-          dealershipName: connection.dealerships.name,
+          dealershipName: dealership?.name || 'Unknown',
           currentUrl: connection.siteUrl,
           correctUrl
         })
@@ -65,16 +66,22 @@ async function handleFix(req: NextRequest) {
 
         results.push({
           dealershipId: connection.dealershipId,
-          dealershipName: connection.dealerships.name,
+          dealershipName: dealership?.name || 'Unknown',
           connectionId: connection.id,
           oldUrl: connection.siteUrl,
           newUrl: correctUrl,
           status: 'fixed'
         })
       } else {
+        // Get dealership name for non-fixed connections too
+        const dealership = await prisma.dealerships.findUnique({
+          where: { id: connection.dealershipId },
+          select: { name: true }
+        })
+        
         results.push({
           dealershipId: connection.dealershipId,
-          dealershipName: connection.dealerships.name,
+          dealershipName: dealership?.name || 'Unknown',
           connectionId: connection.id,
           currentUrl: connection.siteUrl,
           correctUrl,

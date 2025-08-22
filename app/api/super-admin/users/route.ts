@@ -135,6 +135,13 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
 
   const { name, email, role, agencyId, dealershipId } = validation.data
 
+  // SUPER_ADMIN users should not be associated with agencies or dealerships
+  if (role === 'SUPER_ADMIN' && (agencyId || dealershipId)) {
+    return NextResponse.json({ 
+      error: 'SUPER_ADMIN users cannot be associated with agencies or dealerships. They are system administrators.' 
+    }, { status: 400 })
+  }
+
   // Check if user already exists
   const existingUser = await safeDbOperation(async () => {
     return prisma.users.findUnique({
@@ -169,9 +176,9 @@ export const POST = withErrorBoundary(async (request: NextRequest) => {
         name,
         email,
         role,
-        agencyId: agencyId || null,
-        dealershipId: dealershipId || null,
-        currentDealershipId: dealershipId || null, // Set current dealership same as dealership for backwards compatibility
+        agencyId: role === 'SUPER_ADMIN' ? null : (agencyId || null),
+        dealershipId: role === 'SUPER_ADMIN' ? null : (dealershipId || null),
+        currentDealershipId: role === 'SUPER_ADMIN' ? null : (dealershipId || null), // Set current dealership same as dealership for backwards compatibility
         invitationToken,
         invitationTokenExpires,
         onboardingCompleted: role !== 'USER', // Only dealership users (USER role) need onboarding
@@ -250,6 +257,13 @@ export const PUT = withErrorBoundary(async (request: NextRequest) => {
 
   const { userId, name, role, agencyId } = validation.data
 
+  // SUPER_ADMIN users should not be associated with agencies or dealerships
+  if (role === 'SUPER_ADMIN' && agencyId) {
+    return NextResponse.json({ 
+      error: 'SUPER_ADMIN users cannot be associated with agencies or dealerships. They are system administrators.' 
+    }, { status: 400 })
+  }
+
   // Check if user exists
   const existingUser = await safeDbOperation(async () => {
     return prisma.users.findUnique({
@@ -279,7 +293,12 @@ export const PUT = withErrorBoundary(async (request: NextRequest) => {
       data: {
         name,
         role,
-        agencyId: agencyId || null,
+        agencyId: role === 'SUPER_ADMIN' ? null : (agencyId || null),
+        // Also clear dealership associations for SUPER_ADMIN
+        ...(role === 'SUPER_ADMIN' && { 
+          dealershipId: null, 
+          currentDealershipId: null 
+        }),
         updatedAt: new Date()
       },
       include: {

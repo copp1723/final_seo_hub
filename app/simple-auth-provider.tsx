@@ -65,12 +65,17 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
   const signOut = async () => {
     try {
+      // Clear user state immediately to prevent UI issues
+      setUser(null);
+      
+      // Try to call logout API, but don't let it block the logout flow
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {
       console.error('Logout error', e);
+      // Don't throw - let logout continue even if API fails
     } finally {
-      setUser(null);
-      router.push('/auth/simple-signin');
+      // Always redirect to signin, regardless of API success/failure
+      window.location.href = '/auth/simple-signin';
     }
   };
 

@@ -190,17 +190,17 @@ export class DealershipDataBridge {
           source: 'user' as const
         }
       } else {
-        // No mapping exists - use user connection property but warn
-        logger.warn('No GA4 mapping found for dealership - using user connection property', {
+        // No mapping exists - don't use contaminated user data, return no connection
+        logger.warn('No GA4 mapping found for dealership - requires setup', {
           dealershipId,
           userPropertyId: userGA4.propertyId,
           connectionId: userGA4.id
         })
         
         return {
-          hasConnection: true,
-          propertyId: userGA4.propertyId,
-          connectionId: userGA4.id,
+          hasConnection: false,
+          propertyId: null,
+          connectionId: null,
           source: 'user' as const
         }
       }
@@ -348,17 +348,17 @@ export class DealershipDataBridge {
           source: 'user' as const
         }
       } else {
-        // No mapping exists - use user connection URL but warn
-        logger.warn('No URL mapping found for dealership - using user connection URL', {
+        // No mapping exists - don't use contaminated user data, return no connection
+        logger.warn('No Search Console mapping found for dealership - requires setup', {
           dealershipId,
           userConnectionUrl: userSC.siteUrl,
           connectionId: userSC.id
         })
         
         return {
-          hasConnection: true,
-          siteUrl: userSC.siteUrl,
-          connectionId: userSC.id,
+          hasConnection: false,
+          siteUrl: null,
+          connectionId: null,
           source: 'user' as const
         }
       }

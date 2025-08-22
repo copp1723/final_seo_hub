@@ -182,6 +182,14 @@ export function getGA4PropertyId(dealershipId: string): string | null {
 }
 
 /**
+ * Check if a dealership has any mapping (GA4 or Search Console)
+ */
+export function hasDealershipMapping(dealershipId: string): boolean {
+  const mapping = DEALERSHIP_PROPERTY_MAPPINGS.find(m => m.dealershipId === dealershipId)
+  return !!mapping
+}
+
+/**
  * Get Search Console URL for a specific dealership
  */
 export function getSearchConsoleUrl(dealershipId: string): string | null {

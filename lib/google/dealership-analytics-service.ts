@@ -7,7 +7,7 @@ import { refreshSearchConsoleToken } from '../search-console-token-refresh'
 import { GA4Service } from './ga4Service'
 import { features } from '@/lib/features'
 import { dealershipDataBridge } from '@/lib/services/dealership-data-bridge'
-import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access, DEALERSHIP_PROPERTY_MAPPINGS } from '@/lib/dealership-property-mapping'
+import { getGA4PropertyId, getSearchConsoleUrl, hasGA4Access, hasDealershipMapping, DEALERSHIP_PROPERTY_MAPPINGS } from '@/lib/dealership-property-mapping'
 import { validateGA4Response } from '@/lib/validation/ga4-data-integrity'
 
 interface AnalyticsOptions {
@@ -134,9 +134,16 @@ export class DealershipAnalyticsService {
       
       if (!dealershipConnections.ga4.hasConnection || !dealershipConnections.ga4.propertyId) {
         logger.info('No GA4 connection available for dealership', { userId, dealershipId })
+        
+        // Check if this dealership has any mapping at all
+        const hasMapping = hasDealershipMapping(dealershipId)
+        const errorMessage = hasMapping 
+          ? 'No Google Analytics connection found. Please go to Settings > Integrations and connect your Google Analytics account to view data.'
+          : 'This dealership is not yet configured for analytics. Please contact your administrator to set up Google Analytics access for this location.'
+        
         return {
           data: undefined,
-          error: 'No Google Analytics connection found. Please go to Settings > Integrations and connect your Google Analytics account to view data.',
+          error: errorMessage,
           hasConnection: false,
           propertyId: undefined
         }
@@ -413,9 +420,16 @@ export class DealershipAnalyticsService {
       if (!dealershipConnections.searchConsole.hasConnection || !dealershipConnections.searchConsole.siteUrl) {
         logger.info('No Search Console connection available for dealership', { userId, dealershipId })
         permissionStatus = 'not_connected'
+        
+        // Check if this dealership has any mapping at all
+        const hasMapping = hasDealershipMapping(dealershipId)
+        const errorMessage = hasMapping 
+          ? 'No Google Search Console connection found. Please go to Settings > Integrations and connect your Google Search Console account to view data.'
+          : 'This dealership is not yet configured for search analytics. Please contact your administrator to set up Google Search Console access for this location.'
+        
         return {
           data: undefined,
-          error: 'No Google Search Console connection found. Please go to Settings > Integrations and connect your Google Search Console account to view data.',
+          error: errorMessage,
           hasConnection: false,
           siteUrl: undefined,
           permissionStatus
@@ -614,7 +628,9 @@ export class DealershipAnalyticsService {
       }
 
       // Validate dealership access
+      console.log('🔍 [RANKINGS DEBUG] About to call validateDealershipAccess:', { userId, dealershipId })
       const hasAccess = await dealershipDataBridge.validateDealershipAccess(userId, dealershipId)
+      console.log('🔍 [RANKINGS DEBUG] validateDealershipAccess result:', hasAccess)
       if (!hasAccess) {
         logger.warn('User does not have access to dealership for rankings', { userId, dealershipId })
         return {

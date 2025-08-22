@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo, memo } from 'react'
 import { useAuth } from '@/app/simple-auth-provider'
 import { useDealership } from '@/app/context/DealershipContext'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
@@ -64,38 +64,86 @@ interface Request {
   completedAt?: string
 }
 
-// Task Management Card Component
-const TaskManagementCard = ({ task, onStatusChange }: { task: any, onStatusChange: (taskId: string, status: string) => void }) => {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'COMPLETED': return 'bg-green-100 text-green-800 border-green-200'
-      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
+// Memoized helper functions for performance
+const getStatusColor = (status: string): string => {
+  switch (status) {
+    case 'COMPLETED': return 'bg-green-100 text-green-800 border-green-200'
+    case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-200'
+    case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    default: return 'bg-gray-100 text-gray-800 border-gray-200'
   }
+}
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'PAGE': return <FileText className="h-4 w-4" />
-      case 'BLOG': return <MessageSquare className="h-4 w-4" />
-      case 'GBP_POST': return <Globe className="h-4 w-4" />
-      case 'IMPROVEMENT': return <Wrench className="h-4 w-4" />
-      default: return <FileText className="h-4 w-4" />
-    }
+const getTypeIcon = (type: string): JSX.Element => {
+  switch (type) {
+    case 'PAGE': return <FileText className="h-4 w-4" />
+    case 'BLOG': return <MessageSquare className="h-4 w-4" />
+    case 'GBP_POST': return <Globe className="h-4 w-4" />
+    case 'IMPROVEMENT': return <Wrench className="h-4 w-4" />
+    default: return <FileText className="h-4 w-4" />
   }
+}
+
+const getTypeIconLowercase = (type: string): JSX.Element => {
+  switch (type.toLowerCase()) {
+    case 'page': return <FileText className="h-4 w-4" />
+    case 'blog': return <MessageSquare className="h-4 w-4" />
+    case 'gbp_post': return <Globe className="h-4 w-4" />
+    case 'improvement': return <Wrench className="h-4 w-4" />
+    default: return <FileText className="h-4 w-4" />
+  }
+}
+
+const getRequestStatusColor = (status: RequestStatus): string => {
+  switch (status) {
+    case 'COMPLETED': return 'bg-green-100 text-green-800 border-green-200'
+    case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-200'
+    case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    case 'CANCELLED': return 'bg-red-100 text-red-800 border-red-200'
+    default: return 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
+
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  })
+}
+
+// Task Management Card Component - Optimized with React.memo
+const TaskManagementCard = memo(({ task, onStatusChange }: { task: any, onStatusChange: (taskId: string, status: string) => void }) => {
+  // Memoize status color to prevent recalculation
+  const statusColor = useMemo(() => getStatusColor(task.status), [task.status])
+  
+  // Memoize type icon to prevent recalculation
+  const typeIcon = useMemo(() => getTypeIcon(task.type), [task.type])
+  
+  // Memoize event handlers to prevent recreation
+  const handleStartTask = useCallback(() => {
+    onStatusChange(task.id, 'IN_PROGRESS')
+  }, [task.id, onStatusChange])
+  
+  const handleCompleteTask = useCallback(() => {
+    onStatusChange(task.id, 'COMPLETED')
+  }, [task.id, onStatusChange])
+  
+  const handleViewWork = useCallback(() => {
+    window.open(task.targetUrl, '_blank', 'noopener,noreferrer')
+  }, [task.targetUrl])
 
   return (
     <div className="bg-white rounded-lg border p-4 hover:shadow-sm transition-shadow">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
           <div className="p-2 bg-gray-100 rounded-lg">
-            {getTypeIcon(task.type)}
+            {typeIcon}
           </div>
           <div>
             <h4 className="text-sm font-medium text-gray-900">{task.title}</h4>
             <div className="flex items-center gap-2 mt-1">
-              <Badge className={`text-xs border ${getStatusColor(task.status)}`}>
+              <Badge className={`text-xs border ${statusColor}`}>
                 {task.status.replace('_', ' ')}
               </Badge>
               {task.priority && (
@@ -111,7 +159,7 @@ const TaskManagementCard = ({ task, onStatusChange }: { task: any, onStatusChang
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => onStatusChange(task.id, 'IN_PROGRESS')}
+              onClick={handleStartTask}
               className="text-xs"
             >
               <PlayCircle className="h-3 w-3 mr-1" />
@@ -122,7 +170,7 @@ const TaskManagementCard = ({ task, onStatusChange }: { task: any, onStatusChang
             <Button
               size="sm"
               variant="default"
-              onClick={() => onStatusChange(task.id, 'COMPLETED')}
+              onClick={handleCompleteTask}
               className="text-xs"
             >
               <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -135,7 +183,7 @@ const TaskManagementCard = ({ task, onStatusChange }: { task: any, onStatusChang
               variant="outline"
               size="sm"
               className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 text-xs"
-              onClick={() => window.open(task.targetUrl, '_blank', 'noopener,noreferrer')}
+              onClick={handleViewWork}
             >
               <Eye className="h-3 w-3 mr-1" />
               View Work
@@ -146,47 +194,62 @@ const TaskManagementCard = ({ task, onStatusChange }: { task: any, onStatusChang
       </div>
     </div>
   )
-}
+})
 
-// Enhanced Card Component for Better Visual Hierarchy
-const EnhancedRequestCard = ({ request }: { request: Request }) => {
-  const progress = request.packageType 
-    ? calculatePackageProgress(
-        request.packageType,
-        request.pagesCompleted,
-        request.blogsCompleted,
-        request.gbpPostsCompleted,
-        request.improvementsCompleted
-      )
-    : null
+// Enhanced Card Component for Better Visual Hierarchy - Optimized with React.memo
+const EnhancedRequestCard = memo(({ request }: { request: Request }) => {
+  // Memoize expensive progress calculation
+  const progress = useMemo(() => {
+    return request.packageType 
+      ? calculatePackageProgress(
+          request.packageType,
+          request.pagesCompleted,
+          request.blogsCompleted,
+          request.gbpPostsCompleted,
+          request.improvementsCompleted
+        )
+      : null
+  }, [request.packageType, request.pagesCompleted, request.blogsCompleted, request.gbpPostsCompleted, request.improvementsCompleted])
 
-  const getStatusColor = (status: RequestStatus) => {
-    switch (status) {
-      case 'COMPLETED': return 'bg-green-100 text-green-800 border-green-200'
-      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'CANCELLED': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+  // Memoize status color calculation
+  const statusColor = useMemo(() => getRequestStatusColor(request.status), [request.status])
+  
+  // Memoize formatted dates
+  const formattedCreatedAt = useMemo(() => formatDate(request.createdAt), [request.createdAt])
+  const formattedCompletedAt = useMemo(() => request.completedAt ? formatDate(request.completedAt) : null, [request.completedAt])
+  
+  // Memoize target city and model strings
+  const targetCitiesText = useMemo(() => request.targetCities?.join(', ') || 'Not specified', [request.targetCities])
+  const targetModelsText = useMemo(() => request.targetModels?.join(', ') || 'Not specified', [request.targetModels])
+  
+  // Memoize progress percentage calculation
+  const progressPercentage = useMemo(() => {
+    return progress && progress.totalTasks.total > 0 
+      ? (progress.totalTasks.completed / progress.totalTasks.total) * 100 
+      : 0
+  }, [progress])
+  
+  // Memoize remaining tasks calculation
+  const remainingTasks = useMemo(() => {
+    return progress ? progress.totalTasks.total - progress.totalTasks.completed : 0
+  }, [progress])
+  
+  // Memoize progress bar style for better performance
+  const progressBarStyle = useMemo(() => ({
+    width: `${progressPercentage}%`
+  }), [progressPercentage])
+  
+  // Memoize completed task view work handler
+  const handleViewWork = useCallback((task: any) => {
+    if (task.url) {
+      window.open(task.url, '_blank', 'noopener,noreferrer')
     }
-  }
-
-  const getTypeIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'page': return <FileText className="h-4 w-4" />
-      case 'blog': return <MessageSquare className="h-4 w-4" />
-      case 'gbp_post': return <Globe className="h-4 w-4" />
-      case 'improvement': return <Wrench className="h-4 w-4" />
-      default: return <FileText className="h-4 w-4" />
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    })
-  }
+  }, [])
+  
+  // Memoize view all tasks handler
+  const handleViewAllTasks = useCallback(() => {
+    window.location.href = `/tasks?requestId=${request.id}&filter=completed`
+  }, [request.id])
 
   return (
     <Card className="card-modern hover-lift border-l-4 border-l-brand-medium shadow-brand">
@@ -209,7 +272,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                   {request.packageType}
                 </Badge>
               )}
-              <Badge className={`font-medium border ${getStatusColor(request.status)}`}>
+              <Badge className={`font-medium border ${statusColor}`}>
                 {request.status.toLowerCase().replace('_', ' ')}
               </Badge>
             </div>
@@ -217,12 +280,12 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
             <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                <span>Created {formatDate(request.createdAt)}</span>
+                <span>Created {formattedCreatedAt}</span>
               </div>
-              {request.completedAt && (
+              {formattedCompletedAt && (
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>Completed {formatDate(request.completedAt)}</span>
+                  <span>Completed {formattedCompletedAt}</span>
                 </div>
               )}
             </div>
@@ -239,9 +302,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      width: `${(progress.totalTasks.completed / progress.totalTasks.total) * 100}%` 
-                    }}
+                    style={progressBarStyle}
                   />
                 </div>
               )}
@@ -257,15 +318,11 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 rounded-lg p-3">
               <span className="text-gray-700 font-medium">Cities: </span>
-              <span className="text-gray-900">
-                {request.targetCities?.join(', ') || 'Not specified'}
-              </span>
+              <span className="text-gray-900">{targetCitiesText}</span>
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
               <span className="text-gray-700 font-medium">Models: </span>
-              <span className="text-gray-900">
-                {request.targetModels?.join(', ') || 'Not specified'}
-              </span>
+              <span className="text-gray-900">{targetModelsText}</span>
             </div>
           </div>
         </div>
@@ -364,7 +421,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 >
                   <div className="flex items-start gap-3 flex-1">
                     <div className="p-2 bg-gray-100 rounded-lg">
-                      {getTypeIcon(task.type)}
+                      {getTypeIconLowercase(task.type)}
                     </div>
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-1 leading-tight">{task.title}</h4>
@@ -379,12 +436,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                     variant="outline"
                     size="sm"
                     className="ml-4 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 font-medium px-4 py-2"
-                    onClick={() => {
-                      // Direct link to completed work - no navigation needed!
-                      if (task.url) {
-                        window.open(task.url, '_blank', 'noopener,noreferrer');
-                      }
-                    }}
+                    onClick={() => handleViewWork(task)}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     View Work
@@ -397,7 +449,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 <Button 
                   variant="ghost" 
                   className="w-full mt-3 h-12 text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-medium"
-                  onClick={() => window.location.href = `/tasks?requestId=${request.id}&filter=completed`}
+                  onClick={handleViewAllTasks}
                 >
                   View all {request.completedTasks.length} completed tasks
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -430,7 +482,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
                 Active tasks remaining:
               </span>
               <span className="text-lg font-bold text-gray-900">
-                {progress.totalTasks.total - progress.totalTasks.completed}
+                {remainingTasks}
               </span>
             </div>
           </div>
@@ -438,7 +490,7 @@ const EnhancedRequestCard = ({ request }: { request: Request }) => {
       </CardContent>
     </Card>
   )
-}
+})
 
 export default function RequestsPageEnhanced() {
   const { user, isLoading } = useAuth()
@@ -457,6 +509,11 @@ export default function RequestsPageEnhanced() {
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'createdAt')
   const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc')
   const [selectedDealershipIds, setSelectedDealershipIds] = useState<string[]>([])
+
+  // Memoize dealership selection handler
+  const handleDealershipSelectionChange = useCallback((dealershipIds: string[]) => {
+    setSelectedDealershipIds(dealershipIds)
+  }, [])
 
   const createQueryString = useCallback(
     (paramsToUpdate: Record<string, string | null>) => {
@@ -544,16 +601,17 @@ export default function RequestsPageEnhanced() {
     router.replace(`${pathname}?${query}`, { scroll: false })
   }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, pathname, router, createQueryString])
 
-  const clearFilters = () => {
+  // Memoize clear filters handler
+  const clearFilters = useCallback(() => {
     setSearchQuery('')
     setStatusFilter('all')
     setTypeFilter('all')
     setSortBy('createdAt')
     setSortOrder('desc')
-  }
+  }, [])
 
-  // Handle expanding/collapsing request sections
-  const toggleRequestExpansion = async (requestId: string) => {
+  // Memoize toggle request expansion handler
+  const toggleRequestExpansion = useCallback(async (requestId: string) => {
     const newExpanded = new Set(expandedRequests)
     
     if (expandedRequests.has(requestId)) {
@@ -579,10 +637,10 @@ export default function RequestsPageEnhanced() {
     }
     
     setExpandedRequests(newExpanded)
-  }
+  }, [expandedRequests, requestTasks, currentDealership?.id])
 
-  // Handle task status changes
-  const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
+  // Memoize task status change handler
+  const handleTaskStatusChange = useCallback(async (taskId: string, newStatus: string) => {
     try {
       const response = await fetch(`/api/tasks/${taskId}/status`, {
         method: 'PUT',
@@ -598,7 +656,59 @@ export default function RequestsPageEnhanced() {
     } catch (error) {
       console.error('Error updating task status:', error)
     }
-  }
+  }, [])
+
+  // Memoize filtered and sorted requests to prevent unnecessary recalculations
+  const filteredAndSortedRequests = useMemo(() => {
+    let filtered = [...requests]
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(request => 
+        request.title.toLowerCase().includes(query) ||
+        request.description.toLowerCase().includes(query) ||
+        request.targetCities?.some(city => city.toLowerCase().includes(query)) ||
+        request.targetModels?.some(model => model.toLowerCase().includes(query))
+      )
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(request => request.status === statusFilter)
+    }
+    
+    // Apply type filter
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(request => request.type.toLowerCase() === typeFilter)
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0
+      
+      switch (sortBy) {
+        case 'createdAt':
+        case 'completedAt':
+          const dateA = new Date(a[sortBy as keyof Request] as string)
+          const dateB = new Date(b[sortBy as keyof Request] as string)
+          comparison = dateA.getTime() - dateB.getTime()
+          break
+        case 'priority':
+          comparison = (a.priority || '').localeCompare(b.priority || '')
+          break
+        case 'status':
+          comparison = a.status.localeCompare(b.status)
+          break
+        default:
+          comparison = 0
+      }
+      
+      return sortOrder === 'desc' ? -comparison : comparison
+    })
+    
+    return filtered
+  }, [requests, searchQuery, statusFilter, typeFilter, sortBy, sortOrder])
 
   if (loading) {
     return (
@@ -623,7 +733,7 @@ export default function RequestsPageEnhanced() {
             {user?.role === 'AGENCY_ADMIN' ? (
               <MultiDealershipSelector 
                 selectedDealershipIds={selectedDealershipIds}
-                onSelectionChange={setSelectedDealershipIds}
+                onSelectionChange={handleDealershipSelectionChange}
               />
             ) : (
               <DealershipSelector />
@@ -710,24 +820,24 @@ export default function RequestsPageEnhanced() {
         </div>
       )}
 
-      {!loading && requests.length === 0 ? (
+      {!loading && filteredAndSortedRequests.length === 0 ? (
         <Card>
           <CardContent className="py-12">
             <EmptyState
               icon={<FileText className="h-12 w-12" />}
-              title="No active SEO packages"
-              description="Start by submitting your target cities, models, and dealers during onboarding"
+              title={requests.length === 0 ? "No active SEO packages" : "No requests match your filters"}
+              description={requests.length === 0 ? "Start by submitting your target cities, models, and dealers during onboarding" : "Try adjusting your search or filter criteria"}
             />
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
           <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-            Showing {requests.length} {requests.length === 1 ? "request" : "requests"}
+            Showing {filteredAndSortedRequests.length} {filteredAndSortedRequests.length === 1 ? "request" : "requests"} {requests.length !== filteredAndSortedRequests.length && `of ${requests.length} total`}
           </div>
           
           {/* Enhanced Request Cards */}
-          {requests.map((request: Request) => (
+          {filteredAndSortedRequests.map((request: Request) => (
             <EnhancedRequestCard key={request.id} request={request} />
           ))}
         </div>

@@ -40,22 +40,38 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     // CRITICAL FIX: Add dealership filtering for proper data isolation
     const dealershipIdParam = searchParams.get('dealershipId')
-    const dealershipId = dealershipIdParam && dealershipIdParam !== 'null' ? dealershipIdParam : user.dealershipId
+    const dealershipIdsParam = searchParams.get('dealershipIds') // Support multiple dealerships for AGENCY_ADMIN
+    
+    let dealershipFilter: any = null
+    
+    if (dealershipIdsParam) {
+      // Multiple dealership IDs (comma-separated) for AGENCY_ADMIN users
+      const dealershipIds = dealershipIdsParam.split(',').filter(Boolean)
+      if (dealershipIds.length > 0) {
+        dealershipFilter = { in: dealershipIds }
+      }
+    } else if (dealershipIdParam && dealershipIdParam !== 'null') {
+      // Single dealership ID
+      dealershipFilter = dealershipIdParam
+    } else if (user.dealershipId) {
+      // Fallback to user's default dealership
+      dealershipFilter = user.dealershipId
+    }
 
     // If user is AGENCY_ADMIN and has an agencyId, fetch all requests for that agency.
     // Otherwise, fetch requests for the individual user.
     if (user.role === UserRole.AGENCY_ADMIN && user.agencyId) {
       where.agencyId = user.agencyId
-      // CRITICAL FIX: Also filter by dealership if user has one (but allow null dealership requests)
-      if (dealershipId) {
-        where.dealershipId = dealershipId
+      // Apply dealership filter for AGENCY_ADMIN (can be single ID, multiple IDs, or none)
+      if (dealershipFilter) {
+        where.dealershipId = dealershipFilter
       }
       // For agency admins, if no specific dealership, include both dealership-specific and null dealership requests
     } else if (user.role === UserRole.SUPER_ADMIN) {
       // SUPER_ADMIN sees ALL requests in the system unless filtered by specific dealership
       // This allows them to monitor all activity across all agencies and dealerships
-      if (dealershipId) {
-        where.dealershipId = dealershipId
+      if (dealershipFilter) {
+        where.dealershipId = dealershipFilter
       }
       // No other constraints for SUPER_ADMIN - they see everything
     }
@@ -63,8 +79,8 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
       where.userId = user.id
       // CRITICAL FIX: For regular users, if they have a dealership, filter by it
       // But if no dealership is specified, show their requests regardless of dealership
-      if (dealershipId) {
-        where.dealershipId = dealershipId
+      if (dealershipFilter) {
+        where.dealershipId = dealershipFilter
       }
       // Don't filter by dealership if none specified - show all user's requests
     }
@@ -156,7 +172,9 @@ async function handleGET(request: NextRequest): Promise<NextResponse> {
 
     logger.info('Requests fetched successfully', {
       userId: authResult.user.id,
-      dealershipId: dealershipId,
+      dealershipFilter: dealershipFilter,
+      dealershipIdParam: dealershipIdParam,
+      dealershipIdsParam: dealershipIdsParam,
       count: requestsWithTasks.length,
       completedTasksCount: completedTasks.length,
       filters: { status: statusParam, type, searchQuery, sortBy, sortOrder },

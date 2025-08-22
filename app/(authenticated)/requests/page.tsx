@@ -42,6 +42,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
+import { MultiDealershipSelector } from '@/components/layout/multi-dealership-selector'
 import { AgencySelector } from '@/components/layout/agency-selector'
 
 interface Request {
@@ -455,6 +456,7 @@ export default function RequestsPageEnhanced() {
   const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || 'all')
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'createdAt')
   const [sortOrder, setSortOrder] = useState(searchParams.get('sortOrder') || 'desc')
+  const [selectedDealershipIds, setSelectedDealershipIds] = useState<string[]>([])
 
   const createQueryString = useCallback(
     (paramsToUpdate: Record<string, string | null>) => {
@@ -479,13 +481,21 @@ export default function RequestsPageEnhanced() {
     
     setLoading(true)
     try {
+      // For AGENCY_ADMIN users with multi-selection, use selectedDealershipIds
+      // For other users, use currentDealership
+      const dealershipFilter = user?.role === 'AGENCY_ADMIN' && selectedDealershipIds.length > 0
+        ? { dealershipIds: selectedDealershipIds.join(',') }
+        : currentDealership?.id 
+          ? { dealershipId: currentDealership.id }
+          : {}
+      
       const query = createQueryString({
         search: searchQuery,
         status: statusFilter,
         type: typeFilter,
         sortBy: sortBy,
         sortOrder: sortOrder,
-        ...(currentDealership?.id && { dealershipId: currentDealership.id })
+        ...dealershipFilter
       })
       const response = await fetch(`/api/requests?${query}`)
       const data = await response.json()
@@ -510,7 +520,7 @@ export default function RequestsPageEnhanced() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, currentDealership?.id, createQueryString, isLoading, user?.id])
+  }, [searchQuery, statusFilter, typeFilter, sortBy, sortOrder, currentDealership?.id, selectedDealershipIds, createQueryString, isLoading, user?.id, user?.role])
 
   useEffect(() => {
     if (isLoading) return
@@ -609,7 +619,15 @@ export default function RequestsPageEnhanced() {
           </div>
           <div className="flex gap-3">
             <AgencySelector />
-            <DealershipSelector />
+            {/* Conditional dealership selector based on user role */}
+            {user?.role === 'AGENCY_ADMIN' ? (
+              <MultiDealershipSelector 
+                selectedDealershipIds={selectedDealershipIds}
+                onSelectionChange={setSelectedDealershipIds}
+              />
+            ) : (
+              <DealershipSelector />
+            )}
             <Link href="/focus-request">
               <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
                 <Plus className="h-4 w-4 mr-2" />

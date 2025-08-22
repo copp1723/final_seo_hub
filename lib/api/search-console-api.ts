@@ -61,6 +61,8 @@ export class SearchConsoleAPI {
           expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
           siteUrl: siteInfo.siteUrl,
           siteName: siteInfo.siteName
+          ,
+          updatedAt: new Date()
         }
       })
     }

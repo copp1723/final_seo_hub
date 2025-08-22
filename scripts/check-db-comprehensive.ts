@@ -20,7 +20,7 @@ async function checkDatabase() {
       console.log(`  - ${user.email} (${user.role}) - Agency: ${user.agencies?.name || 'None'}`);
       if (user.user_dealership_access_user_dealership_access_userIdTousers.length > 0) {
         user.user_dealership_access_user_dealership_access_userIdTousers.forEach(access => {
-          console.log(`    Dealership Access: ${access.dealerships.name} (${access.role})`);
+          console.log(`    Dealership Access: ${access.dealerships.name} (${access.accessLevel})`);
         });
       }
     });
@@ -40,7 +40,7 @@ async function checkDatabase() {
     });
     console.log(`\n🚗 DEALERSHIPS (${dealerships.length}):`);
     dealerships.forEach(d => {
-      console.log(`  - ${d.name} (${d.seoworksClientId || 'No SEOWorks ID'}) - Agency: ${d.agencies?.name || 'None'} - Package: ${d.packageType || 'None'}`);
+  console.log(`  - ${d.name} (${d.clientId || 'No clientId'}) - Agency: ${d.agencies?.name || 'None'} - Package: ${d.activePackageType || 'None'}`);
     });
     
     // Check tasks
@@ -50,16 +50,15 @@ async function checkDatabase() {
     // Check recent tasks
     const recentTasks = await prisma.tasks.findMany({
       take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { dealerships: true }
+      orderBy: { createdAt: 'desc' }
     });
     console.log(`\n📋 RECENT TASKS (${recentTasks.length}):`);
     recentTasks.forEach(task => {
-      console.log(`  - ${task.type} for ${task.dealerships?.name || 'Unknown'} (${task.status}) - ${task.createdAt.toISOString()}`);
+      console.log(`  - ${task.type} for dealership ${task.dealershipId || 'Unknown'} (${task.status}) - ${task.createdAt.toISOString()}`);
     });
     
     // Check orphaned tasks
-    const orphanedTaskCount = await prisma.orphanedTasks.count();
+  const orphanedTaskCount = await prisma.orphaned_tasks.count();
     console.log(`\n❌ ORPHANED TASKS: ${orphanedTaskCount}`);
     
     // Check requests
@@ -67,11 +66,11 @@ async function checkDatabase() {
     console.log(`\n📝 REQUESTS: ${requestCount}`);
     
     // Check GA4 connections
-    const ga4Connections = await prisma.gA4Connections.count();
+  const ga4Connections = await prisma.ga4_connections.count();
     console.log(`\n📊 GA4 CONNECTIONS: ${ga4Connections}`);
     
     // Check Search Console connections  
-    const scConnections = await prisma.searchConsoleConnections.count();
+  const scConnections = await prisma.search_console_connections.count();
     console.log(`\n🔍 SEARCH CONSOLE CONNECTIONS: ${scConnections}`);
     
   } catch (error) {

@@ -34,8 +34,7 @@ async function assignUserToDealership() {
   try {
     // Find the user
     const user = await prisma.users.findUnique({
-      where: { email },
-      include: { dealerships: true }
+      where: { email }
     })
 
     if (!user) {

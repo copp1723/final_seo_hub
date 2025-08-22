@@ -205,6 +205,8 @@ export class CsvDealershipProcessor {
                 name: validatedRow.name,
                 website: validatedRow.website || null,
                 agencyId
+                ,
+                updatedAt: new Date()
               }
             })
 

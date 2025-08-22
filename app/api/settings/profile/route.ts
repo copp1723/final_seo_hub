@@ -44,7 +44,8 @@ export async function GET(request: NextRequest) {
             slug: true
           }
         },
-        dealerships: {
+        // The `users` relation points to a single dealership via `dealerships_users_dealershipIdTodealerships`
+        dealerships_users_dealershipIdTodealerships: {
           select: {
             id: true,
             name: true,
@@ -70,8 +71,8 @@ export async function GET(request: NextRequest) {
         role: user.role,
         agencyId: user.agencyId,
         dealershipId: user.dealershipId,
-        agency: user.agencies,
-        dealership: user.dealerships
+  agency: user.agencies,
+  dealership: user.dealerships_users_dealershipIdTodealerships
       }
     })
 

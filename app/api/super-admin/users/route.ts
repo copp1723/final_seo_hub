@@ -349,16 +349,9 @@ export const DELETE = withErrorBoundary(async (request: NextRequest) => {
     })
     
     if (requestCount > 0) {
-      // Set userId to null in all their requests (preserve the request data)
-      await prisma.requests.updateMany({
-        where: { userId: userId },
-        data: { userId: null }
-      })
-      
-      logger.info('Unlinked user from requests before deletion', {
-        userId,
-        requestCount
-      })
+      // Cannot delete a user who still owns requests because `requests.userId` is non-nullable
+      logger.warn('Attempt to delete user who still has requests - aborting', { userId, requestCount })
+      throw new Error('Cannot delete user with existing requests. Reassign or remove requests first.')
     }
     
     // Now safely delete the user

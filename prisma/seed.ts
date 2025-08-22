@@ -60,7 +60,8 @@ async function main() {
           targetRadius: 25,
           primaryKeywords: ['Ford dealer Austin', 'new Ford Austin', 'used cars Austin']
         }
-      }
+  },
+  updatedAt: new Date()
     }
   })
 
@@ -83,7 +84,8 @@ async function main() {
           targetRadius: 30,
           primaryKeywords: ['Toyota dealer Austin', 'new Toyota Austin', 'Prius Austin']
         }
-      }
+  },
+  updatedAt: new Date()
     }
   })
   console.log('✅ Sample dealerships created:', dealership1.name, dealership2.name)
@@ -145,7 +147,8 @@ async function main() {
       where: { userId: user.id },
       update: {},
       create: {
-        userId: user.id,
+    id: crypto.randomUUID(),
+    userId: user.id,
         emailNotifications: true,
         requestCreated: true,
         statusChanged: true,
@@ -153,7 +156,8 @@ async function main() {
         weeklySummary: true,
         marketingEmails: false,
         timezone: 'America/Chicago',
-        language: 'en'
+  language: 'en',
+  updatedAt: new Date()
       }
     })
   }
@@ -164,7 +168,7 @@ async function main() {
     where: { id: 'default' },
     update: {},
     create: {
-      id: 'default',
+  id: 'default',
       maintenanceMode: false,
       newUserRegistration: true,
       emailNotifications: true,
@@ -179,7 +183,8 @@ async function main() {
       maintenanceMessage: 'The system is currently under maintenance.Please try again later.',
       welcomeMessage: 'Welcome to our SEO management platform! Get started by exploring your dashboard.',
       rateLimitPerMinute: 60,
-      sessionTimeoutMinutes: 480
+  sessionTimeoutMinutes: 480,
+  updatedAt: new Date()
     }
   })
   console.log('✅ System settings initialized')
@@ -192,7 +197,7 @@ async function main() {
       id: 'agency-seoworks',
       name: 'SEOWORKS',
       slug: 'seoworks',
-      updatedAt: new Date()
+  updatedAt: new Date()
     }
   });
   console.log('✅ SEOWORKS agency created:', seoworksAgency.name);
@@ -232,6 +237,8 @@ async function main() {
         name: d.name,
         agencyId: seoworksAgency.id,
         website: d.website
+  ,
+  updatedAt: new Date()
       }
     });
     console.log('✅ Dealership created:', dealer.name);

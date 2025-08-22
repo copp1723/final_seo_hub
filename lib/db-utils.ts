@@ -1,5 +1,6 @@
 import { Prisma, RequestStatus } from '@prisma/client'
 import { prisma } from './prisma'
+import crypto from 'crypto'
 
 /**
  * Database utilities for query optimization
@@ -27,20 +28,22 @@ export const batchOperations = {
 
   // Batch create user preferences
   async createUserPreferences(userIds: string[]) {
-    const data = userIds.map(userId => ({
-      userId,
-      emailNotifications: true,
-      requestCreated: true,
-      statusChanged: true,
-      taskCompleted: true,
-      weeklySummary: true,
-      marketingEmails: false
-    }))
-
-    return prisma.user_preferences.createMany({
-      data,
-      skipDuplicates: true
-    })
+    // Use a transaction with individual creates to satisfy Prisma required fields
+    return prisma.$transaction(
+      userIds.map(userId => prisma.user_preferences.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId,
+          emailNotifications: true,
+          requestCreated: true,
+          statusChanged: true,
+          taskCompleted: true,
+          weeklySummary: true,
+          marketingEmails: false,
+          updatedAt: new Date()
+        }
+      }))
+    )
   }
 }
 
@@ -57,7 +60,8 @@ export const optimizedQueries = {
             name: true
           }
         },
-        dealerships: {
+        // use relation name as defined in schema for user's dealership relation
+        dealerships_users_currentDealershipIdTodealerships: {
           select: {
             id: true,
             name: true

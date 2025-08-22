@@ -1,4 +1,5 @@
 import { PackageType, dealerships } from '@prisma/client'
+import crypto from 'crypto'
 import { SEO_KNOWLEDGE_BASE } from './seo-knowledge'
 import { prisma } from './prisma'
 import { getMonth, getYear, startOfMonth, endOfMonth, isAfter } from 'date-fns'
@@ -89,6 +90,7 @@ export async function ensureDealershipBillingPeriodAndRollover(dealershipId: str
     // Archive previous month's usage
     await prisma.monthly_usage.create({
       data: {
+    id: crypto.randomUUID(),
         dealershipId: dealership.id,
         month: getMonth(dealership.currentBillingPeriodStart) + 1, // date-fns getMonth is 0-indexed
         year: getYear(dealership.currentBillingPeriodStart),
@@ -96,7 +98,7 @@ export async function ensureDealershipBillingPeriodAndRollover(dealershipId: str
         pagesUsed: dealership.pagesUsedThisPeriod,
         blogsUsed: dealership.blogsUsedThisPeriod,
         gbpPostsUsed: dealership.gbpPostsUsedThisPeriod,
-        improvementsUsed: dealership.improvementsUsedThisPeriod
+  improvementsUsed: dealership.improvementsUsedThisPeriod
       }
     })
 

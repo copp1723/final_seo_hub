@@ -212,6 +212,8 @@ async function createDealershipsWithClientIds() {
                 ga4MeasurementId: dealershipData.ga4MeasurementId,
                 clientEmail: dealershipData.clientEmail
               }
+              ,
+              updatedAt: new Date()
             }
           })
           console.log(`   ✅ Created new dealership`)

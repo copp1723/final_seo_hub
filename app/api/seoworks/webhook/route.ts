@@ -907,6 +907,8 @@ export const POST = compose(
                 gbpPostsCompleted: normalizeTaskType(data.taskType) === 'GBP_POST' ? 1 : 0,
                 improvementsCompleted: normalizeTaskType(data.taskType) === 'IMPROVEMENT' ? 1 : 0
               }
+            ,
+            include: { users: { select: { id: true, agencyId: true, email: true, dealershipId: true } } }
             })
             if (requestRecord) {
               logger.info('Created request from SEOWorks customerId mapping', {

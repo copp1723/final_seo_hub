@@ -21,6 +21,8 @@ async function createDealerships(agencyId: string) {
           name: dealership.name,
           website: dealership.website,
           agencyId: agencyId
+          ,
+          updatedAt: new Date()
         }
       })
       

@@ -137,14 +137,11 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 3. Get recent requests
+      // 3. Get recent requests (DEALERSHIP-SPECIFIC ONLY)
       const recentRequests = await safeDbOperation(() =>
         prisma.requests.findMany({
           where: {
-            OR: [
-              { agencyId: user.agencyId || '' },
-              { dealershipId: effectiveDealershipId }
-            ],
+            dealershipId: effectiveDealershipId,
             ...dateFilter
           },
           orderBy: { createdAt: 'desc' },
@@ -177,14 +174,11 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 4. Get recent completed tasks
+      // 4. Get recent completed tasks (DEALERSHIP-SPECIFIC ONLY)
       const recentTasks = await safeDbOperation(() =>
         prisma.tasks.findMany({
           where: {
-            OR: [
-              { agencyId: user.agencyId || '' },
-              { dealershipId: effectiveDealershipId }
-            ],
+            dealershipId: effectiveDealershipId,
             status: 'COMPLETED',
             ...dateFilter
           },
@@ -217,11 +211,11 @@ export async function GET(request: NextRequest) {
         })
       })
 
-      // 5. Get recent orders
+      // 5. Get recent orders (DEALERSHIP-SPECIFIC ONLY)
       const recentOrders = await safeDbOperation(() =>
         prisma.orders.findMany({
           where: {
-            agencyId: user.agencyId || '',
+            dealershipId: effectiveDealershipId,
             ...dateFilter
           },
           orderBy: { createdAt: 'desc' },

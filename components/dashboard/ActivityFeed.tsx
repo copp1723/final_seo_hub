@@ -114,6 +114,14 @@ export function ActivityFeed({
     }
   }, [dealershipId, limit])
 
+  // Clear activities when dealership changes
+  useEffect(() => {
+    setActivities([])
+    setNewActivitiesCount(0)
+    setLastTimestamp(null)
+    setError(null)
+  }, [dealershipId])
+
   // Initial load
   useEffect(() => {
     const loadActivities = async () => {
@@ -131,8 +139,12 @@ export function ActivityFeed({
       }
     }
 
-    loadActivities()
-  }, [fetchActivities])
+    if (dealershipId) {
+      loadActivities()
+    } else {
+      setLoading(false)
+    }
+  }, [fetchActivities, dealershipId])
 
   // Auto-refresh for new activities
   useEffect(() => {

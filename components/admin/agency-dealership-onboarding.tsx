@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation'
 const dealershipOnboardingSchema = z.object({
   // Basic Information
   name: z.string().min(2, 'Dealership name must be at least 2 characters'),
-  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  website: z.string().optional().or(z.literal('')),
   address: z.string().min(1, 'Address is required'),
   city: z.string().min(1, 'City is required'),
   state: z.string().length(2, 'State must be 2 characters'),
@@ -55,6 +55,7 @@ interface AgencyDealershipOnboardingProps {
   agencyId: string
   agencyName: string
 }
+
 
 // US States for dropdown
 const US_STATES = [
@@ -258,9 +259,12 @@ export default function AgencyDealershipOnboarding({ agencyId, agencyName }: Age
     setIsSubmitting(true)
 
     try {
-      // Clean website URL if provided
+      // Clean and normalize website URL if provided
       let websiteUrl = formData.website?.trim() || ''
-      if (websiteUrl && !websiteUrl.startsWith('http://') && !websiteUrl.startsWith('https://')) {
+      if (websiteUrl) {
+        // Remove any protocol first to normalize
+        websiteUrl = websiteUrl.replace(/^https?:\/\//, '')
+        // Add https:// prefix
         websiteUrl = `https://${websiteUrl}`
       }
 
@@ -585,8 +589,8 @@ export default function AgencyDealershipOnboarding({ agencyId, agencyName }: Age
                 <div className="text-xs text-gray-600 space-y-1">
                   <p><strong>Include:</strong></p>
                   <p>• Website/CMS login credentials or contact for access</p>
-                  <p>• Google Analytics (GA4) access - add access@seowerks.ai as Viewer</p>
-                  <p>• Google Business Profile access - add access@seowerks.ai as Manager</p>
+                  <p>• Google Analytics (GA4) access - add agency email as Viewer</p>
+                  <p>• Google Business Profile access - add agency email as Manager</p>
                   <p>• Any special technical requirements or restrictions</p>
                 </div>
                 <FieldError error={errors.siteAccessNotes} />

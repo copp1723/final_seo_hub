@@ -537,7 +537,7 @@ export default function DealershipOnboardingForm() {
         {/* Access Notes Section */}
         <div className="space-y-4">
           <div className="text-white space-y-2">
-            <p><strong>1. Need site access (full access, metadata, seo) and blog access:</strong> please provide us a login or create a new one under access@seowerks.ai Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.</p>
+            <p><strong>1. Need site access (full access, metadata, seo) and blog access:</strong> please provide us a login or create a new one under agency email. Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.</p>
           </div>
 
           <div>
@@ -553,8 +553,8 @@ export default function DealershipOnboardingForm() {
           </div>
 
           <div className="text-white space-y-2">
-            <p><strong>2. Google Business Profile access:</strong> add our email access@seowerks.ai as a Manager.</p>
-            <p><strong>3. Google Analytics (GA4) access, Viewer only access is fine:</strong> add our email access@seowerks.ai.</p>
+            <p><strong>2. Google Business Profile access:</strong> add agency email as a Manager.</p>
+            <p><strong>3. Google Analytics (GA4) access, Viewer only access is fine:</strong> add agency email.</p>
           </div>
         </div>
 
@@ -839,11 +839,11 @@ export default function DealershipOnboardingForm() {
             id="siteAccessNotes"
             value={formData.siteAccessNotes}
             onChange={(e) => updateField('siteAccessNotes', e.target.value)}
-            placeholder={`1. Need site access (full access, metadata, seo) and blog access: please provide us a login or create a new one under access@seowerks.ai Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.
+            placeholder={`1. Need site access (full access, metadata, seo) and blog access: please provide us a login or create a new one under agency email. Or, we can email website provider asking them for access, and cc you for approval. Let me know what you prefer.
 
-2. Google Business Profile access: add our email access@seowerks.ai as a Manager.
+2. Google Business Profile access: add agency email as a Manager.
 
-3. Google Analytics (GA4) access. Viewer only access is fine: add our email access@seowerks.ai.`}
+3. Google Analytics (GA4) access. Viewer only access is fine: add agency email.`}
             rows={8}
           />
         </div>

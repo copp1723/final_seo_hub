@@ -58,7 +58,6 @@ interface User {
     id: string
     name: string
   }
-  lastLoginAt: string | null
   createdAt: string
   onboardingCompleted: boolean
   password: string | null
@@ -396,7 +395,6 @@ export default function UsersManagement() {
                   <th className="text-left p-3">Role</th>
                   <th className="text-left p-3">Agency</th>
                   <th className="text-left p-3">Status</th>
-                  <th className="text-left p-3">Last Login</th>
                   <th className="text-left p-3">Actions</th>
                 </tr>
               </thead>
@@ -438,14 +436,6 @@ export default function UsersManagement() {
                             Unverified
                           </div>
                         )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="text-sm text-gray-500">
-                        {user.lastLoginAt 
-                          ? new Date(user.lastLoginAt).toLocaleDateString()
-                          : 'Never'
-                        }
                       </div>
                     </td>
                     <td className="p-3">

@@ -6,7 +6,15 @@ import { getSearchConsoleUrl } from '@/lib/dealership-property-mapping'
 
 export const dynamic = 'force-dynamic'
 
+export async function GET(req: NextRequest) {
+  return await handleFix(req)
+}
+
 export async function POST(req: NextRequest) {
+  return await handleFix(req)
+}
+
+async function handleFix(req: NextRequest) {
   // Get session from auth
   const session = await SimpleAuth.getSessionFromRequest(req)
   

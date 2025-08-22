@@ -291,18 +291,47 @@ export class DealershipDataBridge {
       }
     }
 
-    // 4. Fallback to user-level connection
+    // 4. Fallback to user-level connection (with URL validation)
     const userSC = await prisma.search_console_connections.findFirst({
       where: { userId },
       orderBy: { updatedAt: 'desc' }
     })
 
     if (userSC && userSC.accessToken && userSC.siteUrl) {
-      return {
-        hasConnection: true,
-        siteUrl: userSC.siteUrl,
-        connectionId: userSC.id,
-        source: 'user' as const
+      // ROOT FIX: Apply same URL validation to user connections
+      const expectedUrl = getSearchConsoleUrl(dealershipId)
+      
+      if (expectedUrl) {
+        // We have a mapping - ALWAYS use it, ignore user connection URL
+        if (userSC.siteUrl !== expectedUrl) {
+          logger.warn('User connection URL override - enforcing correct dealership URL', {
+            dealershipId,
+            userConnectionUrl: userSC.siteUrl,
+            correctUrl: expectedUrl,
+            connectionId: userSC.id
+          })
+        }
+        
+        return {
+          hasConnection: true,
+          siteUrl: expectedUrl, // ALWAYS use the mapped URL
+          connectionId: userSC.id,
+          source: 'user' as const
+        }
+      } else {
+        // No mapping exists - use user connection URL but warn
+        logger.warn('No URL mapping found for dealership - using user connection URL', {
+          dealershipId,
+          userConnectionUrl: userSC.siteUrl,
+          connectionId: userSC.id
+        })
+        
+        return {
+          hasConnection: true,
+          siteUrl: userSC.siteUrl,
+          connectionId: userSC.id,
+          source: 'user' as const
+        }
       }
     }
 

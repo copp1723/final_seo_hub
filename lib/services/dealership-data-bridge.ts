@@ -206,19 +206,22 @@ export class DealershipDataBridge {
       }
     }
 
-    // 2. Check dealership property mapping
-    const mappedSiteUrl = getSearchConsoleUrl(dealershipId)
-    if (mappedSiteUrl) {
-      // Need to find a connection that can access this site
-      // Look for agency or user connections with valid tokens
-      const agencyConnection = await this.findValidSearchConsoleConnection(user.agencyId, userId)
-      
-      if (agencyConnection) {
-        return {
-          hasConnection: true,
-          siteUrl: mappedSiteUrl,
-          connectionId: agencyConnection.id,
-          source: 'mapping' as const
+    // 2. DISABLED: Dealership property mapping with agency connections causes data mixing
+    // This was still using agency connections that have wrong siteUrl data
+    if (false) {
+      const mappedSiteUrl = getSearchConsoleUrl(dealershipId)
+      if (mappedSiteUrl) {
+        // Need to find a connection that can access this site
+        // Look for agency or user connections with valid tokens
+        const agencyConnection = await this.findValidSearchConsoleConnection(user.agencyId, userId)
+        
+        if (agencyConnection) {
+          return {
+            hasConnection: true,
+            siteUrl: mappedSiteUrl,
+            connectionId: agencyConnection.id,
+            source: 'mapping' as const
+          }
         }
       }
     }

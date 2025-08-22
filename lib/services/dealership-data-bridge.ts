@@ -202,56 +202,40 @@ export class DealershipDataBridge {
     })
 
     if (dealershipSC && dealershipSC.accessToken && dealershipSC.siteUrl) {
-      // VALIDATION: Check for Jay Hatfield URL contamination and exact URL mismatches
+      // ROOT FIX: ALWAYS use the correct URL for THIS dealership, never trust database URLs
       const expectedUrl = getSearchConsoleUrl(dealershipId)
-      let validatedSiteUrl = dealershipSC.siteUrl
-      let isContaminated = false
       
-      // Check for Jay Hatfield URL contamination (the root cause of data mixing)
-      const jayHatfieldUrls = [
-        'jhmofjoplin.com',
-        'jayhatfield',
-        'joplin.com',
-        'kansasmotorsports.com',
-        'jayhatfieldchevrolet.com',
-        'jayhatfieldchanute.com',
-        'jayhatfieldchevroletgmc.com'
-      ]
-      
-      const hasJayHatfieldContamination = jayHatfieldUrls.some(url => 
-        dealershipSC.siteUrl.toLowerCase().includes(url.toLowerCase())
-      )
-      
-      // Check for exact URL mismatch
-      const hasUrlMismatch = expectedUrl && dealershipSC.siteUrl !== expectedUrl
-      
-      if (hasJayHatfieldContamination || hasUrlMismatch) {
-        isContaminated = true
-        logger.warn('Search Console URL contamination detected - using correct mapping', {
-          dealershipId,
-          storedUrl: dealershipSC.siteUrl,
-          expectedUrl,
-          connectionId: dealershipSC.id,
-          contaminationType: hasJayHatfieldContamination ? 'jay_hatfield_url' : 'url_mismatch'
-        })
-        
-        if (expectedUrl) {
-          validatedSiteUrl = expectedUrl
-        } else {
-          // If no expected URL mapping exists, log it but don't break
-          logger.error('No URL mapping found for dealership with contaminated connection', {
+      if (expectedUrl) {
+        // We have a mapping - ALWAYS use it, ignore whatever is in the database
+        if (dealershipSC.siteUrl !== expectedUrl) {
+          logger.warn('Database URL override - enforcing correct dealership URL', {
             dealershipId,
-            storedUrl: dealershipSC.siteUrl,
+            databaseUrl: dealershipSC.siteUrl,
+            correctUrl: expectedUrl,
             connectionId: dealershipSC.id
           })
         }
-      }
-      
-      return {
-        hasConnection: true,
-        siteUrl: validatedSiteUrl,
-        connectionId: dealershipSC.id,
-        source: 'dealership' as const
+        
+        return {
+          hasConnection: true,
+          siteUrl: expectedUrl, // ALWAYS use the mapped URL
+          connectionId: dealershipSC.id,
+          source: 'dealership' as const
+        }
+      } else {
+        // No mapping exists - use database URL but warn
+        logger.warn('No URL mapping found for dealership - using database URL', {
+          dealershipId,
+          databaseUrl: dealershipSC.siteUrl,
+          connectionId: dealershipSC.id
+        })
+        
+        return {
+          hasConnection: true,
+          siteUrl: dealershipSC.siteUrl,
+          connectionId: dealershipSC.id,
+          source: 'dealership' as const
+        }
       }
     }
 

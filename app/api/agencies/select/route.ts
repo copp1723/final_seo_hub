@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
+import { SessionAgencyManager } from '@/lib/session-agency'
 import { z } from 'zod'
 
 export const dynamic = 'force-dynamic';
@@ -43,15 +44,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Store the selected agency in the user's session by updating their agencyId temporarily
-    // This is just for the session, not permanent assignment
-    await prisma.users.update({
-      where: { id: session.user.id },
-      data: { 
-        agencyId: agencyId,
-        dealershipId: null // Clear dealership when switching agencies
-      }
-    })
+    // Store the selected agency in session (not permanent assignment)
+    await SessionAgencyManager.setSelectedAgency(session.user.id, agencyId)
 
     return NextResponse.json({
       success: true,
@@ -103,18 +97,21 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Get current user's selected agency
-    const currentUser = await prisma.users.findUnique({
-      where: { id: session.user.id },
-      include: {
-        agencies: true
+    // Get current user's selected agency (session-based for SUPER_ADMIN)
+    const selectedAgencyId = await SessionAgencyManager.getSelectedAgency(session.user.id)
+    
+    let currentAgency = null
+    if (selectedAgencyId) {
+      const agency = await prisma.agencies.findUnique({
+        where: { id: selectedAgencyId }
+      })
+      if (agency) {
+        currentAgency = {
+          id: agency.id,
+          name: agency.name
+        }
       }
-    })
-
-    const currentAgency = currentUser?.agencies ? {
-      id: currentUser.agencies.id,
-      name: currentUser.agencies.name
-    } : null
+    }
 
     return NextResponse.json({
       agencies: agencies.map(agency => ({

@@ -16,7 +16,7 @@ interface AgencySelectorProps {
 }
 
 export function AgencySelector({ onAgencyChange }: AgencySelectorProps) {
-  const { user } = useAuth()
+  const { user, refreshSession } = useAuth()
   const [currentAgency, setCurrentAgency] = useState<Agency | null>(null)
   const [availableAgencies, setAvailableAgencies] = useState<Agency[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -119,8 +119,8 @@ export function AgencySelector({ onAgencyChange }: AgencySelectorProps) {
         onAgencyChange(selectedAgency)
       }
 
-      // Force a page refresh to reload dealership data
-      window.location.reload()
+      // Refresh session to reload dealership data
+      await refreshSession()
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to switch agency')

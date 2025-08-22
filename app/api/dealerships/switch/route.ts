@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { SimpleAuth } from '@/lib/auth-simple'
 import { prisma } from '@/lib/prisma'
+import { SessionAgencyManager } from '@/lib/session-agency'
 import { z } from 'zod'
 import { withErrorBoundary, withTimeout } from '@/lib/error-boundaries'
 import { safeDbOperation } from '@/lib/db-resilience'
@@ -36,15 +37,27 @@ export async function POST(request: NextRequest) {
       where: { id: session.user.id }
     })
 
-    // Handle super admin user - but only allow access to their agency if they have one
-    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
-      const whereClause = (currentUser?.agencyId) 
-        ? { id: dealershipId, agencyId: currentUser.agencyId } // SUPER_ADMIN with agency can only access their agency
-        : { id: dealershipId } // Only unassigned SUPER_ADMIN can access any dealership
-        
+    // Handle super admin user - use session-based agency selection
+    if (session.user.role === 'SUPER_ADMIN') {
+      // Get the currently selected agency from session
+      const effectiveAgencyId = await SessionAgencyManager.getEffectiveAgencyId(
+        session.user.id, 
+        currentUser?.agencyId || null
+      )
+      
+      if (!effectiveAgencyId) {
+        return NextResponse.json(
+          { error: 'Please select an agency first' },
+          { status: 400 }
+        )
+      }
+
       const dealership = await safeDbOperation(() => 
         prisma.dealerships.findUnique({
-          where: whereClause
+          where: { 
+            id: dealershipId, 
+            agencyId: effectiveAgencyId 
+          }
         })
       )
       
@@ -70,8 +83,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // SUPER_ADMIN users don't need an agencyId, but other users do
-    if (!currentUser?.agencyId && session.user.role !== 'SUPER_ADMIN') {
+    // Get effective agency for user (session-based for SUPER_ADMIN, permanent for others)
+    const effectiveAgencyId = await SessionAgencyManager.getEffectiveAgencyId(
+      session.user.id, 
+      currentUser?.agencyId || null
+    )
+    
+    if (!effectiveAgencyId) {
       return NextResponse.json(
         { error: 'User is not associated with an agency' },
         { status: 403 }
@@ -91,20 +109,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has access to this dealership
-    if (session.user.role !== 'SUPER_ADMIN') {
-      const hasAccess = await prisma.users.findFirst({
-        where: {
-          id: session.user.id,
-          agencyId: dealership.agencyId
-        }
-      })
-
-      if (!hasAccess) {
-        return NextResponse.json(
-          { error: 'Access denied to this dealership' },
-          { status: 403 }
-        )
-      }
+    if (dealership.agencyId !== effectiveAgencyId) {
+      return NextResponse.json(
+        { error: 'Access denied to this dealership' },
+        { status: 403 }
+      )
     }
 
     // Get previous dealership ID for event
@@ -180,10 +189,15 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Handle super admin user - require agency selection first
-    if (session.user.id === '3e50bcc8-cd3e-4773-a790-e0570de37371' || session.user.role === 'SUPER_ADMIN') {
-      // SUPER_ADMIN must select an agency first
-      if (!currentUser?.agencyId && !currentUser?.agencies?.id) {
+    // Handle super admin user - use session-based agency selection
+    if (session.user.role === 'SUPER_ADMIN') {
+      // Get the currently selected agency from session
+      const effectiveAgencyId = await SessionAgencyManager.getEffectiveAgencyId(
+        session.user.id, 
+        currentUser?.agencyId || null
+      )
+      
+      if (!effectiveAgencyId) {
         return NextResponse.json({
           currentDealership: null,
           availableDealerships: [],
@@ -193,7 +207,7 @@ export async function GET(request: NextRequest) {
         
       const dealerships = await prisma.dealerships.findMany({
         where: {
-          agencyId: currentUser?.agencyId || currentUser?.agencies?.id
+          agencyId: effectiveAgencyId
         },
         orderBy: { name: 'asc' }
       })
@@ -240,9 +254,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get all dealerships for the agency
-    // UPDATED: All users (including SUPER_ADMIN) must select an agency first
-    if (!currentUser?.agencyId && !currentUser?.agencies?.id) {
+    // Get effective agency for user (session-based for SUPER_ADMIN, permanent for others)
+    const effectiveAgencyId = await SessionAgencyManager.getEffectiveAgencyId(
+      session.user.id, 
+      currentUser?.agencyId || null
+    )
+    
+    if (!effectiveAgencyId) {
       return NextResponse.json({
         currentDealership: null,
         availableDealerships: [],
@@ -252,7 +270,7 @@ export async function GET(request: NextRequest) {
 
     const dealerships = await prisma.dealerships.findMany({
       where: {
-        agencyId: currentUser?.agencies?.id || currentUser?.agencyId
+        agencyId: effectiveAgencyId
       },
       orderBy: { name: 'asc' }
     });
@@ -295,7 +313,7 @@ export async function GET(request: NextRequest) {
       // Add validation information (safe, non-breaking addition)
       userId: session.user.id,
       userRole: session.user.role,
-      agencyId: currentUser?.agencies?.id,
+      agencyId: effectiveAgencyId,
       timestamp: Date.now()
     })
 

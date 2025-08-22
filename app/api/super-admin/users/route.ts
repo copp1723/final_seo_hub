@@ -24,7 +24,8 @@ const updateUserSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   name: z.string().min(1, 'Name is required'),
   role: z.nativeEnum(UserRole),
-  agencyId: z.string().optional()
+  agencyId: z.string().optional(),
+  dealershipId: z.string().optional()
 })
 
 // Get all users with pagination and filtering (SUPER_ADMIN only)
@@ -255,10 +256,10 @@ export const PUT = withErrorBoundary(async (request: NextRequest) => {
     }, { status: 400 })
   }
 
-  const { userId, name, role, agencyId } = validation.data
+  const { userId, name, role, agencyId, dealershipId } = validation.data
 
   // SUPER_ADMIN users should not be associated with agencies or dealerships
-  if (role === 'SUPER_ADMIN' && agencyId) {
+  if (role === 'SUPER_ADMIN' && (agencyId || dealershipId)) {
     return NextResponse.json({ 
       error: 'SUPER_ADMIN users cannot be associated with agencies or dealerships. They are system administrators.' 
     }, { status: 400 })
@@ -294,11 +295,8 @@ export const PUT = withErrorBoundary(async (request: NextRequest) => {
         name,
         role,
         agencyId: role === 'SUPER_ADMIN' ? null : (agencyId || null),
-        // Also clear dealership associations for SUPER_ADMIN
-        ...(role === 'SUPER_ADMIN' && { 
-          dealershipId: null, 
-          currentDealershipId: null 
-        }),
+        dealershipId: role === 'SUPER_ADMIN' ? null : (dealershipId || null),
+        currentDealershipId: role === 'SUPER_ADMIN' ? null : (dealershipId || null),
         updatedAt: new Date()
       },
       include: {

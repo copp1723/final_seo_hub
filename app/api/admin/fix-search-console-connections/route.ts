@@ -31,7 +31,7 @@ async function handleFix(req: NextRequest) {
         dealershipId: { not: null }
       },
       include: {
-        dealership: {
+        dealerships: {
           select: { id: true, name: true }
         }
       }
@@ -40,7 +40,7 @@ async function handleFix(req: NextRequest) {
     logger.info('Found Search Console connections to check', { count: connections.length })
 
     for (const connection of connections) {
-      if (!connection.dealershipId || !connection.dealership) continue
+      if (!connection.dealershipId || !connection.dealerships) continue
 
       const correctUrl = getSearchConsoleUrl(connection.dealershipId)
       
@@ -48,7 +48,7 @@ async function handleFix(req: NextRequest) {
         logger.info('Fixing Search Console connection URL mismatch', {
           connectionId: connection.id,
           dealershipId: connection.dealershipId,
-          dealershipName: connection.dealership.name,
+          dealershipName: connection.dealerships.name,
           currentUrl: connection.siteUrl,
           correctUrl
         })
@@ -65,7 +65,7 @@ async function handleFix(req: NextRequest) {
 
         results.push({
           dealershipId: connection.dealershipId,
-          dealershipName: connection.dealership.name,
+          dealershipName: connection.dealerships.name,
           connectionId: connection.id,
           oldUrl: connection.siteUrl,
           newUrl: correctUrl,
@@ -74,7 +74,7 @@ async function handleFix(req: NextRequest) {
       } else {
         results.push({
           dealershipId: connection.dealershipId,
-          dealershipName: connection.dealership.name,
+          dealershipName: connection.dealerships.name,
           connectionId: connection.id,
           currentUrl: connection.siteUrl,
           correctUrl,

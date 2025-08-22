@@ -379,7 +379,14 @@ export default function DashboardPage() {
                   <div className="p-2.5 bg-blue-100/50 rounded-lg">
                     <BarChart3 className="h-5 w-5 text-blue-700" />
                   </div>
-                  <h1 className="text-2xl font-semibold text-slate-900">GSEO HUB</h1>
+                  <div className="flex-1">
+                    <h1 className="text-2xl font-semibold text-slate-900">GSEO HUB</h1>
+                    {currentDealership && (
+                      <div className="text-lg font-medium text-blue-700 mt-1">
+                        {currentDealership.name}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p className="text-slate-600 text-base">
                   Welcome back! Here's what's happening with your SEO.

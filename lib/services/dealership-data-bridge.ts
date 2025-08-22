@@ -223,9 +223,9 @@ export class DealershipDataBridge {
       }
     }
 
-    // 3. Check for agency-level Search Console connection (ONLY as a fallback when dealership has no specific connection)
-    // This should NOT return random data from other dealerships in the same agency
-    if (user.agencyId) {
+    // 3. DISABLED: Agency-level fallback causes data mixing between dealerships
+    // This was causing Acura of Columbus to show Jay Hatfield data
+    if (false && user.agencyId) {
       // Look for a general agency connection (not tied to specific dealerships)
       const agencySC = await prisma.search_console_connections.findFirst({
         where: { 

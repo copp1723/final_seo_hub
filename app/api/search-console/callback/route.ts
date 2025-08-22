@@ -242,9 +242,9 @@ export async function GET(req: NextRequest) {
       dealershipId: connection?.dealershipId
     })
 
-    // Check if this is a popup-based OAuth flow
-    const { searchParams } = new URL(request.url)
-    const isPopup = searchParams.get('popup') === 'true'
+  // Check if this is a popup-based OAuth flow
+  const { searchParams } = new URL(req.url)
+  const isPopup = searchParams.get('popup') === 'true'
 
     if (isPopup) {
       return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/api/oauth/popup-callback?success=true&service=search_console`)
@@ -256,14 +256,14 @@ export async function GET(req: NextRequest) {
     // Log detailed error server-side only
     logger.error('Search Console OAuth callback error', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      userId: session.user.id,
+      userId: session?.user?.id,
       // Only include stack trace in development
       ...(process.env.NODE_ENV === 'development' && { stack: error instanceof Error ? error.stack : undefined })
     })
     
     // Return generic error message to user
     // Check if this is a popup-based OAuth flow
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(req.url)
     const isPopup = searchParams.get('popup') === 'true'
 
     if (isPopup) {

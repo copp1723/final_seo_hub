@@ -27,6 +27,7 @@ import {
 
 import ErrorBoundary from '@/components/error-boundary'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
+import { AgencySelector } from '@/components/layout/agency-selector'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 
 // Type definitions
@@ -397,6 +398,7 @@ export default function DashboardPage() {
                 )}
               </div>
               <div className="mt-6 lg:mt-0 flex items-center gap-3">
+                <AgencySelector />
                 <DealershipSelector />
                 <Select value={dateRange} onValueChange={setDateRange}>
                   <SelectTrigger className="w-40 bg-white border-slate-300">

@@ -42,6 +42,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { DealershipSelector } from '@/components/layout/dealership-selector'
+import { AgencySelector } from '@/components/layout/agency-selector'
 
 interface Request {
   id: string
@@ -607,6 +608,7 @@ export default function RequestsPageEnhanced() {
             <p className="text-gray-600 mt-2">Manage and track all your SEO requests</p>
           </div>
           <div className="flex gap-3">
+            <AgencySelector />
             <DealershipSelector />
             <Link href="/focus-request">
               <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">

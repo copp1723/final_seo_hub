@@ -202,20 +202,49 @@ export class DealershipDataBridge {
     })
 
     if (dealershipSC && dealershipSC.accessToken && dealershipSC.siteUrl) {
-      // VALIDATION: Check if the stored siteUrl matches the expected URL for this dealership
+      // VALIDATION: Check for Jay Hatfield URL contamination and exact URL mismatches
       const expectedUrl = getSearchConsoleUrl(dealershipId)
       let validatedSiteUrl = dealershipSC.siteUrl
+      let isContaminated = false
       
-      if (expectedUrl && dealershipSC.siteUrl !== expectedUrl) {
-        // The stored URL doesn't match what this dealership should have
-        // This indicates database corruption from previous hard-coded defaults
-        logger.warn('Search Console URL mismatch detected - using correct mapping', {
+      // Check for Jay Hatfield URL contamination (the root cause of data mixing)
+      const jayHatfieldUrls = [
+        'jhmofjoplin.com',
+        'jayhatfield',
+        'joplin.com',
+        'kansasmotorsports.com',
+        'jayhatfieldchevrolet.com',
+        'jayhatfieldchanute.com',
+        'jayhatfieldchevroletgmc.com'
+      ]
+      
+      const hasJayHatfieldContamination = jayHatfieldUrls.some(url => 
+        dealershipSC.siteUrl.toLowerCase().includes(url.toLowerCase())
+      )
+      
+      // Check for exact URL mismatch
+      const hasUrlMismatch = expectedUrl && dealershipSC.siteUrl !== expectedUrl
+      
+      if (hasJayHatfieldContamination || hasUrlMismatch) {
+        isContaminated = true
+        logger.warn('Search Console URL contamination detected - using correct mapping', {
           dealershipId,
           storedUrl: dealershipSC.siteUrl,
           expectedUrl,
-          connectionId: dealershipSC.id
+          connectionId: dealershipSC.id,
+          contaminationType: hasJayHatfieldContamination ? 'jay_hatfield_url' : 'url_mismatch'
         })
-        validatedSiteUrl = expectedUrl
+        
+        if (expectedUrl) {
+          validatedSiteUrl = expectedUrl
+        } else {
+          // If no expected URL mapping exists, log it but don't break
+          logger.error('No URL mapping found for dealership with contaminated connection', {
+            dealershipId,
+            storedUrl: dealershipSC.siteUrl,
+            connectionId: dealershipSC.id
+          })
+        }
       }
       
       return {

@@ -425,6 +425,19 @@ export default function UnifiedSettingsPage() {
                 </div>
               ) : user?.role === 'SUPER_ADMIN' || user?.role === 'AGENCY_ADMIN' ? (
                 <>
+                  {user?.role === 'SUPER_ADMIN' && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <Shield className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium text-blue-900">Super Admin Notice</p>
+                          <p className="text-blue-700 mt-1">
+                            GA4 and Search Console connections are agency-specific. You must connect separately for each agency you want to view data for.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -440,7 +453,12 @@ export default function UnifiedSettingsPage() {
                             )}
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-600 mt-1">Not connected</p>
+                          <div className="mt-1">
+                            <p className="text-sm text-gray-600">Not connected</p>
+                            {user?.role === 'SUPER_ADMIN' && (
+                              <p className="text-xs text-gray-500 mt-1">Connect to view analytics for the current agency</p>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="flex gap-2">
@@ -475,7 +493,12 @@ export default function UnifiedSettingsPage() {
                             )}
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-600 mt-1">Not connected</p>
+                          <div className="mt-1">
+                            <p className="text-sm text-gray-600">Not connected</p>
+                            {user?.role === 'SUPER_ADMIN' && (
+                              <p className="text-xs text-gray-500 mt-1">Connect to view search data for the current agency</p>
+                            )}
+                          </div>
                         )}
                       </div>
                       <Button

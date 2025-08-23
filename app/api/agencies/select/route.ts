@@ -44,6 +44,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get current selected agency to detect changes
+    const currentAgencyId = await SessionAgencyManager.getSelectedAgency(session.user.id)
+    
+    // Clear GA4/Search Console connections when switching to a different agency
+    if (currentAgencyId && currentAgencyId !== agencyId) {
+      try {
+        // Clear GA4 connections for the user (they'll need to reconnect for the new agency)
+        await prisma.ga4_connections.deleteMany({
+          where: { userId: session.user.id }
+        })
+        
+        // Clear Search Console connections for the user
+        await prisma.search_console_connections.deleteMany({
+          where: { userId: session.user.id }
+        })
+        
+        console.log(`[AGENCY SWITCH] Cleared integrations for user ${session.user.id} switching from agency ${currentAgencyId} to ${agencyId}`)
+      } catch (clearError) {
+        console.warn('Failed to clear integrations during agency switch (non-fatal):', clearError)
+        // Don't fail the agency switch if clearing connections fails
+      }
+    }
+
     // Store the selected agency in session (not permanent assignment)
     await SessionAgencyManager.setSelectedAgency(session.user.id, agencyId)
 
@@ -52,7 +75,9 @@ export async function POST(request: NextRequest) {
       agency: {
         id: agency.id,
         name: agency.name
-      }
+      },
+      // Indicate that connections were cleared if agency changed
+      connectionsCleared: currentAgencyId && currentAgencyId !== agencyId
     })
 
   } catch (error) {

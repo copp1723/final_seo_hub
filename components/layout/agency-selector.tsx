@@ -114,6 +114,37 @@ export function AgencySelector({ onAgencyChange }: AgencySelectorProps) {
       setCurrentAgency(selectedAgency)
       setIsOpen(false)
       
+      // Show message if integrations were cleared
+      if (data.connectionsCleared) {
+        // Create a temporary notification that will be visible to user
+        const notification = document.createElement('div')
+        notification.innerHTML = `
+          <div style="
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: #ef4444; 
+            color: white; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            font-size: 14px;
+            max-width: 400px;
+          ">
+            ⚠️ GA4/Search Console connections cleared. Please reconnect for this agency.
+          </div>
+        `
+        document.body.appendChild(notification)
+        
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification)
+          }
+        }, 5000)
+      }
+      
       // Notify parent component
       if (onAgencyChange) {
         onAgencyChange(selectedAgency)

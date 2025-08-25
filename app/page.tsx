@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 
 export default async function Home() {
-  // Redirect to sign-in page instead of dashboard to avoid middleware conflicts
-  // The middleware will handle authentication and redirect to dashboard if authenticated
-  redirect('/auth/simple-signin')
+  // Redirect to dashboard - middleware will handle auth and redirect to signin if needed
+  // This prevents the redirect loop by letting middleware handle the auth logic
+  redirect('/dashboard')
 }

@@ -337,10 +337,7 @@ export default function DashboardPage() {
     }
   }, [fetchDashboardData, fetchAnalyticsData, fetchRankingsData])
 
-  // Redirect if not authenticated
-  if (!isLoading && !user) {
-    redirect('/auth/simple-signin')
-  }
+  // Note: Authentication redirect is handled by middleware to prevent redirect loops
 
   // Show loading state
   if (isLoading) {

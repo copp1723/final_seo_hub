@@ -12,12 +12,7 @@ export default function ChatPage() {
   const { currentDealership, isLoading: dealershipLoading } = useDealership()
   const router = useRouter()
 
-  useEffect(() => {
-    if (isLoading) return
-    if (!user) {
-      router.push('/auth/simple-signin')
-    }
-  }, [user, isLoading, router])
+  // Note: Authentication redirect is handled by middleware to prevent redirect loops
 
   if (isLoading || dealershipLoading) {
     return <PageLoading />

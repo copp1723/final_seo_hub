@@ -14,12 +14,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (isLoading) return
-    if (!user) {
-      router.push('/auth/simple-signin')
-    }
-  }, [user, isLoading, router])
+  // Note: Authentication redirect is handled by middleware to prevent redirect loops
 
   if (isLoading) {
     return (

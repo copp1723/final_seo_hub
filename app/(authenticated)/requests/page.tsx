@@ -581,8 +581,8 @@ export default function RequestsPageEnhanced() {
 
   useEffect(() => {
     if (isLoading) return
+    // Note: Authentication redirect is handled by middleware to prevent redirect loops
     if (!user) {
-      router.push('/auth/simple-signin')
       return
     }
     fetchRequests()
